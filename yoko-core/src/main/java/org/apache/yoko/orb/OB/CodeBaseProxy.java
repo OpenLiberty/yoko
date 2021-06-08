@@ -67,6 +67,12 @@ public class CodeBaseProxy extends LocalObject implements CodeBase {
 
     @Override
     public FullValueDescription meta(String arg0) {
+        if (true) {
+            System.out.println("### Attempt to use codebase.meta()");
+            Error e = new Error("Attempt to use codebase.meta()");
+            e.printStackTrace();
+            throw e;
+        }
         return getCodeBase().meta(arg0);
     }
 
