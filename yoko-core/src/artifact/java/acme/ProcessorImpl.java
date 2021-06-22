@@ -50,7 +50,7 @@ public class ProcessorImpl implements Processor {
         }
     }
 
-    public <T extends Abstract> T processAbstract(T operand, UnaryOp<T> op) throws RemoteException { return process(op, operand); }
-    public <T extends Serializable> T processAny(T operand, UnaryOp<T> op) throws RemoteException { return process(op, operand); }
-    public <T extends Value> T processValue(T operand, UnaryOp<T> op) throws RemoteException { return process(op, operand); }
+    public <T extends Abstract> T processAbstract(UnaryOp<T> op, T operand) throws RemoteException { return process(op, operand); }
+    public <T extends Serializable> T processAny(UnaryOp<T> op, T operand) throws RemoteException { return process(op, operand); }
+    public <T extends Value> T processValue(UnaryOp<T> op, T operand) throws RemoteException { return process(op, operand); }
 }

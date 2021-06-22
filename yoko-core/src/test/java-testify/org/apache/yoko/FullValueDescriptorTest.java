@@ -26,6 +26,7 @@ import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.Servant;
 import testify.bus.Bus;
+import testify.io.EasyCloseable;
 import testify.jupiter.annotation.iiop.ConfigureServer;
 import testify.jupiter.annotation.iiop.ConfigureServer.BeforeServer;
 import testify.jupiter.annotation.logging.Logging;
@@ -81,8 +82,8 @@ public class FullValueDescriptorTest {
         bus.log("Converted ior to generic stub");
         stub = (Processor)PortableRemoteObject.narrow(obj, Processor.class);
         bus.log("Narrowed stub");
-        Class<? extends Widget> payloadClass = CLIENT_LOADER.loadClass("versioned.WidgetImpl");
-        bus.log("loaded VersionedImpl class for client");
+        Class<? extends Widget> payloadClass = CLIENT_LOADER.loadClass("versioned.SmallWidget");
+        bus.log("loaded widget class for client");
         payloadConstructor = payloadClass.getConstructor();
         bus.log("Got VersionedImpl constructor");
     }
@@ -93,29 +94,39 @@ public class FullValueDescriptorTest {
     @Logging("yoko.verbose.request.in")
     @Logging("yoko.verbose.marshal")
     public void testMarshallingAnAbstract() throws Exception {
-        Widget payload = payloadConstructor.newInstance();
-        Widget returned = stub.processAbstract(payload, Widget::validateAndReplace);
-        returned.validateAndReplace();
+        // Set the thread context class loader so that the return value can be unmarshalled
+        try (EasyCloseable ec = CLIENT_LOADER.setAsThreadContextClassLoader()) {
+            Widget payload = payloadConstructor.newInstance();
+            Widget returned = stub.processAbstract(Widget::validateAndReplace, payload);
+            returned.validateAndReplace();
+        }
     }
 
     @Test
     @Logging("yoko.verbose")
     public void testMarshallingAnAny() throws Exception {
-        Widget payload = payloadConstructor.newInstance();
-        Widget returned = stub.processAny(payload, Widget::validateAndReplace);
-        returned.validateAndReplace();
+        // Set the thread context class loader so that the return value can be unmarshalled
+        try (EasyCloseable ec = CLIENT_LOADER.setAsThreadContextClassLoader()) {
+            Widget payload = payloadConstructor.newInstance();
+            Widget returned = stub.processAny(Widget::validateAndReplace, payload);
+            returned.validateAndReplace();
+        }
     }
 
     @Test
     @Logging("yoko.verbose")
     public void testMarshallingAValue() throws Exception {
-        Widget payload = payloadConstructor.newInstance();
-        Widget returned = stub.processValue(payload, Widget::validateAndReplace);
-        returned.validateAndReplace();
+        // Set the thread context class loader so that the return value can be unmarshalled
+        try (EasyCloseable ec = CLIENT_LOADER.setAsThreadContextClassLoader()) {
+            Widget payload = payloadConstructor.newInstance();
+            Widget returned = stub.processValue(Widget::validateAndReplace, payload);
+            returned.validateAndReplace();
+        }
     }
 
     @Test
     public void testSerializingAValue() throws Exception {
+        // test that the validateAndReplace() methods work correctly when using normal serialization
         Widget w1 = payloadConstructor.newInstance();
         Widget w2 = SERVER_LOADER.deserializeFromBytes(serializeToBytes(w1));
         w2 = w2.validateAndReplace();

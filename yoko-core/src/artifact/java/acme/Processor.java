@@ -36,19 +36,19 @@ public interface Processor extends Remote {
      * run the provided {@link UnaryOp} on it,
      * and marshal the return value as an abstract.
      */
-    <T extends Abstract> T processAbstract(T operand, UnaryOp<T> op) throws RemoteException;
+    <T extends Abstract> T processAbstract(UnaryOp<T> op, T operand) throws RemoteException;
 
     /**
      * Marshal <code>t</code> as an Any,
      * run the provided {@link UnaryOp} on it,
      * and marshal the return value as an Any.
      */
-    <T extends Serializable> T processAny(T operand, UnaryOp<T> op) throws RemoteException;
+    <T extends Serializable> T processAny(UnaryOp<T> op, T operand) throws RemoteException;
 
     /**
      * Marshal <code>t</code> as a value type,
      * run the provided {@link UnaryOp} on it,
      * and marshal the return value as a value type.
      */
-    <T extends Value> T processValue(T operand, UnaryOp<T> op) throws RemoteException;
+    <T extends Value> T processValue(UnaryOp<T> op, T operand) throws RemoteException;
 }

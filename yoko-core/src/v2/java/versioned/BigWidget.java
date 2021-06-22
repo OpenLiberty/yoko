@@ -6,36 +6,36 @@ import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-public class WidgetImpl extends NonSerializableSuper implements Widget {
+public class BigWidget extends NonSerializableSuper implements Widget {
     private static final long serialVersionUID = 1L;
-    private String a = "a_v1";
-    private transient String b = "b_v1";
-    private String c = "c_v1";
-    private String e = "e_v1";
+    private String a = "a_v2";
+    private transient String b = "b_v2";
+    private String d = "d_v2";
+    private String e = "e_v2";
     private String f;
     private transient String g;
-    private String h;
+    private String i;
     private String j;
 
-    public WidgetImpl() {
-        f = "f_v1";
-        g = "g_v1";
-        h = "h_v1";
-        j = "j_v1";
+    public BigWidget() {
+        f = "f_v2";
+        g = "g_v2";
+        i = "i_v2";
+        j = "j_v2";
     }
-    
+
     @Override
     public Widget validateAndReplace() {
-        // check the v2 was transmitted correctly
-        assertThat(a, endsWith("v2"));
+        // check the v1 was transmitted correctly
+        assertThat(a, endsWith("v1"));
         assertThat(b, nullValue());
-        assertThat(c, nullValue());
-        assertThat(e, endsWith("v2"));
-        assertThat(f, endsWith("v2"));
+        assertThat(d, nullValue());
+        assertThat(e, endsWith("v1"));
+        assertThat(f, endsWith("v1"));
         assertThat(g, nullValue());
-        assertThat(h, nullValue());
-        assertThat(j, endsWith("v2"));
-        return new WidgetImpl();
+        assertThat(i, nullValue());
+        assertThat(j, endsWith("v1"));
+        return new BigWidget();
     }
 
     @Override
@@ -43,11 +43,11 @@ public class WidgetImpl extends NonSerializableSuper implements Widget {
         return "WidgetImpl{" +
                 "a='" + a + '\'' +
                 ", b='" + b + '\'' +
-                ", c='" + c + '\'' +
+                ", d='" + d + '\'' +
                 ", e='" + e + '\'' +
                 ", f='" + f + '\'' +
                 ", g='" + g + '\'' +
-                ", h='" + h + '\'' +
+                ", i='" + i + '\'' +
                 ", j='" + j + '\'' +
                 '}';
     }
