@@ -83,7 +83,8 @@ public class UtilImpl implements UtilDelegate {
             // worrying about whether we have imported the packages into the OSGi bundle
             candidateLoader = findFirstNonNullLoader(
                     "sun.net.spi.nameservice.dns.DNSNameService",
-                    "javax.transaction.UserTransaction");
+                    "javax.transaction.UserTransaction",
+                    "jakarta.transaction.UserTransaction");
         }
 
         // We will try to find the extension class
@@ -189,15 +190,27 @@ public class UtilImpl implements UtilDelegate {
     }
     
     private static RemoteException createRemoteException(String className, String s) {
-        RemoteException result;
+        RemoteException result = null;
         try {
             @SuppressWarnings("unchecked")
             Class<? extends RemoteException> clazz =  Util.loadClass(className, null, null);
             Constructor<? extends RemoteException> ctor = clazz.getConstructor(String.class);
             result = ctor.newInstance(s);
         } catch (Throwable t) {
-            result = new RemoteException(s);
-            result.addSuppressed(t);
+            if (className != null && className.startsWith("javax.")) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    Class<? extends RemoteException> clazz =  Util.loadClass("jakarta." + className.substring(6), null, null);
+                    Constructor<? extends RemoteException> ctor = clazz.getConstructor(String.class);
+                    result = ctor.newInstance(s);
+                } catch (Throwable t2) {
+                    // Ignored; handled below
+                }
+            }
+            if (result == null) {
+                result = new RemoteException(s);
+                result.addSuppressed(t);
+            }
         }
         return result;
     }
@@ -245,10 +258,13 @@ public class UtilImpl implements UtilDelegate {
             case "java.rmi.RemoteException":
                 return new UnknownException(rex);
             case "javax.transaction.InvalidTransactionException":
+            case "jakarta.transaction.InvalidTransactionException":
                 return new INVALID_TRANSACTION(rex.getMessage());
             case "javax.transaction.TransactionRolledbackException":
+            case "jakarta.transaction.TransactionRolledbackException":
                 return new TRANSACTION_ROLLEDBACK(rex.getMessage());
             case "javax.transaction.TransactionRequiredException":
+            case "jakarta.transaction.TransactionRequiredException":
                 return new TRANSACTION_REQUIRED(rex.getMessage());
         }
         return createSystemException(rex, fromClass.getSuperclass());
