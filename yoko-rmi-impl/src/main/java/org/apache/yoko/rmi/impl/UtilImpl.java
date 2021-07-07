@@ -22,6 +22,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -36,6 +37,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -165,40 +167,77 @@ public class UtilImpl implements UtilDelegate {
         return createRemoteException(ex, exceptionMessage);
     }
 
+    private enum TransactionExceptions {
+        REQUIRED("javax.transaction.TransactionRequiredException"),
+        ROLLED_BACK("javax.transaction.TransactionRolledbackException"),
+        INVALID("javax.transaction.InvalidTransactionException");
+
+        private final BiFunction<String,Throwable,RemoteException> builder;
+
+        TransactionExceptions(String name) {
+            BiFunction<String,Throwable,RemoteException> builder = null;
+            try {
+                builder = typeBuilder(name);
+            } catch (ClassNotFoundException | NoSuchMethodException e) {
+                try {
+                    builder = typeBuilder("jakarta." + name.substring(6));
+                } catch (ClassNotFoundException|NoSuchMethodException e2) {
+                    builder = (s,c) -> {
+                        return createVanilla(s, c, e, e2);
+                    };
+                }
+            } finally {
+                this.builder = builder;
+            }
+        }
+
+        private static RemoteException createVanilla(String s, Throwable cause, Throwable... suppressed) {
+            RemoteException re = new RemoteException(s, cause);
+            for (Throwable t: suppressed) re.addSuppressed(t);
+            return re;
+        }
+
+        private static BiFunction<String,Throwable,RemoteException> typeBuilder(String typeName)
+                throws ClassNotFoundException, NoSuchMethodException {
+            final Constructor<? extends RemoteException> constructor =
+                    Util.loadClass(typeName, null, null).getConstructor(String.class);
+            return (s,c) -> {
+                try {
+                    RemoteException re = constructor.newInstance(s);
+                    re.initCause(c);
+                    return re;
+                } catch (InvocationTargetException|InstantiationException|IllegalAccessException e) {
+                    return createVanilla(s, c, e);
+                }
+            };
+        }
+
+        RemoteException create(String s, Throwable t) {
+            return builder.apply(s, t);
+        }
+    }
+
     private RemoteException createRemoteException(SystemException sysEx, String s) {
         RemoteException result;
         try {
             throw sysEx;
         } catch (BAD_PARAM|COMM_FAILURE|MARSHAL e) {
-            result = new MarshalException(s);
+            result = new MarshalException(s, e);
         } catch (INV_OBJREF|NO_IMPLEMENT|OBJECT_NOT_EXIST e) {
             result = new NoSuchObjectException(s);
         } catch(NO_PERMISSION e) {
-            result = new AccessException(s);
+            result = new AccessException(s, e);
+            result.initCause(e);
         } catch (TRANSACTION_REQUIRED e) {
-            result = createRemoteException("javax.transaction.TransactionRequiredException", s);
+            result = TransactionExceptions.REQUIRED.create(s, e);
         } catch (TRANSACTION_ROLLEDBACK e) {
-            result = createRemoteException("javax.transaction.TransactionRolledbackException", s);
+            result = TransactionExceptions.ROLLED_BACK.create(s, e);
         } catch (INVALID_TRANSACTION e) {
-            result = createRemoteException("javax.transaction.InvalidTransactionException", s);
-        } catch (SystemException catchAll) {
-            result = new RemoteException(s);
+            result = TransactionExceptions.INVALID.create(s, e);
+        } catch (SystemException e) { // catch-all
+            result = new RemoteException(s, e);
         }
         result.detail = sysEx;
-        return result;
-    }
-    
-    private static RemoteException createRemoteException(String className, String s) {
-        RemoteException result;
-        try {
-            @SuppressWarnings("unchecked")
-            Class<? extends RemoteException> clazz =  Util.loadClass(className, null, null);
-            Constructor<? extends RemoteException> ctor = clazz.getConstructor(String.class);
-            result = ctor.newInstance(s);
-        } catch (Throwable t) {
-            result = new RemoteException(s);
-            result.addSuppressed(t);
-        }
         return result;
     }
 
@@ -245,10 +284,13 @@ public class UtilImpl implements UtilDelegate {
             case "java.rmi.RemoteException":
                 return new UnknownException(rex);
             case "javax.transaction.InvalidTransactionException":
+            case "jakarta.transaction.InvalidTransactionException":
                 return new INVALID_TRANSACTION(rex.getMessage());
             case "javax.transaction.TransactionRolledbackException":
+            case "jakarta.transaction.TransactionRolledbackException":
                 return new TRANSACTION_ROLLEDBACK(rex.getMessage());
             case "javax.transaction.TransactionRequiredException":
+            case "jakarta.transaction.TransactionRequiredException":
                 return new TRANSACTION_REQUIRED(rex.getMessage());
         }
         return createSystemException(rex, fromClass.getSuperclass());
