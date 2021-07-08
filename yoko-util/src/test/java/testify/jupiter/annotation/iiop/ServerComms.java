@@ -18,7 +18,6 @@ package testify.jupiter.annotation.iiop;
 
 import org.apache.yoko.orb.OBPortableServer.POAManager_impl;
 import org.apache.yoko.orb.OCI.IIOP.AcceptorInfo;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.platform.commons.support.ReflectionSupport;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.COMM_FAILURE;
@@ -401,11 +400,15 @@ final class ServerComms implements Serializable {
         assertClientSide();
         final String requestId = getNextRequestId();
         bus.log("Waiting for completion of " + requestId);
-        String info = bus.get(requestId);
-        bus.log(requestId + ": " + info);
-        final ServerSideException result = bus.get(Result.RESULT);
-        if (result == null) return;
-        throw wrapper.apply(result.resolve());
+        try {
+            String info = bus.get(requestId);
+            bus.log(requestId + ": " + info);
+            final ServerSideException result = bus.get(Result.RESULT);
+            if (result == null) return;
+            throw result.resolve();
+        } catch (Throwable t) {
+            throw wrapper.apply(t);
+        }
     }
 
     private <T> void completeRequest(String prefix, Consumer<T> consumer, T parameter) {
