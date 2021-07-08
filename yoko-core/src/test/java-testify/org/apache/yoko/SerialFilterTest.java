@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import test.rmi.Sample;
 import test.rmi.SampleImpl;
+import testify.jupiter.annotation.Tracing;
 import testify.jupiter.annotation.iiop.ConfigureServer;
 import testify.jupiter.annotation.iiop.ConfigureServer.ClientStub;
 
@@ -38,6 +39,7 @@ import static testify.jupiter.annotation.iiop.ConfigureServer.Separation.INTER_P
                         "maxdepth=" + SerialFilterTest.MAX_DEPTH
         }
 )
+@Tracing
 public class SerialFilterTest {
     public static final int MAX_ARR_LEN = 200;
     public static final int MAX_DEPTH = 100;
