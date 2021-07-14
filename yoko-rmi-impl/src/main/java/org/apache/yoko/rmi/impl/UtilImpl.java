@@ -1,5 +1,4 @@
-/**
- *
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  *  contributor license agreements.  See the NOTICE file distributed with
  *  this work for additional information regarding copyright ownership.
@@ -22,7 +21,6 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -37,7 +35,10 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.util.function.BiFunction;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -85,7 +86,8 @@ public class UtilImpl implements UtilDelegate {
             // worrying about whether we have imported the packages into the OSGi bundle
             candidateLoader = findFirstNonNullLoader(
                     "sun.net.spi.nameservice.dns.DNSNameService",
-                    "javax.transaction.UserTransaction");
+                    "javax.transaction.UserTransaction",
+                    "jakarta.transaction.UserTransaction");
         }
 
         // We will try to find the extension class
@@ -172,49 +174,32 @@ public class UtilImpl implements UtilDelegate {
         ROLLED_BACK("javax.transaction.TransactionRolledbackException"),
         INVALID("javax.transaction.InvalidTransactionException");
 
-        private final BiFunction<String,Throwable,RemoteException> builder;
+        private final Iterable<String> names;
 
         TransactionExceptions(String name) {
-            BiFunction<String,Throwable,RemoteException> builder = null;
-            try {
-                builder = typeBuilder(name);
-            } catch (ClassNotFoundException | NoSuchMethodException e) {
-                try {
-                    builder = typeBuilder("jakarta." + name.substring(6));
-                } catch (ClassNotFoundException|NoSuchMethodException e2) {
-                    builder = (s,c) -> {
-                        return createVanilla(s, c, e, e2);
-                    };
-                }
-            } finally {
-                this.builder = builder;
-            }
+            names = Collections.unmodifiableList(Arrays.asList(name, "jakarta." + name.substring(6)));
         }
 
-        private static RemoteException createVanilla(String s, Throwable cause, Throwable... suppressed) {
-            RemoteException re = new RemoteException(s, cause);
+        RemoteException create(String s, Throwable c) {
+            final List<Throwable> suppressed = new ArrayList<>();
+            RemoteException re;
+            for (String name: names) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    Constructor<? extends RemoteException> constructor =
+                            Util.loadClass(name, null, null).getConstructor(String.class);
+                    re = constructor.newInstance(s);
+                    re.initCause(c);
+                    return re;
+                } catch (Exception e) {
+                    suppressed.add(e);
+                }
+            }
+            re = new RemoteException(s, c);
             for (Throwable t: suppressed) re.addSuppressed(t);
             return re;
         }
 
-        private static BiFunction<String,Throwable,RemoteException> typeBuilder(String typeName)
-                throws ClassNotFoundException, NoSuchMethodException {
-            final Constructor<? extends RemoteException> constructor =
-                    Util.loadClass(typeName, null, null).getConstructor(String.class);
-            return (s,c) -> {
-                try {
-                    RemoteException re = constructor.newInstance(s);
-                    re.initCause(c);
-                    return re;
-                } catch (InvocationTargetException|InstantiationException|IllegalAccessException e) {
-                    return createVanilla(s, c, e);
-                }
-            };
-        }
-
-        RemoteException create(String s, Throwable t) {
-            return builder.apply(s, t);
-        }
     }
 
     private RemoteException createRemoteException(SystemException sysEx, String s) {
