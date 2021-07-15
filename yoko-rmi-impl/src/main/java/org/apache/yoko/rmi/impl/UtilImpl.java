@@ -210,7 +210,7 @@ public class UtilImpl implements UtilDelegate {
             result = new MarshalException(s, e);
         } catch (INV_OBJREF|NO_IMPLEMENT|OBJECT_NOT_EXIST e) {
             result = new NoSuchObjectException(s);
-            result.initCause(e);
+            result.detail = sysEx;
         } catch(NO_PERMISSION e) {
             result = new AccessException(s, e);
         } catch (TRANSACTION_REQUIRED e) {
@@ -222,7 +222,6 @@ public class UtilImpl implements UtilDelegate {
         } catch (SystemException e) { // catch-all
             result = new RemoteException(s, e);
         }
-        result.detail = sysEx;
         return result;
     }
 
