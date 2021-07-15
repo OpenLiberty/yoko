@@ -210,9 +210,9 @@ public class UtilImpl implements UtilDelegate {
             result = new MarshalException(s, e);
         } catch (INV_OBJREF|NO_IMPLEMENT|OBJECT_NOT_EXIST e) {
             result = new NoSuchObjectException(s);
+            result.initCause(e);
         } catch(NO_PERMISSION e) {
             result = new AccessException(s, e);
-            result.initCause(e);
         } catch (TRANSACTION_REQUIRED e) {
             result = TransactionExceptions.REQUIRED.create(s, e);
         } catch (TRANSACTION_ROLLEDBACK e) {
