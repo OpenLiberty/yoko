@@ -189,7 +189,7 @@ public class UtilImpl implements UtilDelegate {
                     Constructor<? extends RemoteException> constructor =
                             Util.loadClass(name, null, null).getConstructor(String.class);
                     re = constructor.newInstance(s);
-                    re.initCause(c);
+                    re.detail = c;
                     return re;
                 } catch (Exception e) {
                     suppressed.add(e);
