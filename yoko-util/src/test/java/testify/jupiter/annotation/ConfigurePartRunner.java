@@ -18,7 +18,9 @@ package testify.jupiter.annotation;
 
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.junit.jupiter.api.extension.ParameterContext;
+import testify.jupiter.annotation.ConfigurePartRunner.Extension;
 import testify.jupiter.annotation.impl.SimpleParameterResolver;
 import testify.parts.PartRunner;
 
@@ -27,19 +29,34 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import static testify.jupiter.annotation.impl.PartRunnerSteward.getPartRunner;
+import static testify.jupiter.annotation.impl.TracingSteward.addTraceSettings;
 
-@ExtendWith(PartRunnerExtension.class)
+@ExtendWith(Extension.class)
 @Target({ElementType.ANNOTATION_TYPE, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ConfigurePartRunner {}
+public @interface ConfigurePartRunner {
+    class Extension implements SimpleParameterResolver<PartRunner> {
+        @Override
+        public boolean supportsParameter(ParameterContext ctx) {
+            return ctx.getParameter().getType() == PartRunner.class;
+        }
 
-class PartRunnerExtension implements SimpleParameterResolver<PartRunner> {
-    @Override
-    public boolean supportsParameter(ParameterContext ctx)  { return ctx.getParameter().getType() == PartRunner.class; }
-    @Override
-    // get the configured PartRunner for the context,
-    // but if the context has a test method, use its parent instead
-    // i.e. get an ORB for the test class, not for each test method
-    public PartRunner resolveParameter(ExtensionContext ctx) { return getPartRunner(ctx.getTestMethod().flatMap(m -> ctx.getParent()).orElse(ctx)); }
+        @Override
+        // get the configured PartRunner for the test class
+        public PartRunner resolveParameter(ExtensionContext ctx) {
+            return getPartRunner(ctx);
+        }
+
+        public static PartRunner getPartRunner(ExtensionContext ctx) {
+            // use a ref to hold the runner and allow automatic cleanup
+            class Ref implements CloseableResource {
+                final PartRunner runner = PartRunner.create();
+                Ref(Class<PartRunner> c) { addTraceSettings(runner, ctx.getRequiredTestClass()); }
+                public void close() { runner.join(); }
+            }
+            Ref ref = (Ref) TestifyStore.get(ctx.getRoot()).getOrComputeIfAbsent(PartRunner.class, Ref::new);
+            return ref.runner;
+        }
+    }
 }
+

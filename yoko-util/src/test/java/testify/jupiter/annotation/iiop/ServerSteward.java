@@ -37,7 +37,7 @@ import static testify.jupiter.annotation.iiop.ConfigureServer.Separation.COLLOCA
 import static testify.jupiter.annotation.iiop.ConfigureServer.Separation.INTER_PROCESS;
 import static testify.jupiter.annotation.iiop.OrbSteward.args;
 import static testify.jupiter.annotation.iiop.OrbSteward.props;
-import static testify.jupiter.annotation.impl.PartRunnerSteward.getPartRunner;
+import static testify.jupiter.annotation.ConfigurePartRunner.Extension.getPartRunner;
 import static testify.util.Reflect.setStaticField;
 
 class ServerSteward {
