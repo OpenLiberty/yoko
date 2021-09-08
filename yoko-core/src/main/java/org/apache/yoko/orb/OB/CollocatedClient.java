@@ -88,6 +88,7 @@ final public class CollocatedClient extends Client implements DowncallEmitter {
     //
     public DowncallEmitter startDowncall(Downcall down, OutputStreamHolder out) {
         out.value = new OutputStream();
+        down.addToRequestContexts(SendingContextRuntimes.SENDING_CONTEXT_RUNTIME);
         return this;
     }
 

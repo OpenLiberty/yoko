@@ -225,6 +225,8 @@ final public class CollocatedServer extends Server implements UpcallReturn {
                 return true;
             }
 
+            final InputStream in = new InputStream(out.getBufferReader());
+            in.__setSendingContextRuntime(Util.getSendingContextRuntime(down.orbInstance(), down.getRequestContexts()));
             if (down.responseExpected()) {
                 //
                 // Put the Downcall in the call map
@@ -237,7 +239,7 @@ final public class CollocatedServer extends Server implements UpcallReturn {
                 down.setPending();
 
                 up = oaInterface_.createUpcall(this, profileInfo, null, reqId,
-                        op, new InputStream(out.getBufferReader()), requestContexts);
+                        op, in, requestContexts);
             } else {
                 //
                 // This is a oneway call, and if there was no exception so
@@ -246,7 +248,7 @@ final public class CollocatedServer extends Server implements UpcallReturn {
                 down.setNoException(null);
 
                 up = oaInterface_.createUpcall(null, profileInfo, null, reqId,
-                        op, new InputStream(out.getBufferReader()), requestContexts);
+                        op, in, requestContexts);
             }
         }
 
@@ -327,6 +329,7 @@ final public class CollocatedServer extends Server implements UpcallReturn {
         if (down == null) return ; // Might be null if the request timed out
         OutputStream out = upcall.output();
         InputStream in = new InputStream(out.getBufferReader());
+        in.__setSendingContextRuntime(Util.getSendingContextRuntime(upcall.orbInstance(), upcall.replyContexts));
         down.setNoException(in);
         callMap_.remove(down.requestId());
     }
@@ -348,6 +351,7 @@ final public class CollocatedServer extends Server implements UpcallReturn {
         if (down == null) return;
         OutputStream out = upcall.output();
         InputStream in = new InputStream(out.getBufferReader());
+        in.__setSendingContextRuntime(Util.getSendingContextRuntime(upcall.orbInstance(), upcall.replyContexts));
         down.setUserException(in);
         callMap_.remove(down.requestId());
     }
@@ -394,11 +398,7 @@ final public class CollocatedServer extends Server implements UpcallReturn {
         }
     }
 
-    /**
-     * no need to send code set and code base service contexts to ourselves
-     * @return
-     */
     public boolean replySent() {
-        return true;
+        return false;
     }
 }
