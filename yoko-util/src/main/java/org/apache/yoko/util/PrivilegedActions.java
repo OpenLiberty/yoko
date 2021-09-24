@@ -17,10 +17,12 @@
 package org.apache.yoko.util;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.security.PrivilegedAction;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 public enum PrivilegedActions {
     ;
@@ -48,4 +50,26 @@ public enum PrivilegedActions {
             }
         };
     }
+
+    public static final PrivilegedAction<Method> getMethod(Class<?> type, String name, Class<?>...parameterTypes) {
+        return () -> {
+            try {
+                return type.getMethod(name, parameterTypes);
+            } catch (NoSuchMethodException e) {
+                throw new RuntimeException("Unexpected exception: " + e.getMessage(), e);
+            }
+        };
+    }
+
+    public static final PrivilegedAction<Method> getDeclaredMethod(Class<?> type, String name, Class<?>...parameterTypes) {
+        return () -> {
+            try {
+                return type.getDeclaredMethod(name, parameterTypes);
+            } catch (NoSuchMethodException e) {
+                throw new RuntimeException("Unexpected exception: " + e.getMessage(), e);
+            }
+        };
+    }
+
+    public static final <T> PrivilegedAction<T> action(Supplier<T> supplier) { return supplier::get; }
 }

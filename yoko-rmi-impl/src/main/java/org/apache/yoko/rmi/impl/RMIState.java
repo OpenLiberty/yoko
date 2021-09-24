@@ -23,6 +23,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.security.AccessController;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -37,6 +38,7 @@ import javax.rmi.PortableRemoteObject;
 import org.apache.yoko.rmi.api.PortableRemoteObjectExt;
 import org.apache.yoko.rmi.api.PortableRemoteObjectState;
 import org.apache.yoko.rmi.util.NoDeleteSynchronizedMap;
+import org.apache.yoko.util.PrivilegedActions;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.Policy;
 import org.omg.CORBA.ORBPackage.InvalidName;
@@ -44,6 +46,10 @@ import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 import org.omg.PortableServer.POAPackage.AdapterAlreadyExists;
 import org.omg.PortableServer.POAPackage.InvalidPolicy;
+
+import static java.security.AccessController.doPrivileged;
+import static java.util.Collections.synchronizedMap;
+import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
 
 public class RMIState implements PortableRemoteObjectState {
     static final Logger logger = Logger.getLogger(RMIState.class.getName());
@@ -147,7 +153,7 @@ public class RMIState implements PortableRemoteObjectState {
     //
     // data for use in UtilImpl
     //
-    Map<Remote, Tie> tie_map = java.util.Collections.synchronizedMap(new IdentityHashMap<Remote, Tie>());
+    Map<Remote, Tie> tie_map = synchronizedMap(new IdentityHashMap<Remote, Tie>());
 
     private Map<Class<?>, StaticStubEntry> static_stub_map = new NoDeleteSynchronizedMap<>();
 
@@ -243,7 +249,7 @@ public class RMIState implements PortableRemoteObjectState {
 
     private <S extends Stub> Constructor<S> findConstructor(String codebase, String stubName) {
         try {
-            Class<S> stubClass = (Class<S>) Util.loadClass(stubName, codebase, getClassLoader());
+            Class<S> stubClass = (Class<S>) Util.loadClass(stubName, codebase, doPrivileged(GET_CONTEXT_CLASS_LOADER));
             return stubClass.getConstructor();
 
         } catch (NoSuchMethodException ex) {
