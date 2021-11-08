@@ -25,6 +25,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Optional;
 
 public enum ProviderLocator {;
     static private ProviderRegistry registry;
@@ -43,17 +44,9 @@ public enum ProviderLocator {;
      *         loaded.
      */
     static public Class<?> locate(String providerId) {
-        ProviderRegistry registry = getRegistry();
-        // if no registry service available, this is a failure
-        if (registry == null) {
-            return null;
-        }
-        // get the service, if it exists.  NB, if there is a service object,
-        // then the extender and the interface class are available, so this cast should be
-        // safe now.
-
-        // the rest of the work is done by the registry
-        return registry.locate(providerId);
+        return getRegistry()
+                .map(r -> r.locate(providerId))
+                .orElse(null);
     }
 
     /**
@@ -106,13 +99,13 @@ public enum ProviderLocator {;
         // if we are working in an OSGi environment, then process the service
         // registry first.  Ideally, we would do this last, but because of boot delegation
         // issues with some API implementations, we must try the OSGi version first
-        Object registry = getRegistry();
+        ProviderRegistry registry = getRegistry().orElse(null); // TODO: use Optional throughout
         if (registry != null) {
             // get the service, if it exists.  NB, if there is a service object,
             // then the extender and the interface class are available, so this cast should be
             // safe now.
             // the rest of the work is done by the registry
-            Object service = ((ProviderRegistry)registry).getService(iface);
+            Object service = registry.getService(iface);
             if (service != null) {
                 return service;
             }
@@ -151,14 +144,14 @@ public enum ProviderLocator {;
         // if we are working in an OSGi environment, then process the service
         // registry first.  Ideally, we would do this last, but because of boot delegation
         // issues with some API implementations, we must try the OSGi version first
-        Object registry = getRegistry();
+        ProviderRegistry registry = getRegistry().orElse(null); // TODO: use Optional throughout
         if (registry != null) {
             // get the service, if it exists.  NB, if there is a service object,
             // then the extender and the interface class are available, so this cast should be
             // safe now.
 
             // If we've located stuff in the registry, then return it
-            Class<T> cls = ((ProviderRegistry)registry).getServiceClass(iface);
+            Class<T> cls = registry.getServiceClass(iface);
             if (cls != null) {
                 return cls;
             }
@@ -167,6 +160,15 @@ public enum ProviderLocator {;
         // try for a classpath locatable instance first.  If we find an appropriate class mapping,
         // create an instance and return it.
         return locateServiceClass(iface, contextClass, loader);
+    }
+
+    /**
+     * Test whether a class loader is associated with a provided service.
+     */
+    public static boolean isServiceClassLoader(ClassLoader loader) {
+        return getRegistry()
+                .map(r -> r.isServiceClassLoader(loader))
+                .orElse(false);
     }
 
 
@@ -220,7 +222,6 @@ public enum ProviderLocator {;
             loader = contextClass.getClassLoader();
             name = locateServiceClassName(iface, loader);
         }
-
         return name == null ? null : loadClass(name, contextClass, loader);
     }
 
@@ -272,14 +273,7 @@ public enum ProviderLocator {;
     }
 
 
-    /**
-     * Retrieve the registry from the tracker if it is available,
-     * all without causing the interface class to load.
-     *
-     * @return The registry service instance, or null if it is not
-     *         available for any reason.
-     */
-    private static ProviderRegistry getRegistry() {
-        return registry;
+    private static Optional<ProviderRegistry> getRegistry() {
+        return Optional.ofNullable(registry);
     }
 }

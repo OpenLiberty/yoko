@@ -35,13 +35,13 @@ public class PackageProvider {
         this.packages = Collections.unmodifiableSet(new TreeSet<>(Arrays.asList(pkgs)));
     }
 
-    public Class<?> loadClass(String className) {
+    public <T> Class<T> loadClass(String className) {
         if (fromUnregisteredPackage(className)) {
             if (log.isLoggable(Level.FINEST)) log.finest("WILL NOT LOAD class " + className + " from unregistered package");
             return null;
         }
         try {
-            return localFactory.forName(className);
+            return (Class<T>) localFactory.forName(className);
         } catch (ClassNotFoundException e) {
             if (log.isLoggable(Level.FINE)) log.fine("CAN NOT LOAD class " + className + " from registered package");
         }
