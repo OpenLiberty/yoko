@@ -48,6 +48,7 @@ import java.lang.reflect.Array;
 import java.security.PrivilegedActionException;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 
 import static java.lang.Boolean.getBoolean;
@@ -196,7 +197,7 @@ public final class ValueReader {
             Assert.ensure((h.tag >= 0x7fffff00) && (h.tag != -1));
 
             if (h.isRMIValue()) {
-                return reader_.readRMIValue(h, h.ids[0]);
+                return reader_.readRMIValue(h, h.ids[0], clz_);
             }
 
             try {
@@ -900,7 +901,8 @@ public final class ValueReader {
         headerTable_ = new Hashtable<>(131);
     }
 
-    private Serializable readRMIValue(Header h, String repid) {
+    private Serializable readRMIValue(Header h, String repid) { return readRMIValue(h, repid, null); }
+    private Serializable readRMIValue(Header h, String repid, Class<?> declaredType) {
         if (repid == null) {
             repid = h.ids[0];
             if (repid == null) throw new MARSHAL("missing repository id");
@@ -909,11 +911,13 @@ public final class ValueReader {
         if (MARSHAL_LOG.isLoggable(FINE)) MARSHAL_LOG.fine(String.format("Reading RMI value of type \"%s\"", repid));
         if (valueHandler == null) valueHandler = javax.rmi.CORBA.Util.createValueHandler();
 
-        final String className = RepIds.query(repid).toClassName();
+        final String repoClassName = RepIds.query(repid).toClassName();
 
-        Class repoClass = resolveRepoClass(className);
+        Class<?> repoClass = Optional.ofNullable(declaredType)
+                .filter(type -> type.getName().equals(repoClassName))
+                .orElseGet(() -> resolveRepoClass(repoClassName));
 
-        if (repoClass == null) throw new MARSHAL("class " + className + " not found");
+        if (repoClass == null) throw new MARSHAL("class " + repoClassName + " not found");
 
         if (remoteCodeBase == null) remoteCodeBase = in_.__getSendingContextRuntime();
 
@@ -925,12 +929,12 @@ public final class ValueReader {
         }
     }
 
-    private static Class resolveRepoClass(String name) {
+    private static <T> Class<T> resolveRepoClass(String name) {
         if (MARSHAL_LOG.isLoggable(FINE)) MARSHAL_LOG.fine(String.format("Attempting to resolve class \"%s\"", name));
         return name.startsWith("[") ? resolveArrayClass(name) : resolveClass(name);
     }
 
-    private static Class<?> resolveArrayClass(String name) {
+    private static <T> Class<T> resolveArrayClass(String name) {
         int levels = 1 + name.lastIndexOf('[');
 
         Class elementClass = null;
@@ -954,14 +958,14 @@ public final class ValueReader {
         // Until Java 12, there is no good way to get an array class for a known element class.
         // Instead, create a zero-length n-dimensional array and return its class.
         switch (levels) {
-        case 1: return Array.newInstance(elementClass, 0).getClass();
-        case 2: return Array.newInstance(elementClass, 0, 0).getClass();
-        case 3: return Array.newInstance(elementClass, 0, 0, 0).getClass();
-        default: return Array.newInstance(elementClass, new int[levels]).getClass();
+        case 1: return (Class<T>) Array.newInstance(elementClass, 0).getClass();
+        case 2: return (Class<T>) Array.newInstance(elementClass, 0, 0).getClass();
+        case 3: return (Class<T>) Array.newInstance(elementClass, 0, 0, 0).getClass();
+        default: return (Class<T>) Array.newInstance(elementClass, new int[levels]).getClass();
         }
     }
 
-    private static Class resolveClass(String name) {
+    private static <T> Class<T> resolveClass(String name) {
         try {
             return javax.rmi.CORBA.Util.loadClass(name, null, doPrivileged(GET_CONTEXT_CLASS_LOADER));
         } catch (ClassNotFoundException ex) {
