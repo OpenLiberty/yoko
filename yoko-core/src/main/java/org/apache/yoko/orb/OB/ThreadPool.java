@@ -17,9 +17,10 @@
 
 package org.apache.yoko.orb.OB;
 
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.util.Assert;
 
-final class ThreadPool {
+final class ThreadPool implements Finalizer {
     private boolean destroy_ = false; // True if destroy was called
 
     private java.util.Vector requests_ = new java.util.Vector();

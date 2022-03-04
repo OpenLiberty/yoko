@@ -17,6 +17,7 @@
 
 package org.apache.yoko.orb.OBPortableServer;
 
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.orb.PortableServer.PoaCurrentImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.MinorCodes;
@@ -76,7 +77,7 @@ class DirectSeqEntry {
 //
 // If USE_ACTIVE_OBJECT_MAP_ONLY this strategy is used
 //
-class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
+class ActiveObjectOnlyStrategy implements ServantLocationStrategy, Finalizer {
     //
     // The AOM
     //

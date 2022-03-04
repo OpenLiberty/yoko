@@ -17,6 +17,7 @@
 
 package org.apache.yoko.orb.OCI.IIOP;
 
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.orb.exceptions.Transients;
 import org.apache.yoko.util.MinorCodes;
 import org.apache.yoko.orb.OB.Net;
@@ -53,7 +54,7 @@ import static org.apache.yoko.logging.VerboseLogging.logged;
 import static org.apache.yoko.logging.VerboseLogging.wrapped;
 import static org.apache.yoko.util.HexConverter.octetsToAscii;
 
-final class Connector_impl extends org.omg.CORBA.LocalObject implements Connector {
+final class Connector_impl extends org.omg.CORBA.LocalObject implements Connector, Finalizer {
     static final Logger logger = Logger.getLogger(Connector_impl.class.getName());
 
     private final IOR ior_;    // the target IOR we're connecting with

@@ -18,6 +18,7 @@
 package org.apache.yoko.orb.OCI.IIOP;
 
 import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OBPortableServer.POAPolicies;
 import org.apache.yoko.orb.OCI.Acceptor;
@@ -65,7 +66,7 @@ import static org.apache.yoko.logging.VerboseLogging.CONN_IN_LOG;
 import static org.apache.yoko.logging.VerboseLogging.logged;
 import static org.apache.yoko.logging.VerboseLogging.wrapped;
 
-final class Acceptor_impl extends LocalObject implements Acceptor {
+final class Acceptor_impl extends LocalObject implements Acceptor, Finalizer {
     enum ProfileCardinality { ZERO, ONE, MANY }
 
     // Some data members must not be private because the info object must be able to access them

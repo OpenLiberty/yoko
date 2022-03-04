@@ -19,6 +19,7 @@ package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.orb.OCI.ConnectorInfo;
@@ -82,7 +83,7 @@ import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 //
 // DowncallStub is equivalent to the C++ class OB::MarshalStubImpl
 //
-public final class DowncallStub {
+public final class DowncallStub implements Finalizer {
     static final Logger logger = Logger.getLogger(DowncallStub.class.getName());
     //
     // The ORBInstance object

@@ -17,6 +17,7 @@
 
 package org.apache.yoko.orb.OB;
 
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.orb.OCI.Acceptor;
 import org.apache.yoko.util.Assert;
 
@@ -28,7 +29,7 @@ import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.CLOSED;
 import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.HOLDING;
 import static org.apache.yoko.logging.VerboseLogging.CONN_IN_LOG;
 
-abstract class GIOPServerStarter {
+abstract class GIOPServerStarter implements Finalizer {
     static final Logger logger = Logger.getLogger(GIOPServerStarter.class.getName());
     
     protected final ORBInstance orbInstance_; // The ORBInstance

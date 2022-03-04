@@ -17,6 +17,7 @@
 
 package org.apache.yoko.orb.OB;
 
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.orb.OBPortableServer.POAManagerFactory;
 import org.apache.yoko.orb.OCI.AccFactoryRegistry;
 import org.apache.yoko.orb.OCI.ConFactoryRegistry;
@@ -37,7 +38,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public final class ORBInstance {
+public final class ORBInstance implements Finalizer {
     private final Cache<ConnectorInfo, GIOPConnection> outboundConnectionCache = new WeakCountedCache<>(GIOPConnection::destroy, 0, 100);
 
     private final ORB orb;

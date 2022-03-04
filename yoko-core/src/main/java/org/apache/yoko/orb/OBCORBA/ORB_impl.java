@@ -29,6 +29,7 @@ import org.apache.yoko.orb.CORBA.ORBSingleton;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.CORBA.PolicyMap;
 import org.apache.yoko.orb.DynamicAny.DynAnyFactory_impl;
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.orb.IOP.CodecFactory_impl;
 import org.apache.yoko.orb.Messaging.RebindPolicy_impl;
 import org.apache.yoko.orb.Messaging.SyncScopePolicy_impl;
@@ -210,7 +211,7 @@ import static org.apache.yoko.util.PrivilegedActions.GET_SYSPROPS_OR_EMPTY_MAP;
 import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
 
 // This class must be public and not final
-public class ORB_impl extends ORBSingleton {
+public class ORB_impl extends ORBSingleton implements Finalizer {
     // All registered ORBInitializers
     private final Map<String, ORBInitializer> initializers = new Hashtable<>();
 

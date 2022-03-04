@@ -18,6 +18,7 @@
 package org.apache.yoko.orb.OCI.IIOP;
 
 import org.apache.yoko.giop.MessageType;
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.orb.OCI.Acceptor;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
@@ -45,7 +46,7 @@ import static org.apache.yoko.util.MinorCodes.describeCommFailure;
 import static org.apache.yoko.orb.OCI.IIOP.Exceptions.asCommFailure;
 import static org.apache.yoko.orb.OCI.SendReceiveMode.SendReceive;
 
-final public class Transport_impl extends LocalObject implements Transport {
+final public class Transport_impl extends LocalObject implements Transport, Finalizer {
     // This data member must not be private because the info object
     // must be able to access it
     public final Socket socket_; // The socket

@@ -17,9 +17,10 @@
 
 package org.apache.yoko.orb.OBPortableServer;
 
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.util.Assert;
 
-public class DirectServant extends org.omg.CORBA.portable.ServantObject {
+public class DirectServant extends org.omg.CORBA.portable.ServantObject implements Finalizer {
     //
     // The POA
     //

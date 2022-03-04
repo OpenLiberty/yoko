@@ -17,6 +17,7 @@
 
 package org.apache.yoko.orb.OB;
 
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.orb.OBPortableServer.POAManager;
 import org.apache.yoko.orb.OBPortableServer.POAManagerFactory;
 import org.apache.yoko.orb.OBPortableServer.POAManager_impl;
@@ -50,7 +51,7 @@ import java.util.logging.Logger;
 import static java.util.Collections.synchronizedSet;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
-public final class ClientManager {
+public final class ClientManager implements Finalizer {
     static final Logger logger = Logger.getLogger(ClientManager.class.getName());
     private boolean destroyed; // True if destroy() was called
 

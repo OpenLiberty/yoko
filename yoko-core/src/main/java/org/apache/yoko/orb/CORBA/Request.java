@@ -17,6 +17,7 @@
 
 package org.apache.yoko.orb.CORBA;
 
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.orb.OB.Logger;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.MinorCodes;
@@ -24,7 +25,7 @@ import org.apache.yoko.util.MinorCodes;
 //
 // This class must be public - see org.apache.yoko.orb.OB.MutliRequestSender
 //
-final public class Request extends org.omg.CORBA.Request {
+final public class Request extends org.omg.CORBA.Request implements Finalizer {
     private org.omg.CORBA.Object target_;
 
     private String operation_;

@@ -17,12 +17,13 @@
 
 package org.apache.yoko.orb.OB;
 
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.orb.OB.GIOPServerStarter.ServerState;
 import org.apache.yoko.util.Assert;
 
 import java.util.logging.Logger;
 
-final class GIOPServer extends Server {
+final class GIOPServer extends Server implements Finalizer {
     static final Logger logger = Logger.getLogger(GIOPServer.class.getName());
     protected ORBInstance orbInstance_; // The ORB Instance
 

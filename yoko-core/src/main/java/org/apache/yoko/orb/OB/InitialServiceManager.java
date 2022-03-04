@@ -17,12 +17,13 @@
 
 package org.apache.yoko.orb.OB;
 
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.MinorCodes;
 
 import java.util.logging.Logger;
 
-public final class InitialServiceManager {
+public final class InitialServiceManager implements Finalizer {
     static final Logger logger = Logger.getLogger(InitialServiceManager.class.getName());
     
     //

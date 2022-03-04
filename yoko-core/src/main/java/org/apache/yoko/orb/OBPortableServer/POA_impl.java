@@ -19,6 +19,7 @@ package org.apache.yoko.orb.OBPortableServer;
 
 import org.apache.yoko.orb.CORBA.Delegate;
 import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OB.DispatchRequest_impl;
 import org.apache.yoko.orb.OB.DispatchStrategy;
@@ -148,7 +149,7 @@ import static org.omg.PortableServer.RequestProcessingPolicyValue.USE_DEFAULT_SE
 import static org.omg.PortableServer.ServantRetentionPolicyValue.RETAIN;
 import static org.omg.PortableServer.ThreadPolicyValue.ORB_CTRL_MODEL;
 
-final public class POA_impl extends LocalObject implements POA {
+final public class POA_impl extends LocalObject implements POA, Finalizer {
     static final Logger logger = Logger.getLogger(POA_impl.class.getName());
     private org.omg.CORBA.ORB orb_;
     private final ORBInstance orbInstance_;

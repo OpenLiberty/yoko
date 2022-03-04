@@ -17,6 +17,7 @@
 
 package org.apache.yoko.orb.CORBA;
 
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.orb.OB.ClientManager;
 import org.apache.yoko.orb.OB.DowncallStub;
 import org.apache.yoko.orb.OB.FailureException;
@@ -73,7 +74,7 @@ import static org.apache.yoko.util.MinorCodes.describeInvPolicy;
 import static org.apache.yoko.util.PrivilegedActions.getClassLoader;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
-public final class Delegate extends org.omg.CORBA_2_4.portable.Delegate {
+public final class Delegate extends org.omg.CORBA_2_4.portable.Delegate implements Finalizer {
     private static final Logger logger = Logger.getLogger(Delegate.class.getName());
     private static final Policy[] EMPTY_POLICY_ARRAY = new Policy[0];
     private final ORBInstance orbInstance;

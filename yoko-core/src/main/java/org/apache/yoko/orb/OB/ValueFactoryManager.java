@@ -19,6 +19,7 @@ package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.orb.CORBA.StringValueFactory;
 import org.apache.yoko.orb.CORBA.WStringValueFactory;
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.cmsf.RepIds;
 import org.omg.CORBA.BAD_PARAM;
@@ -40,7 +41,7 @@ import static org.apache.yoko.util.MinorCodes.describeInitialize;
 import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
-public final class ValueFactoryManager {
+public final class ValueFactoryManager implements Finalizer {
     static final Logger logger = Logger.getLogger(ValueFactoryManager.class.getName());
     //
     // The set of registered valuetype factories

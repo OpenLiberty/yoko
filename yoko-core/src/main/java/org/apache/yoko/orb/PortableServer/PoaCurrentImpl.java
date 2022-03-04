@@ -16,6 +16,7 @@
  */
 package org.apache.yoko.orb.PortableServer;
 
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.util.Assert;
 
 final class CurrentState {
@@ -32,8 +33,7 @@ final class CurrentState {
     CurrentState next;
 }
 
-final public class PoaCurrentImpl extends org.omg.CORBA.LocalObject implements
-        org.omg.PortableServer.Current {
+final public class PoaCurrentImpl extends org.omg.CORBA.LocalObject implements org.omg.PortableServer.Current, Finalizer {
     private java.util.Hashtable stateKey_ = new java.util.Hashtable();
 
     public PoaCurrentImpl() {

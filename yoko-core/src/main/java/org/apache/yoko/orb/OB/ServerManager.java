@@ -17,11 +17,12 @@
 
 package org.apache.yoko.orb.OB;
 
+import org.apache.yoko.orb.Finalizer;
 import org.apache.yoko.util.Assert;
 
 import java.util.logging.Logger;
 
-public final class ServerManager {
+public final class ServerManager implements Finalizer {
     static final Logger logger = Logger.getLogger(ServerManager.class.getName());
     
     private boolean destroy_; // if destroy() was called
