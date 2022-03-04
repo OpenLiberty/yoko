@@ -16,14 +16,14 @@ import org.omg.IOP.TaggedComponent;
 import org.omg.IOP.TaggedProfile;
 import testify.hex.HexParser;
 
-import static org.mockito.ArgumentMatchers.any;
-import static testify.hex.HexBuilder.buildHex;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayWithSize;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
+import static testify.hex.HexBuilder.buildHex;
 
 public class ConFactoryTest {
     private static final int TAG_UNKNOWN = -1;
@@ -68,6 +68,7 @@ public class ConFactoryTest {
         this.connectors = null;
         this.connectorsDesc = null;
         when(mockHelper.tags()).thenReturn(new int[]{TAG_CSI_SEC_MECH_LIST.value});
+        when(mockHelper.getUnifiedConnectionHelper()).thenCallRealMethod();
         this.impl = new ConFactory_impl(orb, true, lm, mockHelper.getUnifiedConnectionHelper());
     }
 
