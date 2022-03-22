@@ -72,8 +72,10 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import static java.security.AccessController.doPrivileged;
+import static java.util.Arrays.binarySearch;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
 
 public final class Util {
@@ -247,80 +249,49 @@ public final class Util {
         out.write_ulong(ex.completed.value());
     }
 
-    private static final String[] sysExClassNames_ = {"org.omg.CORBA.BAD_CONTEXT",
-            "org.omg.CORBA.BAD_INV_ORDER", "org.omg.CORBA.BAD_OPERATION",
-            "org.omg.CORBA.BAD_PARAM", "org.omg.CORBA.BAD_QOS",
-            "org.omg.CORBA.BAD_TYPECODE", "org.omg.CORBA.CODESET_INCOMPATIBLE",
-            "org.omg.CORBA.COMM_FAILURE", "org.omg.CORBA.DATA_CONVERSION",
-            "org.omg.CORBA.FREE_MEM", "org.omg.CORBA.IMP_LIMIT",
-            "org.omg.CORBA.INITIALIZE", "org.omg.CORBA.INTERNAL",
-            "org.omg.CORBA.INTF_REPOS", "org.omg.CORBA.INVALID_TRANSACTION",
-            "org.omg.CORBA.INV_FLAG", "org.omg.CORBA.INV_IDENT",
-            "org.omg.CORBA.INV_OBJREF", "org.omg.CORBA.INV_POLICY",
-            "org.omg.CORBA.MARSHAL", "org.omg.CORBA.NO_IMPLEMENT",
-            "org.omg.CORBA.NO_MEMORY", "org.omg.CORBA.NO_PERMISSION",
-            "org.omg.CORBA.NO_RESOURCES", "org.omg.CORBA.NO_RESPONSE",
-            "org.omg.CORBA.OBJECT_NOT_EXIST", "org.omg.CORBA.OBJ_ADAPTER",
-            "org.omg.CORBA.PERSIST_STORE", "org.omg.CORBA.REBIND",
-            "org.omg.CORBA.TIMEOUT", "org.omg.CORBA.TRANSACTION_MODE",
+    private static final String[] SYS_EX_CLASS_NAMES = {
+            "org.omg.CORBA.BAD_CONTEXT",
+            "org.omg.CORBA.BAD_INV_ORDER",
+            "org.omg.CORBA.BAD_OPERATION",
+            "org.omg.CORBA.BAD_PARAM",
+            "org.omg.CORBA.BAD_QOS",
+            "org.omg.CORBA.BAD_TYPECODE",
+            "org.omg.CORBA.CODESET_INCOMPATIBLE",
+            "org.omg.CORBA.COMM_FAILURE",
+            "org.omg.CORBA.DATA_CONVERSION",
+            "org.omg.CORBA.FREE_MEM",
+            "org.omg.CORBA.IMP_LIMIT",
+            "org.omg.CORBA.INITIALIZE",
+            "org.omg.CORBA.INTERNAL",
+            "org.omg.CORBA.INTF_REPOS",
+            "org.omg.CORBA.INVALID_TRANSACTION",
+            "org.omg.CORBA.INV_FLAG",
+            "org.omg.CORBA.INV_IDENT",
+            "org.omg.CORBA.INV_OBJREF",
+            "org.omg.CORBA.INV_POLICY",
+            "org.omg.CORBA.MARSHAL",
+            "org.omg.CORBA.NO_IMPLEMENT",
+            "org.omg.CORBA.NO_MEMORY",
+            "org.omg.CORBA.NO_PERMISSION",
+            "org.omg.CORBA.NO_RESOURCES",
+            "org.omg.CORBA.NO_RESPONSE",
+            "org.omg.CORBA.OBJECT_NOT_EXIST",
+            "org.omg.CORBA.OBJ_ADAPTER",
+            "org.omg.CORBA.PERSIST_STORE",
+            "org.omg.CORBA.REBIND",
+            "org.omg.CORBA.TIMEOUT",
+            "org.omg.CORBA.TRANSACTION_MODE",
             "org.omg.CORBA.TRANSACTION_REQUIRED",
             "org.omg.CORBA.TRANSACTION_ROLLEDBACK",
-            "org.omg.CORBA.TRANSACTION_UNAVAILABLE", "org.omg.CORBA.TRANSIENT",
-            "org.omg.CORBA.UNKNOWN" };
+            "org.omg.CORBA.TRANSACTION_UNAVAILABLE",
+            "org.omg.CORBA.TRANSIENT",
+            "org.omg.CORBA.UNKNOWN",
+    };
 
-    private static final String[] sysExIds_ = { "IDL:omg.org/CORBA/BAD_CONTEXT:1.0",
-            "IDL:omg.org/CORBA/BAD_INV_ORDER:1.0",
-            "IDL:omg.org/CORBA/BAD_OPERATION:1.0",
-            "IDL:omg.org/CORBA/BAD_PARAM:1.0", "IDL:omg.org/CORBA/BAD_QOS:1.0",
-            "IDL:omg.org/CORBA/BAD_TYPECODE:1.0",
-            "IDL:omg.org/CORBA/CODESET_INCOMPATIBLE:1.0",
-            "IDL:omg.org/CORBA/COMM_FAILURE:1.0",
-            "IDL:omg.org/CORBA/DATA_CONVERSION:1.0",
-            "IDL:omg.org/CORBA/FREE_MEM:1.0",
-            "IDL:omg.org/CORBA/IMP_LIMIT:1.0",
-            "IDL:omg.org/CORBA/INITIALIZE:1.0",
-            "IDL:omg.org/CORBA/INTERNAL:1.0",
-            "IDL:omg.org/CORBA/INTF_REPOS:1.0",
-            "IDL:omg.org/CORBA/INVALID_TRANSACTION:1.0",
-            "IDL:omg.org/CORBA/INV_FLAG:1.0",
-            "IDL:omg.org/CORBA/INV_IDENT:1.0",
-            "IDL:omg.org/CORBA/INV_OBJREF:1.0",
-            "IDL:omg.org/CORBA/INV_POLICY:1.0",
-            "IDL:omg.org/CORBA/MARSHAL:1.0",
-            "IDL:omg.org/CORBA/NO_IMPLEMENT:1.0",
-            "IDL:omg.org/CORBA/NO_MEMORY:1.0",
-            "IDL:omg.org/CORBA/NO_PERMISSION:1.0",
-            "IDL:omg.org/CORBA/NO_RESOURCES:1.0",
-            "IDL:omg.org/CORBA/NO_RESPONSE:1.0",
-            "IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0",
-            "IDL:omg.org/CORBA/OBJ_ADAPTER:1.0",
-            "IDL:omg.org/CORBA/PERSIST_STORE:1.0",
-            "IDL:omg.org/CORBA/REBIND:1.0", "IDL:omg.org/CORBA/TIMEOUT:1.0",
-            "IDL:omg.org/CORBA/TRANSACTION_MODE:1.0",
-            "IDL:omg.org/CORBA/TRANSACTION_REQUIRED:1.0",
-            "IDL:omg.org/CORBA/TRANSACTION_ROLLEDBACK:1.0",
-            "IDL:omg.org/CORBA/TRANSACTION_UNAVAILABLE:1.0",
-            "IDL:omg.org/CORBA/TRANSIENT:1.0", "IDL:omg.org/CORBA/UNKNOWN:1.0" };
-
-    private static int binarySearch(String[] arr, String value) {
-        int left = 0;
-        int right = arr.length;
-        int index = -1;
-
-        while (left < right) {
-            int m = (left + right) / 2;
-            int res = arr[m].compareTo(value);
-            if (res == 0) {
-                index = m;
-                break;
-            } else if (res > 0)
-                right = m;
-            else
-                left = m + 1;
-        }
-
-        return index;
-    }
+    private static final String[] sysExIds_ = Stream.of(SYS_EX_CLASS_NAMES)
+            .map(s -> s.replace(".CORBA.", "/CORBA/"))
+            .map(s -> "IDL:" + s + ":1.0")
+            .toArray(String[]::new);
 
     // Determine if the repository ID represents a system exception
     public static boolean isSystemException(String id) {
@@ -330,34 +301,23 @@ public final class Util {
     // Determine the repository ID of an exception
     public static String getExceptionId(Exception ex) {
         if (ex instanceof SystemException) {
-            String className = ex.getClass().getName();
-            int index = binarySearch(sysExClassNames_, className);
-
-            if (index == -1)
-                return "IDL:omg.org/CORBA/UNKNOWN:1.0";
-            else
-                return sysExIds_[index];
+            int index = binarySearch(SYS_EX_CLASS_NAMES, ex.getClass().getName());
+            return -1 == index ? "IDL:omg.org/CORBA/UNKNOWN:1.0" : sysExIds_[index];
         } else if (ex instanceof UserException) {
-            Class exClass = ex.getClass();
+            Class<?> exClass = ex.getClass();
             String className = exClass.getName();
             String id = null;
             try {
-
-                Class c = ProviderLocator.loadClass(className + "Helper", exClass, null);
+                Class<?> c = ProviderLocator.loadClass(className + "Helper", exClass, null);
                 Method m = c.getMethod("id");
-                id = (String) m.invoke(null, new Object[0]);
+                id = (String) m.invoke(null);
             } catch (ClassNotFoundException | SecurityException ignored) {
             } catch (NoSuchMethodException | InvocationTargetException | IllegalArgumentException | IllegalAccessException e) {
                 throw Assert.fail(ex);
             }
 
-            //
             // TODO: Is this correct?
-            //
-            if (id == null)
-                return "IDL:omg.org/CORBA/UserException:1.0";
-            else
-                return id;
+            return null == id ? "IDL:omg.org/CORBA/UserException:1.0" : id;
         } else {
             throw Assert.fail(ex);
         }
@@ -366,17 +326,16 @@ public final class Util {
     public static Any insertException(Any any, Exception ex) {
         // Find the helper class for the exception and use it to insert the exception into the any
         try {
-            Class exClass = ex.getClass();
+            Class<?> exClass = ex.getClass();
             String helper = exClass.getName() + "Helper";
             // get the appropriate class for the loading.
-            Class c = ProviderLocator.loadClass(helper, exClass, doPrivileged(GET_CONTEXT_CLASS_LOADER));
-            final Class[] paramTypes = { Any.class, exClass };
-            Method m = c.getMethod("insert", paramTypes);
-            final Object[] args = { any, ex };
-            m.invoke(null, args);
+            Class<?> c = ProviderLocator.loadClass(helper, exClass, doPrivileged(GET_CONTEXT_CLASS_LOADER));
+            Method m = c.getMethod("insert", Any.class, exClass);
+            m.invoke(null, any, ex);
         } catch (ClassNotFoundException | SecurityException ignored) {
         } catch (NoSuchMethodException | InvocationTargetException | IllegalArgumentException | IllegalAccessException e) {
-            throw Assert.fail(ex);
+            e.addSuppressed(ex);
+            throw Assert.fail(e);
         }
         return any;
     }
