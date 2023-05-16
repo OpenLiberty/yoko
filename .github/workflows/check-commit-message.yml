@@ -20,7 +20,7 @@ jobs:
       - name: Check Commit Type
         uses: gsactions/commit-message-checker@v2
         with:
-          pattern: '^(DEV|DOC|LOG|OPS|TFW|TST): .+$'
+          pattern: '^(CPY|DEV|DOC|LOG|OPS|TFW|TST): .+$'
           flags: 'gm'
           error: 'Your first line has to start with a qualifier like "DEV: ". Valid qualifiers include DEV, DOC, LOG, OPS, TFW, TST'
           excludeTitle: 'true' # optional: this excludes the title of a pull request
