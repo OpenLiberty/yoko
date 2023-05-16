@@ -1,3 +1,18 @@
+/*==============================================================================
+ * Copyright 2023 IBM Corporation and others.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *=============================================================================*/
 package org.apache.yoko;
 
 import acme.AbstractInterface;
@@ -51,12 +66,18 @@ class JavaValueNullFieldsTest {
             out.write_value(new HolderC());
             finishWriting();
             assertThat(data, matchesHex("" +
-                    "0000:  7fffff02 0000003e 524d493a 6f72672e  \".......>RMI:org.\"\n" +
-                    "0010:  61706163 68652e79 6f6b6f2e 486f6c64  \"apache.yoko.Hold\"\n" +
-                    "0020:  6572433a 31413139 34423133 33444133  \"erC:1A194B133DA3\"\n" +
-                    "0030:  30313446 3a313546 42373643 34413836  \"014F:15FB76C4A86\"\n" +
-                    "0040:  42434630 4500bdbd aaaaaaaa 00bdbdbd  \"BCF0E...........\"\n" +
-                    "0050:  00000000 bbbbbbbb 00000000 cccccccc  \"................\"\n" +
+                    "0000:  7fffff02 0000003e 524d493a 6f72672e  \".......>RMI:org.\"
+" +
+                    "0010:  61706163 68652e79 6f6b6f2e 486f6c64  \"apache.yoko.Hold\"
+" +
+                    "0020:  6572433a 31413139 34423133 33444133  \"erC:1A194B133DA3\"
+" +
+                    "0030:  30313446 3a313546 42373643 34413836  \"014F:15FB76C4A86\"
+" +
+                    "0040:  42434630 4500bdbd aaaaaaaa 00bdbdbd  \"BCF0E...........\"
+" +
+                    "0050:  00000000 bbbbbbbb 00000000 cccccccc  \"................\"
+" +
                     "0060:  00000000                             \"....\""));
             assertHolderUnmarshalledCorrectly(in.read_value());
         } finally {
@@ -85,15 +106,24 @@ class JavaValueNullFieldsTest {
             out.write_value(holder);
             finishWriting();
             assertThat(data, matchesHex("" +
-                    "0000:  7fffff02 0000003e 524d493a 6f72672e  \".......>RMI:org.\"\n" +
-                    "0010:  61706163 68652e79 6f6b6f2e 486f6c64  \"apache.yoko.Hold\"\n" +
-                    "0020:  6572413a 46373241 46443130 30423538  \"erA:F72AFD100B58\"\n" +
-                    "0030:  43394544 3a343931 35323330 34333833  \"C9ED:49152304383\"\n" +
-                    "0040:  35394532 4300bdbd aaaaaaaa 00bdbdbd  \"59E2C...........\"\n" +
-                    "0050:  7fffff02 00000048 524d493a 6f72672e  \".......HRMI:org.\"\n" +
-                    "0060:  61706163 68652e79 6f6b6f2e 53657269  \"apache.yoko.Seri\"\n" +
-                    "0070:  616c697a 61626c65 4368696c 643a3037  \"alizableChild:07\"\n" +
-                    "0080:  31444138 42453746 39373131 32383a32  \"1DA8BE7F971128:2\"\n" +
+                    "0000:  7fffff02 0000003e 524d493a 6f72672e  \".......>RMI:org.\"
+" +
+                    "0010:  61706163 68652e79 6f6b6f2e 486f6c64  \"apache.yoko.Hold\"
+" +
+                    "0020:  6572413a 46373241 46443130 30423538  \"erA:F72AFD100B58\"
+" +
+                    "0030:  43394544 3a343931 35323330 34333833  \"C9ED:49152304383\"
+" +
+                    "0040:  35394532 4300bdbd aaaaaaaa 00bdbdbd  \"59E2C...........\"
+" +
+                    "0050:  7fffff02 00000048 524d493a 6f72672e  \".......HRMI:org.\"
+" +
+                    "0060:  61706163 68652e79 6f6b6f2e 53657269  \"apache.yoko.Seri\"
+" +
+                    "0070:  616c697a 61626c65 4368696c 643a3037  \"alizableChild:07\"
+" +
+                    "0080:  31444138 42453746 39373131 32383a32  \"1DA8BE7F971128:2\"
+" +
                     "0090:  31444343 36464241 30333644 46434600  \"1DCC6FBA036DFCF.\""));
             HolderA actual = (HolderA) in.read_value();
             assertThat(actual, notNullValue());
@@ -110,11 +140,16 @@ class JavaValueNullFieldsTest {
         out.write_value(new HolderC());
         finishWriting();
         assertThat(data, matchesHex("" +
-                "0000:  7fffff02 0000003e 524d493a 6f72672e  \".......>RMI:org.\"\n" +
-                "0010:  61706163 68652e79 6f6b6f2e 486f6c64  \"apache.yoko.Hold\"\n" +
-                "0020:  6572433a 31413139 34423133 33444133  \"erC:1A194B133DA3\"\n" +
-                "0030:  30313446 3a313546 42373643 34413836  \"014F:15FB76C4A86\"\n" +
-                "0040:  42434630 4500bdbd aaaaaaaa 00000000  \"BCF0E...........\"\n" +
+                "0000:  7fffff02 0000003e 524d493a 6f72672e  \".......>RMI:org.\"
+" +
+                "0010:  61706163 68652e79 6f6b6f2e 486f6c64  \"apache.yoko.Hold\"
+" +
+                "0020:  6572433a 31413139 34423133 33444133  \"erC:1A194B133DA3\"
+" +
+                "0030:  30313446 3a313546 42373643 34413836  \"014F:15FB76C4A86\"
+" +
+                "0040:  42434630 4500bdbd aaaaaaaa 00000000  \"BCF0E...........\"
+" +
                 "0050:  bbbbbbbb 00000000 cccccccc 00000000  \"................\""));
         Object holder = in.read_value();
         assertHolderUnmarshalledCorrectly(holder);
@@ -134,15 +169,24 @@ class JavaValueNullFieldsTest {
         out.write_value(holder);
         finishWriting();
         assertThat(data, matchesHex("" +
-                "0000:  7fffff02 0000003e 524d493a 6f72672e  \".......>RMI:org.\"\n" +
-                "0010:  61706163 68652e79 6f6b6f2e 486f6c64  \"apache.yoko.Hold\"\n" +
-                "0020:  6572413a 46373241 46443130 30423538  \"erA:F72AFD100B58\"\n" +
-                "0030:  43394544 3a343931 35323330 34333833  \"C9ED:49152304383\"\n" +
-                "0040:  35394532 4300bdbd aaaaaaaa 7fffff02  \"59E2C...........\"\n" +
-                "0050:  00000048 524d493a 6f72672e 61706163  \"...HRMI:org.apac\"\n" +
-                "0060:  68652e79 6f6b6f2e 53657269 616c697a  \"he.yoko.Serializ\"\n" +
-                "0070:  61626c65 4368696c 643a3037 31444138  \"ableChild:071DA8\"\n" +
-                "0080:  42453746 39373131 32383a32 31444343  \"BE7F971128:21DCC\"\n" +
+                "0000:  7fffff02 0000003e 524d493a 6f72672e  \".......>RMI:org.\"
+" +
+                "0010:  61706163 68652e79 6f6b6f2e 486f6c64  \"apache.yoko.Hold\"
+" +
+                "0020:  6572413a 46373241 46443130 30423538  \"erA:F72AFD100B58\"
+" +
+                "0030:  43394544 3a343931 35323330 34333833  \"C9ED:49152304383\"
+" +
+                "0040:  35394532 4300bdbd aaaaaaaa 7fffff02  \"59E2C...........\"
+" +
+                "0050:  00000048 524d493a 6f72672e 61706163  \"...HRMI:org.apac\"
+" +
+                "0060:  68652e79 6f6b6f2e 53657269 616c697a  \"he.yoko.Serializ\"
+" +
+                "0070:  61626c65 4368696c 643a3037 31444138  \"ableChild:071DA8\"
+" +
+                "0080:  42453746 39373131 32383a32 31444343  \"BE7F971128:21DCC\"
+" +
                 "0090:  36464241 30333644 46434600           \"6FBA036DFCF.\""));
         HolderA actual = (HolderA) in.read_value();
         assertThat(actual, notNullValue());

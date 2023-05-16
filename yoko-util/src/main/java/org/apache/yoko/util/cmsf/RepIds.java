@@ -1,3 +1,18 @@
+/*==============================================================================
+ * Copyright 2021 IBM Corporation and others.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *=============================================================================*/
 package org.apache.yoko.util.cmsf;
 
 import javax.rmi.CORBA.Util;
@@ -166,7 +181,7 @@ public enum RepIds {
 
     private static String removeUnicodeEscapes(String in) {
         // if no escape sequences are in the string, this is easy
-        int escape = in.indexOf("\\U");
+        int escape = in.indexOf("\U");
         if (escape < 0) {
             return in;
         }
@@ -220,7 +235,7 @@ public enum RepIds {
             out.append((char)value);
             // now step and find the next one
             start = escape;
-            escape = in.indexOf("\\U", escape);
+            escape = in.indexOf("\U", escape);
         }
         // don't forget the trailing segment
         if (start < in.length()) {

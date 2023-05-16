@@ -1,3 +1,18 @@
+/*==============================================================================
+ * Copyright 2022 IBM Corporation and others.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *=============================================================================*/
 package org.apache.yoko.rmi.impl;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +47,7 @@ public class TypeRepositoryTest {
             private static final long serialVersionUID = 0xDEADBEEF0FACEF00L;
         }
         final TypeDescriptor descriptor = repo.getDescriptor(X.class);
-        assertThat(descriptor.getRepositoryID(), is(equalTo("RMI:org.apache.yoko.rmi.impl.TypeRepositoryTest\\U00241X:56D0CD61110C30C5:DEADBEEF0FACEF00")));
+        assertThat(descriptor.getRepositoryID(), is(equalTo("RMI:org.apache.yoko.rmi.impl.TypeRepositoryTest\U00241X:56D0CD61110C30C5:DEADBEEF0FACEF00")));
     }
 
     @Test
