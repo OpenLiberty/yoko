@@ -1,20 +1,18 @@
-/*
- *  Licensed to the Apache Software Foundation (ASF) under one or more
-*  contributor license agreements.  See the NOTICE file distributed with
-*  this work for additional information regarding copyright ownership.
-*  The ASF licenses this file to You under the Apache License, Version 2.0
-*  (the "License"); you may not use this file except in compliance with
-*  the License.  You may obtain a copy of the License at
+/*==============================================================================
+ * Copyright 2021 IBM Corporation and others.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
-
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *=============================================================================*/
 package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.orb.CORBA.InputStream;
@@ -51,7 +49,8 @@ public class IORDump {
     }
 
     static public void PrintObjref(ORB orb, StringBuilder sb, IOR ior) {
-        sb.append("type_id: ").append(ior.type_id).append('\n');
+        sb.append("type_id: ").append(ior.type_id).append('
+');
 
         ConFactoryRegistry conFactoryRegistry = null;
         try {
@@ -71,7 +70,8 @@ public class IORDump {
                 in._OB_readEndian();
 
                 int cnt = in.read_ulong();
-                if (cnt == 0) sb.append('\n');
+                if (cnt == 0) sb.append('
+');
                 else {
                     for (int j = 0; j < cnt; j++) {
                         TaggedComponent comp = TaggedComponentHelper.read(in);
@@ -82,7 +82,8 @@ public class IORDump {
                 int j;
                 for (j = 0; j < factories.length; j++) {
                     if (factories[j].tag() == ior.profiles[i].tag) {
-                        sb.append(factories[j].id()).append('\n');
+                        sb.append(factories[j].id()).append('
+');
                         String desc = factories[j].describe_profile(ior.profiles[i]);
                         sb.append(desc);
                         break;
@@ -90,8 +91,10 @@ public class IORDump {
                 }
 
                 if (j >= factories.length) {
-                    sb.append("unknown profile tag ").append(ior.profiles[i].tag).append('\n');
-                    sb.append("profile_data: (").append(ior.profiles[i].profile_data.length ).append(")\n");
+                    sb.append("unknown profile tag ").append(ior.profiles[i].tag).append('
+');
+                    sb.append("profile_data: (").append(ior.profiles[i].profile_data.length ).append(")
+");
                     formatHexPara(ior.profiles[i].profile_data, sb);
                 }
             }
@@ -114,7 +117,8 @@ public class IORDump {
 
     static public void DumpIOR(ORB orb, String ref, boolean hasEndian, StringBuilder sb) {
         if (!ref.startsWith("IOR:")) {
-            sb.append("IOR is invalid\n");
+            sb.append("IOR is invalid
+");
             return;
         }
 
@@ -127,8 +131,10 @@ public class IORDump {
         IOR ior = IORHelper.read(in);
 
         sb.append("byteorder: ");
-        if (hasEndian) sb.append((endian ? "little" : "big") + " endian\n");
-        else sb.append("n/a\n");
+        if (hasEndian) sb.append((endian ? "little" : "big") + " endian
+");
+        else sb.append("n/a
+");
 
         PrintObjref(orb, sb, ior);
 
@@ -136,12 +142,18 @@ public class IORDump {
 
     static void usage() {
         System.err.println("Usage:");
-        System.err.println("org.apache.yoko.orb.OB.IORDump [options] [-f FILE ... | IOR ...]\n"
-                        + "\n"
-                        + "Options:\n"
-                        + "-h, --help          Show this message.\n"
-                        + "-v, --version       Show Yoko version.\n"
-                        + "-f                  Read IORs from files instead of from the\n"
+        System.err.println("org.apache.yoko.orb.OB.IORDump [options] [-f FILE ... | IOR ...]
+"
+                        + "
+"
+                        + "Options:
+"
+                        + "-h, --help          Show this message.
+"
+                        + "-v, --version       Show Yoko version.
+"
+                        + "-f                  Read IORs from files instead of from the
+"
                         + "                    command line.");
     }
 

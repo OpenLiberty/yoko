@@ -1,21 +1,18 @@
-/**
-*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-*  contributor license agreements.  See the NOTICE file distributed with
-*  this work for additional information regarding copyright ownership.
-*  The ASF licenses this file to You under the Apache License, Version 2.0
-*  (the "License"); you may not use this file except in compliance with
-*  the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*/ 
-
+/*==============================================================================
+ * Copyright 2023 IBM Corporation and others.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *=============================================================================*/
 package org.apache.yoko.rmi.impl;
 
 import java.io.PrintWriter;
@@ -509,33 +506,34 @@ public final class MethodDescriptor extends ModelElement {
     }
 
     void writeStubMethod(PrintWriter pw) {
-        pw.println("\t/**");
-        pw.println("\t *");
-        pw.println("\t */");
+        pw.println("	/**");
+        pw.println("	 *");
+        pw.println("	 */");
 
         writeMethodHead(pw);
-        pw.println("\t{");
+        pw.println("	{");
 
-        pw.println("\t\tboolean marshal = !" + UTIL + ".isLocal (this);");
-        pw.println("\t\tmarshal: while(true) {");
-        pw.println("\t\tif(marshal) {");
+        pw.println("		boolean marshal = !" + UTIL + ".isLocal (this);");
+        pw.println("		marshal: while(true) {");
+        pw.println("		if(marshal) {");
 
         writeMarshalCall(pw);
 
-        pw.println("\t\t} else {");
+        pw.println("		} else {");
 
         writeLocalCall(pw);
 
-        pw.println("\t\t}}");
+        pw.println("		}}");
 
         // pw.println ("throw new org.omg.CORBA.NO_IMPLEMENT(\"local
         // invocation\")");
 
-        pw.println("\t}\n");
+        pw.println("	}
+");
     }
 
     void writeMethodHead(PrintWriter pw) {
-        pw.print("\tpublic ");
+        pw.print("	public ");
         writeJavaType(pw, reflected_method.getReturnType());
 
         pw.print(' ');
@@ -555,7 +553,7 @@ public final class MethodDescriptor extends ModelElement {
         pw.println(")");
 
         Class[] ex = reflected_method.getExceptionTypes();
-        pw.print("\t\tthrows ");
+        pw.print("		throws ");
         for (int i = 0; i < ex.length; i++) {
             if (i != 0) {
                 pw.print(", ");
@@ -585,28 +583,28 @@ public final class MethodDescriptor extends ModelElement {
     static final String UTIL = "javax.rmi.CORBA.Util";
 
     void writeMarshalCall(PrintWriter pw) {
-        pw.println("\t\t" + INPUT + " in = null;");
-        pw.println("\t\ttry {");
+        pw.println("		" + INPUT + " in = null;");
+        pw.println("		try {");
 
-        pw.println("\t\t\t" + OUTPUT + " out " + "= (" + OUTPUT
+        pw.println("			" + OUTPUT + " out " + "= (" + OUTPUT
                 + ")_request (\"" + getIDLName() + "\", true);");
-        pw.println("\t\t\ttry{");
+        pw.println("			try{");
 
         Class[] args = reflected_method.getParameterTypes();
         for (int i = 0; i < args.length; i++) {
             TypeDescriptor desc = repo.getDescriptor(args[i]);
-            pw.print("\t\t\t");
+            pw.print("			");
             desc.writeMarshalValue(pw, "out", "arg" + i);
             pw.println(";");
         }
 
-        pw.println("\t\t\tin = (" + INPUT + ")_invoke(out);");
+        pw.println("			in = (" + INPUT + ")_invoke(out);");
 
         Class rtype = reflected_method.getReturnType();
         if (rtype == Void.TYPE) {
-            pw.println("\t\t\treturn;");
+            pw.println("			return;");
         } else {
-            pw.print("\t\t\treturn (");
+            pw.print("			return (");
             writeJavaType(pw, rtype);
             pw.print(")");
 
@@ -616,11 +614,11 @@ public final class MethodDescriptor extends ModelElement {
         }
 
         pw
-                .println("\t\t} catch (org.omg.CORBA.portable.ApplicationException ex) {");
+                .println("		} catch (org.omg.CORBA.portable.ApplicationException ex) {");
 
-        pw.println("\t\t\t" + INPUT + " exin = (" + INPUT
+        pw.println("			" + INPUT + " exin = (" + INPUT
                 + ")ex.getInputStream();");
-        pw.println("\t\t\tString exname = exin.read_string();");
+        pw.println("			String exname = exin.read_string();");
 
         Class[] ex = reflected_method.getExceptionTypes();
         for (int i = 0; i < ex.length; i++) {
@@ -630,50 +628,50 @@ public final class MethodDescriptor extends ModelElement {
 
             ExceptionDescriptor exd = (ExceptionDescriptor) repo.getDescriptor(ex[i]);
 
-            pw.println("\t\t\tif (exname.equals(\""
+            pw.println("			if (exname.equals(\""
                     + exd.getExceptionRepositoryID() + "\"))");
-            pw.print("\t\t\t\tthrow (");
+            pw.print("				throw (");
             writeJavaType(pw, ex[i]);
             pw.print(")exin.read_value(");
             writeJavaType(pw, ex[i]);
             pw.println(".class);");
         }
 
-        pw.println("\t\t\tthrow new java.rmi.UnexpectedException(exname,ex);");
+        pw.println("			throw new java.rmi.UnexpectedException(exname,ex);");
 
         pw
-                .println("\t\t} catch (org.omg.CORBA.portable.RemarshalException ex) {");
-        pw.println("\t\t\tcontinue marshal;");
-        pw.println("\t\t} finally {");
-        pw.println("\t\t\t if(in != null) _releaseReply(in);");
-        pw.println("\t\t}");
+                .println("		} catch (org.omg.CORBA.portable.RemarshalException ex) {");
+        pw.println("			continue marshal;");
+        pw.println("		} finally {");
+        pw.println("			 if(in != null) _releaseReply(in);");
+        pw.println("		}");
 
-        pw.println("\t\t} catch (org.omg.CORBA.SystemException ex) {");
-        pw.println("\t\t\t throw " + UTIL + ".mapSystemException(ex);");
-        pw.println("\t\t}");
+        pw.println("		} catch (org.omg.CORBA.SystemException ex) {");
+        pw.println("			 throw " + UTIL + ".mapSystemException(ex);");
+        pw.println("		}");
     }
 
     void writeLocalCall(PrintWriter pw) {
         Class thisClass = reflected_method.getDeclaringClass();
 
-        pw.println("\t\t\t" + SERVANT + " so = _servant_preinvoke (");
-        pw.println("\t\t\t\t\"" + getIDLName() + "\",");
-        pw.print("\t\t\t\t");
+        pw.println("			" + SERVANT + " so = _servant_preinvoke (");
+        pw.println("				\"" + getIDLName() + "\",");
+        pw.print("				");
         writeJavaType(pw, thisClass);
         pw.println(".class);");
         pw
-                .print("\t\t\tif (so==null || so.servant==null || !(so.servant instanceof ");
+                .print("			if (so==null || so.servant==null || !(so.servant instanceof ");
         writeJavaType(pw, thisClass);
         pw.print("))");
         pw.println(" { marshal=true; continue marshal; }");
 
-        pw.println("\t\t\ttry {");
+        pw.println("			try {");
 
         // copy arguments
         Class[] args = reflected_method.getParameterTypes();
         if (args.length == 1) {
             if (repo.getDescriptor(args[0]).copyInStub()) {
-                pw.print("\t\t\t\targ0 = (");
+                pw.print("				arg0 = (");
                 writeJavaType(pw, args[0]);
                 pw.println(")" + UTIL + ".copyObject(arg0, _orb());");
             }
@@ -690,21 +688,21 @@ public final class MethodDescriptor extends ModelElement {
             }
 
             if (copyCount > 0) {
-                pw.println("\t\t\t\tObject[] args = new Object[" + copyCount
+                pw.println("				Object[] args = new Object[" + copyCount
                         + "];");
                 int pos = 0;
                 for (int i = 0; i < args.length; i++) {
                     if (copy[i]) {
-                        pw.println("\t\t\t\targs[" + (pos++) + "] = arg" + i
+                        pw.println("				args[" + (pos++) + "] = arg" + i
                                 + ";");
                     }
                 }
-                pw.println("\t\t\t\targs=" + UTIL
+                pw.println("				args=" + UTIL
                         + ".copyObjects(args,_orb());");
                 pos = 0;
                 for (int i = 0; i < args.length; i++) {
                     if (copy[i]) {
-                        pw.print("\t\t\t\targ" + i + "=(");
+                        pw.print("				arg" + i + "=(");
                         writeJavaType(pw, args[i]);
                         pw.println(")args[" + (pos++) + "];");
                     }
@@ -714,7 +712,7 @@ public final class MethodDescriptor extends ModelElement {
 
         // now, invoke!
         Class out = reflected_method.getReturnType();
-        pw.print("\t\t\t\t");
+        pw.print("				");
         if (out != Void.TYPE) {
             writeJavaType(pw, out);
             pw.print(" result = ");
@@ -735,7 +733,7 @@ public final class MethodDescriptor extends ModelElement {
 
         pw.println(");");
 
-        pw.print("\t\t\t\treturn ");
+        pw.print("				return ");
         if (out != Void.TYPE) {
             TypeDescriptor td = repo.getDescriptor(out);
             if (td.copyInStub()) {
@@ -751,9 +749,9 @@ public final class MethodDescriptor extends ModelElement {
             pw.println(";");
         }
 
-        pw.println("\t\t\t} finally {");
-        pw.println("\t\t\t\t_servant_postinvoke (so);");
-        pw.println("\t\t\t}");
+        pw.println("			} finally {");
+        pw.println("				_servant_postinvoke (so);");
+        pw.println("			}");
     }
 
     void addDependencies(java.util.Set classes) {

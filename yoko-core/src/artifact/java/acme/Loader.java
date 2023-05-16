@@ -1,19 +1,18 @@
-/*
- *  Licensed to the Apache Software Foundation (ASF) under one or more
- *  contributor license agreements.  See the NOTICE file distributed with
- *  this work for additional information regarding copyright ownership.
- *  The ASF licenses this file to You under the Apache License, Version 2.0
- *  (the "License"); you may not use this file except in compliance with
- *  the License.  You may obtain a copy of the License at
+/*==============================================================================
+ * Copyright 2023 IBM Corporation and others.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *=============================================================================*/
 package acme;
 
 import org.apache.yoko.io.SimplyCloseable;
@@ -89,10 +88,14 @@ public enum Loader {
             String resourceName = className.replace('.', '/') + ".class";
             URL url = loader.findResource(resourceName);
             StringBuilder sb = new StringBuilder();
-            sb.append("\n### Could not load class " + className);
-            sb.append("\n### URLs:");
-            Stream.of(loader.getURLs()).map(URL::toString).map("\n\t### "::concat).forEach(sb::append);
-            sb.append("\n### loader.findResource(").append(resourceName).append(") returns ").append(url);
+            sb.append("
+### Could not load class " + className);
+            sb.append("
+### URLs:");
+            Stream.of(loader.getURLs()).map(URL::toString).map("
+	### "::concat).forEach(sb::append);
+            sb.append("
+### loader.findResource(").append(resourceName).append(") returns ").append(url);
             throw new AssertionFailed("Caught " + cnfe + sb, cnfe);
         }
     }
@@ -133,9 +136,9 @@ public enum Loader {
 
         List<Constructor<?>> list = stream.collect(Collectors.toList());
         switch (list.size()) {
-            case 0: throw Assertions.failf("Could not find constructor suitable for params %s. Available constructors:%n\t%s", Arrays.toString(params), Stream.of(constructors).map(Object::toString).collect(joining("%n\t")));
+            case 0: throw Assertions.failf("Could not find constructor suitable for params %s. Available constructors:%n	%s", Arrays.toString(params), Stream.of(constructors).map(Object::toString).collect(joining("%n	")));
             case 1: return (T) invokeWithImpunity(() -> list.get(0).newInstance(params));
-            default: throw Assertions.failf("Ambiguous parameter list for params %s: found too many matching constructors: %n\t%s", Arrays.toString(params), list.stream().map(Object::toString).collect(joining("%n\t")));
+            default: throw Assertions.failf("Ambiguous parameter list for params %s: found too many matching constructors: %n	%s", Arrays.toString(params), list.stream().map(Object::toString).collect(joining("%n	")));
         }
     }
 

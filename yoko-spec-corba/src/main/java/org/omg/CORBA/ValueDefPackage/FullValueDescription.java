@@ -1,20 +1,18 @@
-/*
- *  Licensed to the Apache Software Foundation (ASF) under one or more
-*  contributor license agreements.  See the NOTICE file distributed with
-*  this work for additional information regarding copyright ownership.
-*  The ASF licenses this file to You under the Apache License, Version 2.0
-*  (the "License"); you may not use this file except in compliance with
-*  the License.  You may obtain a copy of the License at
+/*==============================================================================
+ * Copyright 2022 IBM Corporation and others.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
-
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *=============================================================================*/
 package org.omg.CORBA.ValueDefPackage;
 
 //
@@ -82,21 +80,21 @@ final public class FullValueDescription implements IDLEntity {
     public String toString() {
         return new StringBuilder()
                 .append("FullValueDescription {").append(NL)
-                .append("\tid = ").append(id).append(NL)
-                .append("\tname = ").append(name).append(NL)
-                .append("\tis_abstract = ").append(is_abstract).append(NL)
-                .append("\tis_custom = ").append(is_custom).append(NL)
-                .append("\tdefined_in = ").append(defined_in).append(NL)
-                .append("\tversion = ").append(version).append(NL)
-                .append("\toperations = ").append(Arrays.deepToString(operations)).append(NL)
-                .append("\tattributes = ").append(Arrays.deepToString(attributes)).append(NL)
-                .append("\tmembers = ").append(Arrays.stream(members).map(ValueMember::toString).collect(Collectors.joining("," + NL, "[ ", " ]"))).append(NL)
-                .append("\tinitializers = ").append(Arrays.deepToString(initializers)).append(NL)
-                .append("\tsupported_interfaces = ").append(Arrays.deepToString(supported_interfaces)).append(NL)
-                .append("\tabstract_base_values = ").append(Arrays.deepToString(abstract_base_values)).append(NL)
-                .append("\tis_truncatable = ").append(is_truncatable).append(NL)
-                .append("\tbase_value = ").append(base_value).append(NL)
-                .append("\ttype = ").append(type.toString().replace(NL, NL + "\t")).append(NL)
+                .append("	id = ").append(id).append(NL)
+                .append("	name = ").append(name).append(NL)
+                .append("	is_abstract = ").append(is_abstract).append(NL)
+                .append("	is_custom = ").append(is_custom).append(NL)
+                .append("	defined_in = ").append(defined_in).append(NL)
+                .append("	version = ").append(version).append(NL)
+                .append("	operations = ").append(Arrays.deepToString(operations)).append(NL)
+                .append("	attributes = ").append(Arrays.deepToString(attributes)).append(NL)
+                .append("	members = ").append(Arrays.stream(members).map(ValueMember::toString).collect(Collectors.joining("," + NL, "[ ", " ]"))).append(NL)
+                .append("	initializers = ").append(Arrays.deepToString(initializers)).append(NL)
+                .append("	supported_interfaces = ").append(Arrays.deepToString(supported_interfaces)).append(NL)
+                .append("	abstract_base_values = ").append(Arrays.deepToString(abstract_base_values)).append(NL)
+                .append("	is_truncatable = ").append(is_truncatable).append(NL)
+                .append("	base_value = ").append(base_value).append(NL)
+                .append("	type = ").append(type.toString().replace(NL, NL + "	")).append(NL)
                 .append("}")
                 .toString();
     }

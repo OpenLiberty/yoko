@@ -1,21 +1,18 @@
-/**
-*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-*  contributor license agreements.  See the NOTICE file distributed with
-*  this work for additional information regarding copyright ownership.
-*  The ASF licenses this file to You under the Apache License, Version 2.0
-*  (the "License"); you may not use this file except in compliance with
-*  the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-*  Unless required by applicable law or agreed to in writing, software
-*  distributed under the License is distributed on an "AS IS" BASIS,
-*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-*  See the License for the specific language governing permissions and
-*  limitations under the License.
-*/ 
-
+/*==============================================================================
+ * Copyright 2023 IBM Corporation and others.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *=============================================================================*/
 package org.apache.yoko.rmi.impl;
 
 import org.apache.yoko.util.PrivilegedActions;
@@ -451,26 +448,28 @@ abstract class RemoteDescriptor extends TypeDescriptor {
         pw.println(" *  Generated using Apache Yoko stub generator.");
         pw.println(" */");
 
-        pw.println("package " + pkgname + ";\n");
+        pw.println("package " + pkgname + ";
+");
 
         pw.println("public class _" + cplain + "_Stub");
-        pw.println("\textends javax.rmi.CORBA.Stub");
-        pw.println("\timplements " + cname);
+        pw.println("	extends javax.rmi.CORBA.Stub");
+        pw.println("	implements " + cname);
         pw.println("{");
 
         //
         // construct String[] _ids;
         //
         String[] all_interfaces = all_interfaces();
-        pw.println("\tprivate static final String[] _ids = {");
+        pw.println("	private static final String[] _ids = {");
         for (int i = 0; i < all_interfaces.length; i++) {
-            pw.println("\t\t\"" + all_interfaces[i] + "\",");
+            pw.println("		\"" + all_interfaces[i] + "\",");
         }
-        pw.println("\t};\n");
+        pw.println("	};
+");
 
-        pw.println("\tpublic String[] _ids() {");
-        pw.println("\t\treturn _ids;");
-        pw.println("\t}");
+        pw.println("	public String[] _ids() {");
+        pw.println("		return _ids;");
+        pw.println("	}");
 
         //
         // now, construct stub methods

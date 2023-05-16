@@ -1,20 +1,18 @@
-/*
- *  Licensed to the Apache Software Foundation (ASF) under one or more
-*  contributor license agreements.  See the NOTICE file distributed with
-*  this work for additional information regarding copyright ownership.
-*  The ASF licenses this file to You under the Apache License, Version 2.0
-*  (the "License"); you may not use this file except in compliance with
-*  the License.  You may obtain a copy of the License at
+/*==============================================================================
+ * Copyright 2021 IBM Corporation and others.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
-
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *=============================================================================*/
 package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.orb.CORBA.InputStream;
@@ -86,14 +84,19 @@ public final class IORUtil {
         in._OB_readEndian();
         CompoundSecMechList info = CompoundSecMechListHelper.read(in);
         
-        sb.append("CSI Security Mechanism List Components:\n"); 
-        sb.append("    stateful: " + info.stateful + "\n"); 
-        sb.append("    mechanism_list:\n"); 
+        sb.append("CSI Security Mechanism List Components:
+"); 
+        sb.append("    stateful: " + info.stateful + "
+"); 
+        sb.append("    mechanism_list:
+"); 
         for (CompoundSecMech mech: info.mechanism_list) {
-            sb.append("        target_requires: "); describeTransportFlags(mech.target_requires, sb); sb.append("\n"); 
+            sb.append("        target_requires: "); describeTransportFlags(mech.target_requires, sb); sb.append("
+"); 
             if (mech.transport_mech != null) {
                 if (mech.transport_mech.tag == TAG_NULL_TAG.value) {
-                    sb.append("            Null Transport\n"); 
+                    sb.append("            Null Transport
+"); 
                 } else if (mech.transport_mech.tag == TAG_TLS_SEC_TRANS.value) {
                     describeTLS_SEC_TRANS(mech.transport_mech, sb); 
                 } else if (mech.transport_mech.tag == TAG_SECIOP_SEC_TRANS.value) {
@@ -102,27 +105,41 @@ public final class IORUtil {
             }
             
             if (mech.as_context_mech != null) {
-                sb.append("            as_context_mech:\n"); 
-                sb.append("                supports: "); describeTransportFlags(mech.as_context_mech.target_supports, sb); sb.append("\n"); 
-                sb.append("                requires: "); describeTransportFlags(mech.as_context_mech.target_requires, sb); sb.append("\n"); 
-                sb.append("                client_authentication_mech: "); formatHexLine(mech.as_context_mech.client_authentication_mech, sb); sb.append("\n");
-                sb.append("                target_name: "); formatHexLine(mech.as_context_mech.target_name, sb); sb.append("\n");
+                sb.append("            as_context_mech:
+"); 
+                sb.append("                supports: "); describeTransportFlags(mech.as_context_mech.target_supports, sb); sb.append("
+"); 
+                sb.append("                requires: "); describeTransportFlags(mech.as_context_mech.target_requires, sb); sb.append("
+"); 
+                sb.append("                client_authentication_mech: "); formatHexLine(mech.as_context_mech.client_authentication_mech, sb); sb.append("
+");
+                sb.append("                target_name: "); formatHexLine(mech.as_context_mech.target_name, sb); sb.append("
+");
             }
             
             if (mech.sas_context_mech != null) {
-                sb.append("            sas_context_mech:\n"); 
-                sb.append("                supports: "); describeTransportFlags(mech.sas_context_mech.target_supports, sb); sb.append("\n"); 
-                sb.append("                requires: "); describeTransportFlags(mech.sas_context_mech.target_requires, sb); sb.append("\n"); 
-                sb.append("                privilege_authorities:\n");
+                sb.append("            sas_context_mech:
+"); 
+                sb.append("                supports: "); describeTransportFlags(mech.sas_context_mech.target_supports, sb); sb.append("
+"); 
+                sb.append("                requires: "); describeTransportFlags(mech.sas_context_mech.target_requires, sb); sb.append("
+"); 
+                sb.append("                privilege_authorities:
+");
                 for (ServiceConfiguration auth: mech.sas_context_mech.privilege_authorities) {
-                    sb.append("                    syntax: " + auth.syntax + "\n"); 
-                    sb.append("                    name: "); formatHexLine(auth.name, sb); sb.append("\n");
+                    sb.append("                    syntax: " + auth.syntax + "
+"); 
+                    sb.append("                    name: "); formatHexLine(auth.name, sb); sb.append("
+");
                 }
-                sb.append("                supported_naming_mechanisms:\n");
+                sb.append("                supported_naming_mechanisms:
+");
                 for (byte[] namingMech: mech.sas_context_mech.supported_naming_mechanisms) {
-                    sb.append("                    "); formatHexLine(namingMech, sb); sb.append("\n");
+                    sb.append("                    "); formatHexLine(namingMech, sb); sb.append("
+");
                 }
-                sb.append("                supported_identity_type: "); describeIdentityToken(mech.sas_context_mech.supported_identity_types, sb); sb.append("\n");
+                sb.append("                supported_identity_type: "); describeIdentityToken(mech.sas_context_mech.supported_identity_types, sb); sb.append("
+");
             }
         }
     }
@@ -198,13 +215,19 @@ public final class IORUtil {
         in._OB_readEndian();
         TLS_SEC_TRANS info = TLS_SEC_TRANSHelper.read(in);
         
-        sb.append("        TLS_SEC_TRANS component:\n"); 
-        sb.append("            target_supports: "); describeTransportFlags(info.target_supports, sb); sb.append("\n"); 
-        sb.append("            target_requires: "); describeTransportFlags(info.target_requires, sb); sb.append("\n"); 
-        sb.append("            addresses:\n"); 
+        sb.append("        TLS_SEC_TRANS component:
+"); 
+        sb.append("            target_supports: "); describeTransportFlags(info.target_supports, sb); sb.append("
+"); 
+        sb.append("            target_requires: "); describeTransportFlags(info.target_requires, sb); sb.append("
+"); 
+        sb.append("            addresses:
+"); 
         for (TransportAddress address: info.addresses) {
-            sb.append("                host_name: ").append(address.host_name).append("\n"); 
-            sb.append("                port: ").append(address.port).append("\n"); 
+            sb.append("                host_name: ").append(address.host_name).append("
+"); 
+            sb.append("                port: ").append(address.port).append("
+"); 
         }
         
     }
@@ -214,15 +237,23 @@ public final class IORUtil {
         in._OB_readEndian();
         SECIOP_SEC_TRANS info = SECIOP_SEC_TRANSHelper.read(in);
         
-        sb.append("        SECIOP_SEC_TRANS component:\n"); 
-        sb.append("            target_supports: "); describeTransportFlags(info.target_supports, sb); sb.append("\n"); 
-        sb.append("            target_requires: "); describeTransportFlags(info.target_requires, sb); sb.append("\n"); 
-        sb.append("            mech_oid: "); formatHexLine(info.mech_oid, sb); sb.append("\n");
-        sb.append("            target_name: "); formatHexLine(info.target_name, sb); sb.append("\n");
-        sb.append("            addresses:\n"); 
+        sb.append("        SECIOP_SEC_TRANS component:
+"); 
+        sb.append("            target_supports: "); describeTransportFlags(info.target_supports, sb); sb.append("
+"); 
+        sb.append("            target_requires: "); describeTransportFlags(info.target_requires, sb); sb.append("
+"); 
+        sb.append("            mech_oid: "); formatHexLine(info.mech_oid, sb); sb.append("
+");
+        sb.append("            target_name: "); formatHexLine(info.target_name, sb); sb.append("
+");
+        sb.append("            addresses:
+"); 
         for (TransportAddress address: info.addresses) {
-            sb.append("                host_name: ").append(address.host_name).append("\n"); 
-            sb.append("                port: ").append(address.port).append("\n"); 
+            sb.append("                host_name: ").append(address.host_name).append("
+"); 
+            sb.append("                port: ").append(address.port).append("
+"); 
         }
         
     }
@@ -240,67 +271,81 @@ public final class IORUtil {
         //
         // Print char codeset information
         //
-        sb.append("Native char codeset: \n");
+        sb.append("Native char codeset: 
+");
         charInfo = CodeSetInfo.forRegistryId(info.ForCharData.native_code_set);
         if (charInfo != null) {
             sb.append("  \"");
             sb.append(charInfo.description);
-            sb.append("\"\n");
+            sb.append("\"
+");
         } else if (info.ForCharData.native_code_set == 0)
-            sb.append("  [No codeset information]\n");
+            sb.append("  [No codeset information]
+");
         else {
             sb.append("  [Unknown codeset id: ");
             sb.append(info.ForCharData.native_code_set);
-            sb.append("]\n");
+            sb.append("]
+");
         }
 
         for (int i = 0; i < info.ForCharData.conversion_code_sets.length; i++) {
             if (i == 0)
-                sb.append("Char conversion codesets:\n");
+                sb.append("Char conversion codesets:
+");
 
             charInfo = CodeSetInfo.forRegistryId(info.ForCharData.conversion_code_sets[i]);
             if (charInfo != null) {
                 sb.append("  \"");
                 sb.append(charInfo.description);
-                sb.append("\"\n");
+                sb.append("\"
+");
             } else {
                 sb.append("  [Unknown codeset id: ");
                 sb.append(info.ForCharData.conversion_code_sets[i]);
-                sb.append("]\n");
+                sb.append("]
+");
             }
         }
 
         //
         // Print wchar codeset information
         //
-        sb.append("Native wchar codeset: \n");
+        sb.append("Native wchar codeset: 
+");
         charInfo = CodeSetInfo.forRegistryId(info.ForWcharData.native_code_set);
         if (charInfo != null) {
             sb.append("  \"");
             sb.append(charInfo.description);
-            sb.append("\"\n");
+            sb.append("\"
+");
         } else if (info.ForWcharData.native_code_set == 0)
-            sb.append("  [No codeset information]\n");
+            sb.append("  [No codeset information]
+");
         else {
             sb.append("  [Unknown codeset id: ");
             sb.append(info.ForWcharData.native_code_set);
-            sb.append("]\n");
+            sb.append("]
+");
         }
 
         for (int i = 0; i < info.ForWcharData.conversion_code_sets.length; i++) {
             if (i == 0)
-                sb.append("Wchar conversion codesets:\n");
+                sb.append("Wchar conversion codesets:
+");
 
             charInfo = CodeSetInfo
                     .forRegistryId(info.ForWcharData.conversion_code_sets[i]);
             if (charInfo != null) {
                 sb.append("  \"");
                 sb.append(charInfo.description);
-                sb.append("\"\n");
+                sb.append("\"
+");
             } else {
                 sb.append("  [Unknown codeset id: ");
                 sb.append(info.ForWcharData.conversion_code_sets[i]);
-                sb.append("]\n");
+                sb.append("]
+");
             }
         }
 
@@ -310,10 +355,12 @@ public final class IORUtil {
             TaggedComponent component, String name, StringBuilder sb) {
         sb.append("Component: ");
         sb.append(name);
-        sb.append('\n');
+        sb.append('
+');
         sb.append("Component data: (");
         sb.append(component.component_data.length);
-        sb.append(")\n");
+        sb.append(")
+");
         formatHexPara(component.component_data, 0,
                 component.component_data.length, sb);
     }
@@ -331,7 +378,8 @@ public final class IORUtil {
             sb.append("Component: TAG_ORB_TYPE = ");
             sb.append("0x");
             sb.append(Integer.toHexString(id));
-            sb.append('\n');
+            sb.append('
+');
             break;
         }
 
@@ -348,13 +396,16 @@ public final class IORUtil {
             in._OB_readEndian();
             String host = in.read_string();
             short port = in.read_ushort();
-            sb.append("Alternate IIOP address:\n");
+            sb.append("Alternate IIOP address:
+");
             sb.append("  host: ");
             sb.append(host);
-            sb.append('\n');
+            sb.append('
+');
             sb.append("  port: ");
             sb.append(port < 0 ? 0xffff + (int) port + 1 : port);
-            sb.append('\n');
+            sb.append('
+');
             break;
         }
 
@@ -438,7 +489,8 @@ public final class IORUtil {
             String codebase = in.read_string();
             sb.append("Component: TAG_JAVA_CODEBASE = `");
             sb.append(codebase);
-            sb.append("'\n");
+            sb.append("'
+");
             break;
         }
 

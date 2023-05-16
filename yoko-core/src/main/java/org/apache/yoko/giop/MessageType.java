@@ -1,19 +1,18 @@
-/*
- *  Licensed to the Apache Software Foundation (ASF) under one or more
- *  contributor license agreements.  See the NOTICE file distributed with
- *  this work for additional information regarding copyright ownership.
- *  The ASF licenses this file to You under the Apache License, Version 2.0
- *  (the "License"); you may not use this file except in compliance with
- *  the License.  You may obtain a copy of the License at
+/*==============================================================================
+ * Copyright 2022 IBM Corporation and others.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *=============================================================================*/
 package org.apache.yoko.giop;
 
 import org.apache.yoko.io.Buffer;
@@ -62,7 +61,7 @@ public enum MessageType {
                     describeResponseExpected(sb, in);
                     // alignment of object key automatically skips 3 octets here
                     describeObjectKey(sb, in);
-                    OPERATION.describeString(sb,"\t", in);
+                    OPERATION.describeString(sb,"	", in);
                     describePrincipal(sb, in);
                     return;
                 default:
@@ -70,18 +69,18 @@ public enum MessageType {
                     describeResponseFlags(sb, in);
                     in._OB_skip(3); // explicitly skip 3 octets (reserved in GIOP 1.2)
                     describeTargetAddress(sb, in);
-                    OPERATION.describeString(sb, "\t", in);
+                    OPERATION.describeString(sb, "	", in);
                     describeServiceContextList(sb, in);
                     if (0 == in.available()) break; // no request body
                     // in GIOP 1.2 the request body is aligned on an 8-octet boundary
                     in.skipAlign(EIGHT_BYTE_BOUNDARY);
             }
         }
-        void describeResponseExpected(StringBuilder sb, InputStream in) { sb.append(String.format("%n\tRESPONSE EXPECTED = %b", in.read_boolean())); }
-        void describeResponseFlags(StringBuilder sb, InputStream in) { sb.append(String.format("%n\tRESPONSE FLAGS = 0x%02x", in.read_octet())); }
+        void describeResponseExpected(StringBuilder sb, InputStream in) { sb.append(String.format("%n	RESPONSE EXPECTED = %b", in.read_boolean())); }
+        void describeResponseFlags(StringBuilder sb, InputStream in) { sb.append(String.format("%n	RESPONSE FLAGS = 0x%02x", in.read_octet())); }
         void describePrincipal(StringBuilder sb, InputStream in) {
-            sb.append(String.format("%n\tREQUESTING PRINCIPAL:"));
-            describeOctetSeq(sb, "\t\t", in);
+            sb.append(String.format("%n	REQUESTING PRINCIPAL:"));
+            describeOctetSeq(sb, "		", in);
         }
     },
     REPLY(_Reply) {
@@ -105,7 +104,7 @@ public enum MessageType {
 
         void describeReplyStatus(StringBuilder sb, InputStream in) {
             ReplyStatus status = ReplyStatus.valueOf(in.read_long());
-            sb.append(String.format("%n\tREPLY STATUS = %s", status));
+            sb.append(String.format("%n	REPLY STATUS = %s", status));
         }
     },
     CANCEL_REQUEST(_CancelRequest){
@@ -130,7 +129,7 @@ public enum MessageType {
     LOCATE_REPLY(_LocateReply){
         void describeHeader(StringBuilder sb, InputStream in, GiopVersion version) {
             describeReqId(sb, in);
-            sb.append(String.format("%n\t%s", getLocateStatus(in)));
+            sb.append(String.format("%n	%s", getLocateStatus(in)));
         }
         String getLocateStatus(InputStream in) {
             int locStat = in.read_long();
@@ -169,11 +168,13 @@ public enum MessageType {
     MessageType() { this(-1); }
 
     public static void logIncomingGiopMessage(WriteBuffer buffer) {
-        logGiopMessage(buffer, DATA_IN_LOG, "\nIN COMING ");
+        logGiopMessage(buffer, DATA_IN_LOG, "
+IN COMING ");
     }
 
     public static void logOutgoingGiopMessage(ReadBuffer buffer) {
-        logGiopMessage(buffer, DATA_OUT_LOG, "\nOUT GOING ");
+        logGiopMessage(buffer, DATA_OUT_LOG, "
+OUT GOING ");
     }
 
     private static void logGiopMessage(Buffer<?> buffer, Logger logger, String direction) {
@@ -215,15 +216,15 @@ public enum MessageType {
             if (includeMessageOctets) dumpHex(sb, in);
         } catch (Throwable t) {
             sb.append(EOL).append("describeMessage() failed with ").append(t);
-            Arrays.stream(t.getStackTrace()).map(e -> EOL + "\t" + e).forEach(sb::append);
+            Arrays.stream(t.getStackTrace()).map(e -> EOL + "	" + e).forEach(sb::append);
         }
         return sb.toString();
     }
 
     private void describeGiopHeader(StringBuilder sb, byte major, byte minor, GiopVersion version, byte flags, int size) {
-        sb.append(String.format("GIOP %d.%d %s MESSAGE%n\tSIZE = %d", major, minor, this, size));
+        sb.append(String.format("GIOP %d.%d %s MESSAGE%n	SIZE = %d", major, minor, this, size));
         if (fragmentable && version != GIOP1_0)
-            sb.append(String.format("%n\tFRAGMENT_TO_FOLLOW = %s", ((flags & FRAG_FLAG) == FRAG_FLAG)));
+            sb.append(String.format("%n	FRAGMENT_TO_FOLLOW = %s", ((flags & FRAG_FLAG) == FRAG_FLAG)));
     }
 
     void describeHeader(StringBuilder sb, InputStream in, GiopVersion version) {}
@@ -235,34 +236,34 @@ public enum MessageType {
     }
 
     private static void describeObjectKey(StringBuilder sb, InputStream in) {
-        sb.append(String.format("%n\tOBJECT KEY:"));
-        describeOctetSeq(sb, "\t\t", in);
+        sb.append(String.format("%n	OBJECT KEY:"));
+        describeOctetSeq(sb, "		", in);
     }
 
     private static void describeTargetAddress(StringBuilder sb, InputStream in) {
         short disposition = in.read_short();
         switch (disposition) {
             case 0:
-                sb.append(String.format("%n\tKEY ADDRESS:"));
-                describeOctetSeq(sb,"\t\t", in);
+                sb.append(String.format("%n	KEY ADDRESS:"));
+                describeOctetSeq(sb,"		", in);
                 return;
             case 1:
-                sb.append(String.format("%n\tPROFILE ADDRESS:"));
-                describeTaggedProfile(sb,"\t\t", in);
+                sb.append(String.format("%n	PROFILE ADDRESS:"));
+                describeTaggedProfile(sb,"		", in);
                 return;
             case 2:
-                sb.append(String.format("%n\tREFERENCE ADDRESS: INDEX = %d", in.read_long()));
-                describeIor(sb,"\t\t", in);
+                sb.append(String.format("%n	REFERENCE ADDRESS: INDEX = %d", in.read_long()));
+                describeIor(sb,"		", in);
                 return;
             default:
-                sb.append(String.format("%n\tERROR: TargetAddress has unknown disposition 0x%04x", disposition));
+                sb.append(String.format("%n	ERROR: TargetAddress has unknown disposition 0x%04x", disposition));
         }
     }
 
     private static void describeServiceContextList(StringBuilder sb, InputStream in) {
         int len = in.read_long();
         for (int i = 1; i <= len; i++) {
-            sb.append(EOL).append("\t").append("SERVICE CONTEXT ").append(i).append(" OF ").append(len);
+            sb.append(EOL).append("	").append("SERVICE CONTEXT ").append(i).append(" OF ").append(len);
             describeServiceContext(sb, in);
         }
     }
@@ -270,7 +271,7 @@ public enum MessageType {
     private static void describeServiceContext(StringBuilder sb, InputStream in) {
         sb.append(" TAG = ");
         describeServiceContextId(sb, in.read_long());
-        describeOctetSeq(sb, "\t\t", in);
+        describeOctetSeq(sb, "		", in);
     }
 
     private static void describeServiceContextId(StringBuilder sb, int tag) {
@@ -310,19 +311,19 @@ public enum MessageType {
             sb.append(" OF ");
             sb.append(len);
             sb.append(EOL);
-            describeTaggedProfile(sb, indent + "\t", in);
+            describeTaggedProfile(sb, indent + "	", in);
         }
     }
 
     private static void describeIor(StringBuilder sb, String indent, InputStream in) {
         // struct IOR { string type_id; TaggedProfileSeq profiles; }
         sb.append(String.format("%n%sTYPE ID:", indent));
-        describeOctetSeq(sb,indent + "\t", in);
+        describeOctetSeq(sb,indent + "	", in);
         describeTaggedProfileSeq(sb, indent, in);
     }
 
     private static void describeReqId(StringBuilder sb, InputStream in) {
-        sb.append(String.format("%n\tREQUEST ID = %d", in.read_long()));
+        sb.append(String.format("%n	REQUEST ID = %d", in.read_long()));
     }
 
     enum StringField {
