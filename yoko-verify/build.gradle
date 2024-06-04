@@ -1,0 +1,63 @@
+/*
+ * Copyright 2024 IBM Corporation and others.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an \"AS IS\" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+sourceSets {
+  test.java.srcDir "src/test/java-testify"
+}
+
+//testClasses.dependsOn v0Classes, v1Classes, v2Classes
+
+// describe the versioned projects in their own configurations
+configurations {
+	v0 { transitive false }
+	v1 { transitive false }
+	v2 { transitive false }
+}
+
+
+dependencies {
+  testImplementation project(':yoko-spec-corba')
+  testImplementation project(':yoko-rmi-spec')
+  testImplementation project(':yoko-rmi-impl')
+  testImplementation project(':yoko-core')
+  testImplementation project(':yoko-util')
+  testImplementation project(":testify")
+  testImplementation project(":testify-iiop")
+  testImplementation project("artifact")
+  testImplementation "org.junit.jupiter:junit-jupiter:5.9.0"
+  
+  v0 project("artifact:v0")
+  v1 project("artifact:v1")
+  v2 project("artifact:v2")
+  
+}
+
+test {
+  exclude '**/Abstract*'
+
+  // force the versioned projects to build so the tests can use the built jar files
+  dependsOn configurations.v0
+  dependsOn configurations.v1
+  dependsOn configurations.v2
+
+  // Set up the class paths for acme.Loader
+  systemProperty "acme.loader.v0.path", "" + configurations.v0.singleFile
+  systemProperty "acme.loader.v1.path", "" + configurations.v0.singleFile + File.pathSeparator + configurations.v1.singleFile
+  systemProperty "acme.loader.v2.path", "" + configurations.v0.singleFile + File.pathSeparator + configurations.v2.singleFile
+}
+

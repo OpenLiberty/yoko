@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 package versioned;
 
 import acme.Widget;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.omg.CORBA_2_3.portable.InputStream;
 
 import java.util.function.Function;
 

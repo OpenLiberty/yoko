@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,25 +17,22 @@
  */
 package test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertThat;
+
+import java.util.Properties;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.omg.CORBA.NO_IMPLEMENT;
 import org.omg.CORBA.ORB;
-
-import java.util.Properties;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.*;
-import static test.OrbInitTest.createOrb;
 
 public class OrbInitTest {
     @BeforeClass
     public static void logWhereTheOrbClassComesFromAtRuntime() {
         System.out.println("ORB API class = " + ORB.class);
         System.out.println("ORB API class loader = " + ORB.class.getClassLoader());
-        System.out.println("ORB impl class = " + org.apache.yoko.orb.CORBA.ORB.class);
-        System.out.println("ORB impl class loader = " + org.apache.yoko.orb.CORBA.ORB.class.getClassLoader());
     }
 
     /** Create a non-singleton orb without specifying any properties */
@@ -45,7 +42,10 @@ public class OrbInitTest {
 
     /** Create a non-singleton orb */
     public static ORB createOrb(Properties props, String...params){
-        return ORB.init(params, props);
+        final ORB orb = ORB.init(params, props);
+        System.out.println("ORB impl class = " + orb.getClass());
+        System.out.println("ORB impl class loader = " + orb.getClass().getClassLoader());
+        return orb;
     }
 
     public static Properties props(String...props) {

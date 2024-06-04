@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
  */
 package testify.iiop.annotation;
 
-import org.apache.yoko.orb.spi.naming.NameServiceInitializer;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.omg.PortableInterceptor.ORBInitializer;
 
@@ -38,23 +37,31 @@ import static testify.iiop.annotation.ConfigureOrb.NameService.NONE;
 public @interface ConfigureOrb {
     enum NameService {
         NONE,
-        READ_ONLY(NameServiceInitializer.class, NameServiceInitializer.NS_REMOTE_ACCESS_ARG, "readOnly"),
-        READ_WRITE(NameServiceInitializer.class, NameServiceInitializer.NS_REMOTE_ACCESS_ARG, "readWrite");
+        READ_ONLY("org.apache.yoko.orb.spi.naming.NameServiceInitializer", "-YokoNameServiceRemoteAccess", "readOnly"),
+        READ_WRITE("org.apache.yoko.orb.spi.naming.NameServiceInitializer", "-YokoNameServiceRemoteAccess", "readWrite");
         final String[] args;
-        private final Class<? extends ORBInitializer> initializerClass;
+        private final String initializerClassName;
 
         NameService() {
             this.args = new String[0];
-            this.initializerClass = null;
+            this.initializerClassName = null;
         }
 
-        NameService(Class<? extends ORBInitializer> initializerClass, String...args) {
+        NameService(String initializerClassName, String...args) {
             this.args = args;
-            this.initializerClass = initializerClass;
+            this.initializerClassName = initializerClassName;
         }
 
         Optional<Class<? extends ORBInitializer>> getInitializerClass() {
-            return Optional.ofNullable(initializerClass);
+            return Optional.ofNullable(initializerClassName).map(c -> {
+				try {
+					return Class.forName(c);
+				} catch (ClassNotFoundException e) {
+					Error e2 = new NoClassDefFoundError();
+					e2.initCause(e);
+					throw e2;
+				}
+			}).map(ORBInitializer.class.getClass()::cast);
         }
     }
 
