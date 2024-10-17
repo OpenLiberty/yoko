@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,18 @@
  */
 package org.apache.yoko.orb.IMR;
 
+import org.omg.CORBA.UNKNOWN;
+import org.omg.CORBA.portable.ApplicationException;
+import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.portable.ObjectImpl;
+import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA.portable.RemarshalException;
+import org.omg.CORBA.portable.ServantObject;
+
 //
 // IDL:orb.yoko.apache.org/IMR/Server:1.0
 //
-public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
+public class _ServerStub extends ObjectImpl
                          implements Server
 {
     private static final String[] _ob_ids_ =
@@ -34,7 +42,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         return _ob_ids_;
     }
 
-    final public static java.lang.Class _ob_opsClass = ServerOperations.class;
+    final public static Class _ob_opsClass = ServerOperations.class;
 
     //
     // IDL:orb.yoko.apache.org/IMR/Server/id:1.0
@@ -46,8 +54,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_id", true);
@@ -55,15 +63,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     int _ob_r = ServerIDHelper.read(in);
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -72,7 +80,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("id", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("id", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -98,8 +106,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_status", true);
@@ -107,15 +115,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     ServerStatus _ob_r = ServerStatusHelper.read(in);
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -124,7 +132,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("status", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("status", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -150,8 +158,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_manual", true);
@@ -159,15 +167,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     boolean _ob_r = in.read_boolean();
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -176,7 +184,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("manual", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("manual", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -202,8 +210,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_updateTime", true);
@@ -211,15 +219,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     int _ob_r = in.read_long();
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -228,7 +236,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("updateTime", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("updateTime", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -254,8 +262,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_timesForked", true);
@@ -263,15 +271,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     short _ob_r = in.read_short();
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -280,7 +288,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("timesForked", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("timesForked", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -306,8 +314,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_name", true);
@@ -315,15 +323,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     String _ob_r = in.read_string();
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -332,7 +340,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("name", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("name", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -355,8 +363,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_set_name", true);
@@ -364,15 +372,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -381,7 +389,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("name", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("name", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -408,8 +416,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_host", true);
@@ -417,15 +425,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     String _ob_r = in.read_string();
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -434,7 +442,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("host", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("host", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -457,8 +465,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_set_host", true);
@@ -466,15 +474,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -483,7 +491,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("host", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("host", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -510,8 +518,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_exec", true);
@@ -519,15 +527,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     String _ob_r = in.read_string();
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -536,7 +544,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("exec", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("exec", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -559,8 +567,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_set_exec", true);
@@ -568,15 +576,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -585,7 +593,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("exec", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("exec", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -612,8 +620,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_args", true);
@@ -621,15 +629,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     String[] _ob_r = ArgListHelper.read(in);
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -638,7 +646,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("args", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("args", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -661,8 +669,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_set_args", true);
@@ -670,15 +678,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -687,7 +695,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("args", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("args", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -714,8 +722,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_directory", true);
@@ -723,15 +731,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     String _ob_r = in.read_string();
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -740,7 +748,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("directory", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("directory", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -763,8 +771,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_set_directory", true);
@@ -772,15 +780,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -789,7 +797,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("directory", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("directory", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -816,8 +824,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_mode", true);
@@ -825,15 +833,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     ServerActivationMode _ob_r = ServerActivationModeHelper.read(in);
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -842,7 +850,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("mode", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("mode", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -865,8 +873,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_set_mode", true);
@@ -874,15 +882,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -891,7 +899,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("mode", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("mode", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -918,8 +926,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_updateTimeout", true);
@@ -927,15 +935,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     int _ob_r = in.read_long();
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -944,7 +952,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("updateTimeout", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("updateTimeout", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -967,8 +975,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_set_updateTimeout", true);
@@ -976,15 +984,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -993,7 +1001,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("updateTimeout", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("updateTimeout", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1020,8 +1028,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_failureTimeout", true);
@@ -1029,15 +1037,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     int _ob_r = in.read_long();
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1046,7 +1054,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("failureTimeout", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("failureTimeout", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1069,8 +1077,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_set_failureTimeout", true);
@@ -1078,15 +1086,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1095,7 +1103,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("failureTimeout", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("failureTimeout", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1122,8 +1130,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_maxForks", true);
@@ -1131,15 +1139,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     short _ob_r = in.read_short();
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1148,7 +1156,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("maxForks", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("maxForks", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1171,8 +1179,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_set_maxForks", true);
@@ -1180,15 +1188,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1197,7 +1205,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("maxForks", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("maxForks", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1224,8 +1232,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_get_activatePOAs", true);
@@ -1233,15 +1241,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     boolean _ob_r = in.read_boolean();
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1250,7 +1258,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("activatePOAs", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("activatePOAs", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1273,8 +1281,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("_set_activatePOAs", true);
@@ -1282,15 +1290,15 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1299,7 +1307,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("activatePOAs", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("activatePOAs", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1327,8 +1335,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("create_poa_record", true);
@@ -1336,19 +1344,19 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
                     in = _ob_aex.getInputStream();
 
                     if(_ob_id.equals(POAAlreadyRegisteredHelper.id()))
                         throw POAAlreadyRegisteredHelper.read(in);
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1357,7 +1365,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("create_poa_record", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("create_poa_record", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1385,8 +1393,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("remove_poa_record", true);
@@ -1394,19 +1402,19 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
                     in = _ob_aex.getInputStream();
 
                     if(_ob_id.equals(_NoSuchPOAHelper.id()))
                         throw _NoSuchPOAHelper.read(in);
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1415,7 +1423,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("remove_poa_record", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("remove_poa_record", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1443,8 +1451,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("get_poa_info", true);
@@ -1453,19 +1461,19 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     POAInfo _ob_r = POAInfoHelper.read(in);
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
                     in = _ob_aex.getInputStream();
 
                     if(_ob_id.equals(_NoSuchPOAHelper.id()))
                         throw _NoSuchPOAHelper.read(in);
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1474,7 +1482,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("get_poa_info", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("get_poa_info", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1500,8 +1508,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("list_poas", true);
@@ -1509,17 +1517,17 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                     POAInfo[] _ob_r = POAInfoSeqHelper.read(in);
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
                     in = _ob_aex.getInputStream();
 
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1528,7 +1536,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("list_poas", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("list_poas", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1554,25 +1562,25 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("clear_error_state", true);
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
                     in = _ob_aex.getInputStream();
 
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1581,7 +1589,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("clear_error_state", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("clear_error_state", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1609,27 +1617,27 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("start", true);
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
                     in = _ob_aex.getInputStream();
 
                     if(_ob_id.equals(ServerRunningHelper.id()))
                         throw ServerRunningHelper.read(in);
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1638,7 +1646,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("start", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("start", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1667,19 +1675,19 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("stop", true);
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
                     in = _ob_aex.getInputStream();
@@ -1688,8 +1696,8 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
                         throw OADNotRunningHelper.read(in);
                     if(_ob_id.equals(ServerNotRunningHelper.id()))
                         throw ServerNotRunningHelper.read(in);
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1698,7 +1706,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("stop", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("stop", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
@@ -1726,27 +1734,27 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("destroy", true);
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
                     in = _ob_aex.getInputStream();
 
                     if(_ob_id.equals(ServerRunningHelper.id()))
                         throw ServerRunningHelper.read(in);
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -1755,7 +1763,7 @@ public class _ServerStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("destroy", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("destroy", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ServerOperations _ob_self = (ServerOperations)_ob_so.servant;
