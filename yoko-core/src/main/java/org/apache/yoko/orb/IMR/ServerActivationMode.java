@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,13 @@
  */
 package org.apache.yoko.orb.IMR;
 
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+
+import java.io.ObjectStreamException;
+
+import org.omg.CORBA.BAD_PARAM;
+import org.omg.CORBA.portable.IDLEntity;
+
 //
 // IDL:orb.yoko.apache.org/IMR/ServerActivationMode:1.0
 //
@@ -26,7 +33,7 @@ package org.apache.yoko.orb.IMR;
  *
  **/
 
-public class ServerActivationMode implements org.omg.CORBA.portable.IDLEntity
+public class ServerActivationMode implements IDLEntity
 {
     private static ServerActivationMode [] values_ = new ServerActivationMode[2];
     private int value_;
@@ -55,12 +62,12 @@ public class ServerActivationMode implements org.omg.CORBA.portable.IDLEntity
         if(value < values_.length)
             return values_[value];
         else
-            throw new org.omg.CORBA.BAD_PARAM("Value (" + value  + ") out of range", 25, org.omg.CORBA.CompletionStatus.COMPLETED_NO);
+            throw new BAD_PARAM("Value (" + value  + ") out of range", 25, COMPLETED_NO);
     }
 
-    private java.lang.Object
+    private Object
     readResolve()
-        throws java.io.ObjectStreamException
+        throws ObjectStreamException
     {
         return from_int(value());
     }
