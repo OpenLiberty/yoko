@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,15 @@
  */
 package org.apache.yoko.orb.IMR;
 
+import org.omg.CORBA.TypeCode;
+import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA.portable.Streamable;
+
 //
 // IDL:orb.yoko.apache.org/IMR/ServerStatus:1.0
 //
-final public class ServerStatusHolder implements org.omg.CORBA.portable.Streamable
+public final class ServerStatusHolder implements Streamable
 {
     public ServerStatus value;
 
@@ -36,18 +41,18 @@ final public class ServerStatusHolder implements org.omg.CORBA.portable.Streamab
     }
 
     public void
-    _read(org.omg.CORBA.portable.InputStream in)
+    _read(InputStream in)
     {
         value = ServerStatusHelper.read(in);
     }
 
     public void
-    _write(org.omg.CORBA.portable.OutputStream out)
+    _write(OutputStream out)
     {
         ServerStatusHelper.write(out, value);
     }
 
-    public org.omg.CORBA.TypeCode
+    public TypeCode
     _type()
     {
         return ServerStatusHelper.type();
