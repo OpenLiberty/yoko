@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,20 @@
  */
 package org.apache.yoko.orb.IMR;
 
+import org.omg.CORBA.ORB;
+import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.portable.InvokeHandler;
+import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA.portable.ResponseHandler;
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.Servant;
+
 //
 // IDL:orb.yoko.apache.org/IMR/ServerFactory:1.0
 //
 public abstract class ServerFactoryPOA
-    extends org.omg.PortableServer.Servant
-    implements org.omg.CORBA.portable.InvokeHandler,
+    extends Servant
+    implements InvokeHandler,
                ServerFactoryOperations
 {
     static final String[] _ob_ids_ =
@@ -37,21 +45,21 @@ public abstract class ServerFactoryPOA
     }
 
     public ServerFactory
-    _this(org.omg.CORBA.ORB orb)
+    _this(ORB orb)
     {
         return ServerFactoryHelper.narrow(super._this_object(orb));
     }
 
     public String[]
-    _all_interfaces(org.omg.PortableServer.POA poa, byte[] objectId)
+    _all_interfaces(POA poa, byte[] objectId)
     {
         return _ob_ids_;
     }
 
-    public org.omg.CORBA.portable.OutputStream
+    public OutputStream
     _invoke(String opName,
-            org.omg.CORBA.portable.InputStream in,
-            org.omg.CORBA.portable.ResponseHandler handler)
+            InputStream in,
+            ResponseHandler handler)
     {
         final String[] _ob_names =
         {
@@ -125,11 +133,11 @@ public abstract class ServerFactoryPOA
         throw new org.omg.CORBA.BAD_OPERATION();
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_op_create_server_record(org.omg.CORBA.portable.InputStream in,
-                                org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_op_create_server_record(InputStream in,
+                                ResponseHandler handler)
     {
-        org.omg.CORBA.portable.OutputStream out = null;
+        OutputStream out = null;
         try
         {
             String _ob_a0 = in.read_string();
@@ -145,11 +153,11 @@ public abstract class ServerFactoryPOA
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_op_get_server(org.omg.CORBA.portable.InputStream in,
-                      org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_op_get_server(InputStream in,
+                      ResponseHandler handler)
     {
-        org.omg.CORBA.portable.OutputStream out = null;
+        OutputStream out = null;
         try
         {
             String _ob_a0 = in.read_string();
@@ -165,33 +173,33 @@ public abstract class ServerFactoryPOA
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_op_list_orphaned_servers(org.omg.CORBA.portable.InputStream in,
-                                 org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_op_list_orphaned_servers(InputStream in,
+                                 ResponseHandler handler)
     {
-        org.omg.CORBA.portable.OutputStream out = null;
+        OutputStream out = null;
         Server[] _ob_r = list_orphaned_servers();
         out = handler.createReply();
         ServerSeqHelper.write(out, _ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_op_list_servers(org.omg.CORBA.portable.InputStream in,
-                        org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_op_list_servers(InputStream in,
+                        ResponseHandler handler)
     {
-        org.omg.CORBA.portable.OutputStream out = null;
+        OutputStream out = null;
         Server[] _ob_r = list_servers();
         out = handler.createReply();
         ServerSeqHelper.write(out, _ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_op_list_servers_by_host(org.omg.CORBA.portable.InputStream in,
-                                org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_op_list_servers_by_host(InputStream in,
+                                ResponseHandler handler)
     {
-        org.omg.CORBA.portable.OutputStream out = null;
+        OutputStream out = null;
         String _ob_a0 = in.read_string();
         Server[] _ob_r = list_servers_by_host(_ob_a0);
         out = handler.createReply();
