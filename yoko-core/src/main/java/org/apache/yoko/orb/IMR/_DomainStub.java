@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,22 @@
  */
 package org.apache.yoko.orb.IMR;
 
+import org.apache.yoko.orb.OAD.ProcessEndpointManagerHelper;
+import org.apache.yoko.orb.OAD.ProcessEndpointManagerHolder;
+import org.omg.CORBA.UNKNOWN;
+import org.omg.CORBA.portable.ApplicationException;
+import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.portable.ObjectImpl;
+import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA.portable.RemarshalException;
+import org.omg.CORBA.portable.ServantObject;
+import org.omg.PortableInterceptor.ObjectReferenceTemplate;
+import org.omg.PortableInterceptor.ObjectReferenceTemplateHelper;
+
 //
 // IDL:orb.yoko.apache.org/IMR/Domain:1.0
 //
-public class _DomainStub extends org.omg.CORBA.portable.ObjectImpl
+public class _DomainStub extends ObjectImpl
                          implements Domain
 {
     private static final String[] _ob_ids_ =
@@ -34,7 +46,7 @@ public class _DomainStub extends org.omg.CORBA.portable.ObjectImpl
         return _ob_ids_;
     }
 
-    final public static java.lang.Class _ob_opsClass = DomainOperations.class;
+    final public static Class _ob_opsClass = DomainOperations.class;
 
     //
     // IDL:orb.yoko.apache.org/IMR/Domain/registerServer:1.0
@@ -49,8 +61,8 @@ public class _DomainStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("registerServer", true);
@@ -60,19 +72,19 @@ public class _DomainStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
                     in = _ob_aex.getInputStream();
 
                     if(_ob_id.equals(ServerAlreadyRegisteredHelper.id()))
                         throw ServerAlreadyRegisteredHelper.read(in);
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -81,7 +93,7 @@ public class _DomainStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("registerServer", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("registerServer", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 DomainOperations _ob_self = (DomainOperations)_ob_so.servant;
@@ -104,8 +116,8 @@ public class _DomainStub extends org.omg.CORBA.portable.ObjectImpl
     public ActiveState
     startup(String _ob_a0,
             String _ob_a1,
-            org.omg.PortableInterceptor.ObjectReferenceTemplate _ob_a2,
-            org.apache.yoko.orb.OAD.ProcessEndpointManagerHolder _ob_ah3)
+            ObjectReferenceTemplate _ob_a2,
+            ProcessEndpointManagerHolder _ob_ah3)
         throws NoSuchServer,
                NoSuchOAD,
                OADNotRunning
@@ -114,24 +126,24 @@ public class _DomainStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("startup", true);
                     out.write_string(_ob_a0);
                     out.write_string(_ob_a1);
-                    org.omg.PortableInterceptor.ObjectReferenceTemplateHelper.write(out, _ob_a2);
+                    ObjectReferenceTemplateHelper.write(out, _ob_a2);
                     in = _invoke(out);
                     ActiveState _ob_r = ActiveStateHelper.read(in);
-                    _ob_ah3.value = org.apache.yoko.orb.OAD.ProcessEndpointManagerHelper.read(in);
+                    _ob_ah3.value = ProcessEndpointManagerHelper.read(in);
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
                     in = _ob_aex.getInputStream();
@@ -142,8 +154,8 @@ public class _DomainStub extends org.omg.CORBA.portable.ObjectImpl
                         throw NoSuchOADHelper.read(in);
                     if(_ob_id.equals(OADNotRunningHelper.id()))
                         throw OADNotRunningHelper.read(in);
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -152,16 +164,16 @@ public class _DomainStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("startup", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("startup", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 DomainOperations _ob_self = (DomainOperations)_ob_so.servant;
                 try
                 {
-                    org.omg.CORBA.portable.OutputStream _ob_out = _orb().create_output_stream();
-                    org.omg.PortableInterceptor.ObjectReferenceTemplateHelper.write(_ob_out, _ob_a2);
-                    org.omg.CORBA.portable.InputStream _ob_in = _ob_out.create_input_stream();
-                    _ob_a2 = org.omg.PortableInterceptor.ObjectReferenceTemplateHelper.read(_ob_in);
+                    OutputStream _ob_out = _orb().create_output_stream();
+                    ObjectReferenceTemplateHelper.write(_ob_out, _ob_a2);
+                    InputStream _ob_in = _ob_out.create_input_stream();
+                    _ob_a2 = ObjectReferenceTemplateHelper.read(_ob_in);
                     return _ob_self.startup(_ob_a0, _ob_a1, _ob_a2, _ob_ah3);
                 }
                 finally
