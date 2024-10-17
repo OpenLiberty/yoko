@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,20 @@
  */
 package org.apache.yoko.orb.IMR;
 
+import org.omg.CORBA.ORB;
+import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.portable.InvokeHandler;
+import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA.portable.ResponseHandler;
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.Servant;
+
 //
 // IDL:orb.yoko.apache.org/IMR/Server:1.0
 //
 public abstract class ServerPOA
-    extends org.omg.PortableServer.Servant
-    implements org.omg.CORBA.portable.InvokeHandler,
+    extends Servant
+    implements InvokeHandler,
                ServerOperations
 {
     static final String[] _ob_ids_ =
@@ -37,21 +45,21 @@ public abstract class ServerPOA
     }
 
     public Server
-    _this(org.omg.CORBA.ORB orb)
+    _this(ORB orb)
     {
         return ServerHelper.narrow(super._this_object(orb));
     }
 
     public String[]
-    _all_interfaces(org.omg.PortableServer.POA poa, byte[] objectId)
+    _all_interfaces(POA poa, byte[] objectId)
     {
         return _ob_ids_;
     }
 
-    public org.omg.CORBA.portable.OutputStream
+    public OutputStream
     _invoke(String opName,
-            org.omg.CORBA.portable.InputStream in,
-            org.omg.CORBA.portable.ResponseHandler handler)
+            InputStream in,
+            ResponseHandler handler)
     {
         final String[] _ob_names =
         {
@@ -237,39 +245,39 @@ public abstract class ServerPOA
         throw new org.omg.CORBA.BAD_OPERATION();
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_activatePOAs(org.omg.CORBA.portable.InputStream in,
-                             org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_activatePOAs(InputStream in,
+                             ResponseHandler handler)
     {
         boolean _ob_r = activatePOAs();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         out.write_boolean(_ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_args(org.omg.CORBA.portable.InputStream in,
-                     org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_args(InputStream in,
+                     ResponseHandler handler)
     {
         String[] _ob_r = args();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         ArgListHelper.write(out, _ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_directory(org.omg.CORBA.portable.InputStream in,
-                          org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_directory(InputStream in,
+                          ResponseHandler handler)
     {
         String _ob_r = directory();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         out.write_string(_ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_exec(org.omg.CORBA.portable.InputStream in,
-                     org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_exec(InputStream in,
+                     ResponseHandler handler)
     {
         String _ob_r = exec();
         org.omg.CORBA.portable.OutputStream out = handler.createReply();
@@ -277,221 +285,221 @@ public abstract class ServerPOA
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_failureTimeout(org.omg.CORBA.portable.InputStream in,
-                               org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_failureTimeout(InputStream in,
+                               ResponseHandler handler)
     {
         int _ob_r = failureTimeout();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         out.write_long(_ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_host(org.omg.CORBA.portable.InputStream in,
-                     org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_host(InputStream in,
+                     ResponseHandler handler)
     {
         String _ob_r = host();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         out.write_string(_ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_id(org.omg.CORBA.portable.InputStream in,
-                   org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_id(InputStream in,
+                   ResponseHandler handler)
     {
         int _ob_r = id();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         ServerIDHelper.write(out, _ob_r);
         return out;
     }
 
     private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_manual(org.omg.CORBA.portable.InputStream in,
-                       org.omg.CORBA.portable.ResponseHandler handler)
+    _OB_att_get_manual(InputStream in,
+                       ResponseHandler handler)
     {
         boolean _ob_r = manual();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         out.write_boolean(_ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_maxForks(org.omg.CORBA.portable.InputStream in,
-                         org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_maxForks(InputStream in,
+                         ResponseHandler handler)
     {
         short _ob_r = maxForks();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         out.write_short(_ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_mode(org.omg.CORBA.portable.InputStream in,
-                     org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_mode(InputStream in,
+                     ResponseHandler handler)
     {
         ServerActivationMode _ob_r = mode();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         ServerActivationModeHelper.write(out, _ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_name(org.omg.CORBA.portable.InputStream in,
-                     org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_name(InputStream in,
+                     ResponseHandler handler)
     {
         String _ob_r = name();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         out.write_string(_ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_status(org.omg.CORBA.portable.InputStream in,
-                       org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_status(InputStream in,
+                       ResponseHandler handler)
     {
         ServerStatus _ob_r = status();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         ServerStatusHelper.write(out, _ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_timesForked(org.omg.CORBA.portable.InputStream in,
-                            org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_timesForked(InputStream in,
+                            ResponseHandler handler)
     {
         short _ob_r = timesForked();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         out.write_short(_ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_updateTime(org.omg.CORBA.portable.InputStream in,
-                           org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_updateTime(InputStream in,
+                           ResponseHandler handler)
     {
         int _ob_r = updateTime();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         out.write_long(_ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_get_updateTimeout(org.omg.CORBA.portable.InputStream in,
-                              org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_get_updateTimeout(InputStream in,
+                              ResponseHandler handler)
     {
         int _ob_r = updateTimeout();
-        org.omg.CORBA.portable.OutputStream out = handler.createReply();
+        OutputStream out = handler.createReply();
         out.write_long(_ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_set_activatePOAs(org.omg.CORBA.portable.InputStream in,
-                             org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_set_activatePOAs(InputStream in,
+                             ResponseHandler handler)
     {
         boolean _ob_a = in.read_boolean();
         activatePOAs(_ob_a);
         return handler.createReply();
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_set_args(org.omg.CORBA.portable.InputStream in,
-                     org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_set_args(InputStream in,
+                     ResponseHandler handler)
     {
         String[] _ob_a = ArgListHelper.read(in);
         args(_ob_a);
         return handler.createReply();
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_set_directory(org.omg.CORBA.portable.InputStream in,
-                          org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_set_directory(InputStream in,
+                          ResponseHandler handler)
     {
         String _ob_a = in.read_string();
         directory(_ob_a);
         return handler.createReply();
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_set_exec(org.omg.CORBA.portable.InputStream in,
-                     org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_set_exec(InputStream in,
+                     ResponseHandler handler)
     {
         String _ob_a = in.read_string();
         exec(_ob_a);
         return handler.createReply();
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_set_failureTimeout(org.omg.CORBA.portable.InputStream in,
-                               org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_set_failureTimeout(InputStream in,
+                               ResponseHandler handler)
     {
         int _ob_a = in.read_long();
         failureTimeout(_ob_a);
         return handler.createReply();
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_set_host(org.omg.CORBA.portable.InputStream in,
-                     org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_set_host(InputStream in,
+                     ResponseHandler handler)
     {
         String _ob_a = in.read_string();
         host(_ob_a);
         return handler.createReply();
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_set_maxForks(org.omg.CORBA.portable.InputStream in,
-                         org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_set_maxForks(InputStream in,
+                         ResponseHandler handler)
     {
         short _ob_a = in.read_short();
         maxForks(_ob_a);
         return handler.createReply();
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_set_mode(org.omg.CORBA.portable.InputStream in,
-                     org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_set_mode(InputStream in,
+                     ResponseHandler handler)
     {
         ServerActivationMode _ob_a = ServerActivationModeHelper.read(in);
         mode(_ob_a);
         return handler.createReply();
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_set_name(org.omg.CORBA.portable.InputStream in,
-                     org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_set_name(InputStream in,
+                     ResponseHandler handler)
     {
         String _ob_a = in.read_string();
         name(_ob_a);
         return handler.createReply();
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_att_set_updateTimeout(org.omg.CORBA.portable.InputStream in,
-                              org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_att_set_updateTimeout(InputStream in,
+                              ResponseHandler handler)
     {
         int _ob_a = in.read_long();
         updateTimeout(_ob_a);
         return handler.createReply();
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_op_clear_error_state(org.omg.CORBA.portable.InputStream in,
-                             org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_op_clear_error_state(InputStream in,
+                             ResponseHandler handler)
     {
-        org.omg.CORBA.portable.OutputStream out = null;
+        OutputStream out = null;
         clear_error_state();
         out = handler.createReply();
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_op_create_poa_record(org.omg.CORBA.portable.InputStream in,
-                             org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_op_create_poa_record(InputStream in,
+                             ResponseHandler handler)
     {
-        org.omg.CORBA.portable.OutputStream out = null;
+        OutputStream out = null;
         try
         {
             String[] _ob_a0 = POANameHelper.read(in);
@@ -506,11 +514,11 @@ public abstract class ServerPOA
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_op_destroy(org.omg.CORBA.portable.InputStream in,
-                   org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_op_destroy(InputStream in,
+                   ResponseHandler handler)
     {
-        org.omg.CORBA.portable.OutputStream out = null;
+        OutputStream out = null;
         try
         {
             destroy();
@@ -524,11 +532,11 @@ public abstract class ServerPOA
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_op_get_poa_info(org.omg.CORBA.portable.InputStream in,
-                        org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_op_get_poa_info(InputStream in,
+                        ResponseHandler handler)
     {
-        org.omg.CORBA.portable.OutputStream out = null;
+        OutputStream out = null;
         try
         {
             String[] _ob_a0 = POANameHelper.read(in);
@@ -544,22 +552,22 @@ public abstract class ServerPOA
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_op_list_poas(org.omg.CORBA.portable.InputStream in,
-                     org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_op_list_poas(InputStream in,
+                     ResponseHandler handler)
     {
-        org.omg.CORBA.portable.OutputStream out = null;
+        OutputStream out = null;
         POAInfo[] _ob_r = list_poas();
         out = handler.createReply();
         POAInfoSeqHelper.write(out, _ob_r);
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_op_remove_poa_record(org.omg.CORBA.portable.InputStream in,
-                             org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_op_remove_poa_record(InputStream in,
+                             ResponseHandler handler)
     {
-        org.omg.CORBA.portable.OutputStream out = null;
+        OutputStream out = null;
         try
         {
             String[] _ob_a0 = POANameHelper.read(in);
@@ -574,11 +582,11 @@ public abstract class ServerPOA
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_op_start(org.omg.CORBA.portable.InputStream in,
-                 org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_op_start(InputStream in,
+                 ResponseHandler handler)
     {
-        org.omg.CORBA.portable.OutputStream out = null;
+        OutputStream out = null;
         try
         {
             start();
@@ -592,11 +600,11 @@ public abstract class ServerPOA
         return out;
     }
 
-    private org.omg.CORBA.portable.OutputStream
-    _OB_op_stop(org.omg.CORBA.portable.InputStream in,
-                org.omg.CORBA.portable.ResponseHandler handler)
+    private OutputStream
+    _OB_op_stop(InputStream in,
+                ResponseHandler handler)
     {
-        org.omg.CORBA.portable.OutputStream out = null;
+        OutputStream out = null;
         try
         {
             stop();
