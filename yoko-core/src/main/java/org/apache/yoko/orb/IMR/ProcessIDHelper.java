@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,31 +17,39 @@
  */
 package org.apache.yoko.orb.IMR;
 
-import org.apache.yoko.util.MinorCodes;
+import static org.apache.yoko.util.MinorCodes.MinorTypeMismatch;
+import static org.apache.yoko.util.MinorCodes.describeBadOperation;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+import static org.omg.CORBA.TCKind.tk_ulong;
+
+import org.omg.CORBA.Any;
+import org.omg.CORBA.BAD_OPERATION;
+import org.omg.CORBA.ORB;
+import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.portable.OutputStream;
 
 //
 // IDL:orb.yoko.apache.org/IMR/ProcessID:1.0
 //
-final public class ProcessIDHelper
+public final class ProcessIDHelper
 {
     public static void
-    insert(org.omg.CORBA.Any any, int val)
+    insert(Any any, int val)
     {
-        org.omg.CORBA.portable.OutputStream out = any.create_output_stream();
+        OutputStream out = any.create_output_stream();
         write(out, val);
         any.read_value(out.create_input_stream(), type());
     }
 
     public static int
-    extract(org.omg.CORBA.Any any)
+    extract(Any any)
     {
         if(any.type().equivalent(type()))
             return read(any.create_input_stream());
         else
-            throw new org.omg.CORBA.BAD_OPERATION(
-                MinorCodes
-                        .describeBadOperation(MinorCodes.MinorTypeMismatch),
-                MinorCodes.MinorTypeMismatch, org.omg.CORBA.CompletionStatus.COMPLETED_NO);
+            throw new BAD_OPERATION(
+                describeBadOperation(MinorTypeMismatch),
+                MinorTypeMismatch, COMPLETED_NO);
     }
 
     private static org.omg.CORBA.TypeCode typeCode_;
@@ -51,8 +59,8 @@ final public class ProcessIDHelper
     {
         if(typeCode_ == null)
         {
-            org.omg.CORBA.ORB orb = org.omg.CORBA.ORB.init();
-            typeCode_ = orb.create_alias_tc(id(), "ProcessID", orb.get_primitive_tc(org.omg.CORBA.TCKind.tk_ulong));
+            ORB orb = ORB.init();
+            typeCode_ = orb.create_alias_tc(id(), "ProcessID", orb.get_primitive_tc(tk_ulong));
         }
 
         return typeCode_;
@@ -65,7 +73,7 @@ final public class ProcessIDHelper
     }
 
     public static int
-    read(org.omg.CORBA.portable.InputStream in)
+    read(InputStream in)
     {
         int _ob_v;
         _ob_v = in.read_ulong();
@@ -73,7 +81,7 @@ final public class ProcessIDHelper
     }
 
     public static void
-    write(org.omg.CORBA.portable.OutputStream out, int val)
+    write(OutputStream out, int val)
     {
         out.write_ulong(val);
     }
