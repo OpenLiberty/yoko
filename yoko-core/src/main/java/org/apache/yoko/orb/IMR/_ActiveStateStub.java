@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,20 @@
  */
 package org.apache.yoko.orb.IMR;
 
+import org.omg.CORBA.UNKNOWN;
+import org.omg.CORBA.portable.ApplicationException;
+import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.portable.ObjectImpl;
+import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA.portable.RemarshalException;
+import org.omg.CORBA.portable.ServantObject;
+import org.omg.PortableInterceptor.ObjectReferenceTemplate;
+import org.omg.PortableInterceptor.ObjectReferenceTemplateHelper;
+
 //
 // IDL:orb.yoko.apache.org/IMR/ActiveState:1.0
 //
-public class _ActiveStateStub extends org.omg.CORBA.portable.ObjectImpl
+public class _ActiveStateStub extends ObjectImpl
                               implements ActiveState
 {
     private static final String[] _ob_ids_ =
@@ -34,7 +44,7 @@ public class _ActiveStateStub extends org.omg.CORBA.portable.ObjectImpl
         return _ob_ids_;
     }
 
-    final public static java.lang.Class _ob_opsClass = ActiveStateOperations.class;
+    final public static Class _ob_opsClass = ActiveStateOperations.class;
 
     //
     // IDL:orb.yoko.apache.org/IMR/ActiveState/set_status:1.0
@@ -47,8 +57,8 @@ public class _ActiveStateStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("set_status", true);
@@ -57,17 +67,17 @@ public class _ActiveStateStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
                     in = _ob_aex.getInputStream();
 
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -76,7 +86,7 @@ public class _ActiveStateStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("set_status", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("set_status", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ActiveStateOperations _ob_self = (ActiveStateOperations)_ob_so.servant;
@@ -96,39 +106,39 @@ public class _ActiveStateStub extends org.omg.CORBA.portable.ObjectImpl
     //
     // IDL:orb.yoko.apache.org/IMR/ActiveState/poa_create:1.0
     //
-    public org.omg.PortableInterceptor.ObjectReferenceTemplate
+    public ObjectReferenceTemplate
     poa_create(POAStatus _ob_a0,
-               org.omg.PortableInterceptor.ObjectReferenceTemplate _ob_a1)
+               ObjectReferenceTemplate _ob_a1)
         throws _NoSuchPOA
     {
         while(true)
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("poa_create", true);
                     POAStatusHelper.write(out, _ob_a0);
-                    org.omg.PortableInterceptor.ObjectReferenceTemplateHelper.write(out, _ob_a1);
+                    ObjectReferenceTemplateHelper.write(out, _ob_a1);
                     in = _invoke(out);
-                    org.omg.PortableInterceptor.ObjectReferenceTemplate _ob_r = org.omg.PortableInterceptor.ObjectReferenceTemplateHelper.read(in);
+                    ObjectReferenceTemplate _ob_r = ObjectReferenceTemplateHelper.read(in);
                     return _ob_r;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
                     in = _ob_aex.getInputStream();
 
                     if(_ob_id.equals(_NoSuchPOAHelper.id()))
                         throw _NoSuchPOAHelper.read(in);
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -137,21 +147,21 @@ public class _ActiveStateStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("poa_create", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("poa_create", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ActiveStateOperations _ob_self = (ActiveStateOperations)_ob_so.servant;
                 try
                 {
-                    org.omg.CORBA.portable.OutputStream _ob_out = _orb().create_output_stream();
-                    org.omg.PortableInterceptor.ObjectReferenceTemplateHelper.write(_ob_out, _ob_a1);
-                    org.omg.CORBA.portable.InputStream _ob_in = _ob_out.create_input_stream();
-                    _ob_a1 = org.omg.PortableInterceptor.ObjectReferenceTemplateHelper.read(_ob_in);
-                    org.omg.PortableInterceptor.ObjectReferenceTemplate _ob_r = _ob_self.poa_create(_ob_a0, _ob_a1);
+                    OutputStream _ob_out = _orb().create_output_stream();
+                    ObjectReferenceTemplateHelper.write(_ob_out, _ob_a1);
+                    InputStream _ob_in = _ob_out.create_input_stream();
+                    _ob_a1 = ObjectReferenceTemplateHelper.read(_ob_in);
+                    ObjectReferenceTemplate _ob_r = _ob_self.poa_create(_ob_a0, _ob_a1);
                     _ob_out = _orb().create_output_stream();
-                    org.omg.PortableInterceptor.ObjectReferenceTemplateHelper.write(_ob_out, _ob_r);
+                    ObjectReferenceTemplateHelper.write(_ob_out, _ob_r);
                     _ob_in = _ob_out.create_input_stream();
-                    _ob_r = org.omg.PortableInterceptor.ObjectReferenceTemplateHelper.read(_ob_in);
+                    _ob_r = ObjectReferenceTemplateHelper.read(_ob_in);
                     return _ob_r;
                 }
                 finally
@@ -173,8 +183,8 @@ public class _ActiveStateStub extends org.omg.CORBA.portable.ObjectImpl
         {
             if(!this._is_local())
             {
-                org.omg.CORBA.portable.OutputStream out = null;
-                org.omg.CORBA.portable.InputStream in = null;
+                OutputStream out = null;
+                InputStream in = null;
                 try
                 {
                     out = _request("poa_status_update", true);
@@ -183,17 +193,17 @@ public class _ActiveStateStub extends org.omg.CORBA.portable.ObjectImpl
                     in = _invoke(out);
                     return;
                 }
-                catch(org.omg.CORBA.portable.RemarshalException _ob_ex)
+                catch(RemarshalException _ob_ex)
                 {
                     continue;
                 }
-                catch(org.omg.CORBA.portable.ApplicationException _ob_aex)
+                catch(ApplicationException _ob_aex)
                 {
                     final String _ob_id = _ob_aex.getId();
                     in = _ob_aex.getInputStream();
 
-                    throw (org.omg.CORBA.UNKNOWN)new 
-                        org.omg.CORBA.UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
+                    throw (UNKNOWN)new 
+                        UNKNOWN("Unexpected User Exception: " + _ob_id).initCause(_ob_aex);
                 }
                 finally
                 {
@@ -202,7 +212,7 @@ public class _ActiveStateStub extends org.omg.CORBA.portable.ObjectImpl
             }
             else
             {
-                org.omg.CORBA.portable.ServantObject _ob_so = _servant_preinvoke("poa_status_update", _ob_opsClass);
+                ServantObject _ob_so = _servant_preinvoke("poa_status_update", _ob_opsClass);
                 if(_ob_so == null)
                     continue;
                 ActiveStateOperations _ob_self = (ActiveStateOperations)_ob_so.servant;
