@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,48 +17,57 @@
  */
 package org.apache.yoko.orb.IMR;
 
-import org.apache.yoko.util.MinorCodes;
+import static org.apache.yoko.util.MinorCodes.MinorTypeMismatch;
+import static org.apache.yoko.util.MinorCodes.describeBadOperation;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+
+import org.omg.CORBA.Any;
+import org.omg.CORBA.BAD_OPERATION;
+import org.omg.CORBA.ORB;
+import org.omg.CORBA.StructMember;
+import org.omg.CORBA.TypeCode;
+import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.portable.OutputStream;
 
 //
 // IDL:orb.yoko.apache.org/IMR/POAInfo:1.0
 //
-final public class POAInfoHelper
+public final class POAInfoHelper
 {
     public static void
-    insert(org.omg.CORBA.Any any, POAInfo val)
+    insert(Any any, POAInfo val)
     {
-        org.omg.CORBA.portable.OutputStream out = any.create_output_stream();
+        OutputStream out = any.create_output_stream();
         write(out, val);
         any.read_value(out.create_input_stream(), type());
     }
 
     public static POAInfo
-    extract(org.omg.CORBA.Any any)
+    extract(Any any)
     {
         if(any.type().equivalent(type()))
             return read(any.create_input_stream());
         else
-            throw new org.omg.CORBA.BAD_OPERATION(
-                MinorCodes
-                        .describeBadOperation(MinorCodes.MinorTypeMismatch),
-                MinorCodes.MinorTypeMismatch, org.omg.CORBA.CompletionStatus.COMPLETED_NO);
+            throw new BAD_OPERATION(
+                describeBadOperation(MinorTypeMismatch),
+                MinorTypeMismatch, COMPLETED_NO);
     }
 
-    private static org.omg.CORBA.TypeCode typeCode_;
+    private static TypeCode typeCode_;
 
-    public static org.omg.CORBA.TypeCode
+    public static TypeCode
     type()
     {
         if(typeCode_ == null)
         {
-            org.omg.CORBA.ORB orb = org.omg.CORBA.ORB.init();
-            org.omg.CORBA.StructMember[] members = new org.omg.CORBA.StructMember[2];
+            ORB orb = ORB.init();
+            StructMember[] members = new StructMember[2];
 
-            members[0] = new org.omg.CORBA.StructMember();
+            members[0] = new StructMember();
             members[0].name = "poa";
             members[0].type = POANameHelper.type();
 
-            members[1] = new org.omg.CORBA.StructMember();
+            members[1] = new StructMember();
             members[1].name = "state";
             members[1].type = POAStatusHelper.type();
 
@@ -75,7 +84,7 @@ final public class POAInfoHelper
     }
 
     public static POAInfo
-    read(org.omg.CORBA.portable.InputStream in)
+    read(InputStream in)
     {
         POAInfo _ob_v = new POAInfo();
         _ob_v.poa = POANameHelper.read(in);
@@ -84,7 +93,7 @@ final public class POAInfoHelper
     }
 
     public static void
-    write(org.omg.CORBA.portable.OutputStream out, POAInfo val)
+    write(OutputStream out, POAInfo val)
     {
         POANameHelper.write(out, val.poa);
         POAStatusHelper.write(out, val.state);
