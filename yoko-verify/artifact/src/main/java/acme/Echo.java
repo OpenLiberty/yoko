@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,8 @@
  */
 package acme;
 
-import java.rmi.Remote;
 import java.rmi.RemoteException;
 
-public interface Echo extends Remote {
+public interface Echo extends AbstractRemote {
     String echo(String s) throws RemoteException;
 }

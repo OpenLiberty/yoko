@@ -54,14 +54,14 @@ public @interface ConfigureOrb {
 
         Optional<Class<? extends ORBInitializer>> getInitializerClass() {
             return Optional.ofNullable(initializerClassName).map(c -> {
-				try {
-					return Class.forName(c);
-				} catch (ClassNotFoundException e) {
-					Error e2 = new NoClassDefFoundError();
-					e2.initCause(e);
-					throw e2;
-				}
-			}).map(ORBInitializer.class.getClass()::cast);
+                try {
+                    return Class.forName(c);
+                } catch (ClassNotFoundException e) {
+                    Error e2 = new NoClassDefFoundError();
+                    e2.initCause(e);
+                    throw e2;
+                }
+            }).map(ORBInitializer.class.getClass()::cast);
         }
     }
 

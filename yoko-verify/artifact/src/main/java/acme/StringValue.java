@@ -17,11 +17,17 @@
  */
 package acme;
 
-import java.io.Serializable;
+import java.util.Objects;
 
-/**
- * Fields or parameters declared as this interface must be marshalled as an abstract interface.
- * This is an IDL union with a discriminator to indicate whether the content is a
- * value or a remote reference (i.e. an IOR).
- */
-public interface AbstractInterface extends Serializable {}
+public final class StringValue implements AbstractValue, AbstractInterface {
+    private static final long serialVersionUID = 1L;
+    final String value;
+    public StringValue(String value) { this.value = value; }
+    public String toString() { return value; }
+    public int hashCode() { return Objects.hash(value); }
+    public boolean equals(Object o) {
+        if (!(o instanceof StringValue)) return false;
+        StringValue that = (StringValue)o;
+        return Objects.equals(this.value, that.value);
+    }
+}
