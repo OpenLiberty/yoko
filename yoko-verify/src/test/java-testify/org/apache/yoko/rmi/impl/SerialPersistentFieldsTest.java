@@ -143,7 +143,8 @@ public abstract class SerialPersistentFieldsTest implements Serializable {
         private static final ObjectStreamField[] serialPersistentFields = {
                 new ObjectStreamField("abstractValue", AbstractInterface.class),
                 new ObjectStreamField("valueInterface", AbstractValue.class),
-                new ObjectStreamField("valueClass", StringValue.class)
+                new ObjectStreamField("valueClass", StringValue.class),
+                new ObjectStreamField("anyValue", Serializable.class)
         };
         private static final List<String> FIELD_NAMES = Stream.of(serialPersistentFields).map(ObjectStreamField::getName).collect(toUnmodifiableList());
 
