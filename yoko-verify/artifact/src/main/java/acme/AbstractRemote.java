@@ -18,10 +18,10 @@
 package acme;
 
 import java.io.Serializable;
+import java.rmi.Remote;
 
 /**
- * Fields or parameters declared as this interface must be marshalled as an abstract interface.
- * This is an IDL union with a discriminator to indicate whether the content is a
- * value or a remote reference (i.e. an IOR).
+ * Fields or parameters declared as this interface must be marshalled as remote references.
  */
-public interface AbstractInterface extends Serializable {}
+public interface AbstractRemote extends Remote, Serializable {
+}

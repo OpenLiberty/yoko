@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,9 @@ package acme;
 
 import java.io.Serializable;
 
+/**
+ * Any field or parameter declared as this type must be marshalled as a value.
+ */
 public interface AbstractValue extends Serializable {
     String toString();
 }
