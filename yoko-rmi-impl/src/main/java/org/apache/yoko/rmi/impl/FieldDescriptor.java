@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2024 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -389,7 +389,7 @@ class AnyFieldDescriptor extends FieldDescriptor {
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
     void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
-        org.omg.CORBA.Any value = (org.omg.CORBA.Any) reader.readAny();
+        Object value = reader.readAny();
         map.put(java_name, value);
     }
 
@@ -397,7 +397,7 @@ class AnyFieldDescriptor extends FieldDescriptor {
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
     void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
-        org.omg.CORBA.Any value = (org.omg.CORBA.Any) map.get(java_name);
+        Object value = map.get(java_name);
         writer.writeAny(value);
     }
 
