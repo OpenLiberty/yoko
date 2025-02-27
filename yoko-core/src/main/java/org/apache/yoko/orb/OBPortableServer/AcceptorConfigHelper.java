@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,19 @@
  */
 package org.apache.yoko.orb.OBPortableServer;
 
-import org.apache.yoko.util.MinorCodes;
+import org.apache.yoko.orb.OCI.ParamSeqHelper;
+import org.apache.yoko.orb.OCI.PluginIdHelper;
+import org.omg.CORBA.Any;
+import org.omg.CORBA.BAD_OPERATION;
+import org.omg.CORBA.ORB;
+import org.omg.CORBA.StructMember;
+import org.omg.CORBA.TypeCode;
+import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.portable.OutputStream;
+
+import static org.apache.yoko.util.MinorCodes.MinorTypeMismatch;
+import static org.apache.yoko.util.MinorCodes.describeBadOperation;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 //
 // IDL:orb.yoko.apache.org/OBPortableServer/AcceptorConfig:1.0
@@ -25,43 +37,42 @@ import org.apache.yoko.util.MinorCodes;
 final public class AcceptorConfigHelper
 {
     public static void
-    insert(org.omg.CORBA.Any any, AcceptorConfig val)
+    insert(Any any, AcceptorConfig val)
     {
-        org.omg.CORBA.portable.OutputStream out = any.create_output_stream();
+        OutputStream out = any.create_output_stream();
         write(out, val);
         any.read_value(out.create_input_stream(), type());
     }
 
     public static AcceptorConfig
-    extract(org.omg.CORBA.Any any)
+    extract(Any any)
     {
         if(any.type().equivalent(type()))
             return read(any.create_input_stream());
         else
 
-            throw new org.omg.CORBA.BAD_OPERATION(
-                MinorCodes
-                        .describeBadOperation(MinorCodes.MinorTypeMismatch),
-                MinorCodes.MinorTypeMismatch, org.omg.CORBA.CompletionStatus.COMPLETED_NO);
+            throw new BAD_OPERATION(
+                describeBadOperation(MinorTypeMismatch),
+                MinorTypeMismatch, COMPLETED_NO);
     }
 
-    private static org.omg.CORBA.TypeCode typeCode_;
+    private static TypeCode typeCode_;
 
-    public static org.omg.CORBA.TypeCode
+    public static TypeCode
     type()
     {
         if(typeCode_ == null)
         {
-            org.omg.CORBA.ORB orb = org.omg.CORBA.ORB.init();
-            org.omg.CORBA.StructMember[] members = new org.omg.CORBA.StructMember[2];
+            ORB orb = ORB.init();
+            StructMember[] members = new StructMember[2];
 
-            members[0] = new org.omg.CORBA.StructMember();
+            members[0] = new StructMember();
             members[0].name = "id";
-            members[0].type = org.apache.yoko.orb.OCI.PluginIdHelper.type();
+            members[0].type = PluginIdHelper.type();
 
-            members[1] = new org.omg.CORBA.StructMember();
+            members[1] = new StructMember();
             members[1].name = "params";
-            members[1].type = org.apache.yoko.orb.OCI.ParamSeqHelper.type();
+            members[1].type = ParamSeqHelper.type();
 
             typeCode_ = orb.create_struct_tc(id(), "AcceptorConfig", members);
         }
@@ -76,18 +87,18 @@ final public class AcceptorConfigHelper
     }
 
     public static AcceptorConfig
-    read(org.omg.CORBA.portable.InputStream in)
+    read(InputStream in)
     {
         AcceptorConfig _ob_v = new AcceptorConfig();
-        _ob_v.id = org.apache.yoko.orb.OCI.PluginIdHelper.read(in);
-        _ob_v.params = org.apache.yoko.orb.OCI.ParamSeqHelper.read(in);
+        _ob_v.id = PluginIdHelper.read(in);
+        _ob_v.params = ParamSeqHelper.read(in);
         return _ob_v;
     }
 
     public static void
-    write(org.omg.CORBA.portable.OutputStream out, AcceptorConfig val)
+    write(OutputStream out, AcceptorConfig val)
     {
-        org.apache.yoko.orb.OCI.PluginIdHelper.write(out, val.id);
-        org.apache.yoko.orb.OCI.ParamSeqHelper.write(out, val.params);
+        PluginIdHelper.write(out, val.id);
+        ParamSeqHelper.write(out, val.params);
     }
 }
