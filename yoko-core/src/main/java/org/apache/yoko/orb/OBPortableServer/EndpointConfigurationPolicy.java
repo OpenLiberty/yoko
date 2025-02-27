@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@ package org.apache.yoko.orb.OBPortableServer;
 //
 // IDL:orb.yoko.apache.org/OBPortableServer/EndpointConfigurationPolicy:1.0
 //
+
+import org.omg.CORBA.Policy;
+
 /**
  *
  * Endpoint Configuration Policy
@@ -27,6 +30,6 @@ package org.apache.yoko.orb.OBPortableServer;
  **/
 
 public interface EndpointConfigurationPolicy extends EndpointConfigurationPolicyOperations,
-                                                     org.omg.CORBA.Policy
+                                                     Policy
 {
 }
