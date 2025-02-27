@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,11 @@
  */
 package org.apache.yoko.orb.OBPortableServer;
 
-import org.apache.yoko.orb.OBPortableServer.AcceptorConfig;
-import org.apache.yoko.orb.OBPortableServer.ENDPOINT_CONFIGURATION_POLICY_ID;
-import org.apache.yoko.orb.OBPortableServer.EndpointConfigurationPolicy;
+import org.omg.CORBA.LocalObject;
+import org.omg.CORBA.Policy;
 
 public final class EndpointConfigurationPolicy_impl extends
-        org.omg.CORBA.LocalObject implements EndpointConfigurationPolicy {
+        LocalObject implements EndpointConfigurationPolicy {
     private AcceptorConfig[] value_;
 
     public EndpointConfigurationPolicy_impl(AcceptorConfig[] value) {
@@ -37,7 +36,7 @@ public final class EndpointConfigurationPolicy_impl extends
         return ENDPOINT_CONFIGURATION_POLICY_ID.value;
     }
 
-    public org.omg.CORBA.Policy copy() {
+    public Policy copy() {
         return this;
     }
 
