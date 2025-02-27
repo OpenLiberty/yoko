@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,15 @@
 package org.apache.yoko.orb.OBPortableServer;
 
 import org.apache.yoko.orb.PortableServer.PoaCurrentImpl;
-import org.apache.yoko.util.Assert;
+import org.omg.PortableServer.CurrentPackage.NoContext;
+import org.omg.PortableServer.Servant;
+
+import static org.apache.yoko.util.Assert.fail;
 
 class DefaultServantHolder {
     private boolean destroyed_;
 
-    org.omg.PortableServer.Servant servant_;
+    Servant servant_;
 
     //
     // Destroy the default servant
@@ -36,30 +39,30 @@ class DefaultServantHolder {
     // Set the default servant
     //
     synchronized public void setDefaultServant(
-            org.omg.PortableServer.Servant servant) {
+            Servant servant) {
         servant_ = servant;
     }
 
     //
     // Retrieve the default servant
     //
-    synchronized public org.omg.PortableServer.Servant getDefaultServant() {
+    synchronized public Servant getDefaultServant() {
         return servant_;
     }
 
     //
     // Retrieve the ObjectId associated with the servant, if necessary
     //
-    synchronized byte[] servantToId(org.omg.PortableServer.Servant servant,
-            PoaCurrentImpl poaCurrent) {
+    synchronized byte[] servantToId(Servant servant,
+                                    PoaCurrentImpl poaCurrent) {
         if (servant != servant_)
             return null;
 
         if (poaCurrent._OB_inUpcall() && poaCurrent._OB_getServant() == servant) {
             try {
                 return poaCurrent.get_object_id();
-            } catch (org.omg.PortableServer.CurrentPackage.NoContext ex) {
-                throw Assert.fail(ex); // TODO:
+            } catch (NoContext ex) {
+                throw fail(ex); // TODO:
                                                                     // Internal
                                                                     // error
             }
