@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,22 +17,24 @@
  */
 package org.apache.yoko.orb.OBPortableServer;
 
+import org.omg.PortableServer.AdapterActivator;
+
 //
 // This class is used to hold the adapater activator
 //
 class AdapterActivatorHolder {
-    org.omg.PortableServer.AdapterActivator activator_;
+    AdapterActivator activator_;
 
     public synchronized void destroy() {
         activator_ = null;
     }
 
-    public synchronized org.omg.PortableServer.AdapterActivator getAdapterActivator() {
+    public synchronized AdapterActivator getAdapterActivator() {
         return activator_;
     }
 
     public synchronized void setAdapterActivator(
-            org.omg.PortableServer.AdapterActivator activator) {
+            AdapterActivator activator) {
         activator_ = activator;
     }
 }
