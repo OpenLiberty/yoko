@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,25 +17,53 @@
  */
 package org.apache.yoko.orb.OBPortableServer;
 
+import org.apache.yoko.orb.OB.LOCATION_TRANSPARENCY_STRICT;
+import org.apache.yoko.orb.OB.LocationForward;
+import org.apache.yoko.orb.OB.ORBInstance;
+import org.apache.yoko.orb.OB.ObjectIdHasher;
+import org.apache.yoko.orb.OB.PIManager;
+import org.apache.yoko.orb.OB.RefCountPolicyList;
 import org.apache.yoko.orb.PortableServer.PoaCurrentImpl;
 import org.apache.yoko.util.Assert;
-import org.apache.yoko.util.MinorCodes;
+import org.omg.CORBA.OBJECT_NOT_EXIST;
+import org.omg.CORBA.SystemException;
+import org.omg.PortableServer.DynamicImplementation;
+import org.omg.PortableServer.POAPackage.ObjectAlreadyActive;
+import org.omg.PortableServer.POAPackage.ObjectNotActive;
+import org.omg.PortableServer.POAPackage.ServantAlreadyActive;
+import org.omg.PortableServer.POAPackage.WrongPolicy;
+import org.omg.PortableServer.Servant;
+import org.omg.PortableServer.ServantLocatorPackage.CookieHolder;
+import org.omg.PortableServer.ServantManagerOperations;
+
+import java.util.Hashtable;
+import java.util.Vector;
+
+import static org.apache.yoko.orb.OB.Util.printOctets;
+import static org.apache.yoko.orb.OBPortableServer.TableEntry.ACTIVATE_PENDING;
+import static org.apache.yoko.orb.OBPortableServer.TableEntry.ACTIVE;
+import static org.apache.yoko.orb.OBPortableServer.TableEntry.DEACTIVATED;
+import static org.apache.yoko.orb.OBPortableServer.TableEntry.DEACTIVATE_PENDING;
+import static org.apache.yoko.util.MinorCodes.MinorCannotDispatch;
+import static org.apache.yoko.util.MinorCodes.describeObjectNotExist;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+import static org.omg.PortableServer.IdUniquenessPolicyValue.UNIQUE_ID;
 
 //
 // Mapping for ObjectId to a sequence of DirectStubImpl
 //
 class DirectSeqEntry {
-    private java.util.Vector seq_;
+    private Vector seq_;
 
     private byte[] oid_; // TODO: tmp
 
     private void traceoid() {
-        org.apache.yoko.orb.OB.Util.printOctets(System.out, oid_, 0,
+        printOctets(System.out, oid_, 0,
                 oid_.length);
     }
 
     DirectSeqEntry(byte[] oid) {
-        seq_ = new java.util.Vector();
+        seq_ = new Vector();
         oid_ = oid;
     }
 
@@ -80,29 +108,29 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
     //
     // The AOM
     //
-    protected java.util.Hashtable activeObjectTable_;
+    protected Hashtable activeObjectTable_;
 
     //
     // Reverse map from servant to id
     //
-    protected java.util.Hashtable servantIdTable_;
+    protected Hashtable servantIdTable_;
 
     //
     // Mapping for ObjectId's to DirectStubImpl
     //
-    private java.util.Hashtable directSeqTable_;
+    private Hashtable directSeqTable_;
 
     //
     // The ORBInstance
     //
-    private org.apache.yoko.orb.OB.ORBInstance orbInstance_;
+    private ORBInstance orbInstance_;
 
     //
     // This method is synchronized on the TableEntry
     //
     protected void completeActivation(
-            org.apache.yoko.orb.OB.ObjectIdHasher oid,
-            org.omg.PortableServer.Servant servant, TableEntry entry) {
+            ObjectIdHasher oid,
+            Servant servant, TableEntry entry) {
         //
         // If there is a DirectStubImpl that refers to a default servant
         // under this oid then deactivate each
@@ -138,7 +166,7 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
     }
 
     protected void completeDeactivate(org.omg.PortableServer.POA poa,
-            org.apache.yoko.orb.OB.ObjectIdHasher oid, TableEntry entry) {
+            ObjectIdHasher oid, TableEntry entry) {
         //
         // Mark each DirectServant associated with this oid as
         // deactivated
@@ -156,7 +184,7 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
         // servantIdTable
         //
         if (servantIdTable_ != null) {
-            org.omg.PortableServer.Servant servant = entry.getServant();
+            Servant servant = entry.getServant();
             Assert.ensure(servantIdTable_
                     .containsKey(servant));
             servantIdTable_.remove(servant);
@@ -172,17 +200,17 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
 
     protected DirectServant completeDirectStubImpl(
             org.omg.PortableServer.POA poa, byte[] rawoid,
-            org.omg.PortableServer.Servant servant,
-            org.apache.yoko.orb.OB.RefCountPolicyList policies) {
+            Servant servant,
+            RefCountPolicyList policies) {
         DirectServant directServant;
 
-        org.apache.yoko.orb.OB.ObjectIdHasher oid = new org.apache.yoko.orb.OB.ObjectIdHasher(
+        ObjectIdHasher oid = new ObjectIdHasher(
                 rawoid);
 
         //
         // No direct invocations for DSI servants
         //
-        if (servant instanceof org.omg.PortableServer.DynamicImplementation)
+        if (servant instanceof DynamicImplementation)
             return null;
 
         //
@@ -195,11 +223,11 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
         // We need this hack in Java because the servant class is
         // standardized, so we can't invoke _OB_haveNativeTypes().
         //
-        boolean haveNativeTypes = (servant instanceof org.omg.PortableServer.ServantManagerOperations);
-        org.apache.yoko.orb.OB.PIManager piManager = orbInstance_
+        boolean haveNativeTypes = (servant instanceof ServantManagerOperations);
+        PIManager piManager = orbInstance_
                 .getPIManager();
         if (!haveNativeTypes
-                && (policies.locationTransparency == org.apache.yoko.orb.OB.LOCATION_TRANSPARENCY_STRICT.value
+                && (policies.locationTransparency == LOCATION_TRANSPARENCY_STRICT.value
                         || piManager.haveClientInterceptors() || piManager
                         .haveServerInterceptors()))
             return null;
@@ -208,7 +236,7 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
         // Create a DirectServant
         //
         directServant = new DirectServant(
-                (org.apache.yoko.orb.OBPortableServer.POA_impl) poa, oid
+                (POA_impl) poa, oid
                         .getObjectId(), servant);
 
         //
@@ -227,14 +255,14 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
     }
 
     ActiveObjectOnlyStrategy(
-            org.apache.yoko.orb.OBPortableServer.POAPolicies policies,
-            org.apache.yoko.orb.OB.ORBInstance orbInstance) {
-        activeObjectTable_ = new java.util.Hashtable(1023);
-        directSeqTable_ = new java.util.Hashtable(1023);
+            POAPolicies policies,
+            ORBInstance orbInstance) {
+        activeObjectTable_ = new Hashtable(1023);
+        directSeqTable_ = new Hashtable(1023);
         orbInstance_ = orbInstance;
 
-        if (policies.idUniquenessPolicy() == org.omg.PortableServer.IdUniquenessPolicyValue.UNIQUE_ID)
-            servantIdTable_ = new java.util.Hashtable(1023);
+        if (policies.idUniquenessPolicy() == UNIQUE_ID)
+            servantIdTable_ = new Hashtable(1023);
         else
             servantIdTable_ = null;
     }
@@ -256,11 +284,11 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
         // Do nothing
     }
 
-    public void activate(byte[] rawoid, org.omg.PortableServer.Servant servant)
-            throws org.omg.PortableServer.POAPackage.ServantAlreadyActive,
-            org.omg.PortableServer.POAPackage.WrongPolicy,
-            org.omg.PortableServer.POAPackage.ObjectAlreadyActive {
-        org.apache.yoko.orb.OB.ObjectIdHasher oid = new org.apache.yoko.orb.OB.ObjectIdHasher(
+    public void activate(byte[] rawoid, Servant servant)
+            throws ServantAlreadyActive,
+            WrongPolicy,
+            ObjectAlreadyActive {
+        ObjectIdHasher oid = new ObjectIdHasher(
                 rawoid);
 
         while (true) {
@@ -280,7 +308,7 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
                     //
                     if (servantIdTable_ != null
                             && servantIdTable_.containsKey(servant)) {
-                        throw new org.omg.PortableServer.POAPackage.ServantAlreadyActive();
+                        throw new ServantAlreadyActive();
                     }
 
                     //
@@ -294,18 +322,18 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
 
             synchronized (entry) {
                 switch (entry.state()) {
-                case TableEntry.DEACTIVATE_PENDING:
+                case DEACTIVATE_PENDING:
                     entry.waitForStateChange();
                     continue;
 
-                case TableEntry.ACTIVATE_PENDING:
+                case ACTIVATE_PENDING:
                     incarnate = true;
                     break;
 
-                case TableEntry.ACTIVE:
-                    throw new org.omg.PortableServer.POAPackage.ObjectAlreadyActive();
+                case ACTIVE:
+                    throw new ObjectAlreadyActive();
 
-                case TableEntry.DEACTIVATED:
+                case DEACTIVATED:
                     break;
                 }
 
@@ -318,9 +346,9 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
     }
 
     public void deactivate(org.omg.PortableServer.POA poa, byte[] rawoid)
-            throws org.omg.PortableServer.POAPackage.ObjectNotActive,
-            org.omg.PortableServer.POAPackage.WrongPolicy {
-        org.apache.yoko.orb.OB.ObjectIdHasher oid = new org.apache.yoko.orb.OB.ObjectIdHasher(
+            throws ObjectNotActive,
+            WrongPolicy {
+        ObjectIdHasher oid = new ObjectIdHasher(
                 rawoid);
 
         //
@@ -331,23 +359,23 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
         synchronized (activeObjectTable_) {
             entry = (TableEntry) activeObjectTable_.get(oid);
             if (entry == null)
-                throw new org.omg.PortableServer.POAPackage.ObjectNotActive();
+                throw new ObjectNotActive();
         }
 
         boolean deactivate = false;
         synchronized (entry) {
             switch (entry.state()) {
-            case TableEntry.ACTIVE:
+            case ACTIVE:
                 entry.setDeactivatePending();
                 deactivate = entry.getOutstandingRequests() == 0;
                 break;
 
-            case TableEntry.DEACTIVATE_PENDING:
+            case DEACTIVATE_PENDING:
                 return;
 
-            case TableEntry.ACTIVATE_PENDING:
-            case TableEntry.DEACTIVATED:
-                throw new org.omg.PortableServer.POAPackage.ObjectNotActive();
+            case ACTIVATE_PENDING:
+            case DEACTIVATED:
+                throw new ObjectNotActive();
             }
 
             if (deactivate) {
@@ -363,17 +391,17 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
         }
     }
 
-    public byte[] servantToId(org.omg.PortableServer.Servant servant,
-            PoaCurrentImpl poaCurrent) {
+    public byte[] servantToId(Servant servant,
+                              PoaCurrentImpl poaCurrent) {
         byte[] id = null;
         if (servantIdTable_ != null)
             id = (byte[]) servantIdTable_.get(servant);
         return id;
     }
 
-    public org.omg.PortableServer.Servant idToServant(byte[] rawoid,
+    public Servant idToServant(byte[] rawoid,
             boolean useDefaultServant) {
-        org.apache.yoko.orb.OB.ObjectIdHasher oid = new org.apache.yoko.orb.OB.ObjectIdHasher(
+        ObjectIdHasher oid = new ObjectIdHasher(
                 rawoid);
         while (true) {
             TableEntry entry;
@@ -385,42 +413,41 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
 
             synchronized (entry) {
                 switch (entry.state()) {
-                case TableEntry.DEACTIVATE_PENDING:
-                case TableEntry.ACTIVATE_PENDING:
+                case DEACTIVATE_PENDING:
+                case ACTIVATE_PENDING:
                     entry.waitForStateChange();
                     continue;
 
-                case TableEntry.ACTIVE:
+                case ACTIVE:
                     return entry.getServant();
 
-                case TableEntry.DEACTIVATED:
+                case DEACTIVATED:
                     return null;
                 }
             }
         }
     }
 
-    public org.omg.PortableServer.Servant locate(byte[] rawoid,
+    public Servant locate(byte[] rawoid,
             org.omg.PortableServer.POA poa, String op,
-            org.omg.PortableServer.ServantLocatorPackage.CookieHolder cookie)
-            throws org.apache.yoko.orb.OB.LocationForward {
-        org.omg.PortableServer.Servant servant = idToServant(rawoid, false);
+            CookieHolder cookie)
+            throws LocationForward {
+        Servant servant = idToServant(rawoid, false);
         if (servant == null) {
             //
             // If the servant isn't in the table then this is an
             // OBJECT_NOT_EXIST exception
             //
-            throw new org.omg.CORBA.OBJECT_NOT_EXIST(
-                    MinorCodes
-                            .describeObjectNotExist(MinorCodes.MinorCannotDispatch),
-                    MinorCodes.MinorCannotDispatch,
-                    org.omg.CORBA.CompletionStatus.COMPLETED_NO);
+            throw new OBJECT_NOT_EXIST(
+                    describeObjectNotExist(MinorCannotDispatch),
+                    MinorCannotDispatch,
+                    COMPLETED_NO);
         }
         return servant;
     }
 
     public void preinvoke(byte[] rawoid) {
-        org.apache.yoko.orb.OB.ObjectIdHasher oid = new org.apache.yoko.orb.OB.ObjectIdHasher(
+        ObjectIdHasher oid = new ObjectIdHasher(
                 rawoid);
 
         TableEntry entry;
@@ -436,9 +463,9 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
     }
 
     public void postinvoke(byte[] rawoid, org.omg.PortableServer.POA poa,
-            String op, java.lang.Object cookie,
-            org.omg.PortableServer.Servant servant) {
-        org.apache.yoko.orb.OB.ObjectIdHasher oid = new org.apache.yoko.orb.OB.ObjectIdHasher(
+            String op, Object cookie,
+            Servant servant) {
+        ObjectIdHasher oid = new ObjectIdHasher(
                 rawoid);
 
         TableEntry entry;
@@ -455,7 +482,7 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
         boolean deactivate = false;
         synchronized (entry) {
             if (entry.decOutstandingRequest() == 0)
-                deactivate = entry.state() == TableEntry.DEACTIVATE_PENDING;
+                deactivate = entry.state() == DEACTIVATE_PENDING;
 
             if (deactivate) {
                 completeDeactivate(poa, oid, entry);
@@ -471,20 +498,20 @@ class ActiveObjectOnlyStrategy implements ServantLocationStrategy {
     }
 
     public DirectServant createDirectStubImpl(org.omg.PortableServer.POA poa,
-            byte[] oid, org.apache.yoko.orb.OB.RefCountPolicyList policies)
-            throws org.apache.yoko.orb.OB.LocationForward {
+            byte[] oid, RefCountPolicyList policies)
+            throws LocationForward {
         try {
-            org.omg.PortableServer.ServantLocatorPackage.CookieHolder cookie = null;
-            org.omg.PortableServer.Servant servant = locate(oid, poa, "",
+            CookieHolder cookie = null;
+            Servant servant = locate(oid, poa, "",
                     cookie);
             return completeDirectStubImpl(poa, oid, servant, policies);
-        } catch (org.omg.CORBA.SystemException ex) {
+        } catch (SystemException ex) {
         }
         return null;
     }
 
     public void removeDirectStubImpl(byte[] rawoid, DirectServant directStubImpl) {
-        org.apache.yoko.orb.OB.ObjectIdHasher oid = new org.apache.yoko.orb.OB.ObjectIdHasher(
+        ObjectIdHasher oid = new ObjectIdHasher(
                 rawoid);
         synchronized (directSeqTable_) {
             DirectSeqEntry table = (DirectSeqEntry) directSeqTable_.get(oid);
