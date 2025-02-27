@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,15 @@
  */
 package org.apache.yoko.orb.OBPortableServer;
 
+import org.omg.CORBA.TypeCode;
+import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA.portable.Streamable;
+
 //
 // IDL:orb.yoko.apache.org/OBPortableServer/AcceptorConfigSeq:1.0
 //
-final public class AcceptorConfigSeqHolder implements org.omg.CORBA.portable.Streamable
+final public class AcceptorConfigSeqHolder implements Streamable
 {
     public AcceptorConfig[] value;
 
@@ -36,18 +41,18 @@ final public class AcceptorConfigSeqHolder implements org.omg.CORBA.portable.Str
     }
 
     public void
-    _read(org.omg.CORBA.portable.InputStream in)
+    _read(InputStream in)
     {
         value = AcceptorConfigSeqHelper.read(in);
     }
 
     public void
-    _write(org.omg.CORBA.portable.OutputStream out)
+    _write(OutputStream out)
     {
         AcceptorConfigSeqHelper.write(out, value);
     }
 
-    public org.omg.CORBA.TypeCode
+    public TypeCode
     _type()
     {
         return AcceptorConfigSeqHelper.type();
