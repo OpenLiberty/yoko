@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,19 +17,20 @@
  */
 package org.apache.yoko.orb.OBPortableServer;
 
-import org.apache.yoko.orb.OBPortableServer.DISPATCH_STRATEGY_POLICY_ID;
-import org.apache.yoko.orb.OBPortableServer.DispatchStrategyPolicy;
+import org.apache.yoko.orb.OB.DispatchStrategy;
+import org.omg.CORBA.LocalObject;
+import org.omg.CORBA.Policy;
 
 public final class DispatchStrategyPolicy_impl extends
-        org.omg.CORBA.LocalObject implements DispatchStrategyPolicy {
-    private org.apache.yoko.orb.OB.DispatchStrategy value_;
+        LocalObject implements DispatchStrategyPolicy {
+    private DispatchStrategy value_;
 
     public DispatchStrategyPolicy_impl(
-            org.apache.yoko.orb.OB.DispatchStrategy value) {
+            DispatchStrategy value) {
         value_ = value;
     }
 
-    public org.apache.yoko.orb.OB.DispatchStrategy value() {
+    public DispatchStrategy value() {
         return value_;
     }
 
@@ -37,7 +38,7 @@ public final class DispatchStrategyPolicy_impl extends
         return DISPATCH_STRATEGY_POLICY_ID.value;
     }
 
-    public org.omg.CORBA.Policy copy() {
+    public Policy copy() {
         return this;
     }
 
