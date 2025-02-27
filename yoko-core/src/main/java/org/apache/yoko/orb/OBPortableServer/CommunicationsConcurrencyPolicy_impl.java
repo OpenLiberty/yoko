@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@
  */
 package org.apache.yoko.orb.OBPortableServer;
 
-import org.apache.yoko.orb.OBPortableServer.COMMUNICATIONS_CONCURRENCY_POLICY_ID;
-import org.apache.yoko.orb.OBPortableServer.CommunicationsConcurrencyPolicy;
+import org.omg.CORBA.LocalObject;
+import org.omg.CORBA.Policy;
 
 public final class CommunicationsConcurrencyPolicy_impl extends
-        org.omg.CORBA.LocalObject implements CommunicationsConcurrencyPolicy {
+        LocalObject implements CommunicationsConcurrencyPolicy {
     private short value_;
 
     public CommunicationsConcurrencyPolicy_impl(short value) {
@@ -36,7 +36,7 @@ public final class CommunicationsConcurrencyPolicy_impl extends
         return COMMUNICATIONS_CONCURRENCY_POLICY_ID.value;
     }
 
-    public org.omg.CORBA.Policy copy() {
+    public Policy copy() {
         return this;
     }
 
