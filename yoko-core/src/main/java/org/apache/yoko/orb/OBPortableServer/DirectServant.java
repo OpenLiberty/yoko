@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,19 @@
  */
 package org.apache.yoko.orb.OBPortableServer;
 
-import org.apache.yoko.util.Assert;
+import org.omg.CORBA.OBJECT_NOT_EXIST;
+import org.omg.CORBA.portable.ServantObject;
+import org.omg.PortableServer.Servant;
 
-public class DirectServant extends org.omg.CORBA.portable.ServantObject {
+import javax.rmi.CORBA.Tie;
+
+import static org.apache.yoko.util.Assert.ensure;
+
+public class DirectServant extends ServantObject {
     //
     // The POA
     //
-    private org.apache.yoko.orb.OBPortableServer.POA_impl poa_;
+    private POA_impl poa_;
 
     // The object ID
     //
@@ -36,16 +42,16 @@ public class DirectServant extends org.omg.CORBA.portable.ServantObject {
     
 	private Object original_servant;
 
-    public DirectServant(org.apache.yoko.orb.OBPortableServer.POA_impl poa,
-            byte[] oid, java.lang.Object servant) {
+    public DirectServant(POA_impl poa,
+                         byte[] oid, Object servant) {
         poa_ = poa;
         oid_ = oid;
         deactivated_ = false;
         this.original_servant = servant;
         this.servant = servant;
-        if (servant instanceof javax.rmi.CORBA.Tie) {
-        	javax.rmi.CORBA.Tie tie = (javax.rmi.CORBA.Tie) servant;
-        	this.servant = tie.getTarget();
+        if (servant instanceof Tie) {
+            Tie tie = (Tie) servant;
+            this.servant = tie.getTarget();
         }
     }
 
@@ -53,7 +59,7 @@ public class DirectServant extends org.omg.CORBA.portable.ServantObject {
         //
         // This object *must* have been deactivated already
         //
-        Assert.ensure(deactivated_);
+        ensure(deactivated_);
 
         super.finalize();
     }
@@ -78,7 +84,7 @@ public class DirectServant extends org.omg.CORBA.portable.ServantObject {
         deactivated_ = true;
     }
 
-    public org.omg.CORBA.portable.ServantObject preinvoke(String op) {
+    public ServantObject preinvoke(String op) {
         //
         // Validate POA manager state
         //
@@ -93,7 +99,7 @@ public class DirectServant extends org.omg.CORBA.portable.ServantObject {
         //
         // Preinvoke
         //
-        poa_._OB_preinvoke(op, oid_, (org.omg.PortableServer.Servant) original_servant,
+        poa_._OB_preinvoke(op, oid_, (Servant) original_servant,
                 null, null);
 
         return this;
@@ -117,7 +123,7 @@ public class DirectServant extends org.omg.CORBA.portable.ServantObject {
                 postinvoke();
                 return true;
             }
-        } catch (org.omg.CORBA.OBJECT_NOT_EXIST ex) {
+        } catch (OBJECT_NOT_EXIST ex) {
             // Fall through
         }
 
