@@ -126,7 +126,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private String genCustomRepId() {
-        return String.format("RMI:org.omg.custom.%s", getRepositoryID().substring(4));
+        return String.format("RMI:org.omg.customRMI.%s", getRepositoryID().substring(4));
     }
 
     public final String getCustomRepositoryID() {
