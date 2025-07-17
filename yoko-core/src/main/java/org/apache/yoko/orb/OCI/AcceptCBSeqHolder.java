@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,15 @@
  */
 package org.apache.yoko.orb.OCI;
 
+import org.omg.CORBA.TypeCode;
+import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA.portable.Streamable;
+
 //
 // IDL:orb.yoko.apache.org/OCI/AcceptCBSeq:1.0
 //
-final public class AcceptCBSeqHolder implements org.omg.CORBA.portable.Streamable
+final public class AcceptCBSeqHolder implements Streamable
 {
     public AcceptCB[] value;
 
@@ -36,18 +41,18 @@ final public class AcceptCBSeqHolder implements org.omg.CORBA.portable.Streamabl
     }
 
     public void
-    _read(org.omg.CORBA.portable.InputStream in)
+    _read(InputStream in)
     {
         value = AcceptCBSeqHelper.read(in);
     }
 
     public void
-    _write(org.omg.CORBA.portable.OutputStream out)
+    _write(OutputStream out)
     {
         AcceptCBSeqHelper.write(out, value);
     }
 
-    public org.omg.CORBA.TypeCode
+    public TypeCode
     _type()
     {
         return AcceptCBSeqHelper.type();
