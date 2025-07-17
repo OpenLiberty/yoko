@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,16 +17,16 @@
  */
 package org.apache.yoko.orb.OCI;
 
-import org.apache.yoko.orb.OCI.AccFactory;
-import org.apache.yoko.orb.OCI.FactoryAlreadyExists;
-import org.apache.yoko.orb.OCI.NoSuchFactory;
+import org.omg.CORBA.LocalObject;
 
-public final class AccFactoryRegistry_impl extends org.omg.CORBA.LocalObject
-        implements org.apache.yoko.orb.OCI.AccFactoryRegistry {
+import java.util.Vector;
+
+public final class AccFactoryRegistry_impl extends LocalObject
+        implements AccFactoryRegistry {
     //
     // All acceptor factories
     //
-    java.util.Vector factories_ = new java.util.Vector();
+    Vector<AccFactory> factories_ = new Vector<>();
 
     // ------------------------------------------------------------------
     // Standard IDL to Java Mapping
@@ -37,7 +37,7 @@ public final class AccFactoryRegistry_impl extends org.omg.CORBA.LocalObject
         String id = factory.id();
 
         for (int i = 0; i < factories_.size(); i++)
-            if (id.equals(((AccFactory) factories_.elementAt(i)).id()))
+            if (id.equals(factories_.elementAt(i).id()))
                 throw new FactoryAlreadyExists(id);
 
         factories_.addElement(factory);
@@ -45,7 +45,7 @@ public final class AccFactoryRegistry_impl extends org.omg.CORBA.LocalObject
 
     public synchronized AccFactory get_factory(String id) throws NoSuchFactory {
         for (int i = 0; i < factories_.size(); i++) {
-            AccFactory factory = (AccFactory) factories_.elementAt(i);
+            AccFactory factory = factories_.elementAt(i);
             if (id.equals(factory.id()))
                 return factory;
         }
