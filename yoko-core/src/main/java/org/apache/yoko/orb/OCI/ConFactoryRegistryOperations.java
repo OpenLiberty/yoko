@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ public interface ConFactoryRegistryOperations
      *
      * @param factory The Connector factory to add.
      *
-     * @exception org.apache.yoko.orb.OCI.FactoryAlreadyExists If a factory already exists with the
+     * @exception FactoryAlreadyExists If a factory already exists with the
      * same plugin id as the given factory.
      *
      **/
@@ -60,7 +60,7 @@ public interface ConFactoryRegistryOperations
      *
      * @return The Connector factory.
      *
-     * @exception org.apache.yoko.orb.OCI.NoSuchFactory If no factory was found with a matching
+     * @exception NoSuchFactory If no factory was found with a matching
      * plugin id.
      *
      **/
