@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@ package org.apache.yoko.orb.OCI;
 //
 // IDL:orb.yoko.apache.org/OCI/FactoryAlreadyExists:1.0
 //
+
+import org.omg.CORBA.UserException;
+
 /**
  *
  * A factory with the given plugin id already exists.
@@ -28,7 +31,7 @@ package org.apache.yoko.orb.OCI;
  *
  **/
 
-final public class FactoryAlreadyExists extends org.omg.CORBA.UserException
+final public class FactoryAlreadyExists extends UserException
 {
     private static final String _ob_id = "IDL:orb.yoko.apache.org/OCI/FactoryAlreadyExists:1.0";
 
