@@ -59,7 +59,7 @@ public interface Rofl extends Serializable {
         /** Members that do not represent a real remote ORB */
         private static final EnumSet<RemoteOrb> SPECIAL_REMOTE_ORBS = EnumSet.of(BAD, NO_DATA);
         /** Members that do represent a real remote ORB */
-        private static final EnumSet<RemoteOrb> KNOWN_REMOTE_ORBS = EnumSet.complementOf(SPECIAL_REMOTE_ORBS);
+        public static final EnumSet<RemoteOrb> KNOWN_REMOTE_ORBS = EnumSet.complementOf(SPECIAL_REMOTE_ORBS);
         /** Real remote ORBs indexed by service context ID */
         private static final Map<Integer, RemoteOrb> SC_ID_TO_RO_MAP = KNOWN_REMOTE_ORBS.stream()
                 .collect(toUnmodifiableMap(HashMap::new, ro -> ro.serviceContextId));

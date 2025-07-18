@@ -49,15 +49,11 @@ public class RoflHelper {
 
     public void findAndSave(ServerRequestInfo requestInfo) {
         // iterate through the known RemoteOrbs
-        Stream.of(RemoteOrb.values())
-                // look at their service context IDs
-                .map(ro -> ro.serviceContextId)
-                // ignore "special" RemoteOrbs with no service context id
-                .filter(Objects::nonNull)
+        RemoteOrb.KNOWN_REMOTE_ORBS.stream()
                 // look up the service context
-                .map(id -> {
+                .map(remoteOrb -> {
                     try {
-                        return requestInfo.get_request_service_context(id);
+                        return requestInfo.get_request_service_context(remoteOrb.serviceContextId);
                     } catch (BAD_PARAM e) {
                         // if it just wasn't present, hand back a null
                         if (e.minor == MinorInvalidServiceContextId) return null;
@@ -102,18 +98,19 @@ public class RoflHelper {
                 });
     }
 
-
-
     public static Rofl createFromTaggedComponent(ClientRequestInfo ri) {
-        Rofl rofl = Rofl.NONE;
-        try {
-            TaggedComponent tc = ri.get_effective_component(IBM.tagComponentId);
-            rofl = IBM.createRofl(tc);
-        } catch (BAD_PARAM e) {
-            if (e.minor != MinorInvalidComponentId) {
-                throw e;
-            }
-        }
-        return rofl;
+        return RemoteOrb.KNOWN_REMOTE_ORBS.stream()
+                .map(remoteOrb -> {
+                    try {
+                        TaggedComponent tc = ri.get_effective_component(remoteOrb.tagComponentId);
+                        return remoteOrb.createRofl(tc);
+                    } catch (BAD_PARAM e) {
+                        if (e.minor == MinorInvalidComponentId) return null;
+                        throw e;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(Rofl.NONE);
     }
 }
