@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1245,7 +1245,7 @@ final class ServerTestInterceptor_impl extends org.omg.CORBA.LocalObject
                 Any any = ri.sending_exception();
                 if (!user) {
                     SystemException ex = org.apache.yoko.orb.OB.Util
-                            .unmarshalSystemException(any.create_input_stream());
+                            .readSysEx(any.create_input_stream());
                 } else {
                     user ex = userHelper.extract(any);
                 }

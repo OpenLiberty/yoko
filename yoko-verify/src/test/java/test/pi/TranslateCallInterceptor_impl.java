@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package test.pi;
 
 import org.omg.CORBA.*;
 import org.omg.PortableInterceptor.*;
-import test.pi.TestInterfacePackage.*;
 
 final class TranslateCallInterceptor_impl extends org.omg.CORBA.LocalObject
         implements ClientRequestInterceptor {
@@ -68,7 +67,7 @@ final class TranslateCallInterceptor_impl extends org.omg.CORBA.LocalObject
             Any any = ri.received_exception();
             org.omg.CORBA.portable.InputStream in = any.create_input_stream();
             SystemException ex = org.apache.yoko.orb.OB.Util
-                    .unmarshalSystemException(in);
+                    .readSysEx(in);
             TEST(expected_.getClass().getName().equals(ex.getClass().getName()));
         }
         if (exceptionEx_ != null)

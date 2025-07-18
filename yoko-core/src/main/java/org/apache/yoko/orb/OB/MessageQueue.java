@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -122,7 +122,7 @@ public class MessageQueue {
             unsent_.removeElementAt(0);
         }
 
-        SystemException except = Util.copySystemException(ex);
+        SystemException except = Util.copy(ex);
         except.completed = notCompleted ? COMPLETED_NO : COMPLETED_MAYBE;
         while (!pending_.isEmpty()) {
             Downcall down = pending_.firstElement();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -996,7 +996,7 @@ final class CallInterceptor_impl extends org.omg.CORBA.LocalObject implements
             Any rc = ri.received_exception();
             if (!user) {
                 SystemException ex = org.apache.yoko.orb.OB.Util
-                        .unmarshalSystemException(rc.create_input_stream());
+                        .readSysEx(rc.create_input_stream());
             } else {
                 String exId = ri.received_exception_id();
                 TEST(exId.equals(userHelper.id()));

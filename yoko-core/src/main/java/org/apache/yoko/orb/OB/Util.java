@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,33 +17,12 @@
  */
 package org.apache.yoko.orb.OB;
 
-import static java.security.AccessController.doPrivileged;
-import static java.util.logging.Logger.getLogger;
-import static org.apache.yoko.util.MinorCodes.describeBadInvOrder;
-import static org.apache.yoko.util.MinorCodes.describeBadParam;
-import static org.apache.yoko.util.MinorCodes.describeCommFailure;
-import static org.apache.yoko.util.MinorCodes.describeImpLimit;
-import static org.apache.yoko.util.MinorCodes.describeInitialize;
-import static org.apache.yoko.util.MinorCodes.describeIntfRepos;
-import static org.apache.yoko.util.MinorCodes.describeInvPolicy;
-import static org.apache.yoko.util.MinorCodes.describeMarshal;
-import static org.apache.yoko.util.MinorCodes.describeNoImplement;
-import static org.apache.yoko.util.MinorCodes.describeNoMemory;
-import static org.apache.yoko.util.MinorCodes.describeNoResources;
-import static org.apache.yoko.util.MinorCodes.describeObjectNotExist;
-import static org.apache.yoko.util.MinorCodes.describeUnknown;
-import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
-
-import java.io.PrintStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.logging.Logger;
-
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.exceptions.Transients;
 import org.apache.yoko.osgi.ProviderLocator;
 import org.apache.yoko.util.Assert;
+import org.apache.yoko.util.MinorCodes;
+import org.apache.yoko.util.TriFunction;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.BAD_CONTEXT;
 import org.omg.CORBA.BAD_INV_ORDER;
@@ -89,6 +68,22 @@ import org.omg.IOP.SendingContextRunTime;
 import org.omg.IOP.ServiceContext;
 import org.omg.SendingContext.CodeBase;
 
+import java.io.PrintStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.logging.Logger;
+import java.util.stream.Stream;
+
+import static java.security.AccessController.doPrivileged;
+import static java.util.logging.Logger.getLogger;
+import static org.apache.yoko.util.Collectors.toUnmodifiableMap;
+import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
+
 public final class Util {
     static final Logger logger = getLogger(Util.class.getName());
     // Print octets to stream
@@ -127,7 +122,7 @@ public final class Util {
     }
 
     // Copy a system exception
-    public static SystemException copySystemException(SystemException ex) {
+    public static SystemException copy(SystemException ex) {
         SystemException result;
         try {
             Class c = ex.getClass();
@@ -144,113 +139,16 @@ public final class Util {
         return result;
     }
 
-    // Unmarshal a system exception
-    public static SystemException unmarshalSystemException(InputStream in) {
-        String id = in.read_string();
-        int minor = in.read_ulong();
-        CompletionStatus status = CompletionStatus.from_int(in.read_ulong());
-
-        switch (id) {
-        case "IDL:omg.org/CORBA/BAD_PARAM:1.0": {
-            String reason = describeBadParam(minor);
-            return new BAD_PARAM(reason, minor, status);
-        }
-        case "IDL:omg.org/CORBA/NO_MEMORY:1.0": {
-            String reason = describeNoMemory(minor);
-            return new NO_MEMORY(reason, minor, status);
-        }
-        case "IDL:omg.org/CORBA/IMP_LIMIT:1.0": {
-            String reason = describeImpLimit(minor);
-            return new IMP_LIMIT(reason, minor, status);
-        }
-        case "IDL:omg.org/CORBA/COMM_FAILURE:1.0": {
-            String reason = describeCommFailure(minor);
-            return new COMM_FAILURE(reason, minor, status);
-        }
-        case "IDL:omg.org/CORBA/INV_OBJREF:1.0":
-            return new INV_OBJREF(minor, status);
-        case "IDL:omg.org/CORBA/NO_PERMISSION:1.0":
-            return new NO_PERMISSION(minor, status);
-        case "IDL:omg.org/CORBA/INTERNAL:1.0":
-            return new INTERNAL(minor, status);
-        case "IDL:omg.org/CORBA/MARSHAL:1.0": {
-            String reason = describeMarshal(minor);
-            return new MARSHAL(reason, minor, status);
-        }
-        case "IDL:omg.org/CORBA/INITIALIZE:1.0": {
-            String reason = describeInitialize(minor);
-            return new INITIALIZE(reason, minor, status);
-        }
-        case "IDL:omg.org/CORBA/NO_IMPLEMENT:1.0": {
-            String reason = describeNoImplement(minor);
-            return new NO_IMPLEMENT(reason, minor, status);
-        }
-        case "IDL:omg.org/CORBA/BAD_TYPECODE:1.0":
-            return new BAD_TYPECODE(minor, status);
-        case "IDL:omg.org/CORBA/BAD_OPERATION:1.0":
-            return new BAD_OPERATION(minor, status);
-        case "IDL:omg.org/CORBA/NO_RESOURCES:1.0": {
-            String reason = describeNoResources(minor);
-            return new NO_RESOURCES(reason, minor, status);
-        }
-        case "IDL:omg.org/CORBA/NO_RESPONSE:1.0":
-            return new NO_RESPONSE(minor, status);
-        case "IDL:omg.org/CORBA/PERSIST_STORE:1.0":
-            return new PERSIST_STORE(minor, status);
-        case "IDL:omg.org/CORBA/BAD_INV_ORDER:1.0": {
-            String reason = describeBadInvOrder(minor);
-            return new BAD_INV_ORDER(reason, minor, status);
-        }
-        case "IDL:omg.org/CORBA/TRANSIENT:1.0": {
-            return Transients.create(minor, status);
-        }
-        case "IDL:omg.org/CORBA/FREE_MEM:1.0":
-            return new FREE_MEM(minor, status);
-        case "IDL:omg.org/CORBA/INV_IDENT:1.0":
-            return new INV_IDENT(minor, status);
-        case "IDL:omg.org/CORBA/INV_FLAG:1.0":
-            return new INV_FLAG(minor, status);
-        case "IDL:omg.org/CORBA/INTF_REPOS:1.0": {
-            String reason = describeIntfRepos(minor);
-            return new INTF_REPOS(reason, minor, status);
-        }
-        case "IDL:omg.org/CORBA/BAD_CONTEXT:1.0":
-            return new BAD_CONTEXT(minor, status);
-        case "IDL:omg.org/CORBA/OBJ_ADAPTER:1.0":
-            return new OBJ_ADAPTER(minor, status);
-        case "IDL:omg.org/CORBA/DATA_CONVERSION:1.0":
-            return new DATA_CONVERSION(minor, status);
-        case "IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0": {
-            String reason = describeObjectNotExist(minor);
-            return new OBJECT_NOT_EXIST(reason, minor, status);
-        }
-        case "IDL:omg.org/CORBA/TRANSACTION_REQUIRED:1.0":
-            return new TRANSACTION_REQUIRED(minor, status);
-        case "IDL:omg.org/CORBA/TRANSACTION_ROLLEDBACK:1.0":
-            return new TRANSACTION_ROLLEDBACK(minor, status);
-        case "IDL:omg.org/CORBA/INVALID_TRANSACTION:1.0":
-            return new INVALID_TRANSACTION(minor, status);
-        case "IDL:omg.org/CORBA/INV_POLICY:1.0": {
-            String reason = describeInvPolicy(minor);
-            return new INV_POLICY(reason, minor, status);
-        }
-        case "IDL:omg.org/CORBA/CODESET_INCOMPATIBLE:1.0":
-            return new CODESET_INCOMPATIBLE(minor, status);
-        case "IDL:omg.org/CORBA/REBIND:1.0":
-            return new REBIND(minor, status);
-        case "IDL:omg.org/CORBA/TIMEOUT:1.0":
-            return new TIMEOUT(minor, status);
-        case "IDL:omg.org/CORBA/TRANSACTION_UNAVAILABLE:1.0":
-            return new TRANSACTION_UNAVAILABLE(minor, status);
-        case "IDL:omg.org/CORBA/TRANSACTION_MODE:1.0":
-            return new TRANSACTION_MODE(minor, status);
-        case "IDL:omg.org/CORBA/BAD_QOS:1.0":
-            return new BAD_QOS(minor, status);
-        }
-
-        // Unknown exception
-        String reason = describeUnknown(minor);
-        return new UNKNOWN(reason, minor, status);
+    /**
+     * Unmarshal a system exception.
+     * Renamed to remove the words 'unmarshal' and 'exception'.
+     * The old name misled people that something went wrong during unmarshalling.
+     */
+    public static SystemException readSysEx(InputStream in) {
+        final String id = in.read_string();
+        final int minor = in.read_ulong();
+        final CompletionStatus status = CompletionStatus.from_int(in.read_ulong());
+        return SysEx.fromId(id).factory.apply(minor, status);
     }
 
     // Marshal a system exception
@@ -260,96 +158,86 @@ public final class Util {
         out.write_ulong(ex.completed.value());
     }
 
-    private static final String[] sysExClassNames_ = {"org.omg.CORBA.BAD_CONTEXT",
-            "org.omg.CORBA.BAD_INV_ORDER", "org.omg.CORBA.BAD_OPERATION",
-            "org.omg.CORBA.BAD_PARAM", "org.omg.CORBA.BAD_QOS",
-            "org.omg.CORBA.BAD_TYPECODE", "org.omg.CORBA.CODESET_INCOMPATIBLE",
-            "org.omg.CORBA.COMM_FAILURE", "org.omg.CORBA.DATA_CONVERSION",
-            "org.omg.CORBA.FREE_MEM", "org.omg.CORBA.IMP_LIMIT",
-            "org.omg.CORBA.INITIALIZE", "org.omg.CORBA.INTERNAL",
-            "org.omg.CORBA.INTF_REPOS", "org.omg.CORBA.INVALID_TRANSACTION",
-            "org.omg.CORBA.INV_FLAG", "org.omg.CORBA.INV_IDENT",
-            "org.omg.CORBA.INV_OBJREF", "org.omg.CORBA.INV_POLICY",
-            "org.omg.CORBA.MARSHAL", "org.omg.CORBA.NO_IMPLEMENT",
-            "org.omg.CORBA.NO_MEMORY", "org.omg.CORBA.NO_PERMISSION",
-            "org.omg.CORBA.NO_RESOURCES", "org.omg.CORBA.NO_RESPONSE",
-            "org.omg.CORBA.OBJECT_NOT_EXIST", "org.omg.CORBA.OBJ_ADAPTER",
-            "org.omg.CORBA.PERSIST_STORE", "org.omg.CORBA.REBIND",
-            "org.omg.CORBA.TIMEOUT", "org.omg.CORBA.TRANSACTION_MODE",
-            "org.omg.CORBA.TRANSACTION_REQUIRED",
-            "org.omg.CORBA.TRANSACTION_ROLLEDBACK",
-            "org.omg.CORBA.TRANSACTION_UNAVAILABLE", "org.omg.CORBA.TRANSIENT",
-            "org.omg.CORBA.UNKNOWN" };
+    enum SysEx {
+        BAD_CONTEXT(BAD_CONTEXT::new),
+        BAD_INV_ORDER(BAD_INV_ORDER::new, MinorCodes::describeBadInvOrder),
+        BAD_OPERATION(BAD_OPERATION::new),
+        BAD_PARAM(BAD_PARAM::new, MinorCodes::describeBadParam),
+        BAD_QOS(BAD_QOS::new),
+        BAD_TYPECODE(BAD_TYPECODE::new),
+        CODESET_INCOMPATIBLE(CODESET_INCOMPATIBLE::new),
+        COMM_FAILURE(COMM_FAILURE::new, MinorCodes::describeCommFailure),
+        DATA_CONVERSION(DATA_CONVERSION::new),
+        FREE_MEM(FREE_MEM::new),
+        IMP_LIMIT(IMP_LIMIT::new, MinorCodes::describeImpLimit),
+        INITIALIZE(INITIALIZE::new, MinorCodes::describeInitialize),
+        INTERNAL(INTERNAL::new),
+        INTF_REPOS(INTF_REPOS::new, MinorCodes::describeIntfRepos),
+        INV_FLAG(INV_FLAG::new),
+        INV_IDENT(INV_IDENT::new),
+        INV_OBJREF(INV_OBJREF::new),
+        INV_POLICY(INV_POLICY::new, MinorCodes::describeInvPolicy),
+        INVALID_TRANSACTION(INVALID_TRANSACTION::new),
+        MARSHAL(MARSHAL::new, MinorCodes::describeMarshal),
+        NO_IMPLEMENT(NO_IMPLEMENT::new, MinorCodes::describeNoImplement),
+        NO_MEMORY(NO_MEMORY::new, MinorCodes::describeNoMemory),
+        NO_PERMISSION(NO_PERMISSION::new),
+        NO_RESOURCES(NO_RESOURCES::new, MinorCodes::describeNoResources),
+        NO_RESPONSE(NO_RESPONSE::new),
+        OBJ_ADAPTER(OBJ_ADAPTER::new),
+        OBJECT_NOT_EXIST(OBJECT_NOT_EXIST::new, MinorCodes::describeObjectNotExist),
+        PERSIST_STORE(PERSIST_STORE::new),
+        REBIND(REBIND::new),
+        TIMEOUT(TIMEOUT::new),
+        TRANSACTION_MODE(TRANSACTION_MODE::new),
+        TRANSACTION_REQUIRED(TRANSACTION_REQUIRED::new),
+        TRANSACTION_ROLLEDBACK(TRANSACTION_ROLLEDBACK::new),
+        TRANSACTION_UNAVAILABLE(TRANSACTION_UNAVAILABLE::new),
+        TRANSIENT(Transients::create),
+        UNKNOWN(UNKNOWN::new, MinorCodes::describeUnknown);
+        public static final String ID_PREFIX = "IDL:omg.org/CORBA/";
+        public static final String ID_SUFFIX = ":1.0";
+        final String id = ID_PREFIX + name() + ID_SUFFIX;
+        private static final Map<String, SysEx> INDEX = Stream.of(values()).collect(toUnmodifiableMap(HashMap::new, se -> se.id));
 
-    private static final String[] sysExIds_ = { "IDL:omg.org/CORBA/BAD_CONTEXT:1.0",
-            "IDL:omg.org/CORBA/BAD_INV_ORDER:1.0",
-            "IDL:omg.org/CORBA/BAD_OPERATION:1.0",
-            "IDL:omg.org/CORBA/BAD_PARAM:1.0", "IDL:omg.org/CORBA/BAD_QOS:1.0",
-            "IDL:omg.org/CORBA/BAD_TYPECODE:1.0",
-            "IDL:omg.org/CORBA/CODESET_INCOMPATIBLE:1.0",
-            "IDL:omg.org/CORBA/COMM_FAILURE:1.0",
-            "IDL:omg.org/CORBA/DATA_CONVERSION:1.0",
-            "IDL:omg.org/CORBA/FREE_MEM:1.0",
-            "IDL:omg.org/CORBA/IMP_LIMIT:1.0",
-            "IDL:omg.org/CORBA/INITIALIZE:1.0",
-            "IDL:omg.org/CORBA/INTERNAL:1.0",
-            "IDL:omg.org/CORBA/INTF_REPOS:1.0",
-            "IDL:omg.org/CORBA/INVALID_TRANSACTION:1.0",
-            "IDL:omg.org/CORBA/INV_FLAG:1.0",
-            "IDL:omg.org/CORBA/INV_IDENT:1.0",
-            "IDL:omg.org/CORBA/INV_OBJREF:1.0",
-            "IDL:omg.org/CORBA/INV_POLICY:1.0",
-            "IDL:omg.org/CORBA/MARSHAL:1.0",
-            "IDL:omg.org/CORBA/NO_IMPLEMENT:1.0",
-            "IDL:omg.org/CORBA/NO_MEMORY:1.0",
-            "IDL:omg.org/CORBA/NO_PERMISSION:1.0",
-            "IDL:omg.org/CORBA/NO_RESOURCES:1.0",
-            "IDL:omg.org/CORBA/NO_RESPONSE:1.0",
-            "IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0",
-            "IDL:omg.org/CORBA/OBJ_ADAPTER:1.0",
-            "IDL:omg.org/CORBA/PERSIST_STORE:1.0",
-            "IDL:omg.org/CORBA/REBIND:1.0", "IDL:omg.org/CORBA/TIMEOUT:1.0",
-            "IDL:omg.org/CORBA/TRANSACTION_MODE:1.0",
-            "IDL:omg.org/CORBA/TRANSACTION_REQUIRED:1.0",
-            "IDL:omg.org/CORBA/TRANSACTION_ROLLEDBACK:1.0",
-            "IDL:omg.org/CORBA/TRANSACTION_UNAVAILABLE:1.0",
-            "IDL:omg.org/CORBA/TRANSIENT:1.0", "IDL:omg.org/CORBA/UNKNOWN:1.0" };
+        private interface Constructor extends BiFunction<Integer, CompletionStatus, SystemException>{}
+        private interface ReasonConstructor extends TriFunction<String, Integer, CompletionStatus, SystemException>{
+            default SysEx.Constructor addDescriber(ReasonDescriber describer) {
+                return (minorCode, completionStatus) -> this.apply(describer.describe(minorCode), minorCode, completionStatus);
+            }
+        }
+        private interface ReasonDescriber { String describe(int minorCode); }
+        final Constructor factory;
 
-    private static int binarySearch(String[] arr, String value) {
-        int left = 0;
-        int right = arr.length;
-        int index = -1;
+        SysEx(Constructor factory) { this.factory = factory; }
+        SysEx(ReasonConstructor factory, ReasonDescriber desc) { this(factory.addDescriber(desc)); }
 
-        while (left < right) {
-            int m = (left + right) / 2;
-            int res = arr[m].compareTo(value);
-            if (res == 0) {
-                index = m;
-                break;
-            } else if (res > 0)
-                right = m;
-            else
-                left = m + 1;
+        static SysEx valueOf(SystemException e) {
+            try {
+                return valueOf(e.getClass().getSimpleName());
+            } catch (Exception t) {
+                return UNKNOWN;
+            }
         }
 
-        return index;
+        static SysEx fromId(String id) {
+            SysEx result = Optional.of(id).map(INDEX::get).orElse(UNKNOWN);
+            if (!result.id.equals(id)) logger.warning("Using " + result + " for unrecognised system exception id: " + id);
+            return result;
+        }
+
+        static boolean isValidId(String id) {return INDEX.containsKey(id);}
     }
 
-    // Determine if the repository ID represents a system exception
+    /** Determine if the repository ID represents a system exception */
     public static boolean isSystemException(String id) {
-        return (binarySearch(sysExIds_, id) != -1);
+        return SysEx.isValidId(id);
     }
 
-    // Determine the repository ID of an exception
+    /** Determine the repository ID of an exception */
     public static String getExceptionId(Exception ex) {
         if (ex instanceof SystemException) {
-            String className = ex.getClass().getName();
-            int index = binarySearch(sysExClassNames_, className);
-
-            if (index == -1)
-                return "IDL:omg.org/CORBA/UNKNOWN:1.0";
-            else
-                return sysExIds_[index];
+            return SysEx.valueOf((SystemException) ex).id;
         } else if (ex instanceof UserException) {
             Class exClass = ex.getClass();
             String className = exClass.getName();
