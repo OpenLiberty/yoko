@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,25 +32,16 @@ import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 public enum Transients implements Factory<TRANSIENT> {
     // OMG minor codes
-    REQUEST_DISCARDED
-            (0x4F4D0_001, "request has been discarded"),
-    NO_USABLE_PROFILE_IN_IOR
-            (0x4F4D0_002, "no usable profile in IOR"),
-    REQUEST_CANCELLED
-            (0x4F4D0_003, "request has been cancelled"),
-    POA_DESTROYED
-            (0x4F4D0_004, "POA has been destroyed"),
+    REQUEST_DISCARDED(0x4F4D0_001, "request has been discarded"),
+    NO_USABLE_PROFILE_IN_IOR(0x4F4D0_002, "no usable profile in IOR"),
+    REQUEST_CANCELLED(0x4F4D0_003, "request has been cancelled"),
+    POA_DESTROYED(0x4F4D0_004, "POA has been destroyed"),
     // Apache minor codes
-    CONNECT_FAILED
-            (0x41534_001, "attempt to establish connection failed"),
-    CLOSE_CONNECTION
-            (0x41534_002, "got a CloseConnection message"),
-    ACTIVE_CONNECTION_MANAGEMENT
-            (0x41534_003, "active connection management closed connection"),
-    FORCED_SHUTDOWN
-            (0x41534_004, "forced connection shutdown because of timeout", COMPLETED_MAYBE),
-    LOCATION_FORWARD_TOO_MANY_HOPS
-            (0x41534_005, "maximum forwarding count (10) exceeded"),
+    CONNECT_FAILED(0x41534_001, "attempt to establish connection failed"),
+    CLOSE_CONNECTION(0x41534_002, "got a CloseConnection message"),
+    ACTIVE_CONNECTION_MANAGEMENT(0x41534_003, "active connection management closed connection"),
+    FORCED_SHUTDOWN(0x41534_004, "forced connection shutdown because of timeout", COMPLETED_MAYBE),
+    LOCATION_FORWARD_TOO_MANY_HOPS(0x41534_005, "maximum forwarding count (10) exceeded"),
     ;
     private final static Map<Integer, Transients> MINOR_CODE_MAP;
     static {

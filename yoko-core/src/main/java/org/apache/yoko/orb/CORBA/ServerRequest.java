@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.CORBA;
 
 import static org.apache.yoko.orb.OB.Util.isSystemException;
-import static org.apache.yoko.orb.OB.Util.unmarshalSystemException;
+import static org.apache.yoko.orb.OB.Util.readSysEx;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidUseOfDSIArguments;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidUseOfDSIContext;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidUseOfDSIResult;
@@ -34,7 +34,6 @@ import org.apache.yoko.orb.OB.RuntimeLocationForward;
 import org.apache.yoko.orb.OB.Upcall;
 import org.apache.yoko.orb.PortableServer.Delegate;
 import org.apache.yoko.util.Assert;
-import org.apache.yoko.util.MinorCodes;
 import org.omg.CORBA.ARG_IN;
 import org.omg.CORBA.ARG_OUT;
 import org.omg.CORBA.Any;
@@ -184,29 +183,19 @@ public class ServerRequest extends org.omg.CORBA.ServerRequest {
     // Application programs must not use these functions directly
     // ------------------------------------------------------------------
 
-    public ServerRequest(DynamicImplementation servant,
-            Upcall upcall) {
+    public ServerRequest(DynamicImplementation servant, Upcall upcall) {
         servant_ = servant;
-        delegate_ = (Delegate) servant
-                ._get_delegate();
+        delegate_ = (Delegate) servant._get_delegate();
         up_ = upcall;
     }
 
-    public Any _OB_exception() {
-        return exception_;
-    }
-
-    public void _OB_finishUnmarshal()
-            throws LocationForward {
-        if (arguments_ == null)
-            delegate_._OB_preUnmarshal(servant_, up_);
-
+    public void _OB_finishUnmarshal() throws LocationForward {
+        if (arguments_ == null) delegate_._OB_preUnmarshal(servant_, up_);
         delegate_._OB_postUnmarshal(servant_, up_);
     }
 
     public void _OB_postinvoke() throws LocationForward {
-        if (exception_ == null)
-            delegate_._OB_postinvoke(servant_, up_);
+        if (exception_ == null) delegate_._OB_postinvoke(servant_, up_);
     }
 
     public void _OB_doMarshal() throws LocationForward {
@@ -220,21 +209,17 @@ public class ServerRequest extends org.omg.CORBA.ServerRequest {
             }
 
             if (isSystemException(id)) {
-                InputStream in = exception_
-                        .create_input_stream();
-                SystemException ex = unmarshalSystemException(in);
+                InputStream in = exception_.create_input_stream();
+                SystemException ex = readSysEx(in);
                 throw ex;
             } else {
                 up_.setUserException(exception_);
             }
         } else {
-            OutputStream out = delegate_._OB_preMarshal(
-                    servant_, up_);
+            OutputStream out = delegate_._OB_preMarshal(servant_, up_);
 
             try {
-                if (result_ != null)
-                    result_.write_value(out);
-
+                if (result_ != null) result_.write_value(out);
                 if (arguments_ != null) {
                     try {
                         for (int i = 0; i < arguments_.count(); i++) {

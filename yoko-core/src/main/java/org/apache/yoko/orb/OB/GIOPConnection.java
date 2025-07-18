@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.orb.OCI.SendReceiveMode;
 import org.apache.yoko.orb.OCI.Transport;
-import org.apache.yoko.orb.exceptions.Transients;
 import org.apache.yoko.util.Assert;
 import org.omg.CONV_FRAME.CodeSetContext;
 import org.omg.CORBA.BooleanHolder;
@@ -391,7 +390,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
 
             case ReplyStatusType_1_2._SYSTEM_EXCEPTION: {
                 try {
-                    SystemException ex = Util.unmarshalSystemException(in);
+                    SystemException ex = Util.readSysEx(in);
                     ex = convertToUnknownExceptionIfAppropriate(ex, in, contexts);
                     down.setSystemException(ex);
                 } catch (SystemException ex) {
