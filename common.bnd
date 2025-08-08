@@ -17,3 +17,7 @@ Bundle-License: https://www.apache.org/licenses/LICENSE-2.0.txt
 Bundle-Vendor: IBM
 Bundle-Name: ${project.name}
 Bundle-SymbolicName: ${project.symbolicName}
+
+# Custom headers for build info:
+Build-GitCommitHash: ${git.hash}
+Build-GitCommitDate: ${git.date}
