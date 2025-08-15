@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.apache.yoko.orb.OB;
+
+import java.util.Objects;
 
 import static org.apache.yoko.orb.OB.CodeSetDatabase.getConverter;
 import static org.apache.yoko.orb.OB.CodeSetInfo.UTF_16;
@@ -61,57 +63,23 @@ final public class CodeConverters {
         return new CodeConverters(null, null, null, getConverter(UTF_16, UTF_16));
     }
 
-    public boolean equals(Object obj) {
-        CodeConverters conv = (CodeConverters) obj;
-        if (conv == null)
-            return false;
+    public boolean equals(Object other) {
+        if (! (other instanceof CodeConverters)) return false;
 
-        boolean a = false;
-        boolean b = false;
-        boolean c = false;
-        boolean d = false;
+        CodeConverters that = (CodeConverters) other;
 
-        if (inputCharConverter == null && conv.inputCharConverter == null)
-            a = true;
-        else if (inputCharConverter != null
-                && inputCharConverter.equals(conv.inputCharConverter))
-            a = true;
-
-        if (outputCharConverter == null && conv.outputCharConverter == null)
-            b = true;
-        else if (outputCharConverter != null
-                && outputCharConverter.equals(conv.outputCharConverter))
-            b = true;
-
-        if (inputWcharConverter == null && conv.inputWcharConverter == null)
-            c = true;
-        else if (inputWcharConverter != null
-                && inputWcharConverter.equals(conv.inputWcharConverter))
-            c = true;
-
-        if (outputWcharConverter == null && conv.outputWcharConverter == null)
-            d = true;
-        else if (outputWcharConverter != null
-                && outputWcharConverter.equals(conv.outputWcharConverter))
-            d = true;
-
-        return a && b && c && d;
+        return Objects.equals(this.inputCharConverter, that.inputCharConverter) &&
+                Objects.equals(this.outputCharConverter, that.outputCharConverter) &&
+                Objects.equals(this.inputWcharConverter, that.inputWcharConverter) &&
+                Objects.equals(this.outputWcharConverter, that.outputWcharConverter);
     }
 
     public int hashCode() {
-        int result;
-        result = (inputCharConverter != null ? inputCharConverter.hashCode() : 0);
-        result = 29 * result + (outputCharConverter != null ? outputCharConverter.hashCode() : 0);
-        result = 29 * result + (inputWcharConverter != null ? inputWcharConverter.hashCode() : 0);
-        result = 29 * result + (outputWcharConverter != null ? outputWcharConverter.hashCode() : 0);
-        return result;
+        return Objects.hash(inputCharConverter, outputCharConverter, inputWcharConverter, outputWcharConverter);
     }
 
-    @Override
     public String toString() {
-        return "CodeConverters{"
-                + "\noutputCharConverter=" + outputCharConverter
-                + "\noutputWcharConverter=" + outputWcharConverter
-                + "\n}";
+        return String.format("CodeConverters{%noutputCharConverter=%s%noutputWcharConverter=%s%n}",
+                outputCharConverter, outputWcharConverter);
     }
 }

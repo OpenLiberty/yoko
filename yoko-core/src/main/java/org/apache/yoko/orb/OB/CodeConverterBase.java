@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ abstract public class CodeConverterBase {
         return Objects.hash(sourceCodeSet, destinationCodeSet);
     }
 
-    final public char read_char(ReadBuffer readBuffer) throws DATA_CONVERSION {
+    public final char read_char(ReadBuffer readBuffer) throws DATA_CONVERSION {
         return reader_.read_char(readBuffer);
     }
 
