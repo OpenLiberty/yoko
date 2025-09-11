@@ -185,6 +185,10 @@ subprojects { sp ->
         println """"Suite elapsed time","$desc.name",$totalTime"""
       }
     }
+
+    reports {
+      junitXml.enabled = true
+    }
   }
 }
 
@@ -280,4 +284,17 @@ configure([
   // because they don't exist yet when these lines are executed
   publish.dependsOn "publishMavenPublicationToMavenLocal"
   publish.dependsOn "publishToMavenLocal"
+}
+
+task testReport (type: TestReport) {
+    destinationDir = file("$buildDir/reports/allTests")
+    def projectsWithResults = subprojects.findAll { subproject ->
+        def testResultsDir = new File(subproject.buildDir, "test-results")
+        if (!testResultsDir.exists()) return false
+        def xmlFiles = subproject.fileTree(testResultsDir).include("**/*.xml")
+        return !xmlFiles.empty
+    }
+    def projectsWithTests = subprojects.findAll { it.tasks.findByName('test') != null }
+    projectsWithResults.forEach{ println it.name }
+    testResults.from = projectsWithResults.test
 }
