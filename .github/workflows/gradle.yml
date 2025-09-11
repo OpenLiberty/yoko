@@ -43,19 +43,15 @@ jobs:
         git fetch --depth=1 origin ${{github.base_ref}}
         scripts/check-copyright.sh -- origin/${{github.base_ref}}
     - name: Build with Gradle
-      run: ./gradlew build
+      run: ./gradlew build testReport
     - name: Upload test reports
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: reports
-        path: '*/build/reports'
-    - name: Upload xml test results
-      if: always()   # make sure we run it every time even if test step fails
-      uses: actions/upload-artifact@v4
-      with:
-          name: xml-report
-          path: "**/test-results/**/*.xml"
+        path: |
+          "*/build/test-results"
+          "build/reports"
     - name: Check JAR licenses
       run: |
         JARS=$(find ./ -name '*.jar' -type f | grep yoko | grep libs)
