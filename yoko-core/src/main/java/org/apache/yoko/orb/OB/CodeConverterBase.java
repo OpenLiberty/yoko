@@ -128,10 +128,6 @@ abstract public class CodeConverterBase {
         reader_.set_flags(flags);
     }
 
-    final public void set_writer_flags(int flags) {
-        writer_.set_flags(flags);
-    }
-
     public abstract boolean conversionRequired();
 
     public abstract char convert(char value);

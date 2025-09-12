@@ -498,9 +498,6 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
             value = converter.convert(value);
 
         if (wCharWriterRequired_) {
-            if (!partOfString)
-                converter.set_writer_flags(CodeSetWriter.FIRST_CHAR);
-
             //
             // For GIOP 1.1 non byte-oriented wide characters are written
             // as ushort or ulong, depending on their maximum length
@@ -621,19 +618,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         final char[] arr = value.toCharArray();
         final CodeConverterBase converter = codeConverters_.outputCharConverter;
 
-        if (!charWriterRequired_) {
-            int len = arr.length;
-            int capacity = len + 1;
-            write_ulong(capacity); // writes the length and ensures a two-byte boundary alignment
-            addCapacity(capacity);
-            if (charConversionRequired_) {
-                for (char c: arr) writeBuffer.writeByte(converter.convert(checkChar(c)));
-            } else {
-                for (char c: arr) writeBuffer.writeByte(checkChar(c));
-            }
-            // write null terminator
-            writeBuffer.writeByte(0);
-        } else {
+        if (charWriterRequired_) { // write one or more bytes per char
             // We don't know how much space each character will require: each char could take up to four bytes.
             // To avoid re-allocation, create a large enough temporary buffer up front.
             // NOTE: we need to use a temporary buffer to count the bytes reliably, because
@@ -653,6 +638,18 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
             // and write the contents
             addCapacity(tmpWriter.length());
             tmpWriter.readFromStart().readBytes(writeBuffer);
+        } else { // write one byte per char
+            int len = arr.length;
+            int capacity = len + 1;
+            write_ulong(capacity); // writes the length and ensures a two-byte boundary alignment
+            addCapacity(capacity);
+            if (charConversionRequired_) {
+                for (char c: arr) writeBuffer.writeByte(converter.convert(checkChar(c)));
+            } else {
+                for (char c: arr) writeBuffer.writeByte(checkChar(c));
+            }
+            // write null terminator
+            writeBuffer.writeByte(0);
         }
     }
 
@@ -670,14 +667,6 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         // get converter/writer instance
         //
         final CodeConverterBase converter = codeConverters_.outputWcharConverter;
-
-        //
-        // some writers (specially UTF-16) requires the possible BOM
-        // only found at the beginning of a string... this will
-        // indicate that we are at the start of the first character
-        // of the string to the writer
-        if (wCharWriterRequired_)
-            converter.set_writer_flags(CodeSetWriter.FIRST_CHAR);
 
         //
         // for GIOP 1.0/1.1 we don't need to differentiate between

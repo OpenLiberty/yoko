@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ final class CodeConverterImpl extends CodeConverterBase {
         toMap = toSet.charMap;
         Objects.requireNonNull(fromMap);
         Objects.requireNonNull(toMap);
-        conversionRequired = (fromMap == CM_IDENTITY) && (toMap == CM_IDENTITY);
+        conversionRequired = (fromMap != CM_IDENTITY) || (toMap != CM_IDENTITY);
     }
 
     public boolean conversionRequired() {

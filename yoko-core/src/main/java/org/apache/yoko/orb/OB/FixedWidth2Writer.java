@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,15 +23,10 @@ final class FixedWidth2Writer extends CodeSetWriter {
     public void write_char(WriteBuffer writeBuffer, char v) {
         writeBuffer.writeByte(v);
     }
-
     public void write_wchar(WriteBuffer writeBuffer, char v) {
         writeBuffer.writeChar(v);
     }
-
     public int count_wchar(char v) {
         return 2;
-    }
-
-    public void set_flags(int flags) {
     }
 }
