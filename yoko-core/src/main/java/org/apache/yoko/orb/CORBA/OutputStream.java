@@ -498,9 +498,6 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
             value = converter.convert(value);
 
         if (wCharWriterRequired_) {
-            if (!partOfString)
-                converter.set_writer_flags(CodeSetWriter.FIRST_CHAR);
-
             //
             // For GIOP 1.1 non byte-oriented wide characters are written
             // as ushort or ulong, depending on their maximum length
@@ -670,14 +667,6 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         // get converter/writer instance
         //
         final CodeConverterBase converter = codeConverters_.outputWcharConverter;
-
-        //
-        // some writers (specially UTF-16) requires the possible BOM
-        // only found at the beginning of a string... this will
-        // indicate that we are at the start of the first character
-        // of the string to the writer
-        if (wCharWriterRequired_)
-            converter.set_writer_flags(CodeSetWriter.FIRST_CHAR);
 
         //
         // for GIOP 1.0/1.1 we don't need to differentiate between

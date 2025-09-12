@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,13 +21,7 @@ import org.apache.yoko.io.WriteBuffer;
 import org.omg.CORBA.DATA_CONVERSION;
 
 public abstract class CodeSetWriter {
-    public final static int FIRST_CHAR = 22;
-
     abstract void write_char(WriteBuffer writeBuffer, char v) throws DATA_CONVERSION;
-
     abstract void write_wchar(WriteBuffer writeBuffer, char v) throws DATA_CONVERSION;
-
     abstract int count_wchar(char v);
-
-    abstract void set_flags(int flags);
 }
