@@ -22,17 +22,17 @@ import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.omg.CORBA.DATA_CONVERSION;
 
-enum SimpleCodec implements CharCodec {
+enum SimpleCodec implements ImmutableCharCodec {
     UTF_16 {
         public char readChar(ReadBuffer in) { return in.readChar(); }
         public void writeChar(char c, WriteBuffer out) { out.writeChar(c); }
     },
     US_ASCII {
-        public char readChar(ReadBuffer in) throws DATA_CONVERSION { return check7bit(in.readByteAsChar()); }
-        public void writeChar(char c, WriteBuffer out) throws DATA_CONVERSION { out.writeByte(check7bit(c)); }
+        public char readChar(ReadBuffer in) throws DATA_CONVERSION { return expect7bit(in.readByteAsChar()); }
+        public void writeChar(char c, WriteBuffer out) throws DATA_CONVERSION { out.writeByte(require7bit(c)); }
     },
     ISO_LATIN_1 {
-        public char readChar(ReadBuffer in) { return in.readByteAsChar(); }
-        public void writeChar(char c, WriteBuffer out) throws DATA_CONVERSION { out.writeByte(check8bit(c)); }
+        public char readChar(ReadBuffer in) { return in.readByteAsChar(); } // no checking - a single-byte character can't be > 0xFF
+        public void writeChar(char c, WriteBuffer out) throws DATA_CONVERSION { out.writeByte(require8bit(c)); }
     };
 }

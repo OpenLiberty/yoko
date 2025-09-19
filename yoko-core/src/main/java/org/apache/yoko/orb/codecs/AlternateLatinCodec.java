@@ -21,7 +21,7 @@ import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.omg.CORBA.DATA_CONVERSION;
 
-enum AlternateLatinCodec implements CharCodec {
+enum AlternateLatinCodec implements ImmutableCharCodec {
     ISO_LATIN_2(CharSequences.CS_8859_2),
     ISO_LATIN_3(CharSequences.CS_8859_3),
     ISO_LATIN_4(CharSequences.CS_8859_4),
@@ -147,5 +147,5 @@ enum AlternateLatinCodec implements CharCodec {
     }
 
     public char readChar(ReadBuffer in) { return convertToJava(in.readByteAsChar()); }
-    public void writeChar(char c, WriteBuffer out) throws DATA_CONVERSION { out.writeByte(convertFromJava(check8bit(c))); }
+    public void writeChar(char c, WriteBuffer out) throws DATA_CONVERSION { out.writeByte(convertFromJava(require8bit(c))); }
 }

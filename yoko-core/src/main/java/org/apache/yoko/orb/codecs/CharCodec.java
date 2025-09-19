@@ -26,11 +26,30 @@ import static org.apache.yoko.util.MinorCodes.MinorNoCharacterMapping;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
 
 interface CharCodec {
-    default char check7bit(char c) throws DATA_CONVERSION {
+    /**
+     * If any character cannot be read by a codec, the codec will return this character instead.
+     * Where something has gone wrong with a multi-byte encoding sequence in UTF8,
+     * multiple instances of this char may be returned.
+     */
+    char REPLACEMENT_CHAR = '\uFFFD';
+
+    /**
+     * Check whether the character is US-ASCII.
+     * @return the character, or REPLACEMENT_CHAR if it is not US-ASCII
+     */
+    default char expect7bit(char c) {
+        return c > '\u007F' ? REPLACEMENT_CHAR : c;
+    }
+    /**
+     * Check whether the character is ISO-LATIN-1.
+     * @return the character, or REPLACEMENT_CHAR if it is not ISO-LATIN-1
+     */
+    default char expect8bit(char c) { return c > '\u00FF' ? REPLACEMENT_CHAR : c; }
+    default char require7bit(char c) throws DATA_CONVERSION {
         if (c > '\u007F') throw new DATA_CONVERSION(String.format("Encountered character outside valid range: 0x%04X", (int)c), MinorNoCharacterMapping, COMPLETED_MAYBE);
         return c;
     }
-    default char check8bit(char c) throws DATA_CONVERSION {
+    default char require8bit(char c) throws DATA_CONVERSION {
         if (c > '\u00FF') throw new DATA_CONVERSION(String.format("Encountered character outside valid range: 0x%04X", (int)c), MinorNoCharacterMapping, COMPLETED_MAYBE);
         return c;
     }
@@ -56,4 +75,9 @@ interface CharCodec {
 
     /** Reads in the next char */
     char readChar(ReadBuffer in) throws DATA_CONVERSION;
+
+    /** Create a copy of this codec. For stateless implementations, this will return the invocation target. */
+    CharCodec copy();
+    /** Check there is no unfinished character data and clean up resources. For stateless implementations this will do nothing. */
+    void close();
 }

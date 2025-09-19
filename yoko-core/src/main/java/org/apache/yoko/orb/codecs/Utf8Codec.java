@@ -20,6 +20,7 @@ package org.apache.yoko.orb.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
+import org.omg.CORBA.DATA_CONVERSION;
 
 import static java.lang.Character.highSurrogate;
 import static java.lang.Character.isHighSurrogate;
@@ -29,14 +30,15 @@ import static java.lang.Character.toCodePoint;
 import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.logging.VerboseLogging.DATA_IN_LOG;
 import static org.apache.yoko.logging.VerboseLogging.DATA_OUT_LOG;
+import static org.apache.yoko.util.MinorCodes.MinorUTF8Encoding;
+import static org.apache.yoko.util.MinorCodes.MinorUTF8Overflow;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
 
-public class Utf8Codec {
-
+final class Utf8Codec implements CharCodec {
     static class X extends Exception {
         X(String message) { super(message); }
     }
 
-    private static final char REPLACEMENT_CHAR = '\uFFFD';
     // These are the minimum acceptable values for the encoding length.
     private static final int[] MIN_CODEPOINT = {-1, 0, 0x80, 0x800, 0x10000};
 
@@ -108,18 +110,23 @@ public class Utf8Codec {
 
     public void writeChar(char c, WriteBuffer out) {
         try {
-            if (isHighSurrogate(c)) {
-                if (0 != highSurrogate) throw new X(String.format("Received two high surrogates in a row: 0x%04X 0x%04X", highSurrogate, c));
-                highSurrogate = c;
-                return;
+            final int codepoint;
+            if (0 != highSurrogate) {
+                if (isHighSurrogate(c)) throw new X(String.format("Received two high surrogates in a row: 0x%04X 0x%04X", highSurrogate, c));
+                if (!isLowSurrogate(c)) throw new X(String.format("Expected low surrogate but received: 0x%04X", (int) c));
+                codepoint = toCodePoint(highSurrogate, c);
+            } else {
+                if (isLowSurrogate(c)) throw new X(String.format("Received unexpected low surrogate: 0x%04X", (int) c));
+                if (isHighSurrogate(c)) {
+                    highSurrogate = c;
+                    return;
+                }
+                codepoint = c;
             }
-            if (0 == highSurrogate && isLowSurrogate(c)) throw new X(String.format("Received unexpected low surrogate: 0x%04X", (int) c));
-            if (0 != highSurrogate && !isLowSurrogate(c)) throw new X(String.format("Expected low surrogate but received: 0x%04X", (int) c));
-            int codepoint = (0 == highSurrogate) ? c : toCodePoint(highSurrogate, c);
             writeBytes(codepoint, out);
         } catch (X x) {
             DATA_OUT_LOG.warning(x.getMessage());
-            writeChar(REPLACEMENT_CHAR, out);
+            throw (DATA_CONVERSION) new DATA_CONVERSION(x.getMessage(), MinorUTF8Encoding, COMPLETED_MAYBE).initCause(x);
         }
     }
 
@@ -152,4 +159,12 @@ public class Utf8Codec {
         if (codepoint < 0x800) return 2;
         return codepoint < 0x10000 ? 3 : 4;
     }
+
+    public CharCodec copy() { return new Utf8Codec(); }
+
+    public void close() {
+        if (0 != highSurrogate) throw new DATA_CONVERSION("High surrogate as last character", MinorUTF8Encoding, COMPLETED_MAYBE);
+        if (0 != lowSurrogate) throw new DATA_CONVERSION("Low surrogate left unread", MinorUTF8Overflow, COMPLETED_MAYBE);
+    }
+
 }
