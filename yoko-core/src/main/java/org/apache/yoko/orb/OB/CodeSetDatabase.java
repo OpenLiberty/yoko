@@ -20,6 +20,8 @@ package org.apache.yoko.orb.OB;
 import org.omg.CONV_FRAME.CodeSetComponent;
 import org.omg.CORBA.CODESET_INCOMPATIBLE;
 
+import java.util.stream.IntStream;
+
 import static org.apache.yoko.orb.OB.CodeSetInfo.areCompatibleCodesets;
 
 enum CodeSetDatabase {
@@ -41,43 +43,44 @@ enum CodeSetDatabase {
         return new CodeConverterImpl(fromSet, toSet);
     }
 
+    /**
+     * The logic of this method is taken from "Code Set Negotiation" (see CORBA 3.0.3 section 13.10.2.6).
+     * Given what we know about the client (i.e. our) codeset, it could be simplified further,
+     * but then it would not be as observably correct.
+     */
     static int determineTCS(CodeSetComponent clientCS, CodeSetComponent serverCS, int fallback) {
-        // Check if native codesets are present
-        if (clientCS.native_code_set != 0 && serverCS.native_code_set != 0) {
-            // Check if the native codesets are identical
-            // If they are then no conversion is required
+        // Check if the server declares a native codeset
+        if (serverCS.native_code_set != 0 ) {
+            // If the server and client native codeset match, use that
             if (clientCS.native_code_set == serverCS.native_code_set) return serverCS.native_code_set;
 
-            // Check if client can convert
+            // If the client can convert to the server native codeset, use the server native codeset
             if (checkCodeSetId(clientCS, serverCS.native_code_set)) return serverCS.native_code_set;
-
-            // Check if server can convert
+        }
+        if (clientCS.native_code_set != 0) {
+            // If the server can convert to the client native codeset, use the client native codeset
             if (checkCodeSetId(serverCS, clientCS.native_code_set)) return clientCS.native_code_set;
         }
 
-        // Check for common codeset that can be used for transmission
-        // The server supported codesets have preference
+        // We've ruled out the native code sets.
+        // Try to find a common conversion codeset,
+        // using the server's stated order of preference.
         for (int conversionCodeSet : serverCS.conversion_code_sets) {
             if (checkCodeSetId(clientCS, conversionCodeSet)) return conversionCodeSet;
         }
 
+        // No common codesets exist.
+        // If the client and server have native codesets and they are compatible, use the fallback encoding.
+        // (The fallback encoding is specified as UTF-8 for char and UTF-16 for wchar.)
         if (clientCS.native_code_set != 0 && serverCS.native_code_set != 0) {
-            // Check compatibility by using the OSF registry,
-            // use fallback codeset if compatible
             if (areCompatibleCodesets(clientCS.native_code_set, serverCS.native_code_set)) return fallback;
         }
 
+        // Codeset negotiation has failed :(
         throw new CODESET_INCOMPATIBLE();
     }
 
     private static boolean checkCodeSetId(CodeSetComponent csc, int id) {
-        for (int cs : csc.conversion_code_sets) {
-            if (cs == id) return true;
-        }
-
-        //
-        // ID not found
-        //
-        return false;
+        return IntStream.of(csc.conversion_code_sets).anyMatch(cid -> id == cid);
     }
 }

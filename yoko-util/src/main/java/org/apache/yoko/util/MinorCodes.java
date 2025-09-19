@@ -1375,25 +1375,13 @@ public final class MinorCodes {
     public final static int MinorUTF8Encoding = 3 | ApacheVMCID.value;
 
     public static String describeDataConversion(int minor) {
-        String result = null;
-
         switch (minor) {
-        case MinorNoCharacterMapping:
-            result = "character does not map to negotiated transmission "
-                    + "code set";
-            break;
-        case MinorNoAlias:
-            result = "alias types not supported";
-            break; 
-        case MinorUTF8Overflow:
-            result = "UTF8 overflow";
-            break; 
-        case MinorUTF8Encoding:
-            result = "invalid UTF8 character1";
-            break; 
+        case MinorNoCharacterMapping: return "character does not map to negotiated transmission code set";
+        case MinorNoAlias: return "alias types not supported";
+        case MinorUTF8Overflow: return "UTF8 overflow";
+        case MinorUTF8Encoding: return "invalid UTF8 character1";
+        default: return null;
         }
-
-        return result;
     }
 
     // ----------------------------------------------------------------------

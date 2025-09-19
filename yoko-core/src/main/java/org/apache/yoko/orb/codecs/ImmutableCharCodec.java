@@ -15,21 +15,9 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.OB;
+package org.apache.yoko.orb.codecs;
 
-import org.apache.yoko.io.WriteBuffer;
-
-final class UTF16Writer extends CodeSetWriter {
-    public void write_char(WriteBuffer writeBuffer, char v) {
-        writeBuffer.writeByte(v & 0xff);
-    }
-
-    public void write_wchar(WriteBuffer writeBuffer, char v) {
-        // we always write our UTF-16 characters in Big Endian format
-        writeBuffer.writeChar(v);
-    }
-
-    public int count_wchar(char v) {
-        return 2;
-    }
+interface ImmutableCharCodec extends CharCodec {
+    default CharCodec copy() { return this; }
+    default void close() {}
 }
