@@ -28,6 +28,9 @@ import java.nio.charset.UnsupportedCharsetException;
 
 import static org.apache.yoko.orb.codecs.LatinCodec.getLatinCodec;
 import static org.apache.yoko.orb.codecs.Util.getUnicodeCodec;
+import static org.apache.yoko.util.MinorCodes.MinorUTF8Encoding;
+import static org.apache.yoko.util.MinorCodes.MinorUTF8Overflow;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
 
 interface CharCodec {
 
@@ -77,6 +80,16 @@ interface CharCodec {
      * This is only relevant for encodings that encode
      * characters above the Basic Multilingual Plane
      * and do not encode them as surrogate pairs.
+     *
+     * @throws DATA_CONVERSION if there is unfinished data to be read or written
      */
-    default void assertNoBufferedCharData() {}
+    default void assertNoBufferedCharData() throws DATA_CONVERSION {
+        if (!readFinished()) throw new DATA_CONVERSION("Low surrogate left unread", MinorUTF8Overflow, COMPLETED_MAYBE);
+        if (!writeFinished()) throw new DATA_CONVERSION("High surrogate as last character", MinorUTF8Encoding, COMPLETED_MAYBE);
+    }
+
+    /** Check whether there is no low surrogate waiting to be read. */
+    default boolean readFinished() { return true; }
+    /** Check whether the last character was not a high surrogate. */
+    default boolean writeFinished() { return true; }
 }

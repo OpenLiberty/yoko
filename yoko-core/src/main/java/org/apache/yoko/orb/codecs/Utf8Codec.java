@@ -43,16 +43,18 @@ final class Utf8Codec implements CharCodec {
     private char lowSurrogate = 0;
 
     public char readChar(ReadBuffer in) {
-        //
+        // return unread low surrogate char if there is one
         if (0 != lowSurrogate) try {
             return lowSurrogate;
         } finally {
+            // clear the low surrogate
             lowSurrogate = 0;
+            // mark the number of bytes read to show this codepoint is consumed
             in.skipBytes(1);
         }
         char c = in.readByteAsChar();
         // check for single byte char
-        if (c < '\u007F') return c;
+        if (c <= '\u007F') return c;
         // remember buffer position
         final int pos = in.getPosition() - 1;
         try {
@@ -173,8 +175,6 @@ final class Utf8Codec implements CharCodec {
         return codepoint < 0x10000 ? 3 : 4;
     }
 
-    public void assertNoBufferedCharData() throws DATA_CONVERSION {
-        if (0 != highSurrogate) throw new DATA_CONVERSION("High surrogate as last character", MinorUTF8Encoding, COMPLETED_MAYBE);
-        if (0 != lowSurrogate) throw new DATA_CONVERSION("Low surrogate left unread", MinorUTF8Overflow, COMPLETED_MAYBE);
-    }
+    public boolean readFinished() { return 0 == lowSurrogate; }
+    public boolean writeFinished() { return 0 == highSurrogate; }
 }

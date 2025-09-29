@@ -33,9 +33,10 @@ import static org.apache.yoko.orb.codecs.Util.ASCII_REPLACEMENT_BYTE;
 import static org.apache.yoko.orb.codecs.Util.UNICODE_REPLACEMENT_CHAR;
 
 /**
- * Pre-populate tables for a given latin charset so lookups are array indexing or hashmap lookup.
+ * Pre-populate tables for a given latin charset so lookups use arrays and hashes.
  */
 class LatinCodec implements CharCodec {
+    /** A global map of codec instances; since they are stateless we only need one per charset */
     private static final Map<Charset, LatinCodec> CACHE = new HashMap<>();
 
     static LatinCodec getLatinCodec(Charset charset) {
