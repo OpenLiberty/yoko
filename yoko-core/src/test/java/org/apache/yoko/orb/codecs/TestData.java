@@ -23,35 +23,41 @@ import java.util.stream.Stream;
 import static java.util.stream.IntStream.iterate;
 
 interface TestData {
-    static Stream<Object[]> asciiChars() { return rangeToTest(0x00,0x80).mapToObj(TestData::convertTo3Args); }
+    static Stream<Object[]> asciiChars() { return testRange(0x00,0x80).mapToObj(TestData::toHexIntAndChar); }
 
-    static Stream<Object[]> isoLatinChars() { return rangeToTest(0x80, 0x100).mapToObj(TestData::convertTo3Args); }
+    static Stream<Object[]> isoLatinChars() { return testRange(0x80, 0x100).mapToObj(TestData::toHexIntAndChar); }
 
     static Stream<Object[]> bmpChars() {
-        return Stream.of(rangeToTest(0x100, 0xD800),
-                        rangeToTest(0xE000, 0x10000))
+        return Stream.of(testRange(0x100, 0xD800),
+                        testRange(0xE000, 0x10000))
                 .flatMapToInt(s -> s)
-                .mapToObj(TestData::convertTo3Args);
+                .mapToObj(TestData::toHexIntAndChar);
     }
 
     static Stream<Object[]> highSurrogates() {
-        return  IntStream.of(0xD800, 0xD801, 0xDBFE, 0xDBFF).mapToObj(TestData::convertTo3Args);
+        return  IntStream.of(0xD800, 0xD801, 0xDBFE, 0xDBFF).mapToObj(TestData::toHexIntAndChar);
     }
 
     static Stream<Object[]> lowSurrogates() {
-        return  IntStream.of(0xDC00, 0xDC01, 0xDFFE, 0xDFFF).mapToObj(TestData::convertTo3Args);
+        return  IntStream.of(0xDC00, 0xDC01, 0xDFFE, 0xDFFF).mapToObj(TestData::toHexIntAndChar);
     }
 
     static Stream<Object[]> wideChars() { return Stream.of(bmpChars(), highSurrogates(), lowSurrogates()).flatMap(s -> s); }
 
-    static Object[] convertTo3Args(int i) { return new Object[]{String.format("0x%X", i), i, (char) i}; }
+    static Object[] toHexIntAndChar(int i) { return new Object[]{describe(i), i, (char) i}; }
 
-    static IntStream rangeToTest(int start, int finish) {
+    static Object[] toHexIntAndString(int i) { return new Object[]{describe(i), i, toString(i)};}
+
+    static String describe(int codepoint) { return String.format("0x%04X %s", codepoint, Character.getName(codepoint)); }
+
+    static String toString(int codepoint) { return new String(Character.toChars(codepoint)); }
+
+    static IntStream testRange(int start, int finish) {
         final int STEP = 5;
         int count = (finish - start) / STEP - 2;
         assert count > 0;
         IntStream beginning = IntStream.range(start, start+STEP);
-        IntStream middle = iterate(start, n -> n + STEP).limit(count);
+        IntStream middle = iterate(start + STEP, n -> n + STEP).limit(count);
         IntStream end = IntStream.range(finish-STEP, finish);
         return Stream.of(beginning, middle, end).flatMapToInt(s -> s);
     }

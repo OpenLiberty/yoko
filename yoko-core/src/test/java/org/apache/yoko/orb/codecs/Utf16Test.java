@@ -28,31 +28,31 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
     }
     boolean isSingleByte() { return false; }
 
-    @ParameterizedTest(name = "Decode {0} \"{2}\"")
+    @ParameterizedTest(name = "Decode {0} {2}")
     @MethodSource("asciiChars")
     public void testDecodeAsciiAsUtf16(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode {0} \"{2}\"")
+    @ParameterizedTest(name = "Decode {0} {2}")
     @MethodSource("isoLatinChars")
     void testDecodeIsoLatin1AsUtf16(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode {0} \"{2}\"")
+    @ParameterizedTest(name = "Decode {0} {2}")
     @MethodSource("bmpChars")
     void testDecodeBmpAsUtf16(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode {0} \"{2}\"")
+    @ParameterizedTest(name = "Decode {0} {2}")
     @MethodSource("highSurrogates")
     void testDecodeHighSurrogatesAsUtf16(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode {0} \"{2}\"")
+    @ParameterizedTest(name = "Decode {0} {2}")
     @MethodSource("lowSurrogates")
     void testDecodeLowSurrogatesAsUtf16(String hex, int codepoint, char c) {
         assertValidChar(c);

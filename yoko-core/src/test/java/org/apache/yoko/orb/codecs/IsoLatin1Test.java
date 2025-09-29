@@ -30,19 +30,19 @@ class IsoLatin1Test extends AbstractSimpleCodecTest implements TestData {
     }
     boolean isSingleByte() { return true; }
 
-    @ParameterizedTest(name = "Decode and Encode {0} \"{2}\"")
+    @ParameterizedTest(name = "Decode and Encode {0} {2}")
     @MethodSource("asciiChars")
     public void testAsciiChars(String hex, int codepoint, char c) {
     assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode and Encode {0} \"{2}\"")
+    @ParameterizedTest(name = "Decode and Encode {0} {2}")
     @MethodSource("isoLatinChars")
     void testIsoLatinChars(String hex, int codepoint, char c) {
                 assertValidChar(c);
                 }
 
-@ParameterizedTest(name = "Encode {0} \"{2}\"")
+@ParameterizedTest(name = "Encode {0} {2}")
     @MethodSource("wideChars")
     void testWideChars(String hex, int codepoint, char c) {
         assertEncoding(c, ASCII_REPLACEMENT_CHAR);
