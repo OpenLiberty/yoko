@@ -81,7 +81,7 @@ final class Utf8Codec implements CharCodec {
             // This could result in additional REPLACEMENT_CHAR in the output.
             DATA_IN_LOG.log(WARNING, e.getMessage(), e);
             DATA_IN_LOG.fine(in.dumpAllDataWithPosition());
-            return REPLACEMENT_CHAR;
+            return UNICODE_REPLACEMENT_CHAR;
         }
     }
 

@@ -133,7 +133,7 @@ enum AlternateLatinCodec implements CharCodec {
         if (v < offset) return v;
         int i = v - offset;
         if (i >= mapping.length) return v;
-        return (char) mapping[i];
+        return mapping[i];
     }
 
     private char convertFromJava(char v) {
@@ -147,5 +147,6 @@ enum AlternateLatinCodec implements CharCodec {
     }
 
     public char readChar(ReadBuffer in) { return convertToJava(in.readByteAsChar()); }
-    public void writeChar(char c, WriteBuffer out) throws DATA_CONVERSION { out.writeByte(convertFromJava(require8bit(c))); }
+    public void writeChar(char c, WriteBuffer out) throws DATA_CONVERSION { out.writeByte(convertFromJava(Util.require8bit(c))); }
 }
+

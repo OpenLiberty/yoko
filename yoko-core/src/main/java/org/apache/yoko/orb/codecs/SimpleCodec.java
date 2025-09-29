@@ -22,6 +22,10 @@ import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.omg.CORBA.DATA_CONVERSION;
 
+import static org.apache.yoko.orb.codecs.Util.expect7bit;
+import static org.apache.yoko.orb.codecs.Util.require7bit;
+import static org.apache.yoko.orb.codecs.Util.require8bit;
+
 enum SimpleCodec implements CharCodec {
     UTF_16 {
         public char readChar(ReadBuffer in) { return in.readChar(); }

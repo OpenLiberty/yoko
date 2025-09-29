@@ -22,36 +22,32 @@ import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.omg.CORBA.DATA_CONVERSION;
 
-import static org.apache.yoko.util.MinorCodes.MinorNoCharacterMapping;
-import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
+import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.UnsupportedCharsetException;
+
+import static org.apache.yoko.orb.codecs.LatinCodec.getLatinCodec;
+import static org.apache.yoko.orb.codecs.Util.getUnicodeCodec;
 
 interface CharCodec {
-    /**
-     * If any character cannot be read by a codec, the codec will return this character instead.
-     * Where something has gone wrong with a multi-byte encoding sequence in UTF8,
-     * multiple instances of this char may be returned.
-     */
-    char REPLACEMENT_CHAR = '\uFFFD';
 
     /**
-     * Check whether the character is US-ASCII.
-     * @return the character, or REPLACEMENT_CHAR if it is not US-ASCII
+     * @param name
+     * @return
+     * @throws IllegalCharsetNameException if the provided name is not a valid charset name
+     * @throws IllegalArgumentException if the provided name is null
+     * @throws UnsupportedCharsetException if the named charset is not supported
      */
-    default char expect7bit(char c) {
-        return c > '\u007F' ? REPLACEMENT_CHAR : c;
-    }
-    /**
-     * Check whether the character is ISO-LATIN-1.
-     * @return the character, or REPLACEMENT_CHAR if it is not ISO-LATIN-1
-     */
-    default char expect8bit(char c) { return c > '\u00FF' ? REPLACEMENT_CHAR : c; }
-    default char require7bit(char c) throws DATA_CONVERSION {
-        if (c > '\u007F') throw new DATA_CONVERSION(String.format("Encountered character outside valid range: 0x%04X", (int)c), MinorNoCharacterMapping, COMPLETED_MAYBE);
-        return c;
-    }
-    default char require8bit(char c) throws DATA_CONVERSION {
-        if (c > '\u00FF') throw new DATA_CONVERSION(String.format("Encountered character outside valid range: 0x%04X", (int)c), MinorNoCharacterMapping, COMPLETED_MAYBE);
-        return c;
+    static CharCodec forName(String name) throws IllegalCharsetNameException, IllegalArgumentException, UnsupportedCharsetException {
+        // fastest result: directly named unicode codec
+        CharCodec result = getUnicodeCodec(name);
+        if (null != result) return result;
+        // next see if it is an alias for a unicode codec
+        Charset charset = Charset.forName(name);
+        result = getUnicodeCodec(charset.name());
+        if (null != result) return result;
+        // the only other codecs currently supported are the Latin ones
+        return getLatinCodec(charset);
     }
 
     /**
