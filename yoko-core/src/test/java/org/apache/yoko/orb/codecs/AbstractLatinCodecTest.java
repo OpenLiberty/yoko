@@ -28,16 +28,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.stream.IntStream.range;
-import static org.apache.yoko.orb.codecs.AlternateLatinCodec.ISO_LATIN_2;
-import static org.apache.yoko.orb.codecs.AlternateLatinCodec.ISO_LATIN_3;
-import static org.apache.yoko.orb.codecs.AlternateLatinCodec.ISO_LATIN_4;
-import static org.apache.yoko.orb.codecs.AlternateLatinCodec.ISO_LATIN_5;
-import static org.apache.yoko.orb.codecs.AlternateLatinCodec.ISO_LATIN_7;
-import static org.apache.yoko.orb.codecs.AlternateLatinCodec.ISO_LATIN_9;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
 
@@ -54,11 +47,11 @@ abstract class AbstractLatinCodecTest {
     final WriteBuffer writeBuffer = Buffer.createWriteBuffer();
     final ReadBuffer readBuffer = writeBuffer.readFromStart();
 
-    AbstractLatinCodecTest(CharCodec codec, Charset charset) {
-        this.codec = codec;
-        this.charset = charset;
-        expectedChars = charset.decode(inputBytes).asReadOnlyBuffer();
-        expectedBytes = charset.encode(expectedChars);
+    AbstractLatinCodecTest(String name) {
+        this.codec = CharCodec.forName(name);
+        this.charset = Charset.forName(name);
+        expectedChars = Charset.forName(name).decode(inputBytes).asReadOnlyBuffer();
+        expectedBytes = Charset.forName(name).encode(expectedChars);
     }
 
     @BeforeEach
@@ -70,9 +63,9 @@ abstract class AbstractLatinCodecTest {
 
     Stream<Object[]> args() { return range(0,256).mapToObj(i -> new Object[]{String.format("0x%02X", i), i, expectedChars.get(i), expectedBytes.get(i)}); }
 
-    @ParameterizedTest(name = "Convert char {0} ({2})")
+    @ParameterizedTest(name = "Convert char {0} {2}")
     @MethodSource("args")
-    void testDecode(String hex, int b, char expectedChar, byte expectedByte) {
+    public void testDecode(String hex, int b, char expectedChar, byte expectedByte) {
         char expected = expectedChars.get(b);
         writeBuffer.writeByte(b);
         char actual = codec.readChar(readBuffer);
@@ -80,9 +73,9 @@ abstract class AbstractLatinCodecTest {
     }
 }
 
-class IsoLatin2Test extends AbstractLatinCodecTest {  IsoLatin2Test() {super(ISO_LATIN_2, Charset.availableCharsets().get("ISO-8859-2")); } }
-class IsoLatin3Test extends AbstractLatinCodecTest {  IsoLatin3Test() {super(ISO_LATIN_3, Charset.availableCharsets().get("ISO-8859-3")); } }
-class IsoLatin4Test extends AbstractLatinCodecTest {  IsoLatin4Test() {super(ISO_LATIN_4, Charset.availableCharsets().get("ISO-8859-4")); } }
-class IsoLatin5Test extends AbstractLatinCodecTest {  IsoLatin5Test() {super(ISO_LATIN_5, Charset.availableCharsets().get("ISO-8859-5")); } }
-class IsoLatin7Test extends AbstractLatinCodecTest {  IsoLatin7Test() {super(ISO_LATIN_7, Charset.availableCharsets().get("ISO-8859-7")); } }
-class IsoLatin9Test extends AbstractLatinCodecTest {  IsoLatin9Test() {super(ISO_LATIN_9, Charset.availableCharsets().get("ISO-8859-9")); } }
+class IsoLatin2Test extends AbstractLatinCodecTest { IsoLatin2Test() { super("ISO-8859-2"); } }
+class IsoLatin3Test extends AbstractLatinCodecTest { IsoLatin3Test() { super("ISO-8859-3"); } }
+class IsoLatin4Test extends AbstractLatinCodecTest { IsoLatin4Test() { super("ISO-8859-4"); } }
+class IsoLatin5Test extends AbstractLatinCodecTest { IsoLatin5Test() { super("ISO-8859-5"); } }
+class IsoLatin7Test extends AbstractLatinCodecTest { IsoLatin7Test() { super("ISO-8859-7"); } }
+class IsoLatin9Test extends AbstractLatinCodecTest { IsoLatin9Test() { super("ISO-8859-9"); } }

@@ -22,12 +22,13 @@ import org.apache.yoko.io.WriteBuffer;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import static org.apache.yoko.orb.codecs.SimpleCodec.US_ASCII;
+import static org.apache.yoko.orb.codecs.Util.ASCII_REPLACEMENT_CHAR;
 
-class UsAsciiTest extends AbstractSimpleCodecTest {
+class UsAsciiTest extends AbstractSimpleCodecTest implements TestData {
     UsAsciiTest() {
-        super(US_ASCII, WriteBuffer::writeByte, ReadBuffer::readByteAsChar);
+        super("US-ASCII", WriteBuffer::writeByte, ReadBuffer::readByteAsChar);
     }
+    boolean isSingleByte() { return true; }
 
     @ParameterizedTest(name = "Decode and Encode {0} \"{2}\"")
     @MethodSource("asciiChars")
@@ -44,6 +45,7 @@ class UsAsciiTest extends AbstractSimpleCodecTest {
     @ParameterizedTest(name = "Encode {0} \"{2}\"")
     @MethodSource("wideChars")
     void testWideChars(String hex, int codepoint, char c) {
-        assertEncodingFails(c);
+        assertEncoding(c, ASCII_REPLACEMENT_CHAR);
     }
+
 }

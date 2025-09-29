@@ -22,12 +22,11 @@ import org.apache.yoko.io.WriteBuffer;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import static org.apache.yoko.orb.codecs.SimpleCodec.UTF_16;
-
-class Utf16Test extends AbstractSimpleCodecTest {
+class Utf16Test extends AbstractSimpleCodecTest implements TestData {
     Utf16Test() {
-        super(UTF_16, WriteBuffer::writeChar, ReadBuffer::readChar);
+        super("UTF-16", WriteBuffer::writeChar, ReadBuffer::readChar);
     }
+    boolean isSingleByte() { return false; }
 
     @ParameterizedTest(name = "Decode {0} \"{2}\"")
     @MethodSource("asciiChars")

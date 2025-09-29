@@ -22,28 +22,30 @@ import org.apache.yoko.io.WriteBuffer;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import static org.apache.yoko.orb.codecs.SimpleCodec.ISO_LATIN_1;
+import static org.apache.yoko.orb.codecs.Util.ASCII_REPLACEMENT_CHAR;
 
-class IsoLatin1Test extends AbstractSimpleCodecTest {
+class IsoLatin1Test extends AbstractSimpleCodecTest implements TestData {
     IsoLatin1Test() {
-        super(ISO_LATIN_1, WriteBuffer::writeByte, ReadBuffer::readByteAsChar);
+        super("ISO-8859-1", WriteBuffer::writeByte, ReadBuffer::readByteAsChar);
     }
+    boolean isSingleByte() { return true; }
 
     @ParameterizedTest(name = "Decode and Encode {0} \"{2}\"")
     @MethodSource("asciiChars")
     public void testAsciiChars(String hex, int codepoint, char c) {
-        assertValidChar(c);
+    assertValidChar(c);
     }
 
     @ParameterizedTest(name = "Decode and Encode {0} \"{2}\"")
     @MethodSource("isoLatinChars")
     void testIsoLatinChars(String hex, int codepoint, char c) {
-        assertValidChar(c);
-    }
+                assertValidChar(c);
+                }
 
-    @ParameterizedTest(name = "Encode {0} \"{2}\"")
+@ParameterizedTest(name = "Encode {0} \"{2}\"")
     @MethodSource("wideChars")
     void testWideChars(String hex, int codepoint, char c) {
-        assertEncodingFails(c);
+        assertEncoding(c, ASCII_REPLACEMENT_CHAR);
     }
+
 }

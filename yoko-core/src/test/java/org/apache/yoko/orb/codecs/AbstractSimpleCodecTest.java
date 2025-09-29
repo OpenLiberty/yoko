@@ -20,13 +20,9 @@ package org.apache.yoko.orb.codecs;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
-import org.omg.CORBA.DATA_CONVERSION;
 
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
-import static java.util.stream.IntStream.iterate;
-import static org.apache.yoko.orb.codecs.CharCodec.REPLACEMENT_CHAR;
+import static org.apache.yoko.orb.codecs.Util.ASCII_REPLACEMENT_CHAR;
+import static org.apache.yoko.orb.codecs.Util.UNICODE_REPLACEMENT_CHAR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public abstract class AbstractSimpleCodecTest {
@@ -38,38 +34,15 @@ public abstract class AbstractSimpleCodecTest {
     final CharWriter charWriter;
     final CharReader charReader;
 
-    AbstractSimpleCodecTest(SimpleCodec codec, CharWriter charWriter, CharReader charReader) {
-        this.codec = codec;
+    AbstractSimpleCodecTest(String name, CharWriter charWriter, CharReader charReader) {
+        this.codec = (SimpleCodec) CharCodec.forName(name);
         this.charWriter = charWriter;
         this.charReader = charReader;
     }
 
-    static Stream<Object[]> asciiChars() { return rangeToTest(0x00,0x80).mapToObj(AbstractSimpleCodecTest::convertTo3Args); }
-
-    static Stream<Object[]> isoLatinChars() { return rangeToTest(0x80, 0x100).mapToObj(AbstractSimpleCodecTest::convertTo3Args); }
-
-    static Stream<Object[]> bmpChars() {
-        return Stream.of(rangeToTest(0x100, 0xD800),
-                        rangeToTest(0xE000, 0x10000))
-                .flatMapToInt(s -> s)
-                .mapToObj(AbstractSimpleCodecTest::convertTo3Args);
-    }
-
-    static Stream<Object[]> highSurrogates() {
-        return  IntStream.of(0xD800, 0xD801, 0xDBFE, 0xDBFF).mapToObj(AbstractSimpleCodecTest::convertTo3Args);
-    }
-
-    static Stream<Object[]> lowSurrogates() {
-        return  IntStream.of(0xDC00, 0xDC01, 0xDFFE, 0xDFFF).mapToObj(AbstractSimpleCodecTest::convertTo3Args);
-    }
-
-    static Stream<Object[]> wideChars() { return Stream.of(bmpChars(), highSurrogates(), lowSurrogates()).flatMap(s -> s); }
-
-    static Object[] convertTo3Args(int i) { return new Object[]{String.format("0x%X", i), i, (char) i}; }
-
     void assertValidChar(char c) { assertDecoding(c, c); assertEncoding(c, c); }
 
-    void assertInvalidChar(char c) { assertDecoding(c, REPLACEMENT_CHAR); assertEncodingFails(c);}
+    void assertInvalidChar(char c) { assertDecoding(c, UNICODE_REPLACEMENT_CHAR); assertEncodingFails(c);}
 
     void assertDecoding(char c, char expected) {
         charWriter.writeTo(out, c);
@@ -86,16 +59,9 @@ public abstract class AbstractSimpleCodecTest {
     }
 
     void assertEncodingFails(char c) {
-        assertThrows(DATA_CONVERSION.class, () -> codec.writeChar(c, out));
+        assertDecoding(c, UNICODE_REPLACEMENT_CHAR);
+        assertEncoding(c, isSingleByte() ? ASCII_REPLACEMENT_CHAR : UNICODE_REPLACEMENT_CHAR);
     }
 
-    static IntStream rangeToTest(int start, int finish) {
-        final int STEP = 5;
-        int count = (finish - start) / STEP - 2;
-        assert count > 0;
-        IntStream beginning = IntStream.range(start, start+STEP);
-        IntStream middle = iterate(start, n -> n + STEP).limit(count);
-        IntStream end = IntStream.range(finish-STEP, finish);
-        return Stream.of(beginning, middle, end).flatMapToInt(s -> s);
-    }
+    abstract boolean isSingleByte();
 }
