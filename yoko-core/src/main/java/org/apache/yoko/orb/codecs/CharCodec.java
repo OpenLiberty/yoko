@@ -79,10 +79,13 @@ import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
  * </p>
  */
 interface CharCodec {
+    @FunctionalInterface interface CharReader { char readChar(ReadBuffer in); }
 
     /**
-     * @param name
-     * @return
+     * Get a char codec instance for the named Java charset.
+     *
+     * @param name the name of the Java charset for which a codec is required
+     * @return an instance of the appropriate char codec
      * @throws IllegalCharsetNameException if the provided name is not a valid charset name
      * @throws IllegalArgumentException if the provided name is null
      * @throws UnsupportedCharsetException if the named charset is not supported
@@ -114,12 +117,28 @@ interface CharCodec {
      *
      * @param c the character to write out
      * @param out the buffer to which the character should be written
-     * @throws DATA_CONVERSION if the character is not supported by this encoder's encoding.
      */
-    void writeChar(char c, WriteBuffer out) throws DATA_CONVERSION;
+    void writeChar(char c, WriteBuffer out);
 
-    /** Reads in the next char */
-    char readChar(ReadBuffer in) throws DATA_CONVERSION;
+    /**
+     * For non-byte-oriented codecs, there may be a byte-order marker to be written at the start of a string or character.
+     * A caller should use this method to write subsequent chars to avoid writing extra BOMs.
+     */
+    default void writeNextChar(char c, WriteBuffer out) { writeChar(c, out); }
+
+    /** Read the next char */
+    char readChar(ReadBuffer in);
+
+    /**
+     * For non-byte-oriented codecs, there may be a byte-order marker to indicate the endianness of the encoded bytes.
+     * This BOM can only occur at the start of a string, or before an individual character.
+     * For a string, a caller should call this method to determine the ordering.
+     *
+     * On byte-oriented codecs, this method will return a byte-oriented (endian-free) reader.
+     *
+     * @return the endian-informed reader with which to read in the rest of the string.
+     */
+    default CharReader beginString(ReadBuffer in) { return this::readChar; }
 
     /**
      * Check there is no unfinished character data.

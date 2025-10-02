@@ -20,18 +20,19 @@ package org.apache.yoko.orb.codecs;
 enum Util {
     ;
     /**
-     * If any character cannot be read by a codec,
-     * the codec will return this character instead.
+     * If any character cannot be read by a codec, the codec will return this character instead.
      * Where something has gone wrong with a multi-byte encoding sequence in UTF8,
      * multiple instances of this char may be returned.
      */
     static final char UNICODE_REPLACEMENT_CHAR = '\uFFFD';
-    /**
-     * If any character cannot be written by a single-byte codec,
-     * the codec will write this byte instead.
-     */
+    /** If any character cannot be written by a byte-oriented codec, the codec will write this char instead. */
     static final char ASCII_REPLACEMENT_CHAR = '?';
+    /** Like {@link #ASCII_REPLACEMENT_CHAR}, but as a {@link Byte} */
     static final Byte ASCII_REPLACEMENT_BYTE = (byte)ASCII_REPLACEMENT_CHAR;
+
+    static final char ZERO_WIDTH_NO_BREAK_SPACE = 0xFEFF;
+    static final char BYTE_ORDER_MARKER = ZERO_WIDTH_NO_BREAK_SPACE;
+    static final char BYTE_SWAPD_MARKER = 0xFFFE;
 
     /**
      * Check whether the character is US-ASCII.
@@ -45,7 +46,7 @@ enum Util {
     /** If the character fits in 8 bits, return it, otherwise return '?' */
     static char require7bit(char c) { return c <= '\u007F' ? c : ASCII_REPLACEMENT_CHAR; }
 
-    /** Find a codec by name that encodes the unicode codepoint for a char */
+    /** Find a codec by name that encodes the unicode codepoint for a char directly */
     static CharCodec getUnicodeCodec(String name) {
         switch (name.toUpperCase()) {
         case "UTF-8": return new Utf8Codec();

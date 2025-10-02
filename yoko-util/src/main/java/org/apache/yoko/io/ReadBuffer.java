@@ -59,7 +59,7 @@ public final class ReadBuffer extends Buffer<ReadBuffer> {
         return (char) ((core.data[position++] << 8) | (core.data[position++] & 0xff));
     }
 
-    private char readChar_LE() {
+    public char readChar_LE() {
         return (char) ((core.data[position++] & 0xff) | (core.data[position++] << 8));
     }
 

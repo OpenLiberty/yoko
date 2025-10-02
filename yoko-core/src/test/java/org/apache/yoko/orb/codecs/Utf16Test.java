@@ -22,39 +22,47 @@ import org.apache.yoko.io.WriteBuffer;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.stream.Stream;
+
 class Utf16Test extends AbstractSimpleCodecTest implements TestData {
     Utf16Test() {
         super("UTF-16", WriteBuffer::writeChar, ReadBuffer::readChar);
     }
     boolean isSingleByte() { return false; }
 
+    static Stream<Object[]> bmpCharsExcludingBom() {
+        return TestData.bmpChars()
+                .filter(args -> 0xFEFF != (int) args[1]) // FEFF is used as a BOM in UTF-16
+                .filter(args -> 0xFFFE != (int) args[1]); // FFFE is the BOM with bytes swapped
+    }
+
     @ParameterizedTest(name = "Decode {0} {2}")
     @MethodSource("asciiChars")
-    public void testDecodeAsciiAsUtf16(String hex, int codepoint, char c) {
+    public void testAscii(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
     @ParameterizedTest(name = "Decode {0} {2}")
     @MethodSource("isoLatinChars")
-    void testDecodeIsoLatin1AsUtf16(String hex, int codepoint, char c) {
+    void testIsoLatin1(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
     @ParameterizedTest(name = "Decode {0} {2}")
-    @MethodSource("bmpChars")
-    void testDecodeBmpAsUtf16(String hex, int codepoint, char c) {
+    @MethodSource("bmpCharsExcludingBom")
+    void testBmp(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
     @ParameterizedTest(name = "Decode {0} {2}")
     @MethodSource("highSurrogates")
-    void testDecodeHighSurrogatesAsUtf16(String hex, int codepoint, char c) {
+    void testHighSurrogates(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
     @ParameterizedTest(name = "Decode {0} {2}")
     @MethodSource("lowSurrogates")
-    void testDecodeLowSurrogatesAsUtf16(String hex, int codepoint, char c) {
+    void testLowSurrogates(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 }
