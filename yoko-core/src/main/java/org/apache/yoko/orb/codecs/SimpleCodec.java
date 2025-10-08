@@ -40,6 +40,8 @@ enum SimpleCodec implements CharCodec {
     UTF_16 {
         public char readChar(ReadBuffer in) {
             char ch = in.readChar();
+            // if this is the only available character, just return it
+            if (0 == in.available()) return ch;
             switch (ch) {
                 case BYTE_ORDER_MARKER: return in.readChar();
                 case BYTE_SWAPD_MARKER: return in.readChar_LE();
@@ -63,25 +65,5 @@ enum SimpleCodec implements CharCodec {
         }
 
         public void writeNextChar(char c, WriteBuffer out) { out.writeChar(c); }
-    },
-    UTF_16_LE {
-        public char readChar(ReadBuffer in) {
-            char ch = in.readChar_LE();
-            switch (ch) {
-                case BYTE_ORDER_MARKER: return in.readChar_LE();
-                case BYTE_SWAPD_MARKER: return in.readChar();
-                default: return ch;
-            }
-        }
-
-        public CharReader beginString(ReadBuffer in) {
-            switch (in.readChar_LE()) {
-                case BYTE_ORDER_MARKER: return ReadBuffer::readChar_LE;
-                case BYTE_SWAPD_MARKER: return ReadBuffer::readChar;
-                default: in.skipBytes(-2); return ReadBuffer::readChar_LE;
-            }
-        }
-
-        public void writeChar(char c, WriteBuffer out) { throw new UnsupportedOperationException("Writing little-endian UTF-16 is not supported"); }
     }
 }
