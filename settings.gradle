@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,14 @@
  */
 
 rootProject.name = 'yoko'
+
 include ':yoko-osgi'
 include ':yoko-spec-corba'
 include ':yoko-rmi-spec'
 include ':yoko-util'
 include ':yoko-rmi-impl'
 include ':yoko-core'
-include ':yoko-core:versioned-classes'
+
 include ':test-osgi'
 include ':yoko-verify'
 include ':yoko-verify:artifact'

@@ -16,7 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 import groovy.time.TimeCategory
 import groovy.time.TimeDuration
 
@@ -74,11 +73,17 @@ task getVersion {
   printf "Yoko version = %s%n", yokoVersion
 }
 
+// These are the production projects.
+// Note the ringer: jdk-supplement is an unshipped prereq to allow compiling for Java 8 and running with Java 11.
+def productionProjectPaths = [':jdk-supplement', ':yoko-osgi', ':yoko-spec-corba', ':yoko-rmi-spec', ':yoko-util', ':yoko-rmi-impl', ':yoko-core']
+
 /* Standard configuration for each subproject */
 subprojects { sp ->
   apply plugin: 'java-library'
-  sourceCompatibility = 1.8
-  targetCompatibility = 1.8
+
+  // Production projects MUST compile for Java 8
+  // Test projects are now Java 11 and up only.
+  sourceCompatibility = targetCompatibility = productionProjectPaths.contains(sp.path) ? 1.8 : 11
 
   repositories {
     mavenLocal()

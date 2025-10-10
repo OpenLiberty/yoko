@@ -20,23 +20,50 @@ package org.apache.yoko.orb.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
-import org.omg.CORBA.DATA_CONVERSION;
 
+import static org.apache.yoko.orb.codecs.Util.BYTE_ORDER_MARKER;
+import static org.apache.yoko.orb.codecs.Util.BYTE_SWAPD_MARKER;
+import static org.apache.yoko.orb.codecs.Util.ZERO_WIDTH_NO_BREAK_SPACE;
 import static org.apache.yoko.orb.codecs.Util.expect7bit;
 import static org.apache.yoko.orb.codecs.Util.require7bit;
 import static org.apache.yoko.orb.codecs.Util.require8bit;
 
 enum SimpleCodec implements CharCodec {
-    UTF_16 {
-        public char readChar(ReadBuffer in) { return in.readChar(); }
-        public void writeChar(char c, WriteBuffer out) { out.writeChar(c); }
-    },
     US_ASCII {
-        public char readChar(ReadBuffer in) throws DATA_CONVERSION { return expect7bit(in.readByteAsChar()); }
-        public void writeChar(char c, WriteBuffer out) throws DATA_CONVERSION { out.writeByte(require7bit(c)); }
+        public char readChar(ReadBuffer in) { return expect7bit(in.readByteAsChar()); }
+        public void writeChar(char c, WriteBuffer out) { out.writeByte(require7bit(c)); }
     },
     ISO_LATIN_1 {
         public char readChar(ReadBuffer in) { return in.readByteAsChar(); } // no checking - a single-byte character can't be > 0xFF
-        public void writeChar(char c, WriteBuffer out) throws DATA_CONVERSION { out.writeByte(require8bit(c)); }
-    };
+        public void writeChar(char c, WriteBuffer out) { out.writeByte(require8bit(c)); }
+    },
+    UTF_16 {
+        public char readChar(ReadBuffer in) {
+            char ch = in.readChar();
+            // if this is the only available character, just return it
+            if (0 == in.available()) return ch;
+            switch (ch) {
+                case BYTE_ORDER_MARKER: return in.readChar();
+                case BYTE_SWAPD_MARKER: return in.readChar_LE();
+                default: return ch;
+            }
+        }
+
+        public CharReader beginString(ReadBuffer in) {
+            switch (in.readChar()) {
+                case BYTE_ORDER_MARKER: return ReadBuffer::readChar;
+                case BYTE_SWAPD_MARKER: return ReadBuffer::readChar_LE;
+                default: in.skipBytes(-2); return ReadBuffer::readChar;
+            }
+        }
+
+        public void writeChar(char c, WriteBuffer out) {
+            // if the first (or single) character is a ZERO WIDTH NO-BREAK SPACE, write a BOM first
+            // (this is because they are the same bytes and the first pair will be read as a BOM)
+            if (ZERO_WIDTH_NO_BREAK_SPACE == c) out.writeChar(BYTE_ORDER_MARKER);
+            out.writeChar(c);
+        }
+
+        public void writeNextChar(char c, WriteBuffer out) { out.writeChar(c); }
+    }
 }

@@ -24,20 +24,28 @@ import org.apache.yoko.io.WriteBuffer;
 import static org.apache.yoko.orb.codecs.Util.ASCII_REPLACEMENT_CHAR;
 import static org.apache.yoko.orb.codecs.Util.UNICODE_REPLACEMENT_CHAR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class AbstractSimpleCodecTest {
-    @FunctionalInterface  interface CharWriter{ void writeTo(WriteBuffer w, char c); }
-    @FunctionalInterface  interface CharReader{ char readFrom(ReadBuffer w); }
-    final WriteBuffer out = Buffer.createWriteBuffer(1024);
-    final ReadBuffer in = out.readFromStart();
+    @FunctionalInterface  interface ExpectedCharWriter { void writeTo(WriteBuffer w, char c); }
+    @FunctionalInterface  interface ExpectedCharReader { char readFrom(ReadBuffer w); }
+    private final WriteBuffer out = Buffer.createWriteBuffer(4);
     final SimpleCodec codec;
-    final CharWriter charWriter;
-    final CharReader charReader;
+    final ExpectedCharWriter expectedCharWriter;
+    final ExpectedCharReader expectedCharReader;
 
-    AbstractSimpleCodecTest(String name, CharWriter charWriter, CharReader charReader) {
+    AbstractSimpleCodecTest(String name, ExpectedCharWriter expectedCharWriter, ExpectedCharReader expectedCharReader) {
         this.codec = (SimpleCodec) CharCodec.forName(name);
-        this.charWriter = charWriter;
-        this.charReader = charReader;
+        this.expectedCharWriter = expectedCharWriter;
+        this.expectedCharReader = expectedCharReader;
+    }
+
+    void writeExpectedChar(char expectedChar) {
+        expectedCharWriter.writeTo(out, expectedChar);
+    }
+
+    ReadBuffer getReadBuffer() {
+        return out.trim().readFromStart();
     }
 
     void assertValidChar(char c) { assertDecoding(c, c); assertEncoding(c, c); }
@@ -45,23 +53,32 @@ public abstract class AbstractSimpleCodecTest {
     void assertInvalidChar(char c) { assertDecoding(c, UNICODE_REPLACEMENT_CHAR); assertEncodingFails(c);}
 
     void assertDecoding(char c, char expected) {
-        charWriter.writeTo(out, c);
+        writeExpectedChar(c);
+        ReadBuffer in = getReadBuffer();
         char actual = codec.readChar(in);
         assertEquals(expected, actual);
         // there is never any state to clean up so this should always work
         codec.assertNoBufferedCharData();
+        assertTrue(in.empty());
     }
 
     void assertEncoding(char c, char expected) {
         codec.writeChar(c, out);
-        char actual = charReader.readFrom(in);
-        assertEquals(expected, actual);
+        ReadBuffer in = getReadBuffer();
+        assertEquals(expected, expectedCharReader.readFrom(in));
+        codec.assertNoBufferedCharData();
+        assertTrue(in.empty());
+        // try it using writeNextChar() too
+        out.setPosition(0);
+        codec.writeNextChar(c, out);
+        in = getReadBuffer();
+        assertEquals(expected, expectedCharReader.readFrom(in));
     }
 
     void assertEncodingFails(char c) {
         assertDecoding(c, UNICODE_REPLACEMENT_CHAR);
-        assertEncoding(c, isSingleByte() ? ASCII_REPLACEMENT_CHAR : UNICODE_REPLACEMENT_CHAR);
+        assertEncoding(c, isDoubleByte() ? UNICODE_REPLACEMENT_CHAR : ASCII_REPLACEMENT_CHAR);
     }
 
-    abstract boolean isSingleByte();
+    abstract boolean isDoubleByte();
 }
