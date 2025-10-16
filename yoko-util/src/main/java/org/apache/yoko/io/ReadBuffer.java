@@ -28,8 +28,6 @@ import static org.apache.yoko.util.Hex.formatHexPara;
 public final class ReadBuffer extends Buffer<ReadBuffer> {
     ReadBuffer(Core core) { super(core); }
 
-    public boolean empty() { return length() == position; }
-
     public byte peekByte() { return checkedBytes(1)[position]; }
 
     public byte readByte() { return checkedBytes(1)[position++]; }

@@ -37,8 +37,6 @@ public final class WriteBuffer extends Buffer<WriteBuffer> {
 
     WriteBuffer(Core core) { super(core); }
 
-    public boolean full() { return length() == position; }
-
     public boolean readFrom(InputStream in) throws IOException {
         final byte[] data = checkedBytes(0);
         try {

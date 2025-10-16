@@ -86,7 +86,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         ReadBuffer bomA = getReadBuffer();
         assertEquals('A', codec.readChar(bomA));
         codec.assertNoBufferedCharData();
-        assertTrue(bomA.empty());
+        assertTrue(bomA.isComplete());
     }
 
     @Test
@@ -97,7 +97,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         ReadBuffer bomA = getReadBuffer();
         assertEquals('A', codec.readChar(bomA));
         codec.assertNoBufferedCharData();
-        assertTrue(bomA.empty());
+        assertTrue(bomA.isComplete());
     }
 
     @Test
@@ -107,7 +107,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         // BOM should be discarded, next two bytes should be read as char
         ReadBuffer bombom = getReadBuffer();
         assertEquals(BOM, codec.readChar(bombom));
-        assertTrue(bombom.empty());
+        assertTrue(bombom.isComplete());
     }
 
     @Test
@@ -117,7 +117,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         ReadBuffer bombom = getReadBuffer();
         // BOM should be discarded, next two bytes should be read as byte-swapped char
         assertEquals(BOM, codec.readChar(bombom));
-        assertTrue(bombom.empty());
+        assertTrue(bombom.isComplete());
     }
 
     @Test
@@ -128,7 +128,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         // it genuinely is a single ZERO WIDTH NO BREAK SPACE character (also 0xFEFF)
         ReadBuffer singleBom = getReadBuffer();
         assertEquals(BOM, codec.readChar(singleBom));
-        assertTrue(singleBom.empty());
+        assertTrue(singleBom.isComplete());
     }
 
     @Test
@@ -139,7 +139,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         // it genuinely is a single reserved unicode character (also 0xFFFE)
         ReadBuffer singleBom = getReadBuffer();
         assertEquals(ANTI_BOM, codec.readChar(singleBom));
-        assertTrue(singleBom.empty());
+        assertTrue(singleBom.isComplete());
     }
 
     @ParameterizedTest(name = "testStringOfChars[{index}]({arguments})")
@@ -167,7 +167,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         ReadBuffer in = swap ? getByteSwappedReadBuffer() : getReadBuffer();
         CharReader rdr = codec.beginString(in);
         StringBuilder sb = new StringBuilder();
-        while (!in.empty()) {
+        while (!in.isComplete()) {
             sb.append(rdr.readChar(in));
         }
         assertEquals(expected, sb.toString());

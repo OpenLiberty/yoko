@@ -59,7 +59,7 @@ public abstract class AbstractSimpleCodecTest {
         assertEquals(expected, actual);
         // there is never any state to clean up so this should always work
         codec.assertNoBufferedCharData();
-        assertTrue(in.empty());
+        assertTrue(in.isComplete());
     }
 
     void assertEncoding(char c, char expected) {
@@ -67,7 +67,7 @@ public abstract class AbstractSimpleCodecTest {
         ReadBuffer in = getReadBuffer();
         assertEquals(expected, expectedCharReader.readFrom(in));
         codec.assertNoBufferedCharData();
-        assertTrue(in.empty());
+        assertTrue(in.isComplete());
         // try it using writeNextChar() too
         newWriteBuffer();
         codec.writeNextChar(c, out);
