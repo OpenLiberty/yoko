@@ -21,10 +21,12 @@ import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.io.EOFException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -32,6 +34,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.IntStream.range;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
 
 @TestInstance(PER_CLASS)
@@ -70,6 +73,12 @@ abstract class AbstractLatinCodecTest {
         writeBuffer.writeByte(b);
         char actual = codec.readChar(readBuffer);
         assertEquals(expected, actual);
+    }
+
+    @Test
+    void testEndOfInput() {
+        ReadBuffer in = writeBuffer.trim().readFromStart();
+        assertThrows(EOFException.class, () -> codec.readChar(in));
     }
 }
 

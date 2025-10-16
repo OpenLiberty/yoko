@@ -30,78 +30,107 @@ public final class ReadBuffer extends Buffer<ReadBuffer> {
 
     public boolean empty() { return length() == position; }
 
-    public byte peekByte() { return core.data[position];    }
+    public byte peekByte() { return checkedBytes(1)[position]; }
 
-    public byte readByte() { return core.data[position++]; }
+    public byte readByte() { return checkedBytes(1)[position++]; }
 
-    public char readByteAsChar() { return (char) (core.data[position++]&0xff); }
+    public char readByteAsChar() { return (char) (readByte()&0xff); }
 
     public byte[] readBytes(byte[] buffer) { return readBytes(buffer, 0, buffer.length); }
 
     public byte[] readBytes(byte[] buffer, int offset, int length) {
-        if (available() < length) throw new IndexOutOfBoundsException();
-        System.arraycopy(core.data, position, buffer, offset, length);
+        System.arraycopy(checkedBytes(length), position, buffer, offset, length);
         position += length;
         return buffer;
     }
 
     /** Read the available bytes into the provided write buffer. */
-    public WriteBuffer readBytes(WriteBuffer buffer) {
-        return buffer.writeBytes(core.data, position, available());
-    }
+    public WriteBuffer readBytes(WriteBuffer buffer) { return buffer.writeBytes(checkedBytes(0), position, available()); }
 
-    public byte[] copyRemainingBytes() {
-        return copyOfRange(core.data, position, core.length);
-    }
+    public byte[] copyRemainingBytes() { return copyOfRange(checkedBytes(0), position, length()); }
 
     public char peekChar() {
-        return (char)((core.data[position] << 8) | (core.data[position + 1] & 0xff));
+        final byte[] data = checkedBytes(2);
+        return (char)((data[position] << 8) | (data[position + 1] & 0xff));
     }
 
     public char readChar() {
-        return (char) ((core.data[position++] << 8) | (core.data[position++] & 0xff));
+        final byte[] data = checkedBytes(2);
+        return (char) ((data[position++] << 8) | (data[position++] & 0xff));
     }
 
     public char readChar_LE() {
-        return (char) ((core.data[position++] & 0xff) | (core.data[position++] << 8));
+        final byte[] data = checkedBytes(2);
+        return (char) ((data[position++] & 0xff) | (data[position++] << 8));
     }
-
-    public char readChar(boolean littleEndian) { return littleEndian ? readChar_LE() : readChar(); }
 
     public short readShort() {
-        return (short) ((core.data[position++] << 8) | (core.data[position++] & 0xff));
+        final byte[] data = checkedBytes(2);
+        return (short) ((data[position++] << 8) | (data[position++] & 0xff));
     }
 
-    private short readShort_LE() {
-        return (short) ((core.data[position++] & 0xff) | (core.data[position++] << 8));
+    public short readShort_LE() {
+        final byte[] data = checkedBytes(2);
+        return (short) ((data[position++] & 0xff) | (data[position++] << 8));
     }
-
-    public short readShort(boolean littleEndian) { return littleEndian ? readShort_LE() : readShort(); }
 
     public int readInt() {
-        return (core.data[position++] << 24)
-                | ((core.data[position++] << 16) & 0xff0000)
-                | ((core.data[position++] << 8) & 0xff00)
-                | (core.data[position++] & 0xff);
+        final byte[] data = checkedBytes(4);
+        return  0
+                | (0xFF & data[position++]) << 030
+                | (0xFF & data[position++]) << 020
+                | (0xFF & data[position++]) << 010
+                | (0xFF & data[position++]) << 000;
     }
 
     public int readInt_LE() {
-        return (core.data[position++] & 0xff)
-                | ((core.data[position++] << 8) & 0xff00)
-                | ((core.data[position++] << 16) & 0xff0000)
-                | (core.data[position++] << 24);
+        final byte[] data = checkedBytes(4);
+        return  0
+                | (0xFF & data[position++]) << 000
+                | (0xFF & data[position++]) << 010
+                | (0xFF & data[position++]) << 020
+                | (0xFF & data[position++]) << 030;
     }
 
-    public int readInt(boolean littleEndian) { return littleEndian ? readInt_LE() : readInt(); }
+    public long readLong() {
+        final byte[] data = checkedBytes(8);
+        return  0
+                | (0xFFL & data[position++]) << 070
+                | (0xFFL & data[position++]) << 060
+                | (0xFFL & data[position++]) << 050
+                | (0xFFL & data[position++]) << 040
+                | (0xFFL & data[position++]) << 030
+                | (0xFFL & data[position++]) << 020
+                | (0xFFL & data[position++]) << 010
+                | (0xFFL & data[position++]) << 000;
+    }
 
-    public String remainingBytesToAscii() {
-        return HexConverter.octetsToAscii(core.data, available());
+    public long readLong_LE() {
+        final byte[] data = checkedBytes(8);
+        return  0
+                | (0xFFL & data[position++]) << 000
+                | (0xFFL & data[position++]) << 010
+                | (0xFFL & data[position++]) << 020
+                | (0xFFL & data[position++]) << 030
+                | (0xFFL & data[position++]) << 040
+                | (0xFFL & data[position++]) << 050
+                | (0xFFL & data[position++]) << 060
+                | (0xFFL & data[position++]) << 070;
+    }
+
+    public float readFloat() { return Float.intBitsToFloat(readInt()); }
+    public float readFloat_LE() { return Float.intBitsToFloat(readInt_LE()); }
+    public double readDouble() { return Double.longBitsToDouble(readLong()); }
+    public double readDouble_LE() { return Double.longBitsToDouble(readLong_LE()); }
+
+    public String toAscii() {
+        return HexConverter.octetsToAscii(checkedBytes(0), available());
     }
 
     public String dumpRemainingData() {
         StringBuilder dump = new StringBuilder();
-        dump.append(String.format("Read pos=0x%x Core len=0x%x Remaining core data=%n%n", position, core.length));
-        return formatHexPara(core.data, position, available(), dump).toString();
+        dump.append(String.format("Read pos=0x%x Core len=0x%x Remaining core data=%n%n", position, length()));
+        return formatHexPara(checkedBytes(0), position, available(), dump).toString();
     }
 
     public String dumpAllDataWithPosition() {
@@ -109,21 +138,23 @@ public final class ReadBuffer extends Buffer<ReadBuffer> {
     }
 
     public StringBuilder dumpAllDataWithPosition(StringBuilder sb, String label) {
-        formatHexPara(core.data, 0, position, sb);
+        final byte[] data = checkedBytes(0);
+        formatHexPara(data, 0, position, sb);
         sb.append(String.format("%n       >>>>>>>> %4s: 0x%08X  <<<<<<<<%n", label, position));
-        formatHexPara(core.data, position, available(), sb);
+        formatHexPara(data, position, available(), sb);
         return sb;
     }
 
     public void dumpSomeData(StringBuilder sb, String indent, int len) {
-        formatHexPara(indent, core.data, position, len, sb);
+        formatHexPara(indent, checkedBytes(0), position, len, sb);
     }
 
     public ReadBuffer writeTo(OutputStream out) throws IOException {
+        final byte[] data = checkedBytes(0);
         try {
-            out.write(core.data, position, available());
+            out.write(data, position, available());
             out.flush();
-            position = core.length;
+            position = length();
             return this;
         } catch (InterruptedIOException ex) {
             position += ex.bytesTransferred;
@@ -144,10 +175,11 @@ public final class ReadBuffer extends Buffer<ReadBuffer> {
     public ReadBuffer skipBytes(int n) {
         int newPos = position + n;
         if (newPos < 0) throw new IndexOutOfBoundsException(); // n can be negative!
-        if (newPos > core.length) throw new IndexOutOfBoundsException();
+        if (newPos > length()) throw new IndexOutOfBoundsException();
         position = newPos;
         return this;
     }
 
+    // TODO: should this (like the parent method) reset the position to 0?
     public ReadBuffer newReadBuffer() { return clone(); }
 }

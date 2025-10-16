@@ -20,7 +20,6 @@ package org.apache.yoko.orb.codecs;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -107,6 +106,22 @@ class Utf8Test implements TestData {
         out.writeByte(b);
         ReadBuffer in = out.trim().readFromStart();
         assertEquals('\uFFFD', codec.readChar(in));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {
+            0b1100_0000__0100_0001, // truncated two-byte encoding followed by valid char
+    })
+    void testTruncatedEncodingsTwoByte(int bytes) {
+        out.writeByte(0xFF & (bytes>>8)); // write byte 1
+        out.writeByte(0xFF & (bytes>>0)); // write byte 2
+        ReadBuffer in = out.trim().readFromStart();
+        assertEquals('\uFFFD', codec.readChar(in));
+        assertEquals('\0', codec.readChar(in));
+        assertEquals('\0', codec.readChar(in));
+        assertEquals('\0', codec.readChar(in));
+        assertEquals('\0', codec.readChar(in));
+        assertEquals('\0', codec.readChar(in));
     }
 
     private void checkDecoding(int codepoint, String expected) {

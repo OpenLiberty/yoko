@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,12 +37,15 @@ public final class WriteBuffer extends Buffer<WriteBuffer> {
 
     WriteBuffer(Core core) { super(core); }
 
+    public boolean full() { return length() == position; }
+
     public boolean readFrom(InputStream in) throws IOException {
+        final byte[] data = checkedBytes(0);
         try {
-            int result = in.read(core.data, position, available());
+            int result = in.read(data, position, available());
             if (result <= 0) return false;
             position += result;
-            assert position <= core.length;
+            assert position <= length();
             return true;
         } catch (InterruptedIOException ex) {
             position += ex.bytesTransferred;
@@ -51,10 +54,8 @@ public final class WriteBuffer extends Buffer<WriteBuffer> {
     }
 
     public WriteBuffer readFrom(org.omg.CORBA.portable.InputStream source) {
-        final int length = available();
-        source.read_octet_array(core.data, position, length);
-        position += length;
-        assert position <= core.length;
+        source.read_octet_array(checkedBytes(0), position, available());
+        position = length();
         return this;
     }
 
@@ -63,57 +64,54 @@ public final class WriteBuffer extends Buffer<WriteBuffer> {
     }
 
     public WriteBuffer writeBytes(byte[] bytes, int offset, int length) {
-        System.arraycopy(bytes, offset, core.data, position, length);
+        System.arraycopy(bytes, offset, checkedBytes(length), position, length);
         position += length;
-        assert position <= core.length;
         return this;
     }
 
     public WriteBuffer writeByte(int i) {
-        core.data[position++] = (byte)i;
-        assert position <= core.length;
+        checkedBytes(1)[position++] = (byte)i;
         return this;
     }
 
     public WriteBuffer writeByte(byte b) {
-        core.data[position++] = b;
-        assert position <= core.length;
+        checkedBytes(1)[position++] = b;
         return this;
     }
 
     public WriteBuffer writeChar(char value) {
-        core.data[position++] = (byte) (value >> 010);
-        core.data[position++] = (byte) (value >> 000);
-        assert position <= core.length;
+        byte[] data = checkedBytes(2);
+        data[position++] = (byte) (value >> 010);
+        data[position++] = (byte) (value >> 000);
         return this;
     }
 
     public WriteBuffer writeShort(short value) {
-        core.data[position++] = (byte) (value >> 010);
-        core.data[position++] = (byte) (value >> 000);
-        assert position <= core.length;
+        byte[] data = checkedBytes(2);
+        data[position++] = (byte) (value >> 010);
+        data[position++] = (byte) (value >> 000);
         return this;
     }
 
     public WriteBuffer writeInt(int value) {
-        core.data[position++] = (byte) (value >> 030);
-        core.data[position++] = (byte) (value >> 020);
-        core.data[position++] = (byte) (value >> 010);
-        core.data[position++] = (byte) (value >> 000);
-        assert position <= core.length;
+        byte[] data = checkedBytes(4);
+        data[position++] = (byte) (value >> 030);
+        data[position++] = (byte) (value >> 020);
+        data[position++] = (byte) (value >> 010);
+        data[position++] = (byte) (value >> 000);
         return this;
     }
 
     public WriteBuffer writeLong(long value) {
-        core.data[position++] = (byte) (value >> 070);
-        core.data[position++] = (byte) (value >> 060);
-        core.data[position++] = (byte) (value >> 050);
-        core.data[position++] = (byte) (value >> 040);
-        core.data[position++] = (byte) (value >> 030);
-        core.data[position++] = (byte) (value >> 020);
-        core.data[position++] = (byte) (value >> 010);
-        core.data[position++] = (byte) (value >> 000);
-        assert position <= core.length;
+        byte[] data = checkedBytes(8);
+        data[position++] = (byte) (value >> 070);
+        data[position++] = (byte) (value >> 060);
+        data[position++] = (byte) (value >> 050);
+        data[position++] = (byte) (value >> 040);
+        data[position++] = (byte) (value >> 030);
+        data[position++] = (byte) (value >> 020);
+        data[position++] = (byte) (value >> 010);
+        data[position++] = (byte) (value >> 000);
         return this;
     }
 
@@ -125,14 +123,16 @@ public final class WriteBuffer extends Buffer<WriteBuffer> {
     public SimplyCloseable recordLength(final Logger logger) {
         final int lengthPosition = position;
         logger.finest("Writing a gap value for a length at offset " + lengthPosition);
+
         pad(4);
         return new SimplyCloseable() {
             public void close() {
                 final int length = position - (lengthPosition + 4);
-                core.data[lengthPosition + 0] = (byte) (length >> 030);
-                core.data[lengthPosition + 1] = (byte) (length >> 020);
-                core.data[lengthPosition + 2] = (byte) (length >> 010);
-                core.data[lengthPosition + 3] = (byte) (length >> 000);
+                byte[] data = uncheckedBytes();
+                data[lengthPosition + 0] = (byte) (length >> 030);
+                data[lengthPosition + 1] = (byte) (length >> 020);
+                data[lengthPosition + 2] = (byte) (length >> 010);
+                data[lengthPosition + 3] = (byte) (length >> 000);
                 logger.finest("Wrote a length value of " + length + " at offset " + lengthPosition);
             }
         };
@@ -180,19 +180,12 @@ public final class WriteBuffer extends Buffer<WriteBuffer> {
      */
     public boolean ensureAvailable(int size) {
         final int shortfall = size - available();
-        return shortfall > 0 && core.growBy(shortfall);
+        return shortfall > 0 && growBy(shortfall);
     }
 
-    public WriteBuffer padAlign(AlignmentBoundary boundary) { return pad(boundary.gap(position)); }
+    public WriteBuffer padAll() { return pad(length()); }
 
-    public WriteBuffer padAll() { return pad(core.length); }
+    public WriteBuffer trim() { return super.trim();  }
 
-    public WriteBuffer trim() {
-        core.length = position;
-        return this;
-    }
-
-    public ReadBuffer readFromStart() { return new ReadBuffer(core); }
-
-    public ReadBuffer newReadBuffer() { return readFromStart(); }
+    public ReadBuffer readFromStart() { return newReadBuffer(); }
 }

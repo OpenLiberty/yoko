@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,6 +59,7 @@ import static java.security.AccessController.doPrivileged;
 import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.FOUR_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.TWO_BYTE_BOUNDARY;
+import static org.apache.yoko.logging.VerboseLogging.DATA_IN_LOG;
 import static org.apache.yoko.orb.OB.TypeCodeFactory.createAbstractInterfaceTC;
 import static org.apache.yoko.orb.OB.TypeCodeFactory.createAliasTC;
 import static org.apache.yoko.orb.OB.TypeCodeFactory.createEnumTC;
@@ -80,8 +81,10 @@ import static org.apache.yoko.util.MinorCodes.MinorReadBooleanOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadCharArrayOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadCharOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadDoubleArrayOverflow;
+import static org.apache.yoko.util.MinorCodes.MinorReadDoubleOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadFixedInvalid;
 import static org.apache.yoko.util.MinorCodes.MinorReadFloatArrayOverflow;
+import static org.apache.yoko.util.MinorCodes.MinorReadFloatOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadInvTypeCodeIndirection;
 import static org.apache.yoko.util.MinorCodes.MinorReadLongArrayOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadLongLongArrayOverflow;
@@ -96,6 +99,11 @@ import static org.apache.yoko.util.MinorCodes.MinorReadStringNoTerminator;
 import static org.apache.yoko.util.MinorCodes.MinorReadStringNullChar;
 import static org.apache.yoko.util.MinorCodes.MinorReadStringOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadStringZeroLength;
+import static org.apache.yoko.util.MinorCodes.MinorReadULongArrayOverflow;
+import static org.apache.yoko.util.MinorCodes.MinorReadULongLongArrayOverflow;
+import static org.apache.yoko.util.MinorCodes.MinorReadULongLongOverflow;
+import static org.apache.yoko.util.MinorCodes.MinorReadULongOverflow;
+import static org.apache.yoko.util.MinorCodes.MinorReadUShortArrayOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadWCharOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadWStringNoTerminator;
 import static org.apache.yoko.util.MinorCodes.MinorReadWStringOverflow;
@@ -142,7 +150,7 @@ import static org.omg.CORBA.TCKind._tk_wstring;
 import static org.omg.CORBA.TCKind.tk_union;
 
 final public class InputStream extends InputStreamWithOffsets {
-    private static final Logger logger = Logger.getLogger(InputStream.class.getName());
+    private static final Logger logger = DATA_IN_LOG;
 
     private ORBInstance orbInstance_;
 
@@ -675,25 +683,24 @@ final public class InputStream extends InputStreamWithOffsets {
 
     public int read() {
         checkChunk();
-        if (readBuffer.available() < 1) return -1;
-
-        return (0xff & readBuffer.readByte());
+        return readBuffer.available() < 1 ? -1 : readBuffer.readByteAsChar();
     }
 
     public org.omg.CORBA.ORB orb() {
-        if (orbInstance_ != null)
-            return orbInstance_.getORB();
-        return null;
+        return orbInstance_ == null ? null : orbInstance_.getORB();
     }
 
     public boolean read_boolean() {
         checkChunk();
 
-        if (readBuffer.available() < 1) throw newMarshalError(MinorReadBooleanOverflow);
-
-        if (logger.isLoggable(Level.FINEST))
-            logger.finest(String.format("Boolean value is %b from position 0x%x", toBoolean(readBuffer.peekByte()), readBuffer.getPosition()));
-        return toBoolean(readBuffer.readByte());
+        try {
+            int pos = readBuffer.getPosition();
+            byte b = readBuffer.readByte();
+            if (logger.isLoggable(Level.FINEST)) logger.finest(String.format("Boolean value is 0x%08x from position 0x%x", b, pos));
+            return toBoolean(b);
+        } catch (IndexOutOfBoundsException e) {
+            throw newMarshalError(MinorReadBooleanOverflow);
+        }
     }
 
     private static boolean toBoolean(byte b) {
@@ -712,12 +719,9 @@ final public class InputStream extends InputStreamWithOffsets {
             else if (charReaderRequired_)
                 return converter.read_char(readBuffer);
             else
-                return converter.convert((char) (readBuffer.readByte() & 0xff));
+                return converter.convert(readBuffer.readByteAsChar());
         } else {
-            //
-            // Note: byte must be masked with 0xff to correct negative values
-            //
-            return (char) (readBuffer.readByte() & 0xff);
+            return readBuffer.readByteAsChar();
         }
     }
 
@@ -755,7 +759,7 @@ final public class InputStream extends InputStreamWithOffsets {
                     //
                     // get the octet indicating the wchar len
                     //
-                    wcLen = readBuffer.readByte() & 0xff;
+                    wcLen = (int)readBuffer.readByteAsChar();
 
                     break;
             }
@@ -780,11 +784,12 @@ final public class InputStream extends InputStreamWithOffsets {
 
                     readBuffer.align(TWO_BYTE_BOUNDARY);
 
-                    // check for overflow on reader
-                    if (readBuffer.available() < 2) throw new MARSHAL(MinorReadWCharOverflow, COMPLETED_NO);
-
                     // assume big-endian (both Orbacus and Orbix/E do here) and read in the wchar
-                    return readBuffer.readChar();
+                    try {
+                        return readBuffer.readChar();
+                    } catch (IndexOutOfBoundsException e) {
+                        throw new MARSHAL(MinorReadWCharOverflow, COMPLETED_NO);
+                    }
 
                 case GIOP1_1:  // TODO: understand or safely delete this case
                     // read according to the endian of the message
@@ -797,13 +802,14 @@ final public class InputStream extends InputStreamWithOffsets {
 
                 default : {
                     // read the length octet off the front
-                    final int wcLen = readBuffer.readByte() & 0xff;
-
-                    // check for an overflow
-                    if (readBuffer.available() < wcLen) throw new MARSHAL(MinorReadWCharOverflow, COMPLETED_NO);
+                    final int wcLen = (int)readBuffer.readByteAsChar();
 
                     // read the character off in proper endian format
-                    value = readBuffer.readChar(swap_);
+                    try {
+                        value = swap_ ? readBuffer.readChar_LE() : readBuffer.readChar();
+                    } catch (IndexOutOfBoundsException e) {
+                        throw new MARSHAL(MinorReadWCharOverflow, COMPLETED_NO);
+                    }
 
                     break;
                 }
@@ -821,19 +827,21 @@ final public class InputStream extends InputStreamWithOffsets {
 
     public byte read_octet() {
         checkChunk();
-        if (readBuffer.available() < 1) throw newMarshalError(MinorReadOctetOverflow);
-
-        return readBuffer.readByte();
+        try {
+            return readBuffer.readByte();
+        } catch (IndexOutOfBoundsException e) {
+            throw newMarshalError(MinorReadOctetOverflow);
+        }
     }
 
     public short read_short() {
         checkChunk();
         readBuffer.align(TWO_BYTE_BOUNDARY);
-
-        if (readBuffer.available() < 2) throw newMarshalError(MinorReadShortOverflow);
-        //noinspection IfStatementWithIdenticalBranches
-        if (swap_) return (short) ((readBuffer.readByte() & 0xff) | (readBuffer.readByte() << 8));
-        else return (short) ((readBuffer.readByte() << 8) | (readBuffer.readByte() & 0xff));
+        try {
+            return swap_ ? readBuffer.readShort_LE() : readBuffer.readShort();
+        } catch (IndexOutOfBoundsException e) {
+            throw newMarshalError(MinorReadShortOverflow);
+        }
     }
 
     public short read_ushort() {
@@ -849,45 +857,49 @@ final public class InputStream extends InputStreamWithOffsets {
     public long position() { return readBuffer.getPosition(); }
 
     public int read_ulong() {
-        return read_long();
+        try {
+            return read_long();
+        } catch (IndexOutOfBoundsException|MARSHAL e) {
+            throw newMarshalError(MinorReadULongOverflow);
+        }
     }
 
     public long read_longlong() {
         checkChunk();
         readBuffer.align(EIGHT_BYTE_BOUNDARY);
-
-        if (readBuffer.available() < 8) throw newMarshalError(MinorReadLongLongOverflow);
-
-        if (swap_)
-            return ((long) readBuffer.readByte() & 0xffL)
-                    | (((long) readBuffer.readByte() << 8) & 0xff00L)
-                    | (((long) readBuffer.readByte() << 16) & 0xff0000L)
-                    | (((long) readBuffer.readByte() << 24) & 0xff000000L)
-                    | (((long) readBuffer.readByte() << 32) & 0xff00000000L)
-                    | (((long) readBuffer.readByte() << 40) & 0xff0000000000L)
-                    | (((long) readBuffer.readByte() << 48) & 0xff000000000000L)
-                    | ((long) readBuffer.readByte() << 56);
-        else
-            return ((long) readBuffer.readByte() << 56)
-                    | (((long) readBuffer.readByte() << 48) & 0xff000000000000L)
-                    | (((long) readBuffer.readByte() << 40) & 0xff0000000000L)
-                    | (((long) readBuffer.readByte() << 32) & 0xff00000000L)
-                    | (((long) readBuffer.readByte() << 24) & 0xff000000L)
-                    | (((long) readBuffer.readByte() << 16) & 0xff0000L)
-                    | (((long) readBuffer.readByte() << 8) & 0xff00L)
-                    | ((long) readBuffer.readByte() & 0xffL);
+        try {
+            return swap_ ? readBuffer.readLong_LE() : readBuffer.readLong();
+        } catch (IndexOutOfBoundsException e) {
+            throw newMarshalError(MinorReadLongLongOverflow);
+        }
     }
 
     public long read_ulonglong() {
-        return read_longlong();
+        try {
+            return read_longlong();
+        } catch (IndexOutOfBoundsException|MARSHAL e) {
+            throw newMarshalError(MinorReadULongLongOverflow);
+        }
     }
 
     public float read_float() {
-        return Float.intBitsToFloat(read_long());
+        checkChunk();
+        readBuffer.align(FOUR_BYTE_BOUNDARY);
+        try {
+            return swap_ ? readBuffer.readFloat_LE() : readBuffer.readFloat();
+        } catch (IndexOutOfBoundsException e) {
+            throw newMarshalError(MinorReadFloatOverflow);
+        }
     }
 
     public double read_double() {
-        return Double.longBitsToDouble(read_longlong());
+        checkChunk();
+        readBuffer.align(EIGHT_BYTE_BOUNDARY);
+        try {
+            return swap_ ? readBuffer.readDouble_LE() : readBuffer.readDouble();
+        } catch (IndexOutOfBoundsException e) {
+            throw newMarshalError(MinorReadDoubleOverflow);
+        }
     }
 
     public String read_string() {
@@ -1010,25 +1022,19 @@ final public class InputStream extends InputStreamWithOffsets {
                     while (len > 0) {
                         len -= wcLen;
 
-                        //
-                        // check for an overflow condition
-                        //
-                        if (readBuffer.available() < wcLen)
-                            throw newMarshalError(MinorReadWStringOverflow);
-
-                        //
                         // read in the char using the message endian
                         // format for GIOP 1.2/1.3
                         // REVISIT: GIOP 1.4 changes these rules
-                        //
-                        char c = readBuffer.readChar(swap_);
-
+                        // TODO: UTF-16 never took the endianness from the message!
+                        char c;
+                        try {
+                            c = swap_ ? readBuffer.readChar_LE() : readBuffer.readChar();
+                        } catch (IndexOutOfBoundsException e) {
+                            throw newMarshalError(MinorReadWStringOverflow);
+                        }
                         if (wCharConversionRequired_)
                             c = converter.convert(c);
 
-                        //
-                        // append to the string buffer
-                        //
                         stringBuffer.append(c);
                     }
                 }
@@ -1045,29 +1051,19 @@ final public class InputStream extends InputStreamWithOffsets {
     public void read_boolean_array(boolean[] value, int offset, int length) {
         if (length <= 0) return;
         checkChunk();
-
-        if (readBuffer.available() < length)
-            throw newMarshalError(MinorReadBooleanArrayOverflow);
-
-        for (int i = offset; i < offset + length; i++)
-            value[i] = readBuffer.readByte() != (byte) 0;
+        if (readBuffer.available() < length) throw newMarshalError(MinorReadBooleanArrayOverflow);
+        for (int i = offset; i < offset + length; i++) value[i] = toBoolean(readBuffer.readByte());
     }
 
     public void read_char_array(char[] value, int offset, int length) {
         if (length <= 0) return;
         checkChunk();
 
-        if (readBuffer.available() < length)
-            throw newMarshalError(MinorReadCharArrayOverflow);
+        if (readBuffer.available() < length) throw newMarshalError(MinorReadCharArrayOverflow);
 
         if (!(charReaderRequired_ || charConversionRequired_)) {
-            for (int i = offset; i < offset + length; i++) {
-                //
-                // Note: byte must be masked with 0xff to correct negative
-                // values
-                //
-                value[i] = (char) (readBuffer.readByte() & 0xff);
-            }
+            for (int i = offset; i < offset + length; i++)
+                value[i] = readBuffer.readByteAsChar();
         } else {
             final CodeConverterBase converter = codeConverters_.inputCharConverter;
 
@@ -1082,11 +1078,7 @@ final public class InputStream extends InputStreamWithOffsets {
                 else if (charReaderRequired_)
                     value[i] = converter.read_char(readBuffer);
                 else {
-                    //
-                    // Note: byte must be masked with 0xff
-                    // to correct negative values
-                    //
-                    final char c = (char) (readBuffer.readByte() & 0xff);
+                    final char c = readBuffer.readByteAsChar();
                     value[i] = converter.convert(c);
                 }
             }
@@ -1117,19 +1109,18 @@ final public class InputStream extends InputStreamWithOffsets {
         checkChunk();
         readBuffer.align(TWO_BYTE_BOUNDARY);
 
-        if (readBuffer.available() < length * 2)
-            throw newMarshalError(MinorReadShortArrayOverflow);
-
-        if (swap_)
-            for (int i = offset; i < offset + length; i++)
-                value[i] = (short) (((short) readBuffer.readByte() & 0xff) | ((short) readBuffer.readByte() << 8));
-        else
-            for (int i = offset; i < offset + length; i++)
-                value[i] = (short) (((short) readBuffer.readByte() << 8) | ((short) readBuffer.readByte() & 0xff));
+        if (readBuffer.available() < length * 2) throw newMarshalError(MinorReadShortArrayOverflow);
+        IntStream.range(offset, offset + length).forEach( swap_ ?
+                i -> value[i] = readBuffer.readShort_LE() :
+                i -> value[i] = readBuffer.readShort());
     }
 
     public void read_ushort_array(short[] value, int offset, int length) {
-        read_short_array(value, offset, length);
+        try {
+            read_short_array(value, offset, length);
+        } catch (IndexOutOfBoundsException|MARSHAL e) {
+            throw newMarshalError(MinorReadUShortArrayOverflow);
+        }
     }
 
     public void read_long_array(int[] value, int offset, int length) {
@@ -1140,18 +1131,9 @@ final public class InputStream extends InputStreamWithOffsets {
         if (readBuffer.available() < length * 4)
             throw newMarshalError(MinorReadLongArrayOverflow);
 
-        if (swap_)
-            for (int i = offset; i < offset + length; i++)
-                value[i] = ((int) readBuffer.readByte() & 0xff)
-                        | (((int) readBuffer.readByte() << 8) & 0xff00)
-                        | (((int) readBuffer.readByte() << 16) & 0xff0000)
-                        | ((int) readBuffer.readByte() << 24);
-        else
-            for (int i = offset; i < offset + length; i++)
-                value[i] = ((int) readBuffer.readByte() << 24)
-                        | (((int) readBuffer.readByte() << 16) & 0xff0000)
-                        | (((int) readBuffer.readByte() << 8) & 0xff00)
-                        | ((int) readBuffer.readByte() & 0xff);
+        IntStream.range(offset, offset + length).forEach( swap_ ?
+                i -> value[i] = readBuffer.readInt_LE() :
+                i -> value[i] = readBuffer.readInt());
     }
 
     private static MARSHAL newMarshalError(int minor) {
@@ -1159,96 +1141,56 @@ final public class InputStream extends InputStreamWithOffsets {
     }
 
     public void read_ulong_array(int[] value, int offset, int length) {
-        read_long_array(value, offset, length);
+        try {
+            read_long_array(value, offset, length);
+        } catch (IndexOutOfBoundsException|MARSHAL e) {
+            throw newMarshalError(MinorReadULongArrayOverflow);
+        }
     }
 
     public void read_longlong_array(long[] value, int offset, int length) {
-        if (length <= 0)
-            return;
-
+        if (length <= 0) return;
         checkChunk();
-
         readBuffer.align(EIGHT_BYTE_BOUNDARY);
-
-        if (readBuffer.available() < length * 8)
-            throw newMarshalError(MinorReadLongLongArrayOverflow);
-
-        if (swap_)
-            for (int i = offset; i < offset + length; i++)
-                value[i] = ((long) readBuffer.readByte() & 0xffL)
-                        | (((long) readBuffer.readByte() << 8) & 0xff00L)
-                        | (((long) readBuffer.readByte() << 16) & 0xff0000L)
-                        | (((long) readBuffer.readByte() << 24) & 0xff000000L)
-                        | (((long) readBuffer.readByte() << 32) & 0xff00000000L)
-                        | (((long) readBuffer.readByte() << 40) & 0xff0000000000L)
-                        | (((long) readBuffer.readByte() << 48) & 0xff000000000000L)
-                        | ((long) readBuffer.readByte() << 56);
-        else
-            for (int i = offset; i < offset + length; i++)
-                value[i] = ((long) readBuffer.readByte() << 56)
-                        | (((long) readBuffer.readByte() << 48) & 0xff000000000000L)
-                        | (((long) readBuffer.readByte() << 40) & 0xff0000000000L)
-                        | (((long) readBuffer.readByte() << 32) & 0xff00000000L)
-                        | (((long) readBuffer.readByte() << 24) & 0xff000000L)
-                        | (((long) readBuffer.readByte() << 16) & 0xff0000L)
-                        | (((long) readBuffer.readByte() << 8) & 0xff00L)
-                        | ((long) readBuffer.readByte() & 0xffL);
+        if (readBuffer.available() < length * 8) throw newMarshalError(MinorReadLongLongArrayOverflow);
+        IntStream.range(offset, offset + length).forEach( swap_ ?
+                i -> value[i] = readBuffer.readLong_LE() :
+                i -> value[i] = readBuffer.readLong());
     }
 
     public void read_ulonglong_array(long[] value, int offset, int length) {
-        read_longlong_array(value, offset, length);
+        try {
+            read_longlong_array(value, offset, length);
+        } catch (IndexOutOfBoundsException|MARSHAL e) {
+            throw newMarshalError(MinorReadULongLongArrayOverflow);
+        }
     }
 
     public void read_float_array(float[] value, int offset, int length) {
         if (length <= 0) return;
         checkChunk();
-
         readBuffer.align(FOUR_BYTE_BOUNDARY);
-
-        if (readBuffer.available() < length * 4)
-            throw newMarshalError(MinorReadFloatArrayOverflow);
-
-        if (swap_)
-            IntStream.range(offset, offset + length).forEach(i -> value[i] = Float.intBitsToFloat(readBuffer.readInt_LE()));
-        else
-            IntStream.range(offset, offset + length).forEach(i -> value[i] = Float.intBitsToFloat(readBuffer.readInt()));
+        if (readBuffer.available() < length * 4) throw newMarshalError(MinorReadFloatArrayOverflow);
+        IntStream.range(offset, offset + length).forEach( swap_ ?
+                i -> value[i] = readBuffer.readFloat_LE() :
+                i -> value[i] = readBuffer.readFloat());
     }
 
     public void read_double_array(double[] value, int offset, int length) {
         if (length <= 0) return;
-
         checkChunk();
         readBuffer.align(EIGHT_BYTE_BOUNDARY);
-
-        if (readBuffer.available() < length * 8)
-            throw newMarshalError(MinorReadDoubleArrayOverflow);
-
-        if (swap_) {
-            for (int i = offset; i < offset + length; i++) {
-                long v = ((long) readBuffer.readByte() & 0xffL) | (((long) readBuffer.readByte() << 8) & 0xff00L) | (((long) readBuffer.readByte() << 16) & 0xff0000L) | (((long) readBuffer.readByte() << 24) & 0xff000000L) | (((long) readBuffer.readByte() << 32) & 0xff00000000L) | (((long) readBuffer.readByte() << 40) & 0xff0000000000L) | (((long) readBuffer.readByte() << 48) & 0xff000000000000L) | ((long) readBuffer.readByte() << 56);
-
-                value[i] = Double.longBitsToDouble(v);
-            }
-        } else {
-            for (int i = offset; i < offset + length; i++) {
-                long v = ((long) readBuffer.readByte() << 56) | (((long) readBuffer.readByte() << 48) & 0xff000000000000L) | (((long) readBuffer.readByte() << 40) & 0xff0000000000L) | (((long) readBuffer.readByte() << 32) & 0xff00000000L) | (((long) readBuffer.readByte() << 24) & 0xff000000L) | (((long) readBuffer.readByte() << 16) & 0xff0000L) | (((long) readBuffer.readByte() << 8) & 0xff00L) | ((long) readBuffer.readByte() & 0xffL);
-
-                value[i] = Double.longBitsToDouble(v);
-            }
-        }
+        if (readBuffer.available() < length * 8) throw newMarshalError(MinorReadDoubleArrayOverflow);
+        IntStream.range(offset, offset + length).forEach( swap_ ?
+                i -> value[i] = readBuffer.readDouble_LE() :
+                i -> value[i] = readBuffer.readDouble());
     }
 
     public org.omg.CORBA.Object read_Object() {
         checkChunk();
-
         IOR ior = IORHelper.read(this);
-
-        if ((ior.type_id.length() == 0) && (ior.profiles.length == 0))
-            return null;
-
-        if (orbInstance_ == null)
-            throw new INITIALIZE("InputStream must be created " + "by a full ORB");
-
+        if ((ior.type_id.length() == 0) && (ior.profiles.length == 0)) return null;
+        if (orbInstance_ == null) throw new INITIALIZE("InputStream must be created " + "by a full ORB");
         ObjectFactory objectFactory = orbInstance_.getObjectFactory();
         return objectFactory.createObject(ior);
     }
@@ -1258,7 +1200,6 @@ final public class InputStream extends InputStreamWithOffsets {
         org.omg.CORBA.Object obj = read_Object();
 
         if (obj == null) return null;
-
         // OK, we have two possibilities here.  The usual possibility is we're asked to load
         // an object using a specified Stub class.  We just create an instance of the stub class,
         // attach the object as a delegate, and we're done.
@@ -1355,10 +1296,7 @@ final public class InputStream extends InputStreamWithOffsets {
     public org.omg.CORBA.Context read_Context() {
         final int len = read_ulong();
         String[] values = new String[len];
-
-        for (int i = 0; i < len; i++)
-            values[i] = read_string();
-
+        for (int i = 0; i < len; i++) values[i] = read_string();
         return new Context(orbInstance_.getORB(), "", values);
     }
 
@@ -1376,8 +1314,7 @@ final public class InputStream extends InputStreamWithOffsets {
             final byte b = read_octet();
 
             int hi = (b >>> 4) & 0x0f;
-            if (hi > 9)
-                throw newMarshalError(MinorReadFixedInvalid);
+            if (hi > 9) throw newMarshalError(MinorReadFixedInvalid);
 
             //
             // 0 as high nibble is only valid if it's not the first nibble
@@ -1426,10 +1363,7 @@ final public class InputStream extends InputStreamWithOffsets {
     }
 
     public Serializable read_value(Serializable value) {
-        //
         // This version of read_value is intended for use by factories
-        //
-
         valueReader().initializeValue(value);
         return value;
     }
@@ -1457,7 +1391,6 @@ final public class InputStream extends InputStreamWithOffsets {
         this.swap_ = swap;
         this.origPos_ = offs;
         this.origSwap_ = swap;
-
         _OB_codeConverters(codeConverters, giopVersion);
     }
 
@@ -1495,9 +1428,7 @@ final public class InputStream extends InputStreamWithOffsets {
     }
 
     public void _OB_codeConverters(CodeConverters converters, GiopVersion giopVersion) {
-        if (giopVersion != null)
-            giopVersion_ = giopVersion;
-
+        if (giopVersion != null) giopVersion_ = giopVersion;
         charReaderRequired_ = false;
         charConversionRequired_ = false;
         wCharReaderRequired_ = false;
@@ -1577,10 +1508,11 @@ final public class InputStream extends InputStreamWithOffsets {
     public int _OB_readLongUnchecked() {
         // The chunking code needs to read a long value without entering an infinite loop
         readBuffer.align(FOUR_BYTE_BOUNDARY);
-
-        if (readBuffer.available() < 4) throw newMarshalError(MinorReadLongOverflow);
-
-        return readBuffer.readInt(swap_);
+        try {
+            return swap_ ? readBuffer.readInt_LE() : readBuffer.readInt();
+        } catch (IndexOutOfBoundsException e) {
+            throw newMarshalError(MinorReadLongOverflow);
+        }
     }
 
     public void _OB_beginValue() {
