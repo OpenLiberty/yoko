@@ -69,6 +69,9 @@ jobs:
           build/reports/allTests
           */build/reports
           */build/test-results
+    - name: Check test results
+      run: ./scripts/check-test-results.sh
+      continue-on-error: false
     - name: Check JAR licenses
       run: |
         JARS=$(find ./ -name '*.jar' -type f | grep yoko | grep libs)
