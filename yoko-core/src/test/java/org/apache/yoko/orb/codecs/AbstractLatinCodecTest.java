@@ -78,7 +78,7 @@ abstract class AbstractLatinCodecTest {
     @Test
     void testEndOfInput() {
         ReadBuffer in = writeBuffer.trim().readFromStart();
-        assertThrows(EOFException.class, () -> codec.readChar(in));
+        assertThrows(IndexOutOfBoundsException.class, () -> codec.readChar(in));
     }
 }
 
