@@ -48,31 +48,31 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
                 .filter(args -> 0xFFFE != (int) args[1]); // FFFE is the BOM with bytes swapped
     }
 
-    @ParameterizedTest(name = "Decode {0} {2}")
+    @ParameterizedTest(name = "Decode ASCII {0} {2}")
     @MethodSource("asciiChars")
     public void testAscii(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode {0} {2}")
+    @ParameterizedTest(name = "Decode ISO Latin 1 {0} {2}")
     @MethodSource("isoLatinChars")
     void testIsoLatin1(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode {0} {2}")
+    @ParameterizedTest(name = "Decode BMP {0} {2}")
     @MethodSource("bmpCharsExcludingBom")
     void testBmp(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode {0} {2}")
+    @ParameterizedTest(name = "Decode high surrogate {0} {2}")
     @MethodSource("highSurrogates")
     void testHighSurrogates(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode {0} {2}")
+    @ParameterizedTest(name = "Decode low surrogate {0} {2}")
     @MethodSource("lowSurrogates")
     void testLowSurrogates(String hex, int codepoint, char c) {
         assertValidChar(c);
@@ -142,20 +142,20 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         assertTrue(singleBom.empty());
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "testStringOfChars[{index}]({arguments})")
     @ValueSource(strings = {"", "hello", "\0", "\uD800\uDC00", "\uDBFF\uDFFF"})
     void testStringOfChars(String expected) {
         testStringOfChars(expected, false);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "testStringOfCharsBigEndian[{index}]({arguments})")
     @ValueSource(strings = {"", "hello", "\0", "" + BOM, "" + ANTI_BOM, "\uD800\uDC00", "\uDBFF\uDFFF"})
     void testStringOfCharsBigEndian(String expected) {
         writeExpectedChar(BOM);
         testStringOfChars(expected, false);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "testStringOfCharsLittleEndian[{index}]({arguments})")
     @ValueSource(strings = {"", "hello", "\0", "" + BOM, "" + ANTI_BOM, "\uD800\uDC00", "\uDBFF\uDFFF"})
     void testStringOfCharsLittleEndian(String expected) {
         writeExpectedChar(BOM);

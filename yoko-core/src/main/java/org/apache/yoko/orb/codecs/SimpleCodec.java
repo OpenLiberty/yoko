@@ -50,6 +50,7 @@ enum SimpleCodec implements CharCodec {
         }
 
         public CharReader beginString(ReadBuffer in) {
+            if (in.isComplete()) return ReadBuffer::readChar;
             switch (in.readChar()) {
                 case BYTE_ORDER_MARKER: return ReadBuffer::readChar;
                 case BYTE_SWAPD_MARKER: return ReadBuffer::readChar_LE;
