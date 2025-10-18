@@ -66,7 +66,7 @@ abstract class AbstractLatinCodecTest {
 
     Stream<Object[]> args() { return range(0,256).mapToObj(i -> new Object[]{String.format("0x%02X", i), i, expectedChars.get(i), expectedBytes.get(i)}); }
 
-    @ParameterizedTest(name = "Convert char {0} {2}")
+    @ParameterizedTest(name = "Decode byte {0} to char {2}")
     @MethodSource("args")
     public void testDecode(String hex, int b, char expectedChar, byte expectedByte) {
         char expected = expectedChars.get(b);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ public class PoaMiscTest {
 
     }
 
-    @ParameterizedTest @EnumSource(PoaChoice.class)
+    @ParameterizedTest(name = "Create reference with SYSTEM_ID policy using {0}") @EnumSource(PoaChoice.class)
     void testCreateReferenceSystem(PoaChoice which) throws Exception {
         POA poa = which.poa();
         POAManager manager = poa.the_POAManager();
@@ -96,7 +96,7 @@ public class PoaMiscTest {
         }
     }
 
-    @ParameterizedTest @EnumSource(PoaChoice.class)
+    @ParameterizedTest(name = "Create reference with USER_ID policy using {0}") @EnumSource(PoaChoice.class)
     void testCreateReferenceUser(PoaChoice which) throws Exception {
         POA poa = which.poa();
         POAManager manager = poa.the_POAManager();
@@ -109,7 +109,7 @@ public class PoaMiscTest {
         }
     }
 
-    @ParameterizedTest @EnumSource(PoaChoice.class)
+    @ParameterizedTest(name = "Servant to ID with UNIQUE_ID policy using {0}") @EnumSource(PoaChoice.class)
     void testServantToIdUnique(PoaChoice which) throws Exception {
         POA poa = which.poa();
         POAManager manager = poa.the_POAManager();
@@ -122,7 +122,7 @@ public class PoaMiscTest {
         }
     }
 
-    @ParameterizedTest @EnumSource(PoaChoice.class)
+    @ParameterizedTest(name = "Servant to ID with IMPLICIT_ACTIVATION policy using {0}") @EnumSource(PoaChoice.class)
     void testServantToIdImplicit(PoaChoice which) throws Exception {
         POA poa = which.poa();
         POAManager manager = poa.the_POAManager();
@@ -137,7 +137,7 @@ public class PoaMiscTest {
         }
     }
 
-    @ParameterizedTest @EnumSource(PoaChoice.class)
+    @ParameterizedTest(name = "Servant to ID with MULTIPLE_ID policy using {0}") @EnumSource(PoaChoice.class)
     void testServantToIdMultiple(PoaChoice which) throws Exception {
         POA poa = which.poa();
         POAManager manager = poa.the_POAManager();
@@ -150,7 +150,7 @@ public class PoaMiscTest {
         }
     }
 
-    @ParameterizedTest @EnumSource(PoaChoice.class)
+    @ParameterizedTest(name = "Servant to reference with UNIQUE_ID policy using {0}") @EnumSource(PoaChoice.class)
     void testServantToReferenceUnique(PoaChoice which) throws Exception {
         POA poa = which.poa();
         POAManager manager = poa.the_POAManager();
@@ -162,7 +162,7 @@ public class PoaMiscTest {
         }
     }
 
-    @ParameterizedTest @EnumSource(PoaChoice.class)
+    @ParameterizedTest(name = "Servant to reference with IMPLICIT_ACTIVATION policy using {0}") @EnumSource(PoaChoice.class)
     void testServantToReferenceImplicit(PoaChoice which) throws Exception {
         POA poa = which.poa();
         POAManager manager = poa.the_POAManager();
@@ -179,7 +179,7 @@ public class PoaMiscTest {
         }
     }
 
-        @ParameterizedTest @EnumSource(PoaChoice.class)
+        @ParameterizedTest(name = "Servant to reference with MULTIPLE_ID policy using {0}") @EnumSource(PoaChoice.class)
     void testServantToReferenceMultiple(PoaChoice which) throws Exception {
         POA poa = which.poa();
         POAManager manager = poa.the_POAManager();
@@ -193,7 +193,7 @@ public class PoaMiscTest {
         }
     }
 
-    @ParameterizedTest @EnumSource(PoaChoice.class)
+    @ParameterizedTest(name = "ID to servant with RETAIN policy using {0}") @EnumSource(PoaChoice.class)
     void testIdToServantRetain(PoaChoice which) throws Exception {
         POA poa = which.poa();
         POAManager manager = poa.the_POAManager();
@@ -210,7 +210,7 @@ public class PoaMiscTest {
         }
     }
 
-    @ParameterizedTest @EnumSource(PoaChoice.class)
+    @ParameterizedTest(name = "ID to servant with USE_DEFAULT_SERVANT policy using {0}") @EnumSource(PoaChoice.class)
     void testIdToServantDefault(PoaChoice which) throws Exception {
         POA poa = which.poa();
         POAManager manager = poa.the_POAManager();
@@ -227,7 +227,7 @@ public class PoaMiscTest {
         }
     }
 
-    @ParameterizedTest @EnumSource(PoaChoice.class)
+    @ParameterizedTest(name = "ID to reference conversion using {0}") @EnumSource(PoaChoice.class)
     void testIdToReference(PoaChoice which) throws Exception {
         POA poa = which.poa();
         POAManager manager = poa.the_POAManager();
@@ -243,7 +243,7 @@ public class PoaMiscTest {
         }
     }
 
-    @ParameterizedTest @EnumSource(PoaChoice.class)
+    @ParameterizedTest(name = "Reference to servant with RETAIN policy using {0}") @EnumSource(PoaChoice.class)
     void testReferenceToServantRetain(PoaChoice which) throws Exception {
         POA poa = which.poa();
         POAManager manager = poa.the_POAManager();
@@ -261,7 +261,7 @@ public class PoaMiscTest {
         }
     }
 
-    @ParameterizedTest @EnumSource(PoaChoice.class)
+    @ParameterizedTest(name = "Reference to servant with USE_DEFAULT_SERVANT policy using {0}") @EnumSource(PoaChoice.class)
     void testReferenceToServantDefault(PoaChoice which) throws Exception {
         POA poa = which.poa();
         POAManager manager = poa.the_POAManager();
@@ -285,7 +285,7 @@ public class PoaMiscTest {
         }
     }
 
-    @ParameterizedTest @EnumSource(PoaChoice.class)
+    @ParameterizedTest(name = "Reference to ID conversion using {0}") @EnumSource(PoaChoice.class)
     void testReferenceToId(PoaChoice which) throws Exception{
         POA parentPoa = which.poa();
         POAManager manager = parentPoa.the_POAManager();

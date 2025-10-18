@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ public class HexConverterTest {
 
     static {assert TEST_DATA[0].equals("");} // just in case anyone deletes the leading space
 
-    @Parameters(name = "{0}")
+    @Parameters(name = "Hex conversion test: {0}")
     public static String[] testData() { return TEST_DATA;}
 
     @Parameter

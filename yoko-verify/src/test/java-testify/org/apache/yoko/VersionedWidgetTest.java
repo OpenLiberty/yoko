@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import java.io.ObjectOutputStream;
 import java.util.function.Function;
 
 public abstract class VersionedWidgetTest<T> {
-    @ParameterizedTest(name = "Encode and decode a {0}")
+    @ParameterizedTest(name = "Widget serialization roundtrip: {0}")
     @ValueSource(strings = {"versioned.SmallWidget", "versioned.BigWidget"})
     public void testEncodeAndDecode(String widgetClassName) throws Exception {
         // test that the validateAndReplace() methods work correctly when using normal serialization

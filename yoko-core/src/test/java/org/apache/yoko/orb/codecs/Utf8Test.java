@@ -54,31 +54,31 @@ class Utf8Test implements TestData {
     }
     static Stream<Object[]> _4_ByteChars() { return testRange(MIN_4_BYTE, MIN_4_BYTE+0xFFFF).mapToObj(TestData::toHexIntAndString); }
 
-    @ParameterizedTest(name = "Encode {0} {2}") @MethodSource("_1_ByteChars")
+    @ParameterizedTest(name = "Decode 1-byte UTF-8 char: {0} ({2})") @MethodSource("_1_ByteChars")
     void testDecode1ByteChar(String hex, int codepoint, String c) { checkDecoding(codepoint, c); }
 
-    @ParameterizedTest(name = "Encode {0} {2}") @MethodSource("_1_ByteChars")
+    @ParameterizedTest(name = "Encode 1-byte UTF-8 char: {0} ({2})") @MethodSource("_1_ByteChars")
     void testEncode1ByteChar(String hex, int codepoint, String c) { checkEncoding(codepoint, c); }
 
-    @ParameterizedTest(name = "Encode {0} {2}") @MethodSource("_2_ByteChars")
+    @ParameterizedTest(name = "Decode 2-byte UTF-8 char: {0} ({2})") @MethodSource("_2_ByteChars")
     void testDecode2ByteChar(String hex, int codepoint, String c) { checkDecoding(codepoint, c); }
 
-    @ParameterizedTest(name = "Encode {0} {2}") @MethodSource("_2_ByteChars")
+    @ParameterizedTest(name = "Encode 2-byte UTF-8 char: {0} ({2})") @MethodSource("_2_ByteChars")
     void testEncode2ByteChar(String hex, int codepoint, String c) { checkEncoding(codepoint, c); }
 
-    @ParameterizedTest(name = "Encode {0} {2}") @MethodSource("_3_ByteChars")
+    @ParameterizedTest(name = "Decode 3-byte UTF-8 char: {0} ({2})") @MethodSource("_3_ByteChars")
     void testDecode3ByteChar(String hex, int codepoint, String c) { checkDecoding(codepoint, c); }
 
-    @ParameterizedTest(name = "Encode {0} {2}") @MethodSource("_3_ByteChars")
+    @ParameterizedTest(name = "Encode 3-byte UTF-8 char: {0} ({2})") @MethodSource("_3_ByteChars")
     void testEncode3ByteChar(String hex, int codepoint, String c) { checkEncoding(codepoint, c); }
 
-    @ParameterizedTest(name = "Encode {0} {2}") @MethodSource("_4_ByteChars")
+    @ParameterizedTest(name = "Decode 4-byte UTF-8 char: {0} ({2})") @MethodSource("_4_ByteChars")
     void testDecode4ByteChar(String hex, int codepoint, String c) { checkDecoding(codepoint, c); }
 
-    @ParameterizedTest(name = "Encode {0} {2}") @MethodSource("_4_ByteChars")
+    @ParameterizedTest(name = "Encode 4-byte UTF-8 char: {0} ({2})") @MethodSource("_4_ByteChars")
     void testEncode4ByteChar(String hex, int codepoint, String c) { checkEncoding(codepoint, c); }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "Invalid lead byte: 0x{0}")
     @ValueSource(ints = {
             0b1000_0000, // continuation byte (min)
             0b1011_1111, // continuation byte (max)
@@ -93,7 +93,7 @@ class Utf8Test implements TestData {
         assertEquals('\uFFFD', codec.readChar(in));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "Truncated encoding (one byte): 0x{0}")
     @ValueSource(ints = {
             0b1100_0000, // 2-byte encoding lead byte (min)
             0b1101_1111, // 2-byte encoding lead byte (max)
@@ -108,7 +108,7 @@ class Utf8Test implements TestData {
         assertEquals('\uFFFD', codec.readChar(in));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "Truncated encoding (two bytes): 0x{0}")
     @ValueSource(ints = {
             0b1100_0000__0100_0001, // truncated two-byte encoding followed by valid char
     })
