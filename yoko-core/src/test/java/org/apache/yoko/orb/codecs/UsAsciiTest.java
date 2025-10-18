@@ -28,19 +28,19 @@ class UsAsciiTest extends AbstractSimpleCodecTest implements TestData {
     UsAsciiTest() { super("US-ASCII", WriteBuffer::writeByte, ReadBuffer::readByteAsChar); }
     boolean isDoubleByte() { return false; }
 
-    @ParameterizedTest(name = "Decode and Encode {0} {2}")
+    @ParameterizedTest(name = "US-ASCII decode/encode ASCII char: {0} ({2})")
     @MethodSource("asciiChars")
     public void testAsciiChars(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode and Encode {0} {2}")
+    @ParameterizedTest(name = "US-ASCII decode/encode Latin-1 char: {0} ({2})")
     @MethodSource("isoLatinChars")
     void testIsoLatinCharsChars(String hex, int codepoint, char c) {
         assertInvalidChar(c);
     }
 
-    @ParameterizedTest(name = "Encode {0} {2}")
+    @ParameterizedTest(name = "US-ASCII encode wide char: {0} ({2})")
     @MethodSource("wideChars")
     void testWideChars(String hex, int codepoint, char c) {
         assertEncoding(c, ASCII_REPLACEMENT_CHAR);

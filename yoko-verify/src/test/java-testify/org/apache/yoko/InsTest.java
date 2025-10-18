@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -260,7 +260,7 @@ public class InsTest {
         });
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "IMR-style corbaloc URLs with IIOP version {0}")
     @ValueSource(strings = {":1.1@"/*, ":1.2@"*/}) // value source only applies to arg0, so string must be first param
     @Logging("org.apache.yoko.orb.OB")
     @Logging("yoko.verbose.data.in")

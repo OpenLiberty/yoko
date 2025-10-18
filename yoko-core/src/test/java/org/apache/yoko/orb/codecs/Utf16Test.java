@@ -48,31 +48,31 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
                 .filter(args -> 0xFFFE != (int) args[1]); // FFFE is the BOM with bytes swapped
     }
 
-    @ParameterizedTest(name = "Decode {0} {2}")
+    @ParameterizedTest(name = "UTF-16 decode ASCII char: {0} ({2})")
     @MethodSource("asciiChars")
     public void testAscii(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode {0} {2}")
+    @ParameterizedTest(name = "UTF-16 decode ISO Latin 1 char: {0} ({2})")
     @MethodSource("isoLatinChars")
     void testIsoLatin1(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode {0} {2}")
+    @ParameterizedTest(name = "UTF-16 decode BMP char: {0} ({2})")
     @MethodSource("bmpCharsExcludingBom")
     void testBmp(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode {0} {2}")
+    @ParameterizedTest(name = "UTF-16 decode high surrogate: {0} ({2})")
     @MethodSource("highSurrogates")
     void testHighSurrogates(String hex, int codepoint, char c) {
         assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode {0} {2}")
+    @ParameterizedTest(name = "UTF-16 decode low surrogate: {0} ({2})")
     @MethodSource("lowSurrogates")
     void testLowSurrogates(String hex, int codepoint, char c) {
         assertValidChar(c);
@@ -86,7 +86,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         ReadBuffer bomA = getReadBuffer();
         assertEquals('A', codec.readChar(bomA));
         codec.assertNoBufferedCharData();
-        assertTrue(bomA.empty());
+        assertTrue(bomA.isComplete());
     }
 
     @Test
@@ -97,7 +97,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         ReadBuffer bomA = getReadBuffer();
         assertEquals('A', codec.readChar(bomA));
         codec.assertNoBufferedCharData();
-        assertTrue(bomA.empty());
+        assertTrue(bomA.isComplete());
     }
 
     @Test
@@ -107,7 +107,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         // BOM should be discarded, next two bytes should be read as char
         ReadBuffer bombom = getReadBuffer();
         assertEquals(BOM, codec.readChar(bombom));
-        assertTrue(bombom.empty());
+        assertTrue(bombom.isComplete());
     }
 
     @Test
@@ -117,7 +117,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         ReadBuffer bombom = getReadBuffer();
         // BOM should be discarded, next two bytes should be read as byte-swapped char
         assertEquals(BOM, codec.readChar(bombom));
-        assertTrue(bombom.empty());
+        assertTrue(bombom.isComplete());
     }
 
     @Test
@@ -128,7 +128,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         // it genuinely is a single ZERO WIDTH NO BREAK SPACE character (also 0xFEFF)
         ReadBuffer singleBom = getReadBuffer();
         assertEquals(BOM, codec.readChar(singleBom));
-        assertTrue(singleBom.empty());
+        assertTrue(singleBom.isComplete());
     }
 
     @Test
@@ -139,23 +139,23 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         // it genuinely is a single reserved unicode character (also 0xFFFE)
         ReadBuffer singleBom = getReadBuffer();
         assertEquals(ANTI_BOM, codec.readChar(singleBom));
-        assertTrue(singleBom.empty());
+        assertTrue(singleBom.isComplete());
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "UTF-16 string (default endian): {arguments}")
     @ValueSource(strings = {"", "hello", "\0", "\uD800\uDC00", "\uDBFF\uDFFF"})
     void testStringOfChars(String expected) {
         testStringOfChars(expected, false);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "UTF-16 string (big endian): {arguments}")
     @ValueSource(strings = {"", "hello", "\0", "" + BOM, "" + ANTI_BOM, "\uD800\uDC00", "\uDBFF\uDFFF"})
     void testStringOfCharsBigEndian(String expected) {
         writeExpectedChar(BOM);
         testStringOfChars(expected, false);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "UTF-16 string (little endian): {arguments}")
     @ValueSource(strings = {"", "hello", "\0", "" + BOM, "" + ANTI_BOM, "\uD800\uDC00", "\uDBFF\uDFFF"})
     void testStringOfCharsLittleEndian(String expected) {
         writeExpectedChar(BOM);
@@ -167,7 +167,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
         ReadBuffer in = swap ? getByteSwappedReadBuffer() : getReadBuffer();
         CharReader rdr = codec.beginString(in);
         StringBuilder sb = new StringBuilder();
-        while (!in.empty()) {
+        while (!in.isComplete()) {
             sb.append(rdr.readChar(in));
         }
         assertEquals(expected, sb.toString());

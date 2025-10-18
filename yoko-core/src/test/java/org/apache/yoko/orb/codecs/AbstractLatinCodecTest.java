@@ -21,10 +21,12 @@ import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.io.EOFException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -32,6 +34,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.IntStream.range;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
 
 @TestInstance(PER_CLASS)
@@ -63,13 +66,19 @@ abstract class AbstractLatinCodecTest {
 
     Stream<Object[]> args() { return range(0,256).mapToObj(i -> new Object[]{String.format("0x%02X", i), i, expectedChars.get(i), expectedBytes.get(i)}); }
 
-    @ParameterizedTest(name = "Convert char {0} {2}")
+    @ParameterizedTest(name = "Decode byte {0} to char {2}")
     @MethodSource("args")
     public void testDecode(String hex, int b, char expectedChar, byte expectedByte) {
         char expected = expectedChars.get(b);
         writeBuffer.writeByte(b);
         char actual = codec.readChar(readBuffer);
         assertEquals(expected, actual);
+    }
+
+    @Test
+    void testEndOfInput() {
+        ReadBuffer in = writeBuffer.trim().readFromStart();
+        assertThrows(IndexOutOfBoundsException.class, () -> codec.readChar(in));
     }
 }
 

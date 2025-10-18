@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -110,7 +110,7 @@ public class TypeDescriptorTest {
 
     private enum N {NC1, NC2 {}}
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "Type descriptor mapping: {0} → descriptor")
     @ClassSource({
             boolean.class, BooleanDescriptor.class,
             byte.class, ByteDescriptor.class,
@@ -175,7 +175,7 @@ public class TypeDescriptorTest {
         Assertions.assertEquals(descriptor.getClass(), descriptorType);
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "Enum subclass descriptor mapping: {0}")
     @EnumSource(N.class)
     public void testEnumDescriptorType(Enum<?> e) {
         testDescriptorType(e.getClass(), EnumSubclassDescriptor.class);

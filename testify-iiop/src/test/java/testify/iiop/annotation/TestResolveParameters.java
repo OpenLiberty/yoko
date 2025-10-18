@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ public class TestResolveParameters {
         assertThat(orb, is(notNullValue()));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "Parameter resolver compatibility with value {0}")
     @ValueSource(strings = {"a", "b"})
     void testParameterizedTestDoesNotConflictWithConfigureServerAsAParameterResolver(String string, ORB orb) {
         assertThat(orb, is(notNullValue()));

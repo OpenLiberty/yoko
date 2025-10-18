@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -129,7 +129,7 @@ public class FullValueDescriptorTest {
         bus.log("Narrowed stub");
     }
 
-    @ParameterizedTest(name = "Marshal a {0} as a abstract")
+    @ParameterizedTest(name = "Marshal and unmarshal {0} as abstract type")
     @ValueSource(strings = {"versioned.SmallWidget", "versioned.BigWidget"})
     public void testMarshallingAnAbstract(String widgetClassName) throws Exception {
         // Set the thread context class loader so that the return value can be unmarshalled
@@ -138,7 +138,7 @@ public class FullValueDescriptorTest {
         returned.validateAndReplace();
     }
 
-    @ParameterizedTest(name = "Marshal a {0} as an any")
+    @ParameterizedTest(name = "Marshal and unmarshal {0} as any type")
     @ValueSource(strings = {"versioned.SmallWidget", "versioned.BigWidget"})
     public void testMarshallingAnAny(String widgetClassName) throws Exception {
         // Set the thread context class loader so that the return value can be unmarshalled
@@ -147,7 +147,7 @@ public class FullValueDescriptorTest {
         returned.validateAndReplace();
     }
 
-    @ParameterizedTest(name = "Marshal a {0} as a value")
+    @ParameterizedTest(name = "Marshal and unmarshal {0} as value type")
     @ValueSource(strings = {"versioned.SmallWidget", "versioned.BigWidget"})
     public void testMarshallingAValue(String widgetClassName) throws Exception {
         // Set the thread context class loader so that the return value can be unmarshalled

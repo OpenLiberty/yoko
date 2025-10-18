@@ -28,18 +28,18 @@ class IsoLatin1Test extends AbstractSimpleCodecTest implements TestData {
     IsoLatin1Test() { super("ISO-8859-1", WriteBuffer::writeByte, ReadBuffer::readByteAsChar); }
     boolean isDoubleByte() { return false; }
 
-    @ParameterizedTest(name = "Decode and Encode {0} {2}")
+    @ParameterizedTest(name = "ISO-8859-1 decode/encode ASCII char: {0} ({2})")
     @MethodSource("asciiChars")
     public void testAsciiChars(String hex, int codepoint, char c) {
     assertValidChar(c);
     }
 
-    @ParameterizedTest(name = "Decode and Encode {0} {2}")
+    @ParameterizedTest(name = "ISO-8859-1 decode/encode Latin-1 char: {0} ({2})")
     @MethodSource("isoLatinChars")
     void testIsoLatinChars(String hex, int codepoint, char c) {
                 assertValidChar(c);
                 }
-    @ParameterizedTest(name = "Encode {0} {2}")
+    @ParameterizedTest(name = "ISO-8859-1 encode wide char: {0} ({2})")
     @MethodSource("wideChars")
     void testWideChars(String hex, int codepoint, char c) {
         assertEncoding(c, ASCII_REPLACEMENT_CHAR);

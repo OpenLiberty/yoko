@@ -1539,7 +1539,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     }
 
     public String writtenBytesToAscii() {
-        return writeBuffer.trim().readFromStart().remainingBytesToAscii();
+        return writeBuffer.trim().readFromStart().toAscii();
     }
 
     public ReadBuffer getBufferReader() {

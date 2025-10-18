@@ -30,7 +30,7 @@ import org.omg.CORBA.portable.UnknownException;
 import static org.junit.jupiter.api.Assertions.*;
 
 class UtilTest {
-    @ParameterizedTest
+    @ParameterizedTest(name = "Valid system exception ID: {0}")
     @ValueSource(strings = {
             "IDL:omg.org/CORBA/BAD_CONTEXT:1.0",
             "IDL:omg.org/CORBA/BAD_INV_ORDER:1.0",
@@ -72,7 +72,7 @@ class UtilTest {
         assertTrue(Util.isSystemException(id));
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "Invalid system exception ID: {0}")
     @ValueSource(strings = {
             "",
             "BAD ID",

@@ -25,8 +25,11 @@ on:
 
 jobs:
   build:
-
     runs-on: self-hosted
+    permissions:
+      # Required for PR comments
+      pull-requests: write
+      contents: read
 
     steps:
     - uses: actions/checkout@v3
@@ -69,6 +72,47 @@ jobs:
           build/reports/allTests
           */build/reports
           */build/test-results
+    - name: Check test results
+      id: check_tests
+      run: |
+        FAILED_TESTS=$(./scripts/check-test-results.sh || true)
+        echo "FAILED_TESTS<<EOF" >> $GITHUB_ENV
+        echo "$FAILED_TESTS" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
+        if [ -n "$FAILED_TESTS" ]; then
+          echo "has_failures=true" >> $GITHUB_OUTPUT
+          exit 1
+        else
+          echo "has_failures=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+      continue-on-error: true
+
+    - name: Comment on PR with test failures
+      if: github.event_name == 'pull_request' && steps.check_tests.outputs.has_failures == 'true'
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const failedTests = process.env.FAILED_TESTS;
+
+          const commentBody = `## ❌ Test Failures Detected
+
+          The following tests failed:
+
+          \`\`\`
+          ${failedTests}
+          \`\`\`
+
+          Please fix these failing tests before merging this PR.`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: commentBody
+          });
     - name: Check JAR licenses
       run: |
         JARS=$(find ./ -name '*.jar' -type f | grep yoko | grep libs)

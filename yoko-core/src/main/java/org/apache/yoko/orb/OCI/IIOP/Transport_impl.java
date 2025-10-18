@@ -198,13 +198,13 @@ final public class Transport_impl extends LocalObject implements Transport {
 
         logger.fine("Sending buffer of size " + readBuffer.available() + " to " + socket_);
 
+        MessageType.logOutgoingGiopMessage(readBuffer);
+
         while (!readBuffer.isComplete()) {
             try {
-                MessageType.logOutgoingGiopMessage(readBuffer);
                 readBuffer.writeTo(out_);
             } catch (InterruptedIOException ex) {
-                if (!block)
-                    return;
+                if (!block) return;
             } catch (IOException ex) {
                 logger.log(Level.FINE, "Socket write error", ex);
                 throw asCommFailure(ex, MinorSend, "I/O error during write");

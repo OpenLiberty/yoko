@@ -139,7 +139,7 @@ public class TestInterceptorsThatThrow {
     @RemoteImpl
     public static final Target IMPL = TargetImpl.newInstance();
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "Exception handling at interception point: {0}")
     @EnumSource(InterceptionPoint.class)
     void testThrowFromInterceptor(InterceptionPoint interceptionPoint, Target stub) throws Throwable {
         try {
