@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
  *     prohibited overlong encodings as the Unicode replacement character, '\uFFFD'.
  * </p>
  */
-interface CharCodec {
+public interface CharCodec {
     @FunctionalInterface interface CharReader { char readChar(ReadBuffer in); }
 
     /**
