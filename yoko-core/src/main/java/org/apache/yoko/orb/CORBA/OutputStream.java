@@ -180,7 +180,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
             return;
         }
 
-        Integer indirectionPos = (Integer) history.get(tc);
+        Integer indirectionPos = history.get(tc);
         if (indirectionPos != null) {
             write_long(-1);
             int offs = indirectionPos - writeBuffer.getPosition();
@@ -1402,7 +1402,6 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         else if (defaultIndex >= 0)
             write_InputStream(in, tc.member_type(defaultIndex));
 
-        return;
     }
 
     private void copyTypeCodeFrom(org.omg.CORBA.portable.InputStream in) {

@@ -195,7 +195,7 @@ final public class InputStream extends InputStreamWithOffsets {
     private TypeCode checkCache(String id, int startPos, int length) {
         TypeCode tc = null;
 
-        if (id.length() > 0) {
+        if (!id.isEmpty()) {
             tc = cache_.get(id);
             if (tc != null) {
                 _OB_skip(length + startPos - readBuffer.getPosition());
@@ -271,7 +271,7 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (tc == null) {
                         tc = (TypeCode) createInterfaceTC(id, read_string());
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -316,7 +316,7 @@ final public class InputStream extends InputStreamWithOffsets {
 
                         tc = p;
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -403,7 +403,7 @@ final public class InputStream extends InputStreamWithOffsets {
 
                         tc = p;
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -434,7 +434,7 @@ final public class InputStream extends InputStreamWithOffsets {
                         tc = (TypeCode) createEnumTC(id, name, members);
                         history.put(oldPos, tc);
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -496,7 +496,7 @@ final public class InputStream extends InputStreamWithOffsets {
 
                         history.put(oldPos, tc);
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -545,7 +545,7 @@ final public class InputStream extends InputStreamWithOffsets {
 
                         tc = p;
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -571,7 +571,7 @@ final public class InputStream extends InputStreamWithOffsets {
                         tc = (TypeCode) createValueBoxTC(id, read_string(), readTypeCodeImpl(history, false));
                         history.put(oldPos, tc);
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -600,7 +600,7 @@ final public class InputStream extends InputStreamWithOffsets {
                         tc = (TypeCode) createAbstractInterfaceTC(id, read_string());
                         history.put(oldPos, tc);
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -625,7 +625,7 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (tc == null) {
                         tc = (TypeCode) createNativeTC(id, read_string());
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -652,7 +652,7 @@ final public class InputStream extends InputStreamWithOffsets {
                         tc = (TypeCode) createLocalInterfaceTC(id, read_string());
                         history.put(oldPos, tc);
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -677,7 +677,6 @@ final public class InputStream extends InputStreamWithOffsets {
     public int available() {
         int available =  readBuffer.available();
         Assert.ensure(available >= 0);
-
         return available;
     }
 
@@ -699,7 +698,7 @@ final public class InputStream extends InputStreamWithOffsets {
             if (logger.isLoggable(Level.FINEST)) logger.finest(String.format("Boolean value is 0x%08x from position 0x%x", b, pos));
             return toBoolean(b);
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadBooleanOverflow);
+            throw newMarshalError((MinorReadBooleanOverflow), e);
         }
     }
 
@@ -736,8 +735,7 @@ final public class InputStream extends InputStreamWithOffsets {
         final CodeConverterBase converter = codeConverters_.inputWcharConverter;
 
         if (wCharReaderRequired_) {
-            if (!partOfString)
-                converter.set_reader_flags(CodeSetReader.FIRST_CHAR);
+            if (!partOfString) converter.set_reader_flags(CodeSetReader.FIRST_CHAR);
 
             int wcLen = 2;
 
@@ -750,23 +748,14 @@ final public class InputStream extends InputStreamWithOffsets {
                     throw Assert.fail();
 
                 case GIOP1_1:
-                    // align on two-byte boundary
                     readBuffer.align(TWO_BYTE_BOUNDARY);
-
                     break;
 
                 default :
-                    //
-                    // get the octet indicating the wchar len
-                    //
-                    wcLen = (int)readBuffer.readByteAsChar();
-
+                    wcLen = readBuffer.readByteAsChar();
                     break;
             }
 
-            //
-            // check for an overflow condition
-            //
             if (readBuffer.available() < wcLen) throw newMarshalError(MinorReadWCharOverflow);
 
             //
@@ -788,7 +777,7 @@ final public class InputStream extends InputStreamWithOffsets {
                     try {
                         return readBuffer.readChar();
                     } catch (IndexOutOfBoundsException e) {
-                        throw new MARSHAL(MinorReadWCharOverflow, COMPLETED_NO);
+                        throw newMarshalError(MinorReadWCharOverflow, e);
                     }
 
                 case GIOP1_1:  // TODO: understand or safely delete this case
@@ -797,18 +786,17 @@ final public class InputStream extends InputStreamWithOffsets {
                         value = (char) read_ushort();
                     else
                         value = (char) read_ulong();
-
                     break;
 
                 default : {
                     // read the length octet off the front
-                    final int wcLen = (int)readBuffer.readByteAsChar();
+                    final int wcLen = readBuffer.readByteAsChar();
 
                     // read the character off in proper endian format
                     try {
                         value = swap_ ? readBuffer.readChar_LE() : readBuffer.readChar();
                     } catch (IndexOutOfBoundsException e) {
-                        throw new MARSHAL(MinorReadWCharOverflow, COMPLETED_NO);
+                        throw newMarshalError(MinorReadWCharOverflow, e);
                     }
 
                     break;
@@ -830,7 +818,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return readBuffer.readByte();
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadOctetOverflow);
+            throw newMarshalError((MinorReadOctetOverflow), e);
         }
     }
 
@@ -840,7 +828,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return swap_ ? readBuffer.readShort_LE() : readBuffer.readShort();
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadShortOverflow);
+            throw newMarshalError((MinorReadShortOverflow), e);
         }
     }
 
@@ -860,7 +848,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return read_long();
         } catch (IndexOutOfBoundsException|MARSHAL e) {
-            throw newMarshalError(MinorReadULongOverflow);
+            throw newMarshalError((MinorReadULongOverflow), e);
         }
     }
 
@@ -870,7 +858,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return swap_ ? readBuffer.readLong_LE() : readBuffer.readLong();
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadLongLongOverflow);
+            throw newMarshalError((MinorReadLongLongOverflow), e);
         }
     }
 
@@ -878,7 +866,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return read_longlong();
         } catch (IndexOutOfBoundsException|MARSHAL e) {
-            throw newMarshalError(MinorReadULongLongOverflow);
+            throw newMarshalError((MinorReadULongLongOverflow), e);
         }
     }
 
@@ -888,7 +876,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return swap_ ? readBuffer.readFloat_LE() : readBuffer.readFloat();
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadFloatOverflow);
+            throw newMarshalError((MinorReadFloatOverflow), e);
         }
     }
 
@@ -898,7 +886,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return swap_ ? readBuffer.readDouble_LE() : readBuffer.readDouble();
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadDoubleOverflow);
+            throw newMarshalError((MinorReadDoubleOverflow), e);
         }
     }
 
@@ -1030,7 +1018,7 @@ final public class InputStream extends InputStreamWithOffsets {
                         try {
                             c = swap_ ? readBuffer.readChar_LE() : readBuffer.readChar();
                         } catch (IndexOutOfBoundsException e) {
-                            throw newMarshalError(MinorReadWStringOverflow);
+                            throw newMarshalError((MinorReadWStringOverflow), e);
                         }
                         if (wCharConversionRequired_)
                             c = converter.convert(c);
@@ -1051,7 +1039,7 @@ final public class InputStream extends InputStreamWithOffsets {
     public void read_boolean_array(boolean[] value, int offset, int length) {
         if (length <= 0) return;
         checkChunk();
-        if (readBuffer.available() < length) throw newMarshalError(MinorReadBooleanArrayOverflow);
+        if (readBuffer.available() < length) throw newMarshalError((MinorReadBooleanArrayOverflow));
         for (int i = offset; i < offset + length; i++) value[i] = toBoolean(readBuffer.readByte());
     }
 
@@ -1100,7 +1088,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             readBuffer.readBytes(value, offset, length);
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadOctetArrayOverflow);
+            throw newMarshalError((MinorReadOctetArrayOverflow), e);
         }
     }
 
@@ -1119,7 +1107,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             read_short_array(value, offset, length);
         } catch (IndexOutOfBoundsException|MARSHAL e) {
-            throw newMarshalError(MinorReadUShortArrayOverflow);
+            throw newMarshalError((MinorReadUShortArrayOverflow), e);
         }
     }
 
@@ -1140,11 +1128,15 @@ final public class InputStream extends InputStreamWithOffsets {
         return new MARSHAL(describeMarshal(minor), minor, COMPLETED_NO);
     }
 
+    private static MARSHAL newMarshalError(int minor, Throwable cause) {
+        return (MARSHAL)(newMarshalError(minor).initCause(cause instanceof MARSHAL ? cause.getCause() : cause));
+    }
+
     public void read_ulong_array(int[] value, int offset, int length) {
         try {
             read_long_array(value, offset, length);
         } catch (IndexOutOfBoundsException|MARSHAL e) {
-            throw newMarshalError(MinorReadULongArrayOverflow);
+            throw newMarshalError(MinorReadULongArrayOverflow, e);
         }
     }
 
@@ -1162,7 +1154,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             read_longlong_array(value, offset, length);
         } catch (IndexOutOfBoundsException|MARSHAL e) {
-            throw newMarshalError(MinorReadULongLongArrayOverflow);
+            throw newMarshalError(MinorReadULongLongArrayOverflow, e);
         }
     }
 
@@ -1224,9 +1216,7 @@ final public class InputStream extends InputStreamWithOffsets {
             return createStub(getRMIStubClass(codebase, expectedType), impl._get_delegate());
         } catch (IllegalAccessException | ClassNotFoundException | ClassCastException | PrivilegedActionException | InvocationTargetException ex) {
             logger.log(Level.FINE, "Exception creating object stub", ex);
-            MARSHAL m = new MARSHAL("Unable to create stub for class " + expectedType.getName(), MinorLoadStub, COMPLETED_NO);
-            m.initCause(ex);
-            throw m;
+            throw newMarshalError(MinorLoadStub, ex);
         }
     }
 
@@ -1240,7 +1230,7 @@ final public class InputStream extends InputStreamWithOffsets {
             return stub;
         } catch (InvocationTargetException | InstantiationException | IllegalAccessException | PrivilegedActionException ex) {
             logger.log(Level.FINE, "Exception creating object stub", ex);
-            throw as(MARSHAL::new, ex, "Unable to create stub for class " + clz.getName(), MinorLoadStub, COMPLETED_NO);
+            throw newMarshalError(MinorLoadStub, ex);
         }
     }
 
@@ -1339,8 +1329,8 @@ final public class InputStream extends InputStreamWithOffsets {
 
         try {
             return new BigDecimal(sBuffer.toString());
-        } catch (NumberFormatException ex) {
-            throw newMarshalError(MinorReadFixedInvalid);
+        } catch (NumberFormatException e) {
+            throw newMarshalError((MinorReadFixedInvalid), e);
         }
     }
 
@@ -1478,7 +1468,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             readBuffer.skipBytes(n);
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadOverflow);
+            throw newMarshalError((MinorReadOverflow), e);
         }
     }
 
@@ -1511,7 +1501,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return swap_ ? readBuffer.readInt_LE() : readBuffer.readInt();
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadLongOverflow);
+            throw newMarshalError((MinorReadLongOverflow), e);
         }
     }
 
