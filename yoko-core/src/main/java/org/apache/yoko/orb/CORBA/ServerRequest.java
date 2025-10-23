@@ -43,6 +43,7 @@ import org.omg.CORBA.Bounds;
 import org.omg.CORBA.NVList;
 import org.omg.CORBA.NamedValue;
 import org.omg.CORBA.SystemException;
+import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.TypeCodePackage.BadKind;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
@@ -168,7 +169,7 @@ public class ServerRequest extends org.omg.CORBA.ServerRequest {
             throw new BAD_INV_ORDER("set_exception() has "
                     + "already been called");
 
-        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(value.type());
+        TypeCode origTC = TypeCodeImpl._OB_getOrigType(value.type());
         if (origTC.kind() != tk_except)
             throw new BAD_PARAM(
                     describeBadParam(MinorNoExceptionInAny),
@@ -200,7 +201,7 @@ public class ServerRequest extends org.omg.CORBA.ServerRequest {
 
     public void _OB_doMarshal() throws LocationForward {
         if (exception_ != null) {
-            org.omg.CORBA.TypeCode tc = exception_.type();
+            TypeCode tc = exception_.type();
             String id = null;
             try {
                 id = tc.id();

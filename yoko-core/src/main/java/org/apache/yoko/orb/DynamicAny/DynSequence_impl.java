@@ -19,6 +19,7 @@ package org.apache.yoko.orb.DynamicAny;
 
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.orb.OB.ORBInstance;
+import org.omg.CORBA.TypeCode;
 import org.omg.DynamicAny.DynAny;
 import org.omg.DynamicAny.DynAnyFactory;
 import org.omg.DynamicAny.DynSequence;
@@ -29,13 +30,13 @@ final class DynSequence_impl extends DynSeqBase_impl implements
         DynSequence {
     DynSequence_impl(DynAnyFactory factory,
             ORBInstance orbInstance,
-            org.omg.CORBA.TypeCode type) {
+            TypeCode type) {
         super(factory, orbInstance, type);
     }
 
     DynSequence_impl(DynAnyFactory factory,
             ORBInstance orbInstance,
-            org.omg.CORBA.TypeCode type, DynValueReader dynValueReader) {
+            TypeCode type, DynValueReader dynValueReader) {
         super(factory, orbInstance, type, dynValueReader);
     }
 
@@ -69,8 +70,8 @@ final class DynSequence_impl extends DynSeqBase_impl implements
             throws TypeMismatch,
             InvalidValue {
         for (int i = 0; i < value.length; i++) {
-            org.omg.CORBA.TypeCode tc = value[i].type();
-            org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
+            TypeCode tc = value[i].type();
+            TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
             if (origTC.kind() != contentKind_)
                 throw new TypeMismatch();
         }
@@ -97,8 +98,8 @@ final class DynSequence_impl extends DynSeqBase_impl implements
             throws TypeMismatch,
             InvalidValue {
         for (int i = 0; i < value.length; i++) {
-            org.omg.CORBA.TypeCode tc = value[i].type();
-            org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
+            TypeCode tc = value[i].type();
+            TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
             if (origTC.kind() != contentKind_)
                 throw new TypeMismatch();
         }
