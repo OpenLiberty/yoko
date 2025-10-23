@@ -19,23 +19,26 @@ package org.apache.yoko.orb.CORBA;
 
 import org.apache.yoko.orb.OB.Util;
 import org.apache.yoko.util.Assert;
-import org.apache.yoko.util.MinorCodes;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.BAD_TYPECODE;
 import org.omg.CORBA.PRIVATE_MEMBER;
 import org.omg.CORBA.TCKind;
+import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.TypeCodePackage.BadKind;
 import org.omg.CORBA.TypeCodePackage.Bounds;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 
 import static java.lang.String.format;
 import static org.apache.yoko.util.Assert.ensure;
 import static org.apache.yoko.util.MinorCodes.MinorIncompleteTypeCode;
+import static org.apache.yoko.util.MinorCodes.MinorIncompleteTypeCodeParameter;
+import static org.apache.yoko.util.MinorCodes.describeBadParam;
 import static org.apache.yoko.util.MinorCodes.describeBadTypecode;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.TCKind._tk_Principal;
@@ -90,7 +93,7 @@ import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 import static org.omg.CORBA_2_4.TCKind.tk_local_interface;
 
 // Note: TypeCodes are (supposed to be) immutable, so I don't need thread synchronization
-final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
+public final class TypeCodeImpl extends TypeCode {
     public TCKind kind_;
 
     // tk_objref, tk_struct, tk_union, tk_enum, tk_alias, tk_value, tk_value_box, tk_native, tk_abstract_interface, tk_except, tk_local_interface
@@ -192,40 +195,30 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
         return sb;
     }
 
-    private boolean equivalentRecHelper(org.omg.CORBA.TypeCode t,
-                                        Vector<org.omg.CORBA.TypeCode> history, Vector<org.omg.CORBA.TypeCode> otherHistory) {
-        if (t == null)
-            return false;
+    private boolean equivalentRecHelper(TypeCode t, List<TypeCode> history, List<TypeCode> otherHistory) {
+        if (t == null) return false;
 
-        if (t == this)
-            return true;
+        if (t == this) return true;
 
-        //
         // Avoid infinite loops
-        //
-        boolean foundLoop = false, foundOtherLoop = false;
-        for (int i = 0; i < history.size() && !foundLoop; i++)
-            if (this == history.elementAt(i))
-                foundLoop = true;
-        for (int i = 0; i < otherHistory.size() && !foundOtherLoop; i++)
-            if (t == otherHistory.elementAt(i))
-                foundOtherLoop = true;
-        if (foundLoop && foundOtherLoop)
-            return true;
+        {
+            final boolean foundLoop = history.stream().anyMatch(typeCode -> this == typeCode);
+            final boolean foundOtherLoop = otherHistory.stream().anyMatch(typeCode -> t == typeCode);
+            if (foundLoop && foundOtherLoop) return true;
+        }
 
-        history.addElement(this);
-        otherHistory.addElement(t);
+        history.add(this);
+        otherHistory.add(t);
 
         boolean result = equivalentRec(t, history, otherHistory);
 
-        history.setSize(history.size() - 1);
-        otherHistory.setSize(otherHistory.size() - 1);
+        history.remove(history.size() - 1);
+        otherHistory.remove(otherHistory.size() - 1);
 
         return result;
     }
 
-    private boolean equivalentRec(org.omg.CORBA.TypeCode t,
-            Vector<org.omg.CORBA.TypeCode> history, Vector<org.omg.CORBA.TypeCode> otherHistory) {
+    private boolean equivalentRec(TypeCode t, List<TypeCode> history, List<TypeCode> otherHistory) {
         TypeCodeImpl tc;
         try {
             tc = (TypeCodeImpl) t;
@@ -245,9 +238,8 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
         if (null != tc.recId_) {
             if (null == tc.recType_)
                 throw new BAD_PARAM(
-                        MinorCodes
-                                .describeBadParam(MinorCodes.MinorIncompleteTypeCodeParameter),
-                        MinorCodes.MinorIncompleteTypeCodeParameter,
+                        describeBadParam(MinorIncompleteTypeCodeParameter),
+                        MinorIncompleteTypeCodeParameter,
                         COMPLETED_NO);
             return equivalentRecHelper(tc.recType_, history, otherHistory);
         }
@@ -258,20 +250,11 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
         if (tc1.kind_ != tc2.kind_)
             return false;
 
-        if (tk_objref == tc1.kind_
-                || tk_struct == tc1.kind_
-                || tk_union == tc1.kind_
-                || tk_enum == tc1.kind_
-                || tk_alias == tc1.kind_
-                || tk_value == tc1.kind_
-                || tk_value_box == tc1.kind_
-                || tk_native == tc1.kind_
-                || tk_abstract_interface == tc1.kind_
-                || tk_except == tc1.kind_
+        if (tk_objref == tc1.kind_ || tk_struct == tc1.kind_ || tk_union == tc1.kind_ || tk_enum == tc1.kind_
+                || tk_alias == tc1.kind_ || tk_value == tc1.kind_ || tk_value_box == tc1.kind_
+                || tk_native == tc1.kind_ || tk_abstract_interface == tc1.kind_ || tk_except == tc1.kind_
                 || tk_local_interface == tc1.kind_) {
-            if (!tc1.id_.equals("") && !tc2.id_.equals("")) {
-                return tc1.id_.equals(tc2.id_);
-            }
+            if (!tc1.id_.isEmpty() && !tc2.id_.isEmpty()) return tc1.id_.equals(tc2.id_);
         }
 
         // names_ and memberNames_ must be ignored
@@ -280,29 +263,22 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
                 || tk_union == tc1.kind_
                 || tk_value == tc1.kind_
                 || tk_except == tc1.kind_) {
-            if (tc1.memberTypes_.length != tc2.memberTypes_.length)
-                return false;
+            if (tc1.memberTypes_.length != tc2.memberTypes_.length) return false;
 
             for (int i = 0; i < tc1.memberTypes_.length; i++) {
-                if (!(tc1.memberTypes_[i].equivalentRecHelper(
-                        tc2.memberTypes_[i], history, otherHistory)))
-                    return false;
+                if (!(tc1.memberTypes_[i].equivalentRecHelper(tc2.memberTypes_[i], history, otherHistory))) return false;
             }
         }
 
         if (tk_union == tc1.kind_) {
-            if (tc1.labels_.length != tc2.labels_.length)
-                return false;
+            if (tc1.labels_.length != tc2.labels_.length) return false;
 
             for (int i = 0; i < tc1.labels_.length; i++) {
-                org.omg.CORBA.TypeCode ltc1 = tc1.labels_[i]._OB_type();
-                org.omg.CORBA.TypeCode ltc2 = tc2.labels_[i]._OB_type();
+                TypeCode ltc1 = tc1.labels_[i]._OB_type();
+                TypeCode ltc2 = tc2.labels_[i]._OB_type();
 
-                //
                 // Don't use equivalentRecHelper here
-                //
-                if (!ltc1.equivalent(ltc2))
-                    return false;
+                if (!ltc1.equivalent(ltc2)) return false;
 
                 Object v1 = tc1.labels_[i].value();
                 Object v2 = tc2.labels_[i].value();
@@ -320,22 +296,17 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
                 case _tk_boolean:
                     if (!v1.equals(v2)) return false;
                     break;
-
                 case _tk_octet:
                     break;
-
                 default:
                     throw Assert.fail("unsupported type in tk_union");
                 }
             }
 
-            //
-            // Don't use equivalentRecHelper here
-            //
-            if (!tc1.discriminatorType_.equivalent(tc2.discriminatorType_)) return false;
+            return tc1.discriminatorType_.equivalent(tc2.discriminatorType_);
         }
 
-        if (tc1.kind_ == tk_string
+        if (tk_string == tc1.kind_
                 || tk_wstring == tc1.kind_
                 || tk_sequence == tc1.kind_
                 || tk_array == tc1.kind_) {
@@ -346,35 +317,23 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
                 || tk_array == tc1.kind_
                 || tk_value_box == tc1.kind_
                 || tk_alias == tc1.kind_) {
-            if (!(tc1.contentType_.equivalentRecHelper(tc2.contentType_, history, otherHistory))) return false;
+            return tc1.contentType_.equivalentRecHelper(tc2.contentType_, history, otherHistory);
         }
 
         if (tk_fixed == tc1.kind_) {
-            if (tc1.fixedDigits_ != tc2.fixedDigits_ || tc1.fixedScale_ != tc2.fixedScale_) return false;
+            return tc1.fixedDigits_ == tc2.fixedDigits_ && tc1.fixedScale_ == tc2.fixedScale_;
         }
 
         if (tk_value == tc1.kind_) {
-            if (tc1.memberVisibility_.length != tc2.memberVisibility_.length) return false;
-
-            for (int i = 0; i < tc1.memberVisibility_.length; i++)
-                if (tc1.memberVisibility_[i] != tc2.memberVisibility_[i]) return false;
-
+            if (!Arrays.equals(tc1.memberVisibility_, tc2.memberVisibility_)) return false;
             if (tc1.typeModifier_ != tc2.typeModifier_) return false;
-
-            if (null != tc1.concreteBaseType_ || null != tc2.concreteBaseType_) {
-                if (!(null != tc1.concreteBaseType_ && null != tc2.concreteBaseType_)) return false;
-
-                //
-                // Don't use equivalentRecHelper here
-                //
-                return tc1.concreteBaseType_.equivalent(tc2.concreteBaseType_);
-            }
+            return null == tc1.concreteBaseType_ ? null == tc2.concreteBaseType_ : tc1.concreteBaseType_.equivalent(tc2.concreteBaseType_);
         }
 
         return true;
     }
 
-    private TypeCodeImpl getCompactTypeCodeRec(Vector<org.omg.CORBA.TypeCode> history, Vector<org.omg.CORBA.TypeCode> compacted) {
+    private TypeCodeImpl getCompactTypeCodeRec(List<TypeCode> history, List<TypeCode> compacted) {
         if (null != recId_) {
             if (null == recType_) throw new BAD_TYPECODE(describeBadTypecode(MinorIncompleteTypeCode), MinorIncompleteTypeCode, COMPLETED_NO);
             return recType_.getCompactTypeCodeRec(history, compacted);
@@ -383,29 +342,23 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
         //
         // Avoid infinite loops
         //
-        for (int i = 0; i < history.size(); i++)
-            if (this == history.elementAt(i))
-                return (TypeCodeImpl) compacted.elementAt(i);
+        for (int i = 0; i < history.size(); i++) if (this == history.get(i)) return (TypeCodeImpl) compacted.get(i);
 
-        history.addElement(this);
+        history.add(this);
 
         // Create the new compacted type code (needed for recursive type codes).
         TypeCodeImpl result = new TypeCodeImpl();
-        compacted.addElement(result);
+        compacted.add(result);
 
-        String[] names = (null == memberNames_) ?
-                null : Arrays.stream(memberNames_).map(n -> "").toArray(String[]::new);
+        String[] names = (null == memberNames_) ? null : Arrays.stream(memberNames_).map(n -> "").toArray(String[]::new);
 
-        TypeCodeImpl[] types = (null == memberTypes_) ?
-                null : Arrays.stream(memberTypes_).map(t -> t.getCompactTypeCodeRec(history, compacted)).toArray(TypeCodeImpl[]::new);
+        TypeCodeImpl[] types = (null == memberTypes_) ? null : Arrays.stream(memberTypes_).map(t -> t.getCompactTypeCodeRec(history, compacted)).toArray(TypeCodeImpl[]::new);
 
         TypeCodeImpl content = (null == contentType_) ? null : contentType_.getCompactTypeCodeRec(history, compacted);
 
         TypeCodeImpl discriminator = (null == discriminatorType_) ? null : discriminatorType_.getCompactTypeCodeRec(history, compacted);
 
-        //
         // Compact concrete base type
-        //
         TypeCodeImpl concrete = (null == concreteBaseType_) ? null : concreteBaseType_.getCompactTypeCodeRec(history, compacted);
 
         switch (kind_.value()) {
@@ -514,41 +467,23 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
     // Standard IDL to Java Mapping
     // ------------------------------------------------------------------
 
-    public boolean equal(org.omg.CORBA.TypeCode t) {
-        if (t == null)
-            return false;
+    public boolean equal(TypeCode other) {
+        if (other == null) return false;
+        if (other == this) return true;
 
-        if (t == this)
-            return true;
-
-        if (recId_ != null) {
-            if (recType_ == null)
-                throw new BAD_TYPECODE(
-                        describeBadTypecode(MinorIncompleteTypeCode),
-                        MinorIncompleteTypeCode,
-                        COMPLETED_NO);
-            return recType_.equal(t);
+        if (null != recId_) {
+            if (null != recType_) return recType_.equal(other);
+            throw new BAD_TYPECODE(describeBadTypecode(MinorIncompleteTypeCode), MinorIncompleteTypeCode, COMPLETED_NO);
         }
 
-        TypeCodeImpl tc;
-        try {
-            tc = (TypeCodeImpl) t;
-        } catch (ClassCastException ex) {
-            tc = _OB_convertForeignTypeCode(t);
+        final TypeCodeImpl that = other instanceof TypeCodeImpl ? (TypeCodeImpl) other :  _OB_convertForeignTypeCode(other);
+
+        if (null != that.recId_) {
+            if (null != that.recType_) return equal(that.recType_);
+            throw new BAD_PARAM(describeBadParam(MinorIncompleteTypeCodeParameter), MinorIncompleteTypeCodeParameter, COMPLETED_NO);
         }
 
-        if (tc.recId_ != null) {
-            if (tc.recType_ == null)
-                throw new BAD_PARAM(
-                        MinorCodes
-                                .describeBadParam(MinorCodes.MinorIncompleteTypeCodeParameter),
-                        MinorCodes.MinorIncompleteTypeCodeParameter,
-                        COMPLETED_NO);
-            return equal(tc.recType_);
-        }
-
-        if (kind_ != tc.kind_)
-            return false;
+        if (kind_ != that.kind_) return false;
 
         if (kind_ == tk_objref
                 || kind_ == tk_struct
@@ -561,14 +496,8 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
                 || kind_ == tk_abstract_interface
                 || kind_ == tk_except
                 || kind_ == tk_local_interface) {
-            if (!id_.equals("") || !tc.id_.equals("")) {
-                return id_.equals(tc.id_);
-            }
-
-            if (!name_.equals("") || !tc.name_.equals("")) {
-                if (!name_.equals(tc.name_))
-                    return false;
-            }
+            if (!id_.isEmpty() || !that.id_.isEmpty()) return id_.equals(that.id_);
+            if (!name_.equals(that.name_)) return false;
         }
 
         if (kind_ == tk_struct
@@ -576,105 +505,64 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
                 || kind_ == tk_enum
                 || kind_ == tk_value
                 || kind_ == tk_except) {
-            if (memberNames_.length != tc.memberNames_.length)
-                return false;
-
-            for (int i = 0; i < memberNames_.length; i++) {
-                if (!memberNames_[i].equals("")
-                        || !tc.memberNames_[i].equals("")) {
-                    if (!memberNames_[i].equals(tc.memberNames_[i]))
-                        return false;
-                }
-            }
+            if (!Arrays.equals(this.memberNames_, that.memberNames_)) return false;
         }
 
         if (kind_ == tk_struct
                 || kind_ == tk_union
                 || kind_ == tk_value
                 || kind_ == tk_except) {
-            if (memberTypes_.length != tc.memberTypes_.length)
-                return false;
-
-            for (int i = 0; i < memberTypes_.length; i++)
-                if (!memberTypes_[i].equal(tc.memberTypes_[i]))
-                    return false;
+            if (!Arrays.equals(this.memberTypes_, that.memberTypes_)) return false;
         }
 
         if (kind_ == tk_union) {
-            if (labels_.length != tc.labels_.length)
-                return false;
-
+            if (labels_.length != that.labels_.length) return false;
             for (int i = 0; i < labels_.length; i++) {
-                if (!labels_[i].type().equal(tc.labels_[i].type()))
-                    return false;
-
-                if (!labels_[i].equal(tc.labels_[i]))
-                    return false;
+                if (!labels_[i].type().equal(that.labels_[i].type())) return false;
+                if (!labels_[i].equal(that.labels_[i])) return false;
             }
-
-            if (!discriminatorType_.equal(tc.discriminatorType_))
-                return false;
+            return discriminatorType_.equal(that.discriminatorType_);
         }
 
-        if (kind_ == tk_string
-                || kind_ == tk_wstring
-                || kind_ == tk_sequence
-                || kind_ == tk_array) {
-            if (length_ != tc.length_)
-                return false;
+        if (kind_ == tk_string || kind_ == tk_wstring || kind_ == tk_sequence || kind_ == tk_array) {
+            if (length_ != that.length_) return false;
         }
 
         if (kind_ == tk_sequence
                 || kind_ == tk_array
                 || kind_ == tk_value_box
                 || kind_ == tk_alias) {
-            if (!contentType_.equal(tc.contentType_))
-                return false;
+            return contentType_.equal(that.contentType_);
         }
 
         if (kind_ == tk_fixed) {
-            if (fixedDigits_ != tc.fixedDigits_
-                    || fixedScale_ != tc.fixedScale_)
-                return false;
+            return fixedDigits_ == that.fixedDigits_ && fixedScale_ == that.fixedScale_;
         }
 
         if (kind_ == tk_value) {
-            if (memberVisibility_.length != tc.memberVisibility_.length)
-                return false;
-
-            for (int i = 0; i < memberVisibility_.length; i++)
-                if (memberVisibility_[i] != tc.memberVisibility_[i])
-                    return false;
-
-            if (typeModifier_ != tc.typeModifier_)
-                return false;
-
-            if (concreteBaseType_ != null || tc.concreteBaseType_ != null) {
-                if (!(concreteBaseType_ != null && tc.concreteBaseType_ != null))
-                    return false;
-
-                return concreteBaseType_.equal(tc.concreteBaseType_);
-            }
+            if (!Arrays.equals(this.memberVisibility_, that.memberVisibility_)) return false;
+            if (typeModifier_ != that.typeModifier_) return false;
+            return null == concreteBaseType_ ? null == that.concreteBaseType_ : concreteBaseType_.equal(that.concreteBaseType_);
         }
 
         return true;
     }
 
-    public boolean equivalent(org.omg.CORBA.TypeCode t) {
-        Vector<org.omg.CORBA.TypeCode> history = new Vector<>();
-        Vector<org.omg.CORBA.TypeCode> otherHistory = new Vector<>();
+    public boolean equivalent(TypeCode t) {
+        List<TypeCode> history = new ArrayList<>();
+        List<TypeCode> otherHistory = new ArrayList<>();
 
         boolean result = equivalentRecHelper(t, history, otherHistory);
 
-        ensure(history.size() == 0);
-        ensure(otherHistory.size() == 0);
+        ensure(history.isEmpty());
+        ensure(otherHistory.isEmpty());
 
         return result;
     }
 
-    public org.omg.CORBA.TypeCode get_compact_typecode() {
-        Vector<org.omg.CORBA.TypeCode> history = new Vector<>();
-        Vector<org.omg.CORBA.TypeCode> compacted = new Vector<>();
+    public TypeCode get_compact_typecode() {
+        List<TypeCode> history = new ArrayList<>();
+        List<TypeCode> compacted = new ArrayList<>();
 
         return getCompactTypeCodeRec(history, compacted);
     }
@@ -786,7 +674,7 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
         }
     }
 
-    public org.omg.CORBA.TypeCode member_type(int index)
+    public TypeCode member_type(int index)
             throws BadKind,
             Bounds {
         if (recId_ != null) {
@@ -832,7 +720,7 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
         }
     }
 
-    public org.omg.CORBA.TypeCode discriminator_type()
+    public TypeCode discriminator_type()
             throws BadKind {
         if (recId_ != null) {
             if (recType_ == null)
@@ -863,7 +751,7 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
             throw new BadKind();
 
         for (int i = 0; i < labels_.length; i++) {
-            org.omg.CORBA.TypeCode tc = labels_[i].type();
+            TypeCode tc = labels_[i].type();
             if (tc.kind() == TCKind.tk_octet)
                 return i;
         }
@@ -977,7 +865,7 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
         return typeModifier_;
     }
 
-    public org.omg.CORBA.TypeCode concrete_base_type()
+    public TypeCode concrete_base_type()
             throws BadKind {
         if (recId_ != null) {
             if (recType_ == null)
@@ -1010,7 +898,7 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
         return _OB_getOrigType(this);
     }
 
-    static public org.omg.CORBA.TypeCode _OB_getOrigType(org.omg.CORBA.TypeCode tc) {
+    static public TypeCode _OB_getOrigType(TypeCode tc) {
         try {
             while (tc.kind() == tk_alias) tc = tc.content_type();
         } catch (BadKind ex) {
@@ -1037,8 +925,8 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
     }
 
     static private TypeCodeImpl _OB_convertForeignTypeCodeHelper(
-            org.omg.CORBA.TypeCode tc, Hashtable<org.omg.CORBA.TypeCode, TypeCodeImpl> history,
-            Vector<org.omg.CORBA.TypeCode> recHistory) {
+            TypeCode tc, Hashtable<TypeCode, TypeCodeImpl> history,
+            List<TypeCode> recHistory) {
         if (tc instanceof TypeCodeImpl) return (TypeCodeImpl) tc;
 
         TypeCodeImpl result;
@@ -1054,8 +942,8 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
                     || kindValue == _tk_except
                     || kindValue == _tk_union
                     || kindValue == _tk_value) {
-                for (int i = 0; i < recHistory.size(); i++)
-                    if (tc == recHistory.elementAt(i)) {
+                for (TypeCode typeCode : recHistory)
+                    if (tc == typeCode) {
                         result = new TypeCodeImpl();
                         result.recId_ = tc.id();
                         result.recType_ = history.get(tc);
@@ -1120,12 +1008,12 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
                 result.memberNames_ = new String[count];
                 for (int i = 0; i < count; i++)
                     result.memberNames_[i] = tc.member_name(i);
-                recHistory.addElement(tc);
+                recHistory.add(tc);
                 result.memberTypes_ = new TypeCodeImpl[count];
                 for (int i = 0; i < count; i++)
                     result.memberTypes_[i] = _OB_convertForeignTypeCodeHelper(
                             tc.member_type(i), history, recHistory);
-                recHistory.setSize(recHistory.size() - 1);
+                recHistory.remove(recHistory.size() - 1);
                 break;
             }
 
@@ -1137,20 +1025,19 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
                 result.memberNames_ = new String[count];
                 for (int i = 0; i < count; i++)
                     result.memberNames_[i] = tc.member_name(i);
-                recHistory.addElement(tc);
+                recHistory.add(tc);
                 result.memberTypes_ = new TypeCodeImpl[count];
                 for (int i = 0; i < count; i++)
                     result.memberTypes_[i] = _OB_convertForeignTypeCodeHelper(
                             tc.member_type(i), history, recHistory);
-                recHistory.setSize(recHistory.size() - 1);
+                recHistory.remove(recHistory.size() - 1);
                 result.labels_ = new Any[count];
                 for (int i = 0; i < count; i++)
                     result.labels_[i] = new Any(tc.member_label(i));
                 //
                 // Discriminator can't be recursive, so no history needed
                 //
-                result.discriminatorType_ = _OB_convertForeignTypeCodeHelper(tc
-                        .discriminator_type(), history, null);
+                result.discriminatorType_ = _OB_convertForeignTypeCodeHelper(tc.discriminator_type(), history, null);
                 break;
             }
 
@@ -1196,12 +1083,12 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
                 result.memberNames_ = new String[count];
                 for (int i = 0; i < count; i++)
                     result.memberNames_[i] = tc.member_name(i);
-                recHistory.addElement(tc);
+                recHistory.add(tc);
                 result.memberTypes_ = new TypeCodeImpl[count];
                 for (int i = 0; i < count; i++)
                     result.memberTypes_[i] = _OB_convertForeignTypeCodeHelper(
                             tc.member_type(i), history, recHistory);
-                recHistory.setSize(recHistory.size() - 1);
+                recHistory.remove(recHistory.size() - 1);
                 result.memberVisibility_ = new short[count];
                 for (int i = 0; i < count; i++)
                     result.memberVisibility_[i] = tc.member_visibility(i);
@@ -1220,11 +1107,11 @@ final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
         return result;
     }
 
-    static public TypeCodeImpl _OB_convertForeignTypeCode(org.omg.CORBA.TypeCode tc) {
+    static public TypeCodeImpl _OB_convertForeignTypeCode(TypeCode tc) {
         ensure(!(tc instanceof TypeCodeImpl));
 
-        Hashtable<org.omg.CORBA.TypeCode, TypeCodeImpl> history = new Hashtable<>(7);
-        Vector<org.omg.CORBA.TypeCode> recHistory = new Vector<>();
+        Hashtable<TypeCode, TypeCodeImpl> history = new Hashtable<>(7);
+        List<TypeCode> recHistory = new ArrayList<>();
 
         return _OB_convertForeignTypeCodeHelper(tc, history, recHistory);
     }
