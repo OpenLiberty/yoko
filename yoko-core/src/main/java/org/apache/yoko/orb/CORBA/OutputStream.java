@@ -378,37 +378,22 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         }
     }
 
-    //
-    // Must be called prior to any writes
-    //
-    private void checkBeginChunk() {
-        Assert.ensure(valueWriter_ != null);
-        valueWriter_.checkBeginChunk();
-    }
-
     private ValueWriter valueWriter() {
-        if (valueWriter_ == null) valueWriter_ = new ValueWriter(this, writeBuffer);
-        return valueWriter_;
+        return null == valueWriter_ ? (valueWriter_ = new ValueWriter(this, writeBuffer)) : valueWriter_;
     }
 
     private void addCapacity(int size) {
         if (atEndOfGiop_1_2_Header) {
             atEndOfGiop_1_2_Header = false;
             addCapacity(size, EIGHT_BYTE_BOUNDARY);
-        } else {
-            //
-            // If we're at the end of the current buffer, then we are about
-            // to write new data. We must first check if we need to start a
-            // chunk, which may result in a recursive call to addCapacity().
-            //
-            if (writeBuffer.isComplete() && valueWriter_ != null) {
-                checkBeginChunk();
-            }
-
-            // If there isn't enough room, then reallocate the buffer
-            final boolean resized = writeBuffer.ensureAvailable(size);
-            if (resized) checkTimeout();
+            return;
         }
+        // If a new chunk is required, there will be a recursive call to addCapacity().
+        if (writeBuffer.isComplete() && valueWriter_ != null) valueWriter_.checkBeginChunk();
+
+        // If there isn't enough room, then reallocate the buffer
+        final boolean resized = writeBuffer.ensureAvailable(size);
+        if (resized) checkTimeout();
     }
 
     private void checkTimeout() {
@@ -422,14 +407,8 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     private void addCapacity(int size, AlignmentBoundary boundary) {
         Assert.ensure(boundary != NO_BOUNDARY);
 
-        //
-        // If we're at the end of the current buffer, then we are about
-        // to write new data. We must first check if we need to start a
-        // chunk, which may result in a recursive call to addCapacity().
-        //
-        if (writeBuffer.isComplete() && valueWriter_ != null) {
-            checkBeginChunk();
-        }
+        // If a new chunk is required, there will be a recursive call to addCapacity().
+        if (writeBuffer.isComplete() && valueWriter_ != null) valueWriter_.checkBeginChunk();
 
         if (atEndOfGiop_1_2_Header) {
             boundary = EIGHT_BYTE_BOUNDARY;
@@ -442,16 +421,12 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     }
 
     public void write(int b) {
-        //
         // this matches the behaviour of this function in the Java ORB
         // and not what is outlined in the java.io.OutputStream
-        //
         write_long(b);
     }
 
-    public org.omg.CORBA.ORB orb() {
-        return (orbInstance_ == null) ? null : orbInstance_.getORB();
-    }
+    public org.omg.CORBA.ORB orb() { return (orbInstance_ == null) ? null : orbInstance_.getORB(); }
 
     @Override
     public InputStream create_input_stream() {

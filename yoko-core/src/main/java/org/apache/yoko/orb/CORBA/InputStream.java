@@ -1484,16 +1484,11 @@ final public class InputStream extends InputStreamWithOffsets {
         orbInstance_ = orbInstance;
 
         if (orbInstance_ != null && orbInstance_.useTypeCodeCache()) {
-            //
-            // Get the TypeCodeCache of this ORBInstance
-            //
             cache_ = TypeCodeCache.instance();
         }
     }
 
-    public ORBInstance _OB_ORBInstance() {
-        return orbInstance_;
-    }
+    public ORBInstance _OB_ORBInstance() { return orbInstance_; }
 
     public int _OB_readLongUnchecked() {
         // The chunking code needs to read a long value without entering an infinite loop
@@ -1505,13 +1500,9 @@ final public class InputStream extends InputStreamWithOffsets {
         }
     }
 
-    public void _OB_beginValue() {
-        valueReader().beginValue();
-    }
+    public void _OB_beginValue() { valueReader().beginValue(); }
 
-    public void _OB_endValue() {
-        valueReader().endValue();
-    }
+    public void _OB_endValue() { valueReader().endValue(); }
 
     public void _OB_remarshalValue(org.omg.CORBA.TypeCode tc, OutputStream out) {
         valueReader().remarshalValue(tc, out);
