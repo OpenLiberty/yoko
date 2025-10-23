@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OCI.IIOP;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.OB.IORDump;
 import org.apache.yoko.orb.OB.IORUtil;
 import org.apache.yoko.orb.OB.PROTOCOL_POLICY_ID;
@@ -90,7 +90,7 @@ final class ConFactory_impl extends LocalObject implements
         //
         // Get the IIOP profile body
         //
-        InputStream in = new InputStream(profile.profile_data);
+        YokoInputStream in = new YokoInputStream(profile.profile_data);
         in._OB_readEndian();
         ProfileBody_1_0 body = ProfileBody_1_0Helper.read(in);
 
@@ -152,7 +152,7 @@ final class ConFactory_impl extends LocalObject implements
             //
             // Get the IIOP profile body
             //
-            final InputStream in = new InputStream(profile.profile_data);
+            final YokoInputStream in = new YokoInputStream(profile.profile_data);
             in._OB_readEndian();
             final ProfileBody_1_0 body = ProfileBody_1_0Helper.read(in);
             boolean recordPortZero = false;
@@ -206,7 +206,7 @@ final class ConFactory_impl extends LocalObject implements
             final ConnectCB[] ccbs = info_._OB_getConnectCBSeq();
             for (TaggedComponent tc: components) {
                 if (tc.tag == TAG_ALTERNATE_IIOP_ADDRESS.value) {
-                    final InputStream cin = new InputStream(tc.component_data);
+                    final YokoInputStream cin = new YokoInputStream(tc.component_data);
                     cin._OB_readEndian();
                     final String host = cin.read_string();
                     final short s = cin.read_ushort();

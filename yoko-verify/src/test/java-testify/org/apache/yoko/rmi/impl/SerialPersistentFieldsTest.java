@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.junit.jupiter.api.Test;
 import org.omg.CORBA.ORB;
@@ -52,7 +52,7 @@ public abstract class SerialPersistentFieldsTest implements Serializable {
         OutputStream out = (OutputStream)orb.create_output_stream();
         out.write_value(this);
         System.out.println(out.getBufferReader().dumpAllData());
-        InputStream in = out.create_input_stream();
+        YokoInputStream in = out.create_input_stream();
         Serializable result = in.read_value();
         assertNotNull(result);
     }

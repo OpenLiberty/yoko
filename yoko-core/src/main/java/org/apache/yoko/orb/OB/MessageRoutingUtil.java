@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.Messaging.MaxHopsPolicy_impl;
 import org.apache.yoko.orb.Messaging.QueueOrderPolicy_impl;
@@ -199,7 +199,7 @@ final public class MessageRoutingUtil {
 
         for (final TaggedComponent component : info.components) {
             if (component.tag == TAG_MESSAGE_ROUTERS.value) {
-                InputStream in = new InputStream(component.component_data);
+                YokoInputStream in = new YokoInputStream(component.component_data);
                 in._OB_readEndian();
                 // Needed to create Objects
                 in._OB_ORBInstance(orbInstance);
@@ -595,70 +595,70 @@ final public class MessageRoutingUtil {
         // Create the appropriate policy depending on the policy value we were given
         switch (policyValue.ptype) {
         case REBIND_POLICY_TYPE.value: {
-            InputStream in = new InputStream(policyValue.pvalue);
+            YokoInputStream in = new YokoInputStream(policyValue.pvalue);
             in._OB_readEndian();
             short mode = RebindModeHelper.read(in);
 
             return new RebindPolicy_impl(mode);
         }
         case REQUEST_PRIORITY_POLICY_TYPE.value: {
-            InputStream in = new InputStream(policyValue.pvalue);
+            YokoInputStream in = new YokoInputStream(policyValue.pvalue);
             in._OB_readEndian();
             PriorityRange range = PriorityRangeHelper.read(in);
 
             return new RequestPriorityPolicy_impl(range);
         }
         case REPLY_PRIORITY_POLICY_TYPE.value: {
-            InputStream in = new InputStream(policyValue.pvalue);
+            YokoInputStream in = new YokoInputStream(policyValue.pvalue);
             in._OB_readEndian();
             PriorityRange range = PriorityRangeHelper.read(in);
 
             return new ReplyPriorityPolicy_impl(range);
         }
         case REQUEST_START_TIME_POLICY_TYPE.value: {
-            InputStream in = new InputStream(policyValue.pvalue);
+            YokoInputStream in = new YokoInputStream(policyValue.pvalue);
             in._OB_readEndian();
             UtcT time = UtcTHelper.read(in);
 
             return new RequestStartTimePolicy_impl(time);
         }
         case REQUEST_END_TIME_POLICY_TYPE.value: {
-            InputStream in = new InputStream(policyValue.pvalue);
+            YokoInputStream in = new YokoInputStream(policyValue.pvalue);
             in._OB_readEndian();
             UtcT time = UtcTHelper.read(in);
 
             return new RequestEndTimePolicy_impl(time);
         }
         case REPLY_START_TIME_POLICY_TYPE.value: {
-            InputStream in = new InputStream(policyValue.pvalue);
+            YokoInputStream in = new YokoInputStream(policyValue.pvalue);
             in._OB_readEndian();
             UtcT time = UtcTHelper.read(in);
 
             return new ReplyStartTimePolicy_impl(time);
         }
         case REPLY_END_TIME_POLICY_TYPE.value: {
-            InputStream in = new InputStream(policyValue.pvalue);
+            YokoInputStream in = new YokoInputStream(policyValue.pvalue);
             in._OB_readEndian();
             UtcT time = UtcTHelper.read(in);
 
             return new ReplyEndTimePolicy_impl(time);
         }
         case ROUTING_POLICY_TYPE.value: {
-            InputStream in = new InputStream(policyValue.pvalue);
+            YokoInputStream in = new YokoInputStream(policyValue.pvalue);
             in._OB_readEndian();
             RoutingTypeRange range = RoutingTypeRangeHelper.read(in);
 
             return new RoutingPolicy_impl(range);
         }
         case MAX_HOPS_POLICY_TYPE.value: {
-            InputStream in = new InputStream(policyValue.pvalue);
+            YokoInputStream in = new YokoInputStream(policyValue.pvalue);
             in._OB_readEndian();
             short hops = in.read_ushort();
 
             return new MaxHopsPolicy_impl(hops);
         }
         case QUEUE_ORDER_POLICY_TYPE.value: {
-            InputStream in = new InputStream(policyValue.pvalue);
+            YokoInputStream in = new YokoInputStream(policyValue.pvalue);
             in._OB_readEndian();
             short order = OrderingHelper.read(in);
 

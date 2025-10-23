@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ package org.apache.yoko.giop;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.OCI.GiopVersion;
 import org.omg.CORBA.MARSHAL;
 
@@ -54,7 +54,7 @@ import static org.omg.GIOP.MsgType_1_1._Request;
 
 public enum MessageType {
     REQUEST(_Request) {
-        void describeHeader(StringBuilder sb, InputStream in, GiopVersion version) {
+        void describeHeader(StringBuilder sb, YokoInputStream in, GiopVersion version) {
             switch (version) {
                 case GIOP1_0:
                 case GIOP1_1:
@@ -78,15 +78,15 @@ public enum MessageType {
                     in.skipAlign(EIGHT_BYTE_BOUNDARY);
             }
         }
-        void describeResponseExpected(StringBuilder sb, InputStream in) { sb.append(String.format("%n\tRESPONSE EXPECTED = %b", in.read_boolean())); }
-        void describeResponseFlags(StringBuilder sb, InputStream in) { sb.append(String.format("%n\tRESPONSE FLAGS = 0x%02x", in.read_octet())); }
-        void describePrincipal(StringBuilder sb, InputStream in) {
+        void describeResponseExpected(StringBuilder sb, YokoInputStream in) { sb.append(String.format("%n\tRESPONSE EXPECTED = %b", in.read_boolean())); }
+        void describeResponseFlags(StringBuilder sb, YokoInputStream in) { sb.append(String.format("%n\tRESPONSE FLAGS = 0x%02x", in.read_octet())); }
+        void describePrincipal(StringBuilder sb, YokoInputStream in) {
             sb.append(String.format("%n\tREQUESTING PRINCIPAL:"));
             describeOctetSeq(sb, "\t\t", in);
         }
     },
     REPLY(_Reply) {
-        void describeHeader(StringBuilder sb, InputStream in, GiopVersion version) {
+        void describeHeader(StringBuilder sb, YokoInputStream in, GiopVersion version) {
             switch (version) {
                 case GIOP1_0:
                 case GIOP1_1:
@@ -104,18 +104,18 @@ public enum MessageType {
             }
         }
 
-        void describeReplyStatus(StringBuilder sb, InputStream in) {
+        void describeReplyStatus(StringBuilder sb, YokoInputStream in) {
             ReplyStatus status = ReplyStatus.valueOf(in.read_long());
             sb.append(String.format("%n\tREPLY STATUS = %s", status));
         }
     },
     CANCEL_REQUEST(_CancelRequest){
-        void describeHeader(StringBuilder sb, InputStream in, GiopVersion version) {
+        void describeHeader(StringBuilder sb, YokoInputStream in, GiopVersion version) {
             describeReqId(sb, in);
         }
     },
     LOCATE_REQUEST(_LocateRequest){
-        void describeHeader(StringBuilder sb, InputStream in, GiopVersion version) {
+        void describeHeader(StringBuilder sb, YokoInputStream in, GiopVersion version) {
             switch (version) {
                 case GIOP1_0:
                 case GIOP1_1:
@@ -129,11 +129,11 @@ public enum MessageType {
         }
     },
     LOCATE_REPLY(_LocateReply){
-        void describeHeader(StringBuilder sb, InputStream in, GiopVersion version) {
+        void describeHeader(StringBuilder sb, YokoInputStream in, GiopVersion version) {
             describeReqId(sb, in);
             sb.append(String.format("%n\t%s", getLocateStatus(in)));
         }
-        String getLocateStatus(InputStream in) {
+        String getLocateStatus(YokoInputStream in) {
             int locStat = in.read_long();
             switch (locStat) {
                 case _UNKNOWN_OBJECT: return "LOCATE STATUS = UNKNOWN_OBJECT";
@@ -149,7 +149,7 @@ public enum MessageType {
     CLOSE_CONNECTION(_CloseConnection),
     MESSAGE_ERROR(_MessageError),
     FRAGMENT(_Fragment) {
-        void describeHeader(StringBuilder sb, InputStream in, GiopVersion version) {
+        void describeHeader(StringBuilder sb, YokoInputStream in, GiopVersion version) {
             if (version == GIOP1_2) describeReqId(sb, in);
         }
     },
@@ -201,7 +201,7 @@ public enum MessageType {
     private static String describeGiopMessage(Buffer<?> buffer, boolean includeMessageHeader, boolean includeMessageOctets) {
         final StringBuilder sb = new StringBuilder();
         try {
-            final InputStream in = new InputStream(buffer.newReadBuffer());
+            final YokoInputStream in = new YokoInputStream(buffer.newReadBuffer());
             in._OB_skip(4); // skip GIOP magic header
             byte major = in.read_octet();
             byte minor = in.read_octet();
@@ -227,20 +227,20 @@ public enum MessageType {
             sb.append(String.format("%n\tFRAGMENT_TO_FOLLOW = %s", ((flags & FRAG_FLAG) == FRAG_FLAG)));
     }
 
-    void describeHeader(StringBuilder sb, InputStream in, GiopVersion version) {}
+    void describeHeader(StringBuilder sb, YokoInputStream in, GiopVersion version) {}
 
-    private static void dumpHex(StringBuilder sb, InputStream in) {
+    private static void dumpHex(StringBuilder sb, YokoInputStream in) {
         sb.append(EOL);
         if (in.available() == 0) in.dumpAllData(sb); // there is no body, just print the hex
         else in.dumpAllDataWithPosition(sb, "body"); // print the hex showing where the body starts
     }
 
-    private static void describeObjectKey(StringBuilder sb, InputStream in) {
+    private static void describeObjectKey(StringBuilder sb, YokoInputStream in) {
         sb.append(String.format("%n\tOBJECT KEY:"));
         describeOctetSeq(sb, "\t\t", in);
     }
 
-    private static void describeTargetAddress(StringBuilder sb, InputStream in) {
+    private static void describeTargetAddress(StringBuilder sb, YokoInputStream in) {
         short disposition = in.read_short();
         switch (disposition) {
             case 0:
@@ -260,7 +260,7 @@ public enum MessageType {
         }
     }
 
-    private static void describeServiceContextList(StringBuilder sb, InputStream in) {
+    private static void describeServiceContextList(StringBuilder sb, YokoInputStream in) {
         int len = in.read_long();
         for (int i = 1; i <= len; i++) {
             sb.append(EOL).append("\t").append("SERVICE CONTEXT ").append(i).append(" OF ").append(len);
@@ -268,7 +268,7 @@ public enum MessageType {
         }
     }
 
-    private static void describeServiceContext(StringBuilder sb, InputStream in) {
+    private static void describeServiceContext(StringBuilder sb, YokoInputStream in) {
         sb.append(" TAG = ");
         describeServiceContextId(sb, in.read_long());
         describeOctetSeq(sb, "\t\t", in);
@@ -278,7 +278,7 @@ public enum MessageType {
         sb.append(String.format("0x%08x (%s)", tag, ServiceContextTag.valueOf(tag)));
     }
 
-    private static void describeOctetSeq(StringBuilder sb, String indent, InputStream in) {
+    private static void describeOctetSeq(StringBuilder sb, String indent, YokoInputStream in) {
         int len = in.read_long();
         sb.append(String.format(" [0x%08x octets]", len));
         if (len == 0) return;
@@ -297,12 +297,12 @@ public enum MessageType {
         }
     }
 
-    private static void describeTaggedProfile(StringBuilder sb, String indent, InputStream in) {
+    private static void describeTaggedProfile(StringBuilder sb, String indent, YokoInputStream in) {
         sb.append(String.format("%n%sID = 0x%08x", indent, in.read_long()));
         describeOctetSeq(sb, indent, in);
     }
 
-    private static void describeTaggedProfileSeq(StringBuilder sb, String indent, InputStream in) {
+    private static void describeTaggedProfileSeq(StringBuilder sb, String indent, YokoInputStream in) {
         int len = in.read_long();
         for (int i = 1; i <= len; i++) {
             sb.append(indent);
@@ -315,20 +315,20 @@ public enum MessageType {
         }
     }
 
-    private static void describeIor(StringBuilder sb, String indent, InputStream in) {
+    private static void describeIor(StringBuilder sb, String indent, YokoInputStream in) {
         // struct IOR { string type_id; TaggedProfileSeq profiles; }
         sb.append(String.format("%n%sTYPE ID:", indent));
         describeOctetSeq(sb,indent + "\t", in);
         describeTaggedProfileSeq(sb, indent, in);
     }
 
-    private static void describeReqId(StringBuilder sb, InputStream in) {
+    private static void describeReqId(StringBuilder sb, YokoInputStream in) {
         sb.append(String.format("%n\tREQUEST ID = %d", in.read_long()));
     }
 
     enum StringField {
         OPERATION;
-        private void describeString(StringBuilder sb, String indent, InputStream in) {
+        private void describeString(StringBuilder sb, String indent, YokoInputStream in) {
             int start = in.getBuffer().getPosition();
             try {
                 String value = in.read_string();

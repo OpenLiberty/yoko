@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OBPortableServer.POA_impl;
@@ -67,7 +67,7 @@ public class Upcall {
     private OutputStream out_;
 
     // Holds the in/inout parameters
-    private final InputStream in_;
+    private final YokoInputStream in_;
 
     protected final ServiceContexts requestContexts;
     protected final ServiceContexts replyContexts;
@@ -91,7 +91,7 @@ public class Upcall {
     private final Timeout timeout;
 
     public Upcall(ORBInstance orbInstance, UpcallReturn upcallReturn, ProfileInfo profileInfo,
-            TransportInfo transportInfo, int requestId, String op, InputStream in, ServiceContexts requestContexts) {
+                  TransportInfo transportInfo, int requestId, String op, YokoInputStream in, ServiceContexts requestContexts) {
         this.orbInstance_ = orbInstance;
         this.upcallReturn_ = upcallReturn;
         this.profileInfo_ = profileInfo;
@@ -149,7 +149,7 @@ public class Upcall {
         return out_;
     }
 
-    public InputStream input() {
+    public YokoInputStream input() {
         return in_;
     }
 
@@ -158,7 +158,7 @@ public class Upcall {
         out_ = new OutputStream(createWriteBuffer(offset).padAll(), in_._OB_codeConverters(), giopVersion);
     }
 
-    public InputStream preUnmarshal() {
+    public YokoInputStream preUnmarshal() {
         return in_;
     }
 

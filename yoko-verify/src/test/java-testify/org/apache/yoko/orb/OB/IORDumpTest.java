@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.util.HexConverter;
 import org.junit.jupiter.api.Test;
 import org.omg.CORBA.ORB;
@@ -52,7 +52,7 @@ public class IORDumpTest {
     private String describe(String ref) {
         byte[] data = HexConverter.asciiToOctets(ref, 4);
         assertThat(data, is(not(nullValue())));
-        InputStream in = new InputStream(data);
+        YokoInputStream in = new YokoInputStream(data);
         in._OB_readEndian();
         IOR ior = IORHelper.read(in);
         String s = IORDump.describeIor(orb, ior);

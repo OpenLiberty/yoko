@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ package org.apache.yoko;
 import acme.AbstractInterface;
 import acme.AbstractValue;
 import org.apache.yoko.io.ReadBuffer;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.util.yasf.Yasf;
@@ -53,7 +53,7 @@ class JavaValueNullFieldsTest {
 
     OutputStream out;
     byte[] data;
-    InputStream in;
+    YokoInputStream in;
     @BeforeEach
     void setupStreams() {
         out = new OutputStream(null, GiopVersion.GIOP1_2);

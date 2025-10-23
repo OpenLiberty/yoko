@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.omg.CORBA.SystemException;
 import org.omg.CORBA.UNKNOWN;
 import org.omg.CORBA.portable.UnknownException;
@@ -42,7 +42,7 @@ public class UnresolvedException extends UnknownException {
     private final CodeBase sendingContextRuntime;
     private final String codebase;
 
-    UnresolvedException(UNKNOWN ex, byte[] data, InputStream is) {
+    UnresolvedException(UNKNOWN ex, byte[] data, YokoInputStream is) {
         super(ex);
         super.completed = ex.completed;
         super.minor = ex.minor;
@@ -54,7 +54,7 @@ public class UnresolvedException extends UnknownException {
     }
 
     public SystemException resolve() {
-        try (InputStream in = new InputStream(data, false, converters, GIOP1_2)) {
+        try (YokoInputStream in = new YokoInputStream(data, false, converters, GIOP1_2)) {
             if (LOGGER.isLoggable(Level.FINE))
                 LOGGER.fine(String.format("Unpacking Unknown Exception Info%n%s", in.dumpRemainingData()));
             try {

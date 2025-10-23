@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.apache.yoko.orb.OCI.IIOP;
 
 
 import acme.Echo;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.rmi.impl.RMIServant;
 import org.apache.yoko.rmi.impl.ServantFactory;
 import org.junit.jupiter.api.BeforeAll;
@@ -140,7 +141,7 @@ public class EndpointHandlingTest {
         ORB singleton = ORB.init();
         Any any = singleton.create_any();
         System.out.println("=== profile body === len: " + tp.profile_data.length);
-        org.apache.yoko.orb.CORBA.InputStream in = new org.apache.yoko.orb.CORBA.InputStream(tp.profile_data);
+        YokoInputStream in = new YokoInputStream(tp.profile_data);
         System.out.println(in.dumpAllDataWithPosition());
         in.read_octet(); // the BOM?
         return ProfileBody_1_1Helper.read(in);

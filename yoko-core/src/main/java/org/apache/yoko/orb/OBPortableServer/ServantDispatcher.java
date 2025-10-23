@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.orb.OBPortableServer;
 
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.util.Assert;
 
 //
@@ -103,7 +104,7 @@ final class ServantDispatcher implements org.omg.CORBA.portable.ResponseHandler 
 
         case 1: // _is_a
         {
-            org.apache.yoko.orb.CORBA.InputStream in = upcall_.preUnmarshal();
+            YokoInputStream in = upcall_.preUnmarshal();
             String id = null;
             try {
                 id = in.read_string();

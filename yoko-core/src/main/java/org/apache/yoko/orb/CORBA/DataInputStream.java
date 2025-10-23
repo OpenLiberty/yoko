@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,13 +37,13 @@ import org.omg.CORBA.UShortSeqHolder;
 import org.omg.CORBA.WCharSeqHolder;
 
 final public class DataInputStream implements org.omg.CORBA.DataInputStream {
-    private InputStream in_;
+    private YokoInputStream in_;
 
     // ------------------------------------------------------------------
     // Constructor
     // ------------------------------------------------------------------
 
-    public DataInputStream(InputStream in) {
+    public DataInputStream(YokoInputStream in) {
         in_ = in;
     }
 

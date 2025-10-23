@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.cmsf;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.MARSHAL;
@@ -72,7 +72,7 @@ public enum CmsfVersion {
     static CmsfVersion readData(byte[] data) {
         if (data == null) return CMSFv1;
         int cmsf = 1;
-        try (InputStream in = new InputStream(data)) {
+        try (YokoInputStream in = new YokoInputStream(data)) {
             in._OB_readEndian();
             cmsf = in.read_octet();
         } catch (Exception e) {

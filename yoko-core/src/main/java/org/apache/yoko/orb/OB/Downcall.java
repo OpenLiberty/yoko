@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
 import org.apache.yoko.orb.IOP.MutableServiceContexts;
@@ -25,10 +25,8 @@ import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.util.Assert;
-import org.apache.yoko.util.MinorCodes;
 import org.apache.yoko.util.concurrent.AutoLock;
 import org.apache.yoko.util.concurrent.AutoReadWriteLock;
-import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.NO_RESPONSE;
 import org.omg.CORBA.SystemException;
 import org.omg.CORBA.UNKNOWN;
@@ -37,7 +35,6 @@ import org.omg.IOP.IOR;
 import org.omg.IOP.ServiceContext;
 import org.omg.Messaging.SYNC_WITH_TRANSPORT;
 
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.logging.Level;
 
@@ -79,7 +76,7 @@ public class Downcall {
     private OutputStream out_;
 
     /** Holds the results of the operation */
-    private InputStream in_;
+    private YokoInputStream in_;
 
     /** The state of this invocation */
     protected enum State { UNSENT, PENDING, NO_EXCEPTION, USER_EXCEPTION, SYSTEM_EXCEPTION, FAILURE_EXCEPTION, STALE_CONNECTION, FORWARD, FORWARD_PERM }
@@ -231,7 +228,7 @@ public class Downcall {
         return out_;
     }
 
-    public final InputStream input() {
+    public final YokoInputStream input() {
         return in_;
     }
 
@@ -350,7 +347,7 @@ public class Downcall {
             return false;
     }
 
-    public final InputStream preUnmarshal()
+    public final YokoInputStream preUnmarshal()
             throws LocationForward, FailureException {
         return in_;
     }
@@ -423,7 +420,7 @@ public class Downcall {
         }
     }
 
-    public final void setNoException(InputStream in) {
+    public final void setNoException(YokoInputStream in) {
         try (AutoLock lock = stateLock.getWriteLock()) {
             state = State.NO_EXCEPTION;
             if (in == null) {
@@ -439,7 +436,7 @@ public class Downcall {
         }
     }
 
-    public final void setUserException(InputStream in) {
+    public final void setUserException(YokoInputStream in) {
         try (AutoLock lock = stateLock.getWriteLock()) {
             Assert.ensure(in != null);
             Assert.ensure(responseExpected_);

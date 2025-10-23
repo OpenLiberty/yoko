@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.omg.CONV_FRAME.CodeSetComponentInfo;
 import org.omg.CONV_FRAME.CodeSetComponentInfoHelper;
 import org.omg.CSI.ITTAbsent;
@@ -80,16 +80,11 @@ import static java.lang.Integer.toHexString;
 import static org.apache.yoko.util.Hex.formatHexLine;
 import static org.apache.yoko.util.Hex.formatHexPara;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 import java.util.function.BiConsumer;
 
 public final class IORUtil {
     private static void describeCSISecMechList(TaggedComponent component, StringBuilder sb) {
-        InputStream in = new InputStream(component.component_data);
+        YokoInputStream in = new YokoInputStream(component.component_data);
         in._OB_readEndian();
         CompoundSecMechList info = CompoundSecMechListHelper.read(in);
         
@@ -161,7 +156,7 @@ public final class IORUtil {
     }
 
     private static void describeTLS_SEC_TRANS(TaggedComponent component, StringBuilder sb) {
-        InputStream in = new InputStream(component.component_data);
+        YokoInputStream in = new YokoInputStream(component.component_data);
         in._OB_readEndian();
         TLS_SEC_TRANS info = TLS_SEC_TRANSHelper.read(in);
         sb.append("        TLS_SEC_TRANS component:\n"); 
@@ -175,7 +170,7 @@ public final class IORUtil {
     }
 
     private static void describeSECIOP_SEC_TRANS(TaggedComponent component, StringBuilder sb) {
-        InputStream in = new InputStream(component.component_data);
+        YokoInputStream in = new YokoInputStream(component.component_data);
         in._OB_readEndian();
         SECIOP_SEC_TRANS info = SECIOP_SEC_TRANSHelper.read(in);
         sb.append("        SECIOP_SEC_TRANS component:\n"); 
@@ -191,7 +186,7 @@ public final class IORUtil {
     }
 
     private static void describeCodeSets(TaggedComponent component, StringBuilder sb) {
-        InputStream in = new InputStream(component.component_data);
+        YokoInputStream in = new YokoInputStream(component.component_data);
         in._OB_readEndian();
         CodeSetComponentInfo info = CodeSetComponentInfoHelper.read(in);
         CodeSetInfo charInfo;
@@ -247,14 +242,14 @@ public final class IORUtil {
     }
 
     private static void describeJavaCodebase(TaggedComponent component, StringBuilder sb) {
-        InputStream in = new InputStream(component.component_data);
+        YokoInputStream in = new YokoInputStream(component.component_data);
         in._OB_readEndian();
         String codebase = in.read_string();
         sb.append("Component: TAG_JAVA_CODEBASE = '").append(codebase).append("'\n");
     }
 
     private static void describeAlternateIiop(TaggedComponent component, StringBuilder sb) {
-        InputStream in = new InputStream(component.component_data);
+        YokoInputStream in = new YokoInputStream(component.component_data);
         in._OB_readEndian();
         String host = in.read_string();
         int port = 0xFFFF & in.read_ushort();
@@ -264,7 +259,7 @@ public final class IORUtil {
     }
 
     private static void describeOrbType(TaggedComponent component, StringBuilder sb) {
-        InputStream in = new InputStream(component.component_data);
+        YokoInputStream in = new YokoInputStream(component.component_data);
         in._OB_readEndian();
         sb.append("Component: TAG_ORB_TYPE = 0x").append(toHexString(in.read_ulong())).append('\n');
     }

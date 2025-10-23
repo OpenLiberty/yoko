@@ -21,7 +21,7 @@ import acme.Loader;
 import acme.Widget;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.WriteBuffer;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.OB.SendingContextRuntimes;
 import org.apache.yoko.osgi.locator.ProviderRegistryImpl;
@@ -72,9 +72,9 @@ public abstract class VersionedWidgetTest<T> {
     }
 
     /** Test widgets can be marshalled and unmarshalled */
-    public static class WidgetMarshallingTest extends VersionedWidgetTest<InputStream> {
+    public static class WidgetMarshallingTest extends VersionedWidgetTest<YokoInputStream> {
         @Override
-        InputStream encode(Widget widget) {
+        YokoInputStream encode(Widget widget) {
             WriteBuffer b = Buffer.createWriteBuffer();
             OutputStream out = new OutputStream(b);
             out.write_value(widget);
@@ -82,7 +82,7 @@ public abstract class VersionedWidgetTest<T> {
         }
 
         @Override
-        Widget decode(InputStream in, String widgetClassName, Loader context) throws Exception {
+        Widget decode(YokoInputStream in, String widgetClassName, Loader context) throws Exception {
             // Marshalling across versions will need a runtime codebase
             in.__setSendingContextRuntime(SendingContextRuntimes.LOCAL_CODE_BASE);
             Class<? extends Widget> knownType = context.loadClass(widgetClassName);
@@ -93,7 +93,7 @@ public abstract class VersionedWidgetTest<T> {
     /** Test widgets can be demarshalled using a provider to resolve classes */
     public static class WidgetProviderLoaderTest extends WidgetMarshallingTest {
         @Override
-        Widget decode(InputStream in, String widgetClassName, Loader context) {
+        Widget decode(YokoInputStream in, String widgetClassName, Loader context) {
             // Marshalling across versions will need a runtime codebase
             in.__setSendingContextRuntime(SendingContextRuntimes.LOCAL_CODE_BASE);
             ProviderRegistryImpl reg = new ProviderRegistryImpl();
@@ -110,12 +110,12 @@ public abstract class VersionedWidgetTest<T> {
     /** Test widgets can be demarshalled using the stack loader to resolve classes */
     public static class WidgetStackLoaderTest extends WidgetMarshallingTest {
         @Override
-        Widget decode(InputStream in, String widgetClassName, Loader context) {
+        Widget decode(YokoInputStream in, String widgetClassName, Loader context) {
             // Marshalling across versions will need a runtime codebase
             in.__setSendingContextRuntime(SendingContextRuntimes.LOCAL_CODE_BASE);
             // To unmarshal from the correct class loading context,
             // delegate the read_value() to a WidgetReader from the context loader
-            Function<InputStream, Widget> widgetReader = context.newInstance("versioned.WidgetReader");
+            Function<YokoInputStream, Widget> widgetReader = context.newInstance("versioned.WidgetReader");
             return widgetReader.apply(in);
         }
     }
@@ -124,7 +124,7 @@ public abstract class VersionedWidgetTest<T> {
     /** Test ProviderLoader classes on the stack are ignored when selecting a stack loader */
     public static class WidgetDeepStackLoaderTest extends WidgetMarshallingTest {
         @Override
-        Widget decode(InputStream in, String widgetClassName, Loader context) throws Exception {
+        Widget decode(YokoInputStream in, String widgetClassName, Loader context) throws Exception {
             // Marshalling across versions will need a runtime codebase
             in.__setSendingContextRuntime(SendingContextRuntimes.LOCAL_CODE_BASE);
             // Register the V0 package provider with the provider registry so it can be ignored in the call stack.
@@ -133,8 +133,8 @@ public abstract class VersionedWidgetTest<T> {
             reg.start();
             // To insert an extra layer into the call stack, use the WidgetReader from the WRONG loader, V0.
             // NOTE: if we do not load something via the registry, it will never know about the class loader
-            Class<? extends Function<InputStream, Widget>> widgetReaderClass = reg.locate("versioned.WidgetReader");
-            Function<InputStream, Widget> widgetReader = widgetReaderClass.getConstructor().newInstance();
+            Class<? extends Function<YokoInputStream, Widget>> widgetReaderClass = reg.locate("versioned.WidgetReader");
+            Function<YokoInputStream, Widget> widgetReader = widgetReaderClass.getConstructor().newInstance();
             // Then invoke the WidgetReader from another object loaded by the RIGHT loader.
             widgetReader = chain(widgetReader, context);
             try {

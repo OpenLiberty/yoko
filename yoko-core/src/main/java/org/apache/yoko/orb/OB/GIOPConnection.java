@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OBPortableServer.POAManagerFactory;
@@ -310,7 +310,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
         profileInfo.minor = version.minor;
         profileInfo.key = target.value.object_key();
 
-        InputStream in = msg.input();
+        YokoInputStream in = msg.input();
 
         // We have some decision making to do here if BiDir is
         // enabled:
@@ -372,7 +372,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
         }
 
         down.setReplyContexts(contexts);
-        InputStream in = msg.input();
+        YokoInputStream in = msg.input();
 
         // read in the peer's sending context runtime object
         assignSendingContextRuntime(in, contexts);
@@ -432,14 +432,14 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
         }
     }
 
-    private SystemException convertToUnknownExceptionIfAppropriate(SystemException ex, InputStream is, ServiceContexts contexts) {
+    private SystemException convertToUnknownExceptionIfAppropriate(SystemException ex, YokoInputStream is, ServiceContexts contexts) {
         if (!(ex instanceof UNKNOWN)) return ex;
         ServiceContext sc = contexts.get(UnknownExceptionInfo.value);
         if (sc == null) return ex;
         return new UnresolvedException((UNKNOWN) ex, sc.context_data, is);
     }
 
-    private void assignSendingContextRuntime(InputStream in, ServiceContexts contexts) {
+    private void assignSendingContextRuntime(YokoInputStream in, ServiceContexts contexts) {
         if (serverRuntime_ == null) serverRuntime_ = getSendingContextRuntime(orbInstance_, contexts);
         in.__setSendingContextRuntime(serverRuntime_);
     }
@@ -538,7 +538,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
             return;
         }
 
-        InputStream in = msg.input();
+        YokoInputStream in = msg.input();
 
         switch (status.value.value()) {
             case _UNKNOWN_OBJECT:

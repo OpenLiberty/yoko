@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.Repository;
@@ -39,7 +39,7 @@ public class CodeBaseProxy extends LocalObject implements CodeBase {
         if (null == ctx || ctx.context_id != SendingContextRunTime.value) {
             throw new BAD_PARAM(describeBadParam(MinorInvalidContextID), MinorInvalidContextID, COMPLETED_NO);
         }
-        final InputStream in = new InputStream(ctx.context_data);
+        final YokoInputStream in = new YokoInputStream(ctx.context_data);
         in._OB_ORBInstance(orb);
         in._OB_readEndian();
         codebaseObj = in.read_Object();

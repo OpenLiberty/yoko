@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.DynamicAny;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
@@ -732,7 +732,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         try (OutputStream out = new OutputStream()) {
             out._OB_ORBInstance(orbInstance_);
             impl._OB_marshal(out);
-            InputStream in = out.create_input_stream();
+            YokoInputStream in = out.create_input_stream();
             _OB_unmarshal(in);
         }
         notifyParent();
@@ -767,7 +767,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
             throw new InvalidValue();
 
         org.omg.CORBA.portable.InputStream in = val.create_input_stream();
-        _OB_unmarshal((InputStream) in);
+        _OB_unmarshal((YokoInputStream) in);
 
         index_ = 0;
 
@@ -783,7 +783,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
 
         _OB_marshal(out);
 
-            InputStream in = out.create_input_stream();
+            YokoInputStream in = out.create_input_stream();
             return new AnyImpl(orbInstance_, type_, in);
         }
     }
@@ -923,7 +923,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
 
             DynSeqBase_impl seq = (DynSeqBase_impl) result;
 
-            InputStream in = out.create_input_stream();
+            YokoInputStream in = out.create_input_stream();
             seq._OB_unmarshal(in);
 
             return result;
@@ -1506,7 +1506,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         }
     }
 
-    synchronized void _OB_unmarshal(InputStream in) {
+    synchronized void _OB_unmarshal(YokoInputStream in) {
         int len;
         if (origType_.kind() == TCKind.tk_array)
             len = length_;

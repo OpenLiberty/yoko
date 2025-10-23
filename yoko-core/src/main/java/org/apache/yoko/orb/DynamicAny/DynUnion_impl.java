@@ -30,7 +30,7 @@ import static org.omg.CORBA.TCKind._tk_value;
 import static org.omg.CORBA.TCKind.tk_enum;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
@@ -457,7 +457,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
             throw (InvalidValue)new InvalidValue().initCause(e);
         }
 
-        _OB_unmarshal((InputStream) in);
+        _OB_unmarshal((YokoInputStream) in);
 
         index_ = 0;
 
@@ -472,7 +472,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
 
         _OB_marshal(out);
 
-        InputStream in = out.create_input_stream();
+        YokoInputStream in = out.create_input_stream();
         return new AnyImpl(orbInstance_, type_, in);
     }
 
@@ -695,7 +695,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
         }
     }
 
-    synchronized void _OB_unmarshal(InputStream in) {
+    synchronized void _OB_unmarshal(YokoInputStream in) {
         DynAny_impl impl = (DynAny_impl) disc_;
         impl._OB_unmarshal(in);
 

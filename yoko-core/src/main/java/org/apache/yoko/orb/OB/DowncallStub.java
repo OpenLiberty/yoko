@@ -17,9 +17,22 @@
  */
 package org.apache.yoko.orb.OB;
 
+import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
+import static org.apache.yoko.io.Buffer.createWriteBuffer;
+import static org.apache.yoko.logging.VerboseLogging.RETRY_LOG;
+import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
+import static org.apache.yoko.orb.exceptions.Transients.NO_USABLE_PROFILE_IN_IOR;
+import static org.apache.yoko.util.MinorCodes.MinorShutdownCalled;
+import static org.apache.yoko.util.MinorCodes.describeBadInvOrder;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+
+import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OCI.ConnectorInfo;
@@ -67,19 +80,6 @@ import org.omg.Messaging.PolicyValue;
 import org.omg.Messaging.PolicyValueSeqHelper;
 import org.omg.Messaging.PolicyValueSeqHolder;
 import org.omg.Messaging.ReplyHandler;
-
-import java.util.Vector;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
-import static org.apache.yoko.io.Buffer.createWriteBuffer;
-import static org.apache.yoko.logging.VerboseLogging.RETRY_LOG;
-import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
-import static org.apache.yoko.orb.exceptions.Transients.NO_USABLE_PROFILE_IN_IOR;
-import static org.apache.yoko.util.MinorCodes.MinorShutdownCalled;
-import static org.apache.yoko.util.MinorCodes.describeBadInvOrder;
-import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 //
 // DowncallStub is equivalent to the C++ class OB::MarshalStubImpl
@@ -291,12 +291,12 @@ public final class DowncallStub {
     // Unmarshalling interception points
     //
 
-    public InputStream preUnmarshal(Downcall down) throws LocationForward, FailureException {
+    public YokoInputStream preUnmarshal(Downcall down) throws LocationForward, FailureException {
         return down.preUnmarshal();
     }
 
-    public InputStream preUnmarshal(Downcall down, BooleanHolder uex) throws LocationForward, FailureException {
-        InputStream in = down.preUnmarshal();
+    public YokoInputStream preUnmarshal(Downcall down, BooleanHolder uex) throws LocationForward, FailureException {
+        YokoInputStream in = down.preUnmarshal();
         uex.value = down.userException();
         return in;
     }
@@ -543,7 +543,7 @@ public final class DowncallStub {
     //
     // Invoke a request from a portable stub
     //
-    public InputStream invoke(
+    public YokoInputStream invoke(
             org.omg.CORBA.Object self,
             org.apache.yoko.orb.CORBA.OutputStream out)
             throws ApplicationException,
@@ -582,7 +582,7 @@ public final class DowncallStub {
             }
 
             if (response) {
-                InputStream in = down.preUnmarshal();
+                YokoInputStream in = down.preUnmarshal();
 
                 if (down.userException()) {
                     String id = null;
@@ -754,7 +754,7 @@ public final class DowncallStub {
         if (ctx.downcallStub != this)
             throw new RemarshalException();
 
-        InputStream tmpIn = (InputStream) out.create_input_stream();
+        YokoInputStream tmpIn = (YokoInputStream) out.create_input_stream();
 
         //
         // Unmarshal the message header

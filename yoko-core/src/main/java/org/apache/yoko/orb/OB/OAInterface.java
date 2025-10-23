@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.orb.OCI.TransportInfo;
@@ -32,7 +32,7 @@ public interface OAInterface {
     Upcall createUpcall(UpcallReturn upcallReturn,
                         ProfileInfo profileInfo,
                         TransportInfo transportInfo, int requestId,
-                        String op, InputStream in,
+                        String op, YokoInputStream in,
                         ServiceContexts requestContexts);
 
     //

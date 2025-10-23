@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.omg.CONV_FRAME.CodeSetComponent;
 import org.omg.CONV_FRAME.CodeSetComponentInfo;
@@ -58,8 +58,8 @@ final public class CodeSetUtil {
         return Stream.of(profileInfo.components)
                 .filter(c -> TAG_CODE_SETS.value == c.tag)
                 .map(c -> c.component_data)
-                .map(InputStream::new)
-                .peek(InputStream::_OB_readEndian)
+                .map(YokoInputStream::new)
+                .peek(YokoInputStream::_OB_readEndian)
                 .map(CodeSetComponentInfoHelper::read)
                 .findFirst().orElse(null);
     }
@@ -90,7 +90,7 @@ final public class CodeSetUtil {
     }
 
     static CodeSetContext extractCodeSetContext(ServiceContext csSC) {
-        InputStream in = new InputStream(csSC.context_data);
+        YokoInputStream in = new YokoInputStream(csSC.context_data);
         in._OB_readEndian();
         return CodeSetContextHelper.read(in);
     }
