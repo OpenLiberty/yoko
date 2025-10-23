@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.orb.PortableInterceptor;
 
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.Delegate;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OB.LocationForward;
@@ -211,7 +212,7 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
     public void set_slot(int id, Any data) throws InvalidSlot {
         if (id >= requestSlotData.length || id < 0) throw new InvalidSlot("No slot for id " + id);
         logger.fine("setting slot " + id + " for operation " + operationName);
-        requestSlotData[id] = new org.apache.yoko.orb.CORBA.Any(data);
+        requestSlotData[id] = new AnyImpl(data);
     }
 
     // Determine if the servant has the given repository id.

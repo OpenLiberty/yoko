@@ -104,7 +104,7 @@ public final class TypeCodeImpl extends TypeCode {
     // tk_struct, tk_union, tk_value, tk_except
     public TypeCodeImpl[] memberTypes_;
     // tk_union
-    public Any[] labels_;
+    public AnyImpl[] labels_;
     // tk_union
     public TypeCodeImpl discriminatorType_;
 
@@ -1031,9 +1031,9 @@ public final class TypeCodeImpl extends TypeCode {
                     result.memberTypes_[i] = _OB_convertForeignTypeCodeHelper(
                             tc.member_type(i), history, recHistory);
                 recHistory.remove(recHistory.size() - 1);
-                result.labels_ = new Any[count];
+                result.labels_ = new AnyImpl[count];
                 for (int i = 0; i < count; i++)
-                    result.labels_[i] = new Any(tc.member_label(i));
+                    result.labels_[i] = new AnyImpl(tc.member_label(i));
                 //
                 // Discriminator can't be recursive, so no history needed
                 //

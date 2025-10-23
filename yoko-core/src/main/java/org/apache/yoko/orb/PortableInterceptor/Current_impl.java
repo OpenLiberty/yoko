@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.orb.PortableInterceptor;
 
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.util.Assert;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.LocalObject;
@@ -83,7 +84,7 @@ final public class Current_impl extends LocalObject implements Current {
 
         Any slot = holder.head.slots[id];
         if (slot == null) return orb_.create_any();
-        return new org.apache.yoko.orb.CORBA.Any(slot);
+        return new AnyImpl(slot);
     }
 
     public void set_slot(int id, Any any) throws InvalidSlot {
@@ -93,7 +94,7 @@ final public class Current_impl extends LocalObject implements Current {
 
         SlotDataHolder holder = establishTSD();
 
-        holder.head.slots[id] = new org.apache.yoko.orb.CORBA.Any(any);
+        holder.head.slots[id] = new AnyImpl(any);
     }
 
     // ------------------------------------------------------------------
@@ -110,7 +111,7 @@ final public class Current_impl extends LocalObject implements Current {
         for (int i = 0; i < holder.head.slots.length; i++) {
             Any slot = holder.head.slots[i];
             if (slot != null) {
-                data[i] = new org.apache.yoko.orb.CORBA.Any(slot);
+                data[i] = new AnyImpl(slot);
             }
         }
         return data;

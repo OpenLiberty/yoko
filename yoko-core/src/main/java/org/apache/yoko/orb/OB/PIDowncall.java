@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.Any;
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.orb.PortableInterceptor.ArgumentStrategy;
@@ -58,7 +58,7 @@ public abstract class PIDowncall extends Downcall {
                 // but not the exception instance, so we pass UNKNOWN to
                 // the interceptors but DO NOT modify the Downcall state.
                 if (ex_ == null && exId_ != null) {
-                    org.omg.CORBA.Any any = new Any(orbInstance_);
+                    org.omg.CORBA.Any any = new AnyImpl(orbInstance_);
                     UNKNOWN sys = new UNKNOWN(describeUnknown(MinorUnknownUserException) + ": " + exId_, MinorUnknownUserException, COMPLETED_YES);
                     UNKNOWNHelper.insert(any, sys);
                     UnknownUserException unk = new UnknownUserException(any);

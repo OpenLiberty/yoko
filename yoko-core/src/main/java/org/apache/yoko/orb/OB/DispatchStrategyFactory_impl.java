@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
  
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.util.Assert;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.INITIALIZE;
@@ -47,7 +48,7 @@ final class DispatchSameThread_impl extends LocalObject implements DispatchStrat
     }
 
     public Any info() {
-        return new org.apache.yoko.orb.CORBA.Any();
+        return new AnyImpl();
     }
 
     public void dispatch(DispatchRequest request) {
@@ -84,7 +85,7 @@ final class DispatchThreadPerRequest_impl extends LocalObject implements Dispatc
     }
 
     public Any info() {
-        return new org.apache.yoko.orb.CORBA.Any();
+        return new AnyImpl();
     }
 
     public void dispatch(DispatchRequest request) {
@@ -115,7 +116,7 @@ final class DispatchThreadPool_impl extends LocalObject implements DispatchStrat
     }
 
     public Any info() {
-        Any any = new org.apache.yoko.orb.CORBA.Any();
+        Any any = new AnyImpl();
         any.insert_ulong(id_);
         return any;
     }

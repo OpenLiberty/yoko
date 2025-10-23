@@ -49,6 +49,7 @@ import javax.rmi.CORBA.Util;
 import javax.rmi.CORBA.ValueHandler;
 
 import org.apache.yoko.io.ReadBuffer;
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.util.Assert;
@@ -1364,9 +1365,9 @@ public final class ValueReader {
         // raised.
         //
 
-        org.apache.yoko.orb.CORBA.Any obAny = null;
+        AnyImpl obAny = null;
         try {
-            obAny = (org.apache.yoko.orb.CORBA.Any) any;
+            obAny = (AnyImpl) any;
         } catch (ClassCastException ex) {
             //
             // Any may have been created by a foreign ORB

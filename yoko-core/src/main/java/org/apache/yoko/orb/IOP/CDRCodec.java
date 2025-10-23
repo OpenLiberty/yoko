@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.apache.yoko.orb.IOP;
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.OB.ORBInstance;
@@ -68,7 +69,7 @@ final class CDRCodec extends LocalObject implements Codec {
             in._OB_ORBInstance(orbInstance_);
             in._OB_readEndian();
 
-            Any any = new org.apache.yoko.orb.CORBA.Any(orbInstance_, tc, null);
+            Any any = new AnyImpl(orbInstance_, tc, null);
             any.read_value(in, tc);
 
             return any;

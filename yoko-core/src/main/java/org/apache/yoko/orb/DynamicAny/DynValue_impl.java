@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.DynamicAny;
 
-import org.apache.yoko.orb.CORBA.Any;
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
@@ -230,12 +230,12 @@ final class DynValue_impl extends DynValueCommon_impl implements
         // Convert value to an ORBacus Any - the JDK implementation
         // of TypeCode.equivalent() raises NO_IMPLEMENT
         //
-        Any val;
+        AnyImpl val;
         try {
-            val = (Any) value;
+            val = (AnyImpl) value;
         } catch (ClassCastException ex) {
             try {
-                val = new Any(value);
+                val = new AnyImpl(value);
             } catch (NullPointerException e) {
                 throw (InvalidValue)new
                     InvalidValue().initCause(e);
@@ -272,7 +272,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
             throw new OBJECT_NOT_EXIST();
 
         if (is_null())
-            return new Any(orbInstance_, type_, null);
+            return new AnyImpl(orbInstance_, type_, null);
         else {
             try (OutputStream out = new OutputStream()) {
                 out._OB_ORBInstance(orbInstance_);
@@ -283,7 +283,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
                     _OB_marshal(out);
 
                 InputStream in = out.create_input_stream();
-                return new Any(orbInstance_, type_, in);
+                return new AnyImpl(orbInstance_, type_, in);
             }
         }
     }
@@ -398,7 +398,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
         // name-value pairs to check for matching member names and
         // compatible TypeCodes
         //
-        Any[] values = new Any[value.length];
+        AnyImpl[] values = new AnyImpl[value.length];
         for (int i = 0; i < names_.length; i++) {
             if (value[i].id.length() > 0 && names_[i].length() > 0
                     && !value[i].id.equals(names_[i]))
@@ -410,9 +410,9 @@ final class DynValue_impl extends DynValueCommon_impl implements
             // get an ORBacus TypeCode
             //
             try {
-                values[i] = (Any) value[i].value;
+                values[i] = (AnyImpl) value[i].value;
             } catch (ClassCastException ex) {
-                values[i] = new Any(value[i].value);
+                values[i] = new AnyImpl(value[i].value);
             }
             org.omg.CORBA.TypeCode valueType = values[i]._OB_type();
             if (!valueType.equivalent(types_[i]))
@@ -603,7 +603,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
         notifyParent();
     }
 
-    synchronized Any _OB_currentAny() {
+    synchronized AnyImpl _OB_currentAny() {
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
@@ -615,7 +615,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
         return null;
     }
 
-    Any _OB_currentAnyValue() {
+    AnyImpl _OB_currentAnyValue() {
         return null;
     }
 }

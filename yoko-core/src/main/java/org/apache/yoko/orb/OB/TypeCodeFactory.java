@@ -76,6 +76,7 @@ import static org.omg.CORBA.TCKind.tk_void;
 import static org.omg.CORBA.TCKind.tk_wstring;
 import static org.omg.CORBA_2_4.TCKind.tk_local_interface;
 
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.omg.CORBA.Any;
@@ -395,15 +396,15 @@ public final class TypeCodeFactory {
             tc.discriminatorType_ = _OB_convertForeignTypeCode(discriminator_type);
         }
 
-        tc.labels_ = new org.apache.yoko.orb.CORBA.Any[members.length];
+        tc.labels_ = new AnyImpl[members.length];
         tc.memberNames_ = new String[members.length];
         tc.memberTypes_ = new TypeCodeImpl[members.length];
 
         for (int i = 0; i < members.length; i++) {
             try {
-                tc.labels_[i] = (org.apache.yoko.orb.CORBA.Any) members[i].label;
+                tc.labels_[i] = (AnyImpl) members[i].label;
             } catch (ClassCastException ex) {
-                tc.labels_[i] = new org.apache.yoko.orb.CORBA.Any(
+                tc.labels_[i] = new AnyImpl(
                         members[i].label);
             }
 

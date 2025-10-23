@@ -352,7 +352,7 @@ final public class InputStream extends InputStreamWithOffsets {
                         p.discriminatorType_ = (TypeCodeImpl) readTypeCodeImpl(history, false);
                         int defaultIndex = read_long();
                         int num = read_ulong();
-                        p.labels_ = new Any[num];
+                        p.labels_ = new AnyImpl[num];
                         p.memberNames_ = new String[num];
                         p.memberTypes_ = new TypeCodeImpl[num];
 
@@ -380,14 +380,14 @@ final public class InputStream extends InputStreamWithOffsets {
                         }
 
                         for (int i = 0; i < num; i++) {
-                            p.labels_[i] = new Any();
+                            p.labels_[i] = new AnyImpl();
                             if (i == defaultIndex) {
                                 //
                                 // Unmarshal a dummy value of the
                                 // appropriate size for the
                                 // discriminator type
                                 //
-                                Any dummy = new Any();
+                                AnyImpl dummy = new AnyImpl();
                                 dummy.read_value(this, p.discriminatorType_);
 
                                 //
@@ -1278,7 +1278,7 @@ final public class InputStream extends InputStreamWithOffsets {
     }
 
     public org.omg.CORBA.Any read_any() {
-        org.omg.CORBA.Any any = new Any(orbInstance_);
+        org.omg.CORBA.Any any = new AnyImpl(orbInstance_);
         any.read_value(this, read_TypeCode());
         return any;
     }
