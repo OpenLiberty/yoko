@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.OCI.IIOP;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OB.Net;
 import org.apache.yoko.orb.OCI.AccFactory;
 import org.apache.yoko.orb.OCI.Acceptor;
@@ -211,7 +211,7 @@ final class AccFactory_impl extends LocalObject implements AccFactory {
                 body.object_key = key;
 
                 // Re-marshal the new body
-                try (OutputStream out = new OutputStream()) {
+                try (YokoOutputStream out = new YokoOutputStream()) {
                     out._OB_writeEndian();
                     ProfileBody_1_0Helper.write(out, body);
 

@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.junit.jupiter.api.Test;
 import org.omg.CORBA.ORB;
 
@@ -49,7 +49,7 @@ import testify.iiop.annotation.ConfigureOrb;
 public abstract class SerialPersistentFieldsTest implements Serializable {
     @Test
     public void marshalAndUnmarshal(ORB orb) {
-        OutputStream out = (OutputStream)orb.create_output_stream();
+        YokoOutputStream out = (YokoOutputStream)orb.create_output_stream();
         out.write_value(this);
         System.out.println(out.getBufferReader().dumpAllData());
         YokoInputStream in = out.create_input_stream();

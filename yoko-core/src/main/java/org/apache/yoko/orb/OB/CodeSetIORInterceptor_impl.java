@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.omg.CONV_FRAME.CodeSetComponent;
 import org.omg.CONV_FRAME.CodeSetComponentInfo;
 import org.omg.CONV_FRAME.CodeSetComponentInfoHelper;
@@ -61,7 +61,7 @@ public final class CodeSetIORInterceptor_impl extends LocalObject implements IOR
         // Any insertion/extraction operators would have to be
         // generated unnecessarily
         //
-        OutputStream out = new OutputStream();
+        YokoOutputStream out = new YokoOutputStream();
         out._OB_writeEndian();
         CodeSetComponentInfoHelper.write(out, codeSetInfo);
 

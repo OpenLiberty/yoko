@@ -42,6 +42,7 @@ import org.omg.CORBA.TypeCodePackage.Bounds;
 import org.omg.CORBA.ValueBaseHelper;
 import org.omg.CORBA.portable.BoxedValueHelper;
 import org.omg.CORBA.portable.ValueOutputStream;
+import org.omg.CORBA_2_3.portable.OutputStream;
 import org.omg.IOP.IOR;
 import org.omg.IOP.IORHelper;
 import org.omg.IOP.TaggedProfile;
@@ -104,8 +105,8 @@ import static org.omg.CORBA.TCKind._tk_wstring;
 import static org.omg.CORBA.TCKind.tk_null;
 import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
-public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream implements ValueOutputStream {
-    private static final Logger LOGGER = Logger.getLogger(OutputStream.class.getName());
+public final class YokoOutputStream extends OutputStream implements ValueOutputStream {
+    private static final Logger LOGGER = Logger.getLogger(YokoOutputStream.class.getName());
 
     private ORBInstance orbInstance_;
     private final WriteBuffer writeBuffer;
@@ -1459,27 +1460,27 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         writeBuffer.readFrom(in);
     }
 
-    public OutputStream() {
+    public YokoOutputStream() {
         this(Buffer.createWriteBuffer(), null, null);
     }
 
-    public OutputStream(int initialBufferSize) {
+    public YokoOutputStream(int initialBufferSize) {
         this(Buffer.createWriteBuffer(initialBufferSize), null, null);
     }
 
-    public OutputStream(CodeConverters converters, GiopVersion giopVersion) {
+    public YokoOutputStream(CodeConverters converters, GiopVersion giopVersion) {
         this(Buffer.createWriteBuffer(), converters, giopVersion);
     }
 
-    public OutputStream(int initialBufferSize, CodeConverters converters, GiopVersion giopVersion) {
+    public YokoOutputStream(int initialBufferSize, CodeConverters converters, GiopVersion giopVersion) {
         this(Buffer.createWriteBuffer(initialBufferSize), converters, giopVersion);
     }
 
-    public OutputStream(WriteBuffer writeBuffer) {
+    public YokoOutputStream(WriteBuffer writeBuffer) {
         this(writeBuffer, null, null);
     }
 
-    public OutputStream(WriteBuffer writeBuffer, CodeConverters converters, GiopVersion giopVersion) {
+    public YokoOutputStream(WriteBuffer writeBuffer, CodeConverters converters, GiopVersion giopVersion) {
         this.writeBuffer = writeBuffer;
         this.giopVersion_ = giopVersion == null ? GIOP1_0 : giopVersion;
 
@@ -1500,7 +1501,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     @Override
     public void close() {}
 
-    boolean writtenBytesEqual(OutputStream that) {
+    boolean writtenBytesEqual(YokoOutputStream that) {
         return writeBuffer.dataEquals(writeBuffer);
     }
 

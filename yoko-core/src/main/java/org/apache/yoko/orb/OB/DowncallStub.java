@@ -34,6 +34,7 @@ import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OCI.ConnectorInfo;
 import org.apache.yoko.orb.OCI.ProfileInfo;
@@ -247,7 +248,7 @@ public final class DowncallStub {
     // Marshalling interception points
     //
 
-    public org.apache.yoko.orb.CORBA.OutputStream preMarshal(Downcall down) throws LocationForward, FailureException {
+    public YokoOutputStream preMarshal(Downcall down) throws LocationForward, FailureException {
         return down.preMarshal();
     }
 
@@ -447,14 +448,14 @@ public final class DowncallStub {
     //
     // Prepare a request from a portable stub
     //
-    public org.apache.yoko.orb.CORBA.OutputStream setupRequest(
+    public YokoOutputStream setupRequest(
             org.omg.CORBA.Object self, String operation, boolean responseExpected) throws LocationForward, FailureException {
         while (true) {
             Downcall downcall = createDowncall(
                     operation, responseExpected);
 
             try {
-                org.apache.yoko.orb.CORBA.OutputStream out = preMarshal(downcall);
+                YokoOutputStream out = preMarshal(downcall);
                 //
                 // The InvocationContext is associated with the OutputStream
                 // and retrieved by invoke()
@@ -480,7 +481,7 @@ public final class DowncallStub {
         // Obtain information regarding our target
         Client client = getClientProfilePair().client;
 
-        out.value = new org.apache.yoko.orb.CORBA.OutputStream(client.codeConverters(), GIOP1_2);
+        out.value = new YokoOutputStream(client.codeConverters(), GIOP1_2);
 
         sclHolder.value = client.getAMIRouterContexts().toArray();
 
@@ -513,7 +514,7 @@ public final class DowncallStub {
         final Client client = cp.client;
         info.value = cp.profile;
 
-        out.value = new org.apache.yoko.orb.CORBA.OutputStream(writeBuffer, client.codeConverters(), GIOP1_2);
+        out.value = new YokoOutputStream(writeBuffer, client.codeConverters(), GIOP1_2);
         ServiceContexts contexts = client.getAMIRouterContexts();
 
         GIOPOutgoingMessage outgoing = new GIOPOutgoingMessage(orbInstance_, out.value, info.value);
@@ -545,7 +546,7 @@ public final class DowncallStub {
     //
     public YokoInputStream invoke(
             org.omg.CORBA.Object self,
-            org.apache.yoko.orb.CORBA.OutputStream out)
+            YokoOutputStream out)
             throws ApplicationException,
             RemarshalException, LocationForward,
             FailureException {
@@ -553,7 +554,7 @@ public final class DowncallStub {
         // We should have an InvocationContext associated with the
         // OutputStream
         //
-        org.apache.yoko.orb.CORBA.OutputStream o = out;
+        YokoOutputStream o = out;
         InvocationContext ctx = (InvocationContext) o._OB_invocationContext();
         Assert.ensure(ctx != null);
 
@@ -649,7 +650,7 @@ public final class DowncallStub {
         //
         // We should have an InvocationContext associated with the OutputStream
         //
-        org.apache.yoko.orb.CORBA.OutputStream o = (org.apache.yoko.orb.CORBA.OutputStream) out;
+        YokoOutputStream o = (YokoOutputStream) out;
         InvocationContext ctx = (InvocationContext) o._OB_invocationContext();
         Assert.ensure(ctx != null);
 
@@ -744,7 +745,7 @@ public final class DowncallStub {
         // We should have an InvocationContext associated with the
         // OutputStream
         //
-        org.apache.yoko.orb.CORBA.OutputStream o = (org.apache.yoko.orb.CORBA.OutputStream) out;
+        YokoOutputStream o = (YokoOutputStream) out;
         InvocationContext ctx = (InvocationContext) o._OB_invocationContext();
         Assert.ensure(ctx != null);
 
@@ -860,7 +861,7 @@ public final class DowncallStub {
         // Create an output stream an write the PolicyValueSeq
         //
         if (invocPoliciesHolder.value != null) {
-            try (org.apache.yoko.orb.CORBA.OutputStream scOut = new org.apache.yoko.orb.CORBA.OutputStream()) {
+            try (YokoOutputStream scOut = new YokoOutputStream()) {
                 scOut._OB_writeEndian();
                 PolicyValueSeqHelper.write(scOut, invocPoliciesHolder.value);
                 invocPoliciesSC.context_data = scOut.copyWrittenBytes();

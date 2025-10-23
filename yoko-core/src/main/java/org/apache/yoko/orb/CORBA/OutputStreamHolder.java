@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@
 package org.apache.yoko.orb.CORBA;
 
 final public class OutputStreamHolder {
-    public OutputStream value;
+    public YokoOutputStream value;
 
     public OutputStreamHolder() {
     }
 
-    public OutputStreamHolder(OutputStream initial) {
+    public OutputStreamHolder(YokoOutputStream initial) {
         value = initial;
     }
 }

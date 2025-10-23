@@ -1504,7 +1504,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
 
     public void _OB_endValue() { valueReader().endValue(); }
 
-    public void _OB_remarshalValue(org.omg.CORBA.TypeCode tc, OutputStream out) {
+    public void _OB_remarshalValue(org.omg.CORBA.TypeCode tc, YokoOutputStream out) {
         valueReader().remarshalValue(tc, out);
     }
 

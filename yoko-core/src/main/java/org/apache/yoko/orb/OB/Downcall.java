@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
 import org.apache.yoko.orb.IOP.MutableServiceContexts;
 import org.apache.yoko.orb.IOP.ServiceContexts;
@@ -73,7 +73,7 @@ public class Downcall {
     protected final boolean responseExpected_;
 
     /** The marshalled headers and parameters */
-    private OutputStream out_;
+    private YokoOutputStream out_;
 
     /** Holds the results of the operation */
     private YokoInputStream in_;
@@ -155,7 +155,7 @@ public class Downcall {
     }
 
     /** Required for use by subclasses */
-    protected final OutputStream preMarshalBase() throws LocationForward, FailureException {
+    protected final YokoOutputStream preMarshalBase() throws LocationForward, FailureException {
         OutputStreamHolder out = new OutputStreamHolder();
         emitter_ = client_.startDowncall(this, out);
         out_ = out.value;
@@ -224,7 +224,7 @@ public class Downcall {
         return responseExpected_;
     }
 
-    public final OutputStream output() {
+    public final YokoOutputStream output() {
         return out_;
     }
 
@@ -249,7 +249,7 @@ public class Downcall {
         for (ServiceContext sc: contexts) mutable.add(sc, true);
     }
 
-    public OutputStream preMarshal() throws LocationForward, FailureException {
+    public YokoOutputStream preMarshal() throws LocationForward, FailureException {
         return preMarshalBase();
     }
 

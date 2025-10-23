@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import acme.PRODUCT_NOT_EXISTHelper;
 import acme.Product;
 import acme.ProductHelper;
 import acme.ProductListHelper;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,13 +35,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static testify.hex.HexParser.HEX_STRING;
 
 public class IdlStructIOTest {
-    private OutputStream out;
+    private YokoOutputStream out;
 
     @BeforeEach
-    void createOutputStream() { out = new OutputStream(); }
+    void createOutputStream() { out = new YokoOutputStream(); }
 
     @AfterEach
-    void closeOutputStream() { try (OutputStream ignored = out) { out = null; } }
+    void closeOutputStream() { try (YokoOutputStream ignored = out) { out = null; } }
 
     @Test
     void writeProduct() {

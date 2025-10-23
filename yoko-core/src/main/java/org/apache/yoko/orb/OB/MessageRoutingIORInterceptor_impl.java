@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.LocalObject;
 import org.omg.IOP.TAG_MESSAGE_ROUTERS;
@@ -56,7 +56,7 @@ final public class MessageRoutingIORInterceptor_impl extends LocalObject impleme
         routerComponent.tag = TAG_MESSAGE_ROUTERS.value;
 
         // Create an OutputStream and write all of the router IORs
-        try (OutputStream routerOut = new OutputStream()) {
+        try (YokoOutputStream routerOut = new YokoOutputStream()) {
             routerOut._OB_writeEndian();
 
             // This list actually needs to be written in reverse order
@@ -90,7 +90,7 @@ final public class MessageRoutingIORInterceptor_impl extends LocalObject impleme
 
         // Create an OutputStream and write all of the policies
         //
-        try (OutputStream policyOut = new OutputStream()) {
+        try (YokoOutputStream policyOut = new YokoOutputStream()) {
             policyOut._OB_writeEndian();
             PolicyValueSeqHelper.write(policyOut, policiesHolder.value);
 

@@ -19,7 +19,7 @@ package org.apache.yoko.orb.DynamicAny;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
@@ -145,7 +145,7 @@ final class DynValueBox_impl extends DynValueCommon_impl implements DynValueBox 
         if (is_null())
             return new AnyImpl(orbInstance_, type_, null);
         else {
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_ORBInstance(orbInstance_);
                 _OB_marshal(out);
                 YokoInputStream in = out.create_input_stream();
@@ -310,7 +310,7 @@ final class DynValueBox_impl extends DynValueCommon_impl implements DynValueBox 
     // Internal member implementations
     // ------------------------------------------------------------------
 
-    synchronized void _OB_marshal(OutputStream out) {
+    synchronized void _OB_marshal(YokoOutputStream out) {
         if (is_null())
             out.write_ulong(0);
         else {
@@ -331,7 +331,7 @@ final class DynValueBox_impl extends DynValueCommon_impl implements DynValueBox 
         }
     }
 
-    synchronized void _OB_marshal(OutputStream out, DynValueWriter dynValueWriter) {
+    synchronized void _OB_marshal(YokoOutputStream out, DynValueWriter dynValueWriter) {
         _OB_marshal(out);
     }
 

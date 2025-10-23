@@ -19,7 +19,7 @@ package org.apache.yoko.orb.DynamicAny;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.MinorCodes;
@@ -1001,7 +1001,7 @@ abstract class DynAny_impl extends LocalObject implements
             throw new TypeMismatch();
 
         DynAny_impl impl = (DynAny_impl) comp;
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_ORBInstance(orbInstance_);
             impl._OB_marshal(out);
             YokoInputStream in = out.create_input_stream();
@@ -1242,9 +1242,9 @@ abstract class DynAny_impl extends LocalObject implements
     // Yoko internal functions
     // ------------------------------------------------------------------
 
-    abstract void _OB_marshal(OutputStream out);
+    abstract void _OB_marshal(YokoOutputStream out);
 
-    abstract void _OB_marshal(OutputStream out, DynValueWriter dynValueWriter);
+    abstract void _OB_marshal(YokoOutputStream out, DynValueWriter dynValueWriter);
 
     abstract void _OB_unmarshal(YokoInputStream in);
 

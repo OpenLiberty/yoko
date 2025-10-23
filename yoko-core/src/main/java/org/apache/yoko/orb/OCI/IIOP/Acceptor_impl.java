@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OCI.IIOP;
 
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OBPortableServer.POAPolicies;
 import org.apache.yoko.orb.OCI.Acceptor;
 import org.apache.yoko.orb.OCI.ProfileInfo;
@@ -216,7 +216,7 @@ final class Acceptor_impl extends LocalObject implements Acceptor {
                 final String[] alternateHosts = Arrays.copyOfRange(hosts_, 1, hosts_.length);
                 final List<TaggedComponent> components = new ArrayList<>(piComponents);
                 for (String host : alternateHosts) {
-                    try (OutputStream out = new OutputStream()) {
+                    try (YokoOutputStream out = new YokoOutputStream()) {
                         out._OB_writeEndian();
                         out.write_string(host);
                         out.write_ushort(port);
@@ -235,7 +235,7 @@ final class Acceptor_impl extends LocalObject implements Acceptor {
 
     private static void addNewProfile_1_0(IOR ior, Version version, String host, short port, byte[] key) {
         ProfileBody_1_0 body = new ProfileBody_1_0(version, host, port, key);
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_writeEndian();
             ProfileBody_1_0Helper.write(out, body);
             ior.profiles = Arrays.copyOf(ior.profiles, ior.profiles.length + 1);
@@ -245,7 +245,7 @@ final class Acceptor_impl extends LocalObject implements Acceptor {
 
     private static void addNewProfile_1_1(IOR ior, Version version, String host, short port, byte[] key, List<TaggedComponent> components) {
         ProfileBody_1_1 body = new ProfileBody_1_1(version, host, port, key, components.toArray(new TaggedComponent[0]));
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_writeEndian();
             ProfileBody_1_1Helper.write(out, body);
             ior.profiles = Arrays.copyOf(ior.profiles, ior.profiles.length + 1);

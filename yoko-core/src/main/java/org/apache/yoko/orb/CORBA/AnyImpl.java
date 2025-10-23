@@ -259,7 +259,7 @@ public final class AnyImpl extends Any {
         case _tk_union:
         case _tk_sequence:
         case _tk_array: {
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_ORBInstance(orbInstance);
                 out.write_InputStream(in, origTypeCode);
                 value = out.create_input_stream();
@@ -434,9 +434,9 @@ public final class AnyImpl extends Any {
             return false;
 
         if (value instanceof Streamable && any.value instanceof Streamable) {
-            OutputStream os1 = (OutputStream) create_output_stream();
+            YokoOutputStream os1 = (YokoOutputStream) create_output_stream();
             ((Streamable) value)._write(os1);
-            OutputStream os2 = (OutputStream) create_output_stream();
+            YokoOutputStream os2 = (YokoOutputStream) create_output_stream();
             ((Streamable) any.value)._write(os2);
             return os1.writtenBytesEqual(os2);
         }
@@ -619,7 +619,7 @@ public final class AnyImpl extends Any {
         case _tk_union:
         case _tk_sequence:
         case _tk_array: {
-            OutputStream o = (OutputStream) out;
+            YokoOutputStream o = (YokoOutputStream) out;
             YokoInputStream in = (YokoInputStream) value;
             in._OB_reset();
             o.write_InputStream(in, typeCode);
@@ -627,7 +627,7 @@ public final class AnyImpl extends Any {
         }
 
         case _tk_value: {
-            OutputStream o = (OutputStream) out;
+            YokoOutputStream o = (YokoOutputStream) out;
             if (value instanceof YokoInputStream) {
                 YokoInputStream in = (YokoInputStream) value;
                 in._OB_reset();
@@ -638,7 +638,7 @@ public final class AnyImpl extends Any {
         }
 
         case _tk_value_box: {
-            OutputStream o = (OutputStream) out;
+            YokoOutputStream o = (YokoOutputStream) out;
             if (value instanceof YokoInputStream) {
                 YokoInputStream in = (YokoInputStream) value;
                 in._OB_reset();
@@ -669,7 +669,7 @@ public final class AnyImpl extends Any {
         }
 
         case _tk_abstract_interface: {
-            OutputStream o = (OutputStream) out;
+            YokoOutputStream o = (YokoOutputStream) out;
             if (value != null && value instanceof YokoInputStream) {
                 YokoInputStream in = (YokoInputStream) value;
                 in._OB_reset();
@@ -697,7 +697,7 @@ public final class AnyImpl extends Any {
         // Spec says that calling create_output_stream and
         // writing to the any will update the state of the
         // last streamable object, if present.
-        OutputStream out = new OutputStream();
+        YokoOutputStream out = new YokoOutputStream();
         out._OB_ORBInstance(orbInstance);
         return out;
     }
@@ -706,7 +706,7 @@ public final class AnyImpl extends Any {
         if (value instanceof YokoInputStream) {
             return new YokoInputStream(((YokoInputStream) value));
         } else {
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_ORBInstance(orbInstance);
                 write_value(out);
                 return out.create_input_stream();

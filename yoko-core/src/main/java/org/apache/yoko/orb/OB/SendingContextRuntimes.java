@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.omg.IOP.SendingContextRunTime;
 import org.omg.IOP.ServiceContext;
 import org.omg.SendingContext.CodeBase;
@@ -32,7 +32,7 @@ public enum SendingContextRuntimes {
     public static final ServiceContext SENDING_CONTEXT_RUNTIME;
     static {
         CodeBase codeBase = LOCAL_CODE_BASE;
-        try (OutputStream outCBC = new OutputStream()) {
+        try (YokoOutputStream outCBC = new YokoOutputStream()) {
             outCBC._OB_writeEndian();
             CodeBaseHelper.write(outCBC, codeBase);
             SENDING_CONTEXT_RUNTIME = new ServiceContext();

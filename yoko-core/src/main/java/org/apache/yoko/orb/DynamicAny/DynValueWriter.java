@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.DynamicAny;
 
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.DynamicAny.DynAny;
 import org.omg.DynamicAny.DynAnyFactory;
@@ -36,7 +36,7 @@ final public class DynValueWriter {
         dynValueReader_ = new DynValueReader(orbInstance, factory, false);
     }
 
-    public boolean writeIndirection(DynAny dv, OutputStream out) {
+    public boolean writeIndirection(DynAny dv, YokoOutputStream out) {
         Integer pos = instanceTable_.get(dv);
         if (pos == null) return false;
         out.write_long(-1);

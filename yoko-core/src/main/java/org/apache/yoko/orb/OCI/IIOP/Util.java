@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.OCI.IIOP;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.Net;
 import org.apache.yoko.orb.OCI.ProfileInfo;
@@ -74,7 +74,7 @@ final public class Util {
             else
                 body.port = (short) port;
             body.object_key = profileInfo.key;
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 ProfileBody_1_0Helper.write(out, body);
                 ior.profiles[0].profile_data = out.copyWrittenBytes();
@@ -90,7 +90,7 @@ final public class Util {
                 body.port = (short) port;
             body.object_key = profileInfo.key;
             body.components = profileInfo.components;
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 ProfileBody_1_1Helper.write(out, body);
                 ior.profiles[0].profile_data = out.copyWrittenBytes();

@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.cmsf;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.ORB;
@@ -82,7 +82,7 @@ public enum CmsfVersion {
     }
     
     private static byte[] genData(byte value) {
-        try (OutputStream out = new OutputStream(2)) {
+        try (YokoOutputStream out = new YokoOutputStream(2)) {
             out._OB_writeEndian();
             out.write_octet(value);
             return out.copyWrittenBytes();

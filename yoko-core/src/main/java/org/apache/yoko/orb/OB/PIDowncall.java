@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.orb.PortableInterceptor.ArgumentStrategy;
 import org.apache.yoko.util.Assert;
@@ -108,7 +108,7 @@ public abstract class PIDowncall extends Downcall {
         piManager_ = piManager;
     }
 
-    public final OutputStream preMarshal() throws LocationForward, FailureException {
+    public final YokoOutputStream preMarshal() throws LocationForward, FailureException {
         requestInfo_ = piManager_.clientSendRequest(this);
         return super.preMarshal();
     }

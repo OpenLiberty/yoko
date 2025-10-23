@@ -18,6 +18,7 @@
 package org.apache.yoko.orb.OBPortableServer;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.util.Assert;
 
 //
@@ -92,7 +93,7 @@ final class ServantDispatcher implements org.omg.CORBA.portable.ResponseHandler 
             upcall_.postUnmarshal();
             org.omg.CORBA.InterfaceDef def = servant_._get_interface();
             upcall_.postinvoke();
-            org.apache.yoko.orb.CORBA.OutputStream out = upcall_.preMarshal();
+            YokoOutputStream out = upcall_.preMarshal();
             try {
                 out.write_Object(def);
             } catch (org.omg.CORBA.SystemException ex) {
@@ -114,7 +115,7 @@ final class ServantDispatcher implements org.omg.CORBA.portable.ResponseHandler 
             upcall_.postUnmarshal();
             boolean b = servant_._is_a(id);
             upcall_.postinvoke();
-            org.apache.yoko.orb.CORBA.OutputStream out = upcall_.preMarshal();
+            YokoOutputStream out = upcall_.preMarshal();
             try {
                 out.write_boolean(b);
             } catch (org.omg.CORBA.SystemException ex) {
@@ -130,7 +131,7 @@ final class ServantDispatcher implements org.omg.CORBA.portable.ResponseHandler 
             upcall_.postUnmarshal();
             boolean b = servant_._non_existent();
             upcall_.postinvoke();
-            org.apache.yoko.orb.CORBA.OutputStream out = upcall_.preMarshal();
+            YokoOutputStream out = upcall_.preMarshal();
             try {
                 out.write_boolean(b);
             } catch (org.omg.CORBA.SystemException ex) {

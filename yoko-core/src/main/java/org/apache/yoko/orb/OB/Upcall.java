@@ -26,7 +26,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OBPortableServer.POA_impl;
 import org.apache.yoko.orb.OCI.GiopVersion;
@@ -64,7 +64,7 @@ public class Upcall {
     protected final String op_;
 
     // Holds the inout/out parameters and return value
-    private OutputStream out_;
+    private YokoOutputStream out_;
 
     // Holds the in/inout parameters
     private final YokoInputStream in_;
@@ -145,7 +145,7 @@ public class Upcall {
         return postinvokeCalled_;
     }
 
-    public OutputStream output() {
+    public YokoOutputStream output() {
         return out_;
     }
 
@@ -155,7 +155,7 @@ public class Upcall {
 
     public void createOutputStream(int offset) {
         final GiopVersion giopVersion = GiopVersion.get(profileInfo_.major, profileInfo_.minor);
-        out_ = new OutputStream(createWriteBuffer(offset).padAll(), in_._OB_codeConverters(), giopVersion);
+        out_ = new YokoOutputStream(createWriteBuffer(offset).padAll(), in_._OB_codeConverters(), giopVersion);
     }
 
     public YokoInputStream preUnmarshal() {
@@ -187,7 +187,7 @@ public class Upcall {
         // service context each time we make an invocation.
     }
 
-    public OutputStream preMarshal() throws LocationForward {
+    public YokoOutputStream preMarshal() throws LocationForward {
         // If we have an UpcallReturn object, then invoking upcallBeginReply
         // will eventually result in a call to createOutputStream.
         //
@@ -198,7 +198,7 @@ public class Upcall {
             addUnsentConnectionServiceContexts();
             upcallReturn_.upcallBeginReply(this, replyContexts);
         } else {
-            out_ = new OutputStream(in_._OB_codeConverters(), GiopVersion.get(profileInfo_.major, profileInfo_.minor));
+            out_ = new YokoOutputStream(in_._OB_codeConverters(), GiopVersion.get(profileInfo_.major, profileInfo_.minor));
         }
         out_._OB_ORBInstance(this.orbInstance());
         if (out_ != null) out_.setTimeout(timeout);
@@ -242,7 +242,7 @@ public class Upcall {
 
     // The skeleton marshals the exception. If called by a portable
     // skeleton, the exception will be null.
-    public OutputStream beginUserException(UserException ex) {
+    public YokoOutputStream beginUserException(UserException ex) {
         if (upcallReturn_ != null) {
             upcallReturn_.upcallBeginUserException(this, replyContexts);
             userEx_ = true;
@@ -279,7 +279,7 @@ public class Upcall {
         final Throwable t = ex.originalEx;
         try (CmsfOverride o = CmsfThreadLocal.override()) {
             CodeConverters codeConverters = CodeConverters.createForWcharWriteOnly();
-            try (OutputStream os = new OutputStream(codeConverters, GIOP1_2)) {
+            try (YokoOutputStream os = new YokoOutputStream(codeConverters, GIOP1_2)) {
                 os._OB_writeEndian();
                 os.write_value(t, Throwable.class);
                 ServiceContext sc = new ServiceContext(UnknownExceptionInfo.value, os.copyWrittenBytes());
