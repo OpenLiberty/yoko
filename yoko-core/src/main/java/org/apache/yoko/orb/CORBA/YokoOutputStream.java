@@ -37,6 +37,7 @@ import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.NO_IMPLEMENT;
 import org.omg.CORBA.Principal;
 import org.omg.CORBA.TIMEOUT;
+import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.TypeCodePackage.BadKind;
 import org.omg.CORBA.TypeCodePackage.Bounds;
 import org.omg.CORBA.ValueBaseHelper;
@@ -134,7 +135,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         return writeBuffer.recordLength(LOGGER);
     }
 
-    private void writeTypeCodeImpl(org.omg.CORBA.TypeCode tc, Map<org.omg.CORBA.TypeCode, Integer> history) {
+    private void writeTypeCodeImpl(TypeCode tc, Map<TypeCode, Integer> history) {
         //
         // Try casting the TypeCode to org.apache.yoko.orb.CORBA.TypeCode. This
         // could
@@ -242,7 +243,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
                         _OB_writeEndian();
                         write_string(tc.id());
                         write_string(tc.name());
-                        org.omg.CORBA.TypeCode discType = tc.discriminator_type();
+                        TypeCode discType = tc.discriminator_type();
                         writeTypeCodeImpl(discType, history);
                         int defaultIndex = tc.default_index();
                         write_long(defaultIndex);
@@ -256,7 +257,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
                                 // Marshal a dummy value of the appropriate size
                                 // for the discriminator type
                                 //
-                                org.omg.CORBA.TypeCode origDiscType = TypeCodeImpl._OB_getOrigType(discType);
+                                TypeCode origDiscType = TypeCodeImpl._OB_getOrigType(discType);
                                 switch (origDiscType.kind().value()) {
                                 case _tk_short:
                                     write_short((short) 0);
@@ -348,7 +349,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
                 case _tk_value: {
                     history.put(tc, oldPos);
 
-                    org.omg.CORBA.TypeCode concreteBase = tc.concrete_base_type();
+                    TypeCode concreteBase = tc.concrete_base_type();
                     if (concreteBase == null) {
                         concreteBase = TypeCodeFactory.createPrimitiveTC(tk_null);
                     }
@@ -855,7 +856,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         }
     }
 
-    public void write_TypeCode(org.omg.CORBA.TypeCode t) {
+    public void write_TypeCode(TypeCode t) {
         // NOTE:
         // No data with natural alignment of greater than four octets
         // is needed for TypeCode. Therefore it is not necessary to do
@@ -863,7 +864,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
 
         if (t == null) throw new BAD_TYPECODE("TypeCode is nil");
 
-        writeTypeCodeImpl(t, new HashMap<org.omg.CORBA.TypeCode, Integer>());
+        writeTypeCodeImpl(t, new HashMap<TypeCode, Integer>());
     }
 
     public void write_any(org.omg.CORBA.Any value) {
@@ -953,13 +954,13 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     // Additional Yoko specific functions
     // ------------------------------------------------------------------
 
-    public void write_value(Serializable value, org.omg.CORBA.TypeCode tc, BoxedValueHelper helper) {
+    public void write_value(Serializable value, TypeCode tc, BoxedValueHelper helper) {
         checkTimeout();
         valueWriter().writeValueBox(value, tc, helper);
         checkTimeout();
     }
 
-    public void write_InputStream(final org.omg.CORBA.portable.InputStream in, org.omg.CORBA.TypeCode tc) {
+    public void write_InputStream(final org.omg.CORBA.portable.InputStream in, TypeCode tc) {
         try {
             LOGGER.fine("writing a value of type " + tc.kind().value());
 
@@ -1080,12 +1081,12 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     private void copyAnyFrom(org.omg.CORBA.portable.InputStream in) {
         // Don't do this: write_any(in.read_any())
         // This is faster:
-        org.omg.CORBA.TypeCode p = in.read_TypeCode();
+        TypeCode p = in.read_TypeCode();
         write_TypeCode(p);
         write_InputStream(in, p);
     }
 
-    private void copyValueFrom(org.omg.CORBA_2_3.portable.InputStream in, org.omg.CORBA.TypeCode tc) {
+    private void copyValueFrom(org.omg.CORBA_2_3.portable.InputStream in, TypeCode tc) {
         if (in instanceof YokoInputStream) {
             ((YokoInputStream)in)._OB_remarshalValue(tc, this);
         } else {
@@ -1108,7 +1109,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         }
     }
 
-    private void copyArrayFrom(org.omg.CORBA.portable.InputStream in, org.omg.CORBA.TypeCode tc) throws BadKind {
+    private void copyArrayFrom(org.omg.CORBA.portable.InputStream in, TypeCode tc) throws BadKind {
         final boolean swapInput = (in instanceof YokoInputStream) && ((YokoInputStream)in).swap_;
         int len;
 
@@ -1121,7 +1122,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
 
         if (len <= 0) return;
 
-        org.omg.CORBA.TypeCode origContentType = TypeCodeImpl._OB_getOrigType(tc.content_type());
+        TypeCode origContentType = TypeCodeImpl._OB_getOrigType(tc.content_type());
 
         switch (origContentType.kind().value()) {
         case _tk_null:
@@ -1227,11 +1228,11 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         }
     }
 
-    private void copyUnionFrom(org.omg.CORBA.portable.InputStream in, org.omg.CORBA.TypeCode tc) throws BadKind, Bounds {
+    private void copyUnionFrom(org.omg.CORBA.portable.InputStream in, TypeCode tc) throws BadKind, Bounds {
         int defaultIndex = tc.default_index();
         int memberIndex = -1;
 
-        org.omg.CORBA.TypeCode origDiscType = TypeCodeImpl._OB_getOrigType(tc.discriminator_type());
+        TypeCode origDiscType = TypeCodeImpl._OB_getOrigType(tc.discriminator_type());
 
         switch (origDiscType.kind().value()) {
         case _tk_short: {
