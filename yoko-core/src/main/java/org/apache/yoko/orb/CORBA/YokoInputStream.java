@@ -36,6 +36,7 @@ import org.omg.CORBA.INITIALIZE;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.NO_IMPLEMENT;
 import org.omg.CORBA.Principal;
+import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.portable.BoxedValueHelper;
 import org.omg.CORBA.portable.IDLEntity;
 import org.omg.CORBA.portable.ObjectImpl;
@@ -73,7 +74,6 @@ import static org.apache.yoko.orb.OB.TypeCodeFactory.createValueBoxTC;
 import static org.apache.yoko.orb.OB.TypeCodeFactory.createWStringTC;
 import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_0;
 import static org.apache.yoko.util.Assert.ensure;
-import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidUnionDiscriminator;
 import static org.apache.yoko.util.MinorCodes.MinorLoadStub;
 import static org.apache.yoko.util.MinorCodes.MinorReadBooleanArrayOverflow;
@@ -205,7 +205,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         return tc;
     }
 
-    private org.omg.CORBA.TypeCode readTypeCodeImpl(Hashtable<Integer, TypeCodeImpl> history, boolean isTopLevel) {
+    private TypeCode readTypeCodeImpl(Hashtable<Integer, TypeCodeImpl> history, boolean isTopLevel) {
         int kind = read_ulong();
         int oldPos = readBuffer.getPosition() - 4;
         if (logger.isLoggable(Level.FINEST))
@@ -668,11 +668,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         return tc;
     }
 
-    private ValueReader valueReader() {
-        if (valueReader_ == null)
-            valueReader_ = new ValueReader(this);
-        return valueReader_;
-    }
+    private ValueReader valueReader() { return valueReader_ == null ? (valueReader_ = new ValueReader(this)) : valueReader_; }
 
     public int available() {
         int available =  readBuffer.available();
@@ -1181,7 +1177,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     public org.omg.CORBA.Object read_Object() {
         checkChunk();
         IOR ior = IORHelper.read(this);
-        if ((ior.type_id.length() == 0) && (ior.profiles.length == 0)) return null;
+        if ((ior.type_id.isEmpty()) && (ior.profiles.length == 0)) return null;
         if (orbInstance_ == null) throw new INITIALIZE("InputStream must be created " + "by a full ORB");
         ObjectFactory objectFactory = orbInstance_.getObjectFactory();
         return objectFactory.createObject(ior);
@@ -1268,7 +1264,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         }
     }
 
-    public org.omg.CORBA.TypeCode read_TypeCode() {
+    public TypeCode read_TypeCode() {
         // NOTE:
         // No data with natural alignment of greater than four octets
         // is needed for TypeCode. Therefore it is not necessary to do
@@ -1372,7 +1368,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     // ORBacus-specific methods
     // ------------------------------------------------------------------
 
-    public void read_value(org.omg.CORBA.Any any, org.omg.CORBA.TypeCode tc) {
+    public void read_value(org.omg.CORBA.Any any, TypeCode tc) {
         valueReader().readValueAny(any, tc);
     }
 
@@ -1504,7 +1500,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
 
     public void _OB_endValue() { valueReader().endValue(); }
 
-    public void _OB_remarshalValue(org.omg.CORBA.TypeCode tc, YokoOutputStream out) {
+    public void _OB_remarshalValue(TypeCode tc, YokoOutputStream out) {
         valueReader().remarshalValue(tc, out);
     }
 
