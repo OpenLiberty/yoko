@@ -50,8 +50,8 @@ import javax.rmi.CORBA.ValueHandler;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.orb.CORBA.AnyImpl;
-import org.apache.yoko.orb.CORBA.InputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.cmsf.RepIds;
 import org.omg.CORBA.Any;
@@ -133,7 +133,7 @@ public final class ValueReader {
 
     private final ORBInstance orbInstance_;
 
-    private final InputStream in_;
+    private final YokoInputStream in_;
 
     private final ReadBuffer buf_;
 
@@ -156,9 +156,9 @@ public final class ValueReader {
     private abstract static class CreationStrategy {
         final ValueReader reader_;
 
-        final InputStream is_;
+        final YokoInputStream is_;
 
-        CreationStrategy(ValueReader reader, InputStream is) {
+        CreationStrategy(ValueReader reader, YokoInputStream is) {
             reader_ = reader;
             is_ = is;
         }
@@ -170,7 +170,7 @@ public final class ValueReader {
     private static class BoxCreationStrategy extends CreationStrategy {
         private final BoxedValueHelper helper_;
 
-        BoxCreationStrategy(ValueReader reader, InputStream is, BoxedValueHelper helper) {
+        BoxCreationStrategy(ValueReader reader, YokoInputStream is, BoxedValueHelper helper) {
             super(reader, is);
             helper_ = helper;
         }
@@ -194,7 +194,7 @@ public final class ValueReader {
     private static class ClassCreationStrategy extends CreationStrategy {
         private final Class<? extends Serializable> clz_;
 
-        ClassCreationStrategy(ValueReader reader, InputStream is, Class<? extends Serializable> clz) {
+        ClassCreationStrategy(ValueReader reader, YokoInputStream is, Class<? extends Serializable> clz) {
             super(reader, is);
             clz_ = clz;
         }
@@ -247,7 +247,7 @@ public final class ValueReader {
 
         private final ORBInstance orbInstance_;
 
-        FactoryCreationStrategy(ValueReader reader, InputStream is, String id) {
+        FactoryCreationStrategy(ValueReader reader, YokoInputStream is, String id) {
             super(reader, is);
             id_ = id;
             orbInstance_ = is._OB_ORBInstance();
@@ -847,7 +847,7 @@ public final class ValueReader {
     }
 
     /** Remarshal each valuetype member */
-    private void copyValueState(TypeCode tc, OutputStream out) {
+    private void copyValueState(TypeCode tc, YokoOutputStream out) {
         try {
             if (tc.kind() == tk_value) {
                 //
@@ -916,7 +916,7 @@ public final class ValueReader {
     // Public methods
     // ------------------------------------------------------------------
 
-    public ValueReader(InputStream in) {
+    public ValueReader(YokoInputStream in) {
         in_ = in;
         buf_ = in.getBuffer();
         orbInstance_ = in._OB_ORBInstance();
@@ -1082,7 +1082,7 @@ public final class ValueReader {
     // may not represent the actual most-derived type, since a more-derived
     // value may have been read.
     //
-    public TypeCode remarshalValue(TypeCode tc, OutputStream out) {
+    public TypeCode remarshalValue(TypeCode tc, YokoOutputStream out) {
         //
         // TODO: We've removed the reset of the position table at each top
         // level call. We need to perform more testing and analysis to verify
@@ -1455,10 +1455,10 @@ public final class ValueReader {
                 buf_.setPosition(startPos);
                 chunkState_.copyFrom(startState);
 
-                try (OutputStream out = new OutputStream()) {
+                try (YokoOutputStream out = new YokoOutputStream()) {
                     out._OB_ORBInstance(orbInstance_);
                     remarshalValue(origTC, out);
-                    final InputStream in = (InputStream) out.create_input_stream();
+                    final YokoInputStream in = (YokoInputStream) out.create_input_stream();
                     Assert.ensure(obAny != null);
                     obAny.replace(tc, in);
                     return;
@@ -1544,10 +1544,10 @@ public final class ValueReader {
                 chunkState_.copyFrom(startState);
 
                 final TypeCode t;
-                try (OutputStream out = new OutputStream()) {
+                try (YokoOutputStream out = new YokoOutputStream()) {
                     out._OB_ORBInstance(orbInstance_);
                     t = remarshalValue(origTC, out);
-                    final InputStream in = (InputStream) out.create_input_stream();
+                    final YokoInputStream in = (YokoInputStream) out.create_input_stream();
                     Assert.ensure(obAny != null);
                     obAny.replace(t, in);
                     return;

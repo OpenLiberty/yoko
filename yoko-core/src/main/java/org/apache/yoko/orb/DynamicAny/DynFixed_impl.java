@@ -22,8 +22,8 @@ import static java.math.BigDecimal.ROUND_DOWN;
 import java.math.BigDecimal;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
-import org.apache.yoko.orb.CORBA.InputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.util.Assert;
 import org.omg.CORBA.BAD_OPERATION;
@@ -230,7 +230,7 @@ final class DynFixed_impl extends DynAny_impl implements
     // Internal member implementations
     // ------------------------------------------------------------------
 
-    synchronized void _OB_marshal(OutputStream out) {
+    synchronized void _OB_marshal(YokoOutputStream out) {
         try {
             out.write_fixed(value_.movePointRight(origType_.fixed_scale()));
         } catch (BadKind ex) {
@@ -238,12 +238,12 @@ final class DynFixed_impl extends DynAny_impl implements
         }
     }
 
-    synchronized void _OB_marshal(OutputStream out,
-            DynValueWriter dynValueWriter) {
+    synchronized void _OB_marshal(YokoOutputStream out,
+                                  DynValueWriter dynValueWriter) {
         _OB_marshal(out);
     }
 
-    synchronized void _OB_unmarshal(InputStream in) {
+    synchronized void _OB_unmarshal(YokoInputStream in) {
         try {
             value_ = in.read_fixed().movePointLeft(origType_.fixed_scale());
         } catch (BadKind ex) {

@@ -45,8 +45,8 @@ import static org.omg.CORBA.TCKind.tk_null;
 import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
-import org.apache.yoko.orb.CORBA.InputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.orb.OB.TypeCodeFactory;
@@ -388,16 +388,16 @@ final class DynBasic_impl extends DynAny_impl {
     // Internal member implementations
     // ------------------------------------------------------------------
 
-    synchronized void _OB_marshal(OutputStream out) {
+    synchronized void _OB_marshal(YokoOutputStream out) {
         any_.write_value(out);
     }
 
-    synchronized void _OB_marshal(OutputStream out,
-            DynValueWriter dynValueWriter) {
+    synchronized void _OB_marshal(YokoOutputStream out,
+                                  DynValueWriter dynValueWriter) {
         _OB_marshal(out);
     }
 
-    synchronized void _OB_unmarshal(InputStream in) {
+    synchronized void _OB_unmarshal(YokoInputStream in) {
         any_.read_value(in, type_);
 
         if (comp_ != null)

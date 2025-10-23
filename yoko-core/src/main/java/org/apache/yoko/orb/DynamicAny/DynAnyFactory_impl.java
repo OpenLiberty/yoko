@@ -53,7 +53,7 @@ import static org.omg.CORBA.TCKind._tk_wstring;
 import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.util.Assert;
@@ -278,7 +278,7 @@ final public class DynAnyFactory_impl extends LocalObject
         AnyImpl valSeq;
         valSeq = (AnyImpl) aSeq;
 
-        InputStream in = (InputStream) valSeq.create_input_stream();
+        YokoInputStream in = (YokoInputStream) valSeq.create_input_stream();
 
         // NOTE: the input stream I obtain does not contain
         // indirections that "span" the original members of the sequence.

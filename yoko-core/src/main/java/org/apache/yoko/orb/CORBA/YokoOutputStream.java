@@ -42,6 +42,7 @@ import org.omg.CORBA.TypeCodePackage.Bounds;
 import org.omg.CORBA.ValueBaseHelper;
 import org.omg.CORBA.portable.BoxedValueHelper;
 import org.omg.CORBA.portable.ValueOutputStream;
+import org.omg.CORBA_2_3.portable.OutputStream;
 import org.omg.IOP.IOR;
 import org.omg.IOP.IORHelper;
 import org.omg.IOP.TaggedProfile;
@@ -104,8 +105,8 @@ import static org.omg.CORBA.TCKind._tk_wstring;
 import static org.omg.CORBA.TCKind.tk_null;
 import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
-public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream implements ValueOutputStream {
-    private static final Logger LOGGER = Logger.getLogger(OutputStream.class.getName());
+public final class YokoOutputStream extends OutputStream implements ValueOutputStream {
+    private static final Logger LOGGER = Logger.getLogger(YokoOutputStream.class.getName());
 
     private ORBInstance orbInstance_;
     private final WriteBuffer writeBuffer;
@@ -430,8 +431,8 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     public org.omg.CORBA.ORB orb() { return (orbInstance_ == null) ? null : orbInstance_.getORB(); }
 
     @Override
-    public InputStream create_input_stream() {
-        InputStream in = new InputStream(getBufferReader(), false, codeConverters_, giopVersion_);
+    public YokoInputStream create_input_stream() {
+        YokoInputStream in = new YokoInputStream(getBufferReader(), false, codeConverters_, giopVersion_);
         in._OB_ORBInstance(orbInstance_);
         return in;
     }
@@ -1090,8 +1091,8 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     }
 
     private void copyValueFrom(org.omg.CORBA_2_3.portable.InputStream in, org.omg.CORBA.TypeCode tc) {
-        if (in instanceof InputStream) {
-            ((InputStream)in)._OB_remarshalValue(tc, this);
+        if (in instanceof YokoInputStream) {
+            ((YokoInputStream)in)._OB_remarshalValue(tc, this);
         } else {
             write_value(in.read_value());
         }
@@ -1102,18 +1103,18 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         write_boolean(b);
         if (b) {
             write_Object(in.read_Object());
-        } else if (in instanceof InputStream) {
+        } else if (in instanceof YokoInputStream) {
             // We have no TypeCode information about the
             // valuetype, so we must use _tc_ValueBase and
             // rely on the type information sent on the wire
-            ((InputStream) in)._OB_remarshalValue(ValueBaseHelper.type(), this);
+            ((YokoInputStream) in)._OB_remarshalValue(ValueBaseHelper.type(), this);
         } else {
             write_value(((org.omg.CORBA_2_3.portable.InputStream) in).read_value());
         }
     }
 
     private void copyArrayFrom(org.omg.CORBA.portable.InputStream in, org.omg.CORBA.TypeCode tc) throws BadKind {
-        final boolean swapInput = (in instanceof InputStream) && ((InputStream)in).swap_;
+        final boolean swapInput = (in instanceof YokoInputStream) && ((YokoInputStream)in).swap_;
         int len;
 
         if (tc.kind().value() == _tk_sequence) {
@@ -1464,27 +1465,27 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         writeBuffer.readFrom(in);
     }
 
-    public OutputStream() {
+    public YokoOutputStream() {
         this(Buffer.createWriteBuffer(), null, null);
     }
 
-    public OutputStream(int initialBufferSize) {
+    public YokoOutputStream(int initialBufferSize) {
         this(Buffer.createWriteBuffer(initialBufferSize), null, null);
     }
 
-    public OutputStream(CodeConverters converters, GiopVersion giopVersion) {
+    public YokoOutputStream(CodeConverters converters, GiopVersion giopVersion) {
         this(Buffer.createWriteBuffer(), converters, giopVersion);
     }
 
-    public OutputStream(int initialBufferSize, CodeConverters converters, GiopVersion giopVersion) {
+    public YokoOutputStream(int initialBufferSize, CodeConverters converters, GiopVersion giopVersion) {
         this(Buffer.createWriteBuffer(initialBufferSize), converters, giopVersion);
     }
 
-    public OutputStream(WriteBuffer writeBuffer) {
+    public YokoOutputStream(WriteBuffer writeBuffer) {
         this(writeBuffer, null, null);
     }
 
-    public OutputStream(WriteBuffer writeBuffer, CodeConverters converters, GiopVersion giopVersion) {
+    public YokoOutputStream(WriteBuffer writeBuffer, CodeConverters converters, GiopVersion giopVersion) {
         this.writeBuffer = writeBuffer;
         this.giopVersion_ = giopVersion == null ? GIOP1_0 : giopVersion;
 
@@ -1515,7 +1516,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     @Override
     public void close() {}
 
-    boolean writtenBytesEqual(OutputStream that) {
+    boolean writtenBytesEqual(YokoOutputStream that) {
         return writeBuffer.dataEquals(writeBuffer);
     }
 

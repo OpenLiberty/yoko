@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ package org.apache.yoko;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.SimplyCloseable;
-import org.apache.yoko.orb.CORBA.InputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.rmi.impl.ValueHandlerImpl;
 import org.apache.yoko.util.cmsf.CmsfThreadLocal;
@@ -55,8 +55,8 @@ import static testify.hex.HexParser.HEX_DUMP;
  * Test writing Java values directly to and reading them back from CDR streams.
  */
 class JavaValueTest {
-    OutputStream out;
-    InputStream in;
+    YokoOutputStream out;
+    YokoInputStream in;
 
     enum NameComponents {;
 
@@ -124,7 +124,7 @@ class JavaValueTest {
 
     @BeforeEach
     void setupStreams() {
-        out = new OutputStream(null, GiopVersion.GIOP1_2);
+        out = new YokoOutputStream(null, GiopVersion.GIOP1_2);
         ValueHandler vh = Util.createValueHandler();
         assertInstanceOf(ValueHandlerImpl.class, vh);
     }
