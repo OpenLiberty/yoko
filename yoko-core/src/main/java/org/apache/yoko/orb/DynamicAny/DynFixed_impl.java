@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import static java.math.BigDecimal.ROUND_DOWN;
 
 import java.math.BigDecimal;
 
-import org.apache.yoko.orb.CORBA.Any;
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.OB.ORBInstance;
@@ -78,12 +78,12 @@ final class DynFixed_impl extends DynAny_impl implements
         // Convert value to an ORBacus Any - the JDK implementation
         // of TypeCode.equivalent() raises NO_IMPLEMENT
         //
-        Any val = null;
+        AnyImpl val = null;
         try {
-            val = (Any) value;
+            val = (AnyImpl) value;
         } catch (ClassCastException ex) {
             try {
-                val = new Any(value);
+                val = new AnyImpl(value);
             } catch (NullPointerException e) {
                 throw (InvalidValue)new 
                     InvalidValue().initCause(e);
@@ -113,7 +113,7 @@ final class DynFixed_impl extends DynAny_impl implements
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
-        return new Any(orbInstance_, type_, value_);
+        return new AnyImpl(orbInstance_, type_, value_);
     }
 
     public synchronized org.omg.CORBA.Any to_any(DynValueWriter dynValueWriter) {
@@ -253,14 +253,14 @@ final class DynFixed_impl extends DynAny_impl implements
         notifyParent();
     }
 
-    Any _OB_currentAny() {
+    AnyImpl _OB_currentAny() {
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
         return null;
     }
 
-    Any _OB_currentAnyValue() {
+    AnyImpl _OB_currentAnyValue() {
         return null;
     }
 }

@@ -52,6 +52,7 @@ import static org.omg.CORBA.TCKind._tk_wchar;
 import static org.omg.CORBA.TCKind._tk_wstring;
 import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.orb.OB.ORBInstance;
@@ -274,8 +275,8 @@ final public class DynAnyFactory_impl extends LocalObject
         Any aSeq = orbInstance_.getORB().create_any();
         AnySeqHelper.insert(aSeq, values);
 
-        org.apache.yoko.orb.CORBA.Any valSeq;
-        valSeq = (org.apache.yoko.orb.CORBA.Any) aSeq;
+        AnyImpl valSeq;
+        valSeq = (AnyImpl) aSeq;
 
         InputStream in = (InputStream) valSeq.create_input_stream();
 
@@ -294,7 +295,7 @@ final public class DynAnyFactory_impl extends LocalObject
                 allow_truncate);
 
         for (int i = 0; i < values.length; i++) {
-            org.omg.CORBA.TypeCode type = ((org.apache.yoko.orb.CORBA.Any) values[i])
+            org.omg.CORBA.TypeCode type = ((AnyImpl) values[i])
                     ._OB_type();
 
             result[i] = prepare_dyn_any_from_type_code(type, dynValueReader);

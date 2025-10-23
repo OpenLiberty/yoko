@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.DynamicAny;
 
-import org.apache.yoko.orb.CORBA.Any;
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.util.Assert;
@@ -107,12 +107,12 @@ final class DynValueBox_impl extends DynValueCommon_impl implements DynValueBox 
         // Convert value to an ORBacus Any - the JDK implementation
         // of TypeCode.equivalent() raises NO_IMPLEMENT
         //
-        Any val;
+        AnyImpl val;
         try {
-            val = (Any) value;
+            val = (AnyImpl) value;
         } catch (ClassCastException ex) {
             try {
-                val = new Any(value);
+                val = new AnyImpl(value);
             } catch (NullPointerException e) {
                 throw (InvalidValue)new InvalidValue().initCause(e);
             }
@@ -143,13 +143,13 @@ final class DynValueBox_impl extends DynValueCommon_impl implements DynValueBox 
             throw new OBJECT_NOT_EXIST();
 
         if (is_null())
-            return new Any(orbInstance_, type_, null);
+            return new AnyImpl(orbInstance_, type_, null);
         else {
             try (OutputStream out = new OutputStream()) {
                 out._OB_ORBInstance(orbInstance_);
                 _OB_marshal(out);
                 InputStream in = out.create_input_stream();
-                return new Any(orbInstance_, type_, in);
+                return new AnyImpl(orbInstance_, type_, in);
             }
         }
     }
@@ -243,12 +243,12 @@ final class DynValueBox_impl extends DynValueCommon_impl implements DynValueBox 
         // Convert value to an ORBacus Any - the JDK implementation
         // of TypeCode.equivalent() raises NO_IMPLEMENT
         //
-        Any val;
+        AnyImpl val;
         try {
-            val = (Any) boxed;
+            val = (AnyImpl) boxed;
         } catch (ClassCastException ex) {
             try {
-                val = new Any(boxed);
+                val = new AnyImpl(boxed);
             } catch (NullPointerException e) {
                 throw (InvalidValue)new InvalidValue().initCause(e);
             }
@@ -378,7 +378,7 @@ final class DynValueBox_impl extends DynValueCommon_impl implements DynValueBox 
         notifyParent();
     }
 
-    synchronized Any _OB_currentAny() {
+    synchronized AnyImpl _OB_currentAny() {
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
@@ -390,7 +390,7 @@ final class DynValueBox_impl extends DynValueCommon_impl implements DynValueBox 
         return null;
     }
 
-    Any _OB_currentAnyValue() {
+    AnyImpl _OB_currentAnyValue() {
         return null;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.DynamicAny;
 
-import org.apache.yoko.orb.CORBA.Any;
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.OB.ORBInstance;
@@ -70,11 +70,11 @@ final class DynEnum_impl extends DynAny_impl implements
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
-        Any val = null;
+        AnyImpl val = null;
         try {
-            val = (Any) value;
+            val = (AnyImpl) value;
         } catch (ClassCastException ex) {
-            val = new Any(value);
+            val = new AnyImpl(value);
         }
 
         if (val.value() == null)
@@ -92,7 +92,7 @@ final class DynEnum_impl extends DynAny_impl implements
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
-        return new Any(orbInstance_, type_, Integer.valueOf(value_));
+        return new AnyImpl(orbInstance_, type_, Integer.valueOf(value_));
     }
 
     public synchronized org.omg.CORBA.Any to_any(DynValueWriter dynValueWriter) {
@@ -217,14 +217,14 @@ final class DynEnum_impl extends DynAny_impl implements
         notifyParent();
     }
 
-    synchronized Any _OB_currentAny() {
+    synchronized AnyImpl _OB_currentAny() {
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
         return null;
     }
 
-    synchronized Any _OB_currentAnyValue() {
+    synchronized AnyImpl _OB_currentAnyValue() {
         return null;
     }
 }

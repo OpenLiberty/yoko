@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.orb.OBCORBA;
 
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.orb.OB.TypeCodeFactory;
 import org.omg.CORBA.Any;
@@ -257,7 +258,7 @@ public class ORBSingleton_impl extends ORB {
     }
 
     public Any create_any() {
-        return new org.apache.yoko.orb.CORBA.Any(_OB_ORBInstance());
+        return new AnyImpl(_OB_ORBInstance());
     }
 
     public OutputStream create_output_stream() {
