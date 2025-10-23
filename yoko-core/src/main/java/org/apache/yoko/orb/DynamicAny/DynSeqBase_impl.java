@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.DynamicAny;
 
-import org.apache.yoko.orb.CORBA.Any;
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
@@ -197,7 +197,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
     }
 
     private void getValue(int index, org.omg.CORBA.Any a) {
-        Any any = (Any) a;
+        AnyImpl any = (AnyImpl) a;
 
         //
         // Get the value from the primitive array at the given index
@@ -496,7 +496,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
                 return;
         }
 
-        Any any = new Any(orbInstance_);
+        AnyImpl any = new AnyImpl(orbInstance_);
         getValue(index, any);
         ignoreChild_ = true;
 
@@ -691,7 +691,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         org.omg.CORBA.Any[] result = new org.omg.CORBA.Any[length_];
         for (int i = 0; i < length_; i++) {
             if (primitive_) {
-                result[i] = new Any(orbInstance_);
+                result[i] = new AnyImpl(orbInstance_);
                 getValue(i, result[i]);
             } else {
                 result[i] = components_[i].to_any();
@@ -748,12 +748,12 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         // Convert value to an ORBacus Any - the JDK implementation
         // of TypeCode.equivalent() raises NO_IMPLEMENT
         //
-        Any val;
+        AnyImpl val;
         try {
-            val = (Any) value;
+            val = (AnyImpl) value;
         } catch (ClassCastException ex) {
             try {
-                val = new Any(value);
+                val = new AnyImpl(value);
             } catch (NullPointerException e) {
                 throw (InvalidValue)new
                     InvalidValue().initCause(e);
@@ -784,7 +784,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         _OB_marshal(out);
 
             InputStream in = out.create_input_stream();
-            return new Any(orbInstance_, type_, in);
+            return new AnyImpl(orbInstance_, type_, in);
         }
     }
 
@@ -1642,7 +1642,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         notifyParent();
     }
 
-    synchronized Any _OB_currentAny() {
+    synchronized AnyImpl _OB_currentAny() {
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
@@ -1653,7 +1653,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
             return null;
     }
 
-    synchronized Any _OB_currentAnyValue() {
+    synchronized AnyImpl _OB_currentAnyValue() {
         return null;
     }
 }

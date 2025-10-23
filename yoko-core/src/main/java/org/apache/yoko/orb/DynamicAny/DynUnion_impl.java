@@ -29,7 +29,7 @@ import static org.omg.CORBA.TCKind._tk_ushort;
 import static org.omg.CORBA.TCKind._tk_value;
 import static org.omg.CORBA.TCKind.tk_enum;
 
-import org.apache.yoko.orb.CORBA.Any;
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
@@ -297,7 +297,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
 
         case _tk_enum: {
             try {
-                Any a = (Any) any;
+                AnyImpl a = (AnyImpl) any;
                 result = ((Integer) a.value()).longValue();
             } catch (ClassCastException ex) {
                 result = any.create_input_stream().read_ulong();
@@ -435,12 +435,12 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
         // Convert value to an ORBacus Any - the JDK implementation
         // of TypeCode.equivalent() raises NO_IMPLEMENT
         //
-        Any val;
+        AnyImpl val;
         try {
-            val = (Any) value;
+            val = (AnyImpl) value;
         } catch (ClassCastException ex) {
             try {
-                val = new Any(value);
+                val = new AnyImpl(value);
             } catch (NullPointerException e) {
                 throw (InvalidValue)new
                         InvalidValue().initCause(e);
@@ -473,7 +473,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
         _OB_marshal(out);
 
         InputStream in = out.create_input_stream();
-        return new Any(orbInstance_, type_, in);
+        return new AnyImpl(orbInstance_, type_, in);
     }
 
     public synchronized boolean equal(DynAny dyn_any) {
@@ -737,7 +737,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
         notifyParent();
     }
 
-    synchronized Any _OB_currentAny() {
+    synchronized AnyImpl _OB_currentAny() {
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
@@ -751,7 +751,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
             p = (DynAny_impl) member_;
         }
 
-        Any result = null;
+        AnyImpl result = null;
 
         if (p != null)
             result = p._OB_currentAnyValue();
@@ -759,7 +759,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
         return result;
     }
 
-    Any _OB_currentAnyValue() {
+    AnyImpl _OB_currentAnyValue() {
         return null;
     }
 }
