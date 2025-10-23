@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import static java.security.AccessController.doPrivileged;
 import static java.util.logging.Level.FINE;
 import static javax.rmi.CORBA.Util.createValueHandler;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
-import static org.apache.yoko.orb.CORBA.TypeCode._OB_getOrigType;
+import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_getOrigType;
 import static org.apache.yoko.orb.OB.ValueReader.SettingsHolder.IGNORE_INVALID_VALUE_TAG;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.MinorCodes.MinorNoValueFactory;

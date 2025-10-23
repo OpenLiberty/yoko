@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -168,7 +168,7 @@ public class ServerRequest extends org.omg.CORBA.ServerRequest {
             throw new BAD_INV_ORDER("set_exception() has "
                     + "already been called");
 
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(value.type());
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(value.type());
         if (origTC.kind() != tk_except)
             throw new BAD_PARAM(
                     describeBadParam(MinorNoExceptionInAny),

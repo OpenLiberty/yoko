@@ -192,8 +192,8 @@ final public class InputStream extends InputStreamWithOffsets {
     // Private and protected members
     // ------------------------------------------------------------------
 
-    private TypeCode checkCache(String id, int startPos, int length) {
-        TypeCode tc = null;
+    private TypeCodeImpl checkCache(String id, int startPos, int length) {
+        TypeCodeImpl tc = null;
 
         if (!id.isEmpty()) {
             tc = cache_.get(id);
@@ -205,18 +205,18 @@ final public class InputStream extends InputStreamWithOffsets {
         return tc;
     }
 
-    private org.omg.CORBA.TypeCode readTypeCodeImpl(Hashtable<Integer, TypeCode> history, boolean isTopLevel) {
+    private org.omg.CORBA.TypeCode readTypeCodeImpl(Hashtable<Integer, TypeCodeImpl> history, boolean isTopLevel) {
         int kind = read_ulong();
         int oldPos = readBuffer.getPosition() - 4;
         if (logger.isLoggable(Level.FINEST))
             logger.finest(String.format("Reading a TypeCode of kind %d from position 0x%x", kind, oldPos));
 
-        TypeCode tc = null;
+        TypeCodeImpl tc = null;
         if (kind == -1) {
             int offs = read_long();
             int indirectionPos = readBuffer.getPosition() - 4 + offs;
             indirectionPos += (indirectionPos & 0x3); // adjust for alignment
-            TypeCode p = history.get(indirectionPos);
+            TypeCodeImpl p = history.get(indirectionPos);
             if (p == null) {
                 throw newMarshalError(MinorReadInvTypeCodeIndirection);
             }
@@ -242,14 +242,14 @@ final public class InputStream extends InputStreamWithOffsets {
                 case _tk_ulonglong :
                 case _tk_longdouble :
                 case _tk_wchar :
-                    tc = (TypeCode) createPrimitiveTC(TCKind.from_int(kind));
+                    tc = (TypeCodeImpl) createPrimitiveTC(TCKind.from_int(kind));
                     history.put(oldPos, tc);
                     break;
 
                 case _tk_fixed : {
                     short digits = read_ushort();
                     short scale = read_short();
-                    tc = (TypeCode) createFixedTC(digits, scale);
+                    tc = (TypeCodeImpl) createFixedTC(digits, scale);
                     history.put(oldPos, tc);
                     break;
                 }
@@ -269,7 +269,7 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (isTopLevel && cache_ != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
-                        tc = (TypeCode) createInterfaceTC(id, read_string());
+                        tc = (TypeCodeImpl) createInterfaceTC(id, read_string());
 
                         if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
@@ -301,17 +301,17 @@ final public class InputStream extends InputStreamWithOffsets {
                         // construct the TypeCode manually in order to
                         // add it to the history
                         //
-                        TypeCode p = new TypeCode();
+                        TypeCodeImpl p = new TypeCodeImpl();
                         history.put(oldPos, p);
                         p.kind_ = TCKind.from_int(kind);
                         p.id_ = id;
                         p.name_ = read_string();
                         int num = read_ulong();
                         p.memberNames_ = new String[num];
-                        p.memberTypes_ = new TypeCode[num];
+                        p.memberTypes_ = new TypeCodeImpl[num];
                         for (int i = 0; i < num; i++) {
                             p.memberNames_[i] = read_string();
-                            p.memberTypes_[i] = (TypeCode) readTypeCodeImpl(history, false);
+                            p.memberTypes_[i] = (TypeCodeImpl) readTypeCodeImpl(history, false);
                         }
 
                         tc = p;
@@ -344,22 +344,22 @@ final public class InputStream extends InputStreamWithOffsets {
                         // the TypeCode manually in order to add it to the
                         // history
                         //
-                        TypeCode p = new TypeCode();
+                        TypeCodeImpl p = new TypeCodeImpl();
                         history.put(oldPos, p);
                         p.kind_ = tk_union;
                         p.id_ = id;
                         p.name_ = read_string();
-                        p.discriminatorType_ = (TypeCode) readTypeCodeImpl(history, false);
+                        p.discriminatorType_ = (TypeCodeImpl) readTypeCodeImpl(history, false);
                         int defaultIndex = read_long();
                         int num = read_ulong();
                         p.labels_ = new Any[num];
                         p.memberNames_ = new String[num];
-                        p.memberTypes_ = new TypeCode[num];
+                        p.memberTypes_ = new TypeCodeImpl[num];
 
                         //
                         // Check the discriminator type
                         //
-                        TypeCode origTC = p.discriminatorType_._OB_getOrigType();
+                        TypeCodeImpl origTC = p.discriminatorType_._OB_getOrigType();
 
                         switch (origTC.kind().value()) {
                             case _tk_short :
@@ -398,7 +398,7 @@ final public class InputStream extends InputStreamWithOffsets {
                                 p.labels_[i].read_value(this, p.discriminatorType_);
                             }
                             p.memberNames_[i] = read_string();
-                            p.memberTypes_[i] = (TypeCode) readTypeCodeImpl(history, false);
+                            p.memberTypes_[i] = (TypeCodeImpl) readTypeCodeImpl(history, false);
                         }
 
                         tc = p;
@@ -431,7 +431,7 @@ final public class InputStream extends InputStreamWithOffsets {
                         String[] members = new String[num];
                         for (int i = 0; i < num; i++)
                             members[i] = read_string();
-                        tc = (TypeCode) createEnumTC(id, name, members);
+                        tc = (TypeCodeImpl) createEnumTC(id, name, members);
                         history.put(oldPos, tc);
 
                         if (!id.isEmpty() && cache_ != null)
@@ -443,13 +443,13 @@ final public class InputStream extends InputStreamWithOffsets {
                 }
 
                 case _tk_string : {
-                    tc = (TypeCode) createStringTC(read_ulong());
+                    tc = (TypeCodeImpl) createStringTC(read_ulong());
                     history.put(oldPos, tc);
                     break;
                 }
 
                 case _tk_wstring : {
-                    tc = (TypeCode) createWStringTC(read_ulong());
+                    tc = (TypeCodeImpl) createWStringTC(read_ulong());
                     history.put(oldPos, tc);
                     break;
                 }
@@ -465,10 +465,10 @@ final public class InputStream extends InputStreamWithOffsets {
                     // the TypeCode manually in order to add it to the
                     // history
                     //
-                    TypeCode p = new TypeCode();
+                    TypeCodeImpl p = new TypeCodeImpl();
                     history.put(oldPos, p);
                     p.kind_ = TCKind.from_int(kind);
-                    p.contentType_ = (TypeCode) readTypeCodeImpl(history, false);
+                    p.contentType_ = (TypeCodeImpl) readTypeCodeImpl(history, false);
                     p.length_ = read_ulong();
 
                     tc = p;
@@ -492,7 +492,7 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (isTopLevel && cache_ != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
-                        tc = (TypeCode) createAliasTC(id, read_string(), readTypeCodeImpl(history, false));
+                        tc = (TypeCodeImpl) createAliasTC(id, read_string(), readTypeCodeImpl(history, false));
 
                         history.put(oldPos, tc);
 
@@ -524,22 +524,22 @@ final public class InputStream extends InputStreamWithOffsets {
                         // construct the TypeCode manually in order to
                         // add it to the history
                         //
-                        TypeCode p = new TypeCode();
+                        TypeCodeImpl p = new TypeCodeImpl();
                         history.put(oldPos, p);
                         p.kind_ = TCKind.from_int(kind);
                         p.id_ = id;
                         p.name_ = read_string();
                         p.typeModifier_ = read_short();
-                        p.concreteBaseType_ = (TypeCode) readTypeCodeImpl(history, false);
+                        p.concreteBaseType_ = (TypeCodeImpl) readTypeCodeImpl(history, false);
                         if (p.concreteBaseType_.kind().value() == _tk_null)
                             p.concreteBaseType_ = null;
                         int num = read_ulong();
                         p.memberNames_ = new String[num];
-                        p.memberTypes_ = new TypeCode[num];
+                        p.memberTypes_ = new TypeCodeImpl[num];
                         p.memberVisibility_ = new short[num];
                         for (int i = 0; i < num; i++) {
                             p.memberNames_[i] = read_string();
-                            p.memberTypes_[i] = (TypeCode) readTypeCodeImpl(history, false);
+                            p.memberTypes_[i] = (TypeCodeImpl) readTypeCodeImpl(history, false);
                             p.memberVisibility_[i] = read_short();
                         }
 
@@ -568,7 +568,7 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (isTopLevel && cache_ != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
-                        tc = (TypeCode) createValueBoxTC(id, read_string(), readTypeCodeImpl(history, false));
+                        tc = (TypeCodeImpl) createValueBoxTC(id, read_string(), readTypeCodeImpl(history, false));
                         history.put(oldPos, tc);
 
                         if (!id.isEmpty() && cache_ != null)
@@ -597,7 +597,7 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (isTopLevel && cache_ != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
-                        tc = (TypeCode) createAbstractInterfaceTC(id, read_string());
+                        tc = (TypeCodeImpl) createAbstractInterfaceTC(id, read_string());
                         history.put(oldPos, tc);
 
                         if (!id.isEmpty() && cache_ != null)
@@ -623,7 +623,7 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (isTopLevel && cache_ != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
-                        tc = (TypeCode) createNativeTC(id, read_string());
+                        tc = (TypeCodeImpl) createNativeTC(id, read_string());
 
                         if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
@@ -649,7 +649,7 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (isTopLevel && cache_ != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
-                        tc = (TypeCode) createLocalInterfaceTC(id, read_string());
+                        tc = (TypeCodeImpl) createLocalInterfaceTC(id, read_string());
                         history.put(oldPos, tc);
 
                         if (!id.isEmpty() && cache_ != null)

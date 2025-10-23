@@ -140,9 +140,9 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         // could
         // fail if the TypeCode was created by a foreign singleton ORB.
         //
-        TypeCode obTC = null;
+        TypeCodeImpl obTC = null;
         try {
-            obTC = (TypeCode) tc;
+            obTC = (TypeCodeImpl) tc;
         } catch (ClassCastException ignored) {
         }
 
@@ -256,7 +256,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
                                 // Marshal a dummy value of the appropriate size
                                 // for the discriminator type
                                 //
-                                org.omg.CORBA.TypeCode origDiscType = TypeCode._OB_getOrigType(discType);
+                                org.omg.CORBA.TypeCode origDiscType = TypeCodeImpl._OB_getOrigType(discType);
                                 switch (origDiscType.kind().value()) {
                                 case _tk_short:
                                     write_short((short) 0);
@@ -1125,7 +1125,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
 
         if (len <= 0) return;
 
-        org.omg.CORBA.TypeCode origContentType = TypeCode._OB_getOrigType(tc.content_type());
+        org.omg.CORBA.TypeCode origContentType = TypeCodeImpl._OB_getOrigType(tc.content_type());
 
         switch (origContentType.kind().value()) {
         case _tk_null:
@@ -1235,7 +1235,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         int defaultIndex = tc.default_index();
         int memberIndex = -1;
 
-        org.omg.CORBA.TypeCode origDiscType = TypeCode._OB_getOrigType(tc.discriminator_type());
+        org.omg.CORBA.TypeCode origDiscType = TypeCodeImpl._OB_getOrigType(tc.discriminator_type());
 
         switch (origDiscType.kind().value()) {
         case _tk_short: {
