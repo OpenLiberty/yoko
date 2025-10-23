@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import static org.omg.CORBA.TCKind.tk_except;
 import org.apache.yoko.orb.CORBA.Any;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
@@ -83,7 +83,7 @@ final class DynStruct_impl extends DynAny_impl implements DynStruct {
 
             for (int i = 0; i < count; i++) {
                 org.omg.CORBA.TypeCode memberType = origType_.member_type(i);
-                org.omg.CORBA.TypeCode origTC = TypeCode
+                org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                         ._OB_getOrigType(memberType);
 
                 if ((origTC.kind().value() == _tk_value)
@@ -313,7 +313,7 @@ final class DynStruct_impl extends DynAny_impl implements DynStruct {
 
         try {
             org.omg.CORBA.TypeCode memberTC = origType_.member_type(index_);
-            org.omg.CORBA.TypeCode origMemberTC = TypeCode
+            org.omg.CORBA.TypeCode origMemberTC = TypeCodeImpl
                     ._OB_getOrigType(memberTC);
             result = origMemberTC.kind();
         } catch (BadKind | Bounds ex) {
@@ -484,7 +484,7 @@ final class DynStruct_impl extends DynAny_impl implements DynStruct {
                 throw Assert.fail(ex);
             }
 
-            org.omg.CORBA.TypeCode origTC = TypeCode
+            org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                     ._OB_getOrigType(memberType);
 
             if ((origTC.kind().value() == _tk_value)

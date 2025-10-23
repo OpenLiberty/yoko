@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@ package org.apache.yoko.orb.OB;
 
 import static java.lang.Character.isLetter;
 import static java.lang.Character.isLetterOrDigit;
-import static org.apache.yoko.orb.CORBA.TypeCode._OB_convertForeignTypeCode;
-import static org.apache.yoko.orb.CORBA.TypeCode._OB_embedRecTC;
-import static org.apache.yoko.orb.CORBA.TypeCode._OB_getOrigType;
+import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_convertForeignTypeCode;
+import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_embedRecTC;
+import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_getOrigType;
 import static org.apache.yoko.util.MinorCodes.MinorDuplicateLabel;
 import static org.apache.yoko.util.MinorCodes.MinorIncompatibleLabelType;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidDiscriminatorType;
@@ -76,7 +76,7 @@ import static org.omg.CORBA.TCKind.tk_void;
 import static org.omg.CORBA.TCKind.tk_wstring;
 import static org.omg.CORBA_2_4.TCKind.tk_local_interface;
 
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.BAD_PARAM;
@@ -229,7 +229,7 @@ public final class TypeCodeFactory {
         case _tk_wchar:
         case _tk_wstring:
         case _tk_fixed: {
-            TypeCode p = new TypeCode();
+            TypeCodeImpl p = new TypeCodeImpl();
             p.kind_ = kind;
             p.length_ = 0; // For strings
             tc = p;
@@ -288,19 +288,19 @@ public final class TypeCodeFactory {
                 }
         }
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_struct;
         tc.id_ = id;
         tc.name_ = name;
 
         tc.memberNames_ = new String[members.length];
-        tc.memberTypes_ = new TypeCode[members.length];
+        tc.memberTypes_ = new TypeCodeImpl[members.length];
 
         for (int i = 0; i < members.length; i++) {
             tc.memberNames_[i] = members[i].name;
             try {
-                tc.memberTypes_[i] = (TypeCode) members[i].type;
+                tc.memberTypes_[i] = (TypeCodeImpl) members[i].type;
             } catch (ClassCastException ex) {
                 tc.memberTypes_[i] = _OB_convertForeignTypeCode(members[i].type);
             }
@@ -384,20 +384,20 @@ public final class TypeCodeFactory {
             }
         }
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_union;
         tc.id_ = id;
         tc.name_ = name;
         try {
-            tc.discriminatorType_ = (TypeCode) discriminator_type;
+            tc.discriminatorType_ = (TypeCodeImpl) discriminator_type;
         } catch (ClassCastException ex) {
             tc.discriminatorType_ = _OB_convertForeignTypeCode(discriminator_type);
         }
 
         tc.labels_ = new org.apache.yoko.orb.CORBA.Any[members.length];
         tc.memberNames_ = new String[members.length];
-        tc.memberTypes_ = new TypeCode[members.length];
+        tc.memberTypes_ = new TypeCodeImpl[members.length];
 
         for (int i = 0; i < members.length; i++) {
             try {
@@ -410,7 +410,7 @@ public final class TypeCodeFactory {
             tc.memberNames_[i] = members[i].name;
 
             try {
-                tc.memberTypes_[i] = (TypeCode) members[i].type;
+                tc.memberTypes_[i] = (TypeCodeImpl) members[i].type;
             } catch (ClassCastException ex) {
                 tc.memberTypes_[i] = _OB_convertForeignTypeCode(members[i].type);
             }
@@ -449,7 +449,7 @@ public final class TypeCodeFactory {
                 }
         }
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_enum;
         tc.id_ = id;
@@ -479,14 +479,14 @@ public final class TypeCodeFactory {
                     MinorInvalidMemberType,
                     COMPLETED_NO);
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_alias;
         tc.id_ = id;
         tc.name_ = name;
 
         try {
-            tc.contentType_ = (TypeCode) original_type;
+            tc.contentType_ = (TypeCodeImpl) original_type;
         } catch (ClassCastException ex) {
             tc.contentType_ = _OB_convertForeignTypeCode(original_type);
         }
@@ -529,19 +529,19 @@ public final class TypeCodeFactory {
                 }
         }
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_except;
         tc.id_ = id;
         tc.name_ = name;
 
         tc.memberNames_ = new String[members.length];
-        tc.memberTypes_ = new TypeCode[members.length];
+        tc.memberTypes_ = new TypeCodeImpl[members.length];
 
         for (int i = 0; i < members.length; i++) {
             tc.memberNames_[i] = members[i].name;
             try {
-                tc.memberTypes_[i] = (TypeCode) members[i].type;
+                tc.memberTypes_[i] = (TypeCodeImpl) members[i].type;
             } catch (ClassCastException ex) {
                 tc.memberTypes_[i] = _OB_convertForeignTypeCode(members[i].type);
             }
@@ -564,7 +564,7 @@ public final class TypeCodeFactory {
                     + ": " + name, MinorInvalidName,
                     COMPLETED_NO);
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_objref;
         tc.id_ = id;
@@ -576,7 +576,7 @@ public final class TypeCodeFactory {
     public static org.omg.CORBA.TypeCode createStringTC(int bound) {
         Assert.ensure(bound >= 0);
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_string;
         tc.length_ = bound;
@@ -587,7 +587,7 @@ public final class TypeCodeFactory {
     public static org.omg.CORBA.TypeCode createWStringTC(int bound) {
         Assert.ensure(bound >= 0);
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_wstring;
         tc.length_ = bound;
@@ -598,7 +598,7 @@ public final class TypeCodeFactory {
     public static org.omg.CORBA.TypeCode createFixedTC(short digits, short scale) {
         Assert.ensure(digits >= 0);
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_fixed;
         tc.fixedDigits_ = digits;
@@ -616,12 +616,12 @@ public final class TypeCodeFactory {
                     MinorInvalidMemberType,
                     COMPLETED_NO);
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_sequence;
         tc.length_ = bound;
         try {
-            tc.contentType_ = (TypeCode) element_type;
+            tc.contentType_ = (TypeCodeImpl) element_type;
         } catch (ClassCastException ex) {
             tc.contentType_ = _OB_convertForeignTypeCode(element_type);
         }
@@ -643,12 +643,12 @@ public final class TypeCodeFactory {
                     MinorInvalidMemberType,
                     COMPLETED_NO);
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_array;
         tc.length_ = length;
         try {
-            tc.contentType_ = (TypeCode) element_type;
+            tc.contentType_ = (TypeCodeImpl) element_type;
         } catch (ClassCastException ex) {
             tc.contentType_ = _OB_convertForeignTypeCode(element_type);
         }
@@ -703,27 +703,27 @@ public final class TypeCodeFactory {
                 }
         }
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_value;
         tc.id_ = id;
         tc.name_ = name;
         tc.typeModifier_ = type_modifier;
         try {
-            tc.concreteBaseType_ = (TypeCode) concrete_base;
+            tc.concreteBaseType_ = (TypeCodeImpl) concrete_base;
         } catch (ClassCastException ex) {
             tc.concreteBaseType_ = _OB_convertForeignTypeCode(concrete_base);
         }
 
         tc.memberNames_ = new String[members.length];
-        tc.memberTypes_ = new TypeCode[members.length];
+        tc.memberTypes_ = new TypeCodeImpl[members.length];
         tc.memberVisibility_ = new short[members.length];
 
         for (int i = 0; i < members.length; i++) {
             tc.memberNames_[i] = members[i].name;
 
             try {
-                tc.memberTypes_[i] = (TypeCode) members[i].type;
+                tc.memberTypes_[i] = (TypeCodeImpl) members[i].type;
             } catch (ClassCastException ex) {
                 tc.memberTypes_[i] = _OB_convertForeignTypeCode(members[i].type);
             }
@@ -752,13 +752,13 @@ public final class TypeCodeFactory {
                     MinorInvalidMemberType,
                     COMPLETED_NO);
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_value_box;
         tc.id_ = id;
         tc.name_ = name;
         try {
-            tc.contentType_ = (TypeCode) boxed_type;
+            tc.contentType_ = (TypeCodeImpl) boxed_type;
         } catch (ClassCastException ex) {
             tc.contentType_ = _OB_convertForeignTypeCode(boxed_type);
         }
@@ -778,7 +778,7 @@ public final class TypeCodeFactory {
                     + ": " + name, MinorInvalidName,
                     COMPLETED_NO);
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_native;
         tc.id_ = id;
@@ -795,7 +795,7 @@ public final class TypeCodeFactory {
                     + ": " + id, MinorInvalidId,
                     COMPLETED_NO);
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.recId_ = id;
 
@@ -815,7 +815,7 @@ public final class TypeCodeFactory {
                     + ": " + name, MinorInvalidName,
                     COMPLETED_NO);
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_abstract_interface;
         tc.id_ = id;
@@ -837,7 +837,7 @@ public final class TypeCodeFactory {
                     + ": " + name, MinorInvalidName,
                     COMPLETED_NO);
 
-        TypeCode tc = new TypeCode();
+        TypeCodeImpl tc = new TypeCodeImpl();
 
         tc.kind_ = tk_local_interface;
         tc.id_ = id;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 import static org.omg.CORBA_2_4.TCKind.tk_local_interface;
 
 // Note: TypeCodes are (supposed to be) immutable, so I don't need thread synchronization
-final public class TypeCode extends org.omg.CORBA.TypeCode {
+final public class TypeCodeImpl extends org.omg.CORBA.TypeCode {
     public TCKind kind_;
 
     // tk_objref, tk_struct, tk_union, tk_enum, tk_alias, tk_value, tk_value_box, tk_native, tk_abstract_interface, tk_except, tk_local_interface
@@ -99,17 +99,17 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
     // tk_struct, tk_union, tk_enum, tk_value, tk_except
     public String[] memberNames_;
     // tk_struct, tk_union, tk_value, tk_except
-    public TypeCode[] memberTypes_;
+    public TypeCodeImpl[] memberTypes_;
     // tk_union
     public Any[] labels_;
     // tk_union
-    public TypeCode discriminatorType_;
+    public TypeCodeImpl discriminatorType_;
 
     // tk_string, tk_wstring, tk_sequence, tk_array
     public int length_;
 
     // tk_sequence, tk_array, tk_value_box, tk_alias
-    public TypeCode contentType_;
+    public TypeCodeImpl contentType_;
 
     // tk_fixed
     public short fixedDigits_;
@@ -119,7 +119,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
     public short[] memberVisibility_;
     public short typeModifier_;
 
-    public TypeCode concreteBaseType_;
+    public TypeCodeImpl concreteBaseType_;
 
     // If recId_ is set, this is a placeholder recursive TypeCode that
     // was generated with create_recursive_tc(). If the placeholder
@@ -127,7 +127,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
     // recursive TypeCode this placeholder delegates to.
     public String recId_;
 
-    TypeCode recType_;
+    TypeCodeImpl recType_;
 
     @Override
     public String toString() {
@@ -172,7 +172,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
             if (null == memberTypes_) {
                 sb.append(indent).append("members: ").append(Arrays.toString(memberNames_)).append(NL);
             } else for (int i = 0; i < memberNames_.length; i++) {
-                TypeCode tc = i < memberTypes_.length ? memberTypes_[i] : null;
+                TypeCodeImpl tc = i < memberTypes_.length ? memberTypes_[i] : null;
                 String prefix = format("%s%s: ", memberNames_[i],
                         (i < visCount) ? ((PRIVATE_MEMBER.value == memberVisibility_[i]) ? "[private]" : "[public]"): "");
                 appendTC(sb, prefix, tc, indent, describedIds).append(NL);
@@ -185,7 +185,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
         if (null != concreteBaseType_) appendTC(sb, "concrete base type: ", concreteBaseType_, indent, describedIds).append(NL);
     }
 
-    private static StringBuilder appendTC(StringBuilder sb, String prefix, TypeCode tc, String indent, Set<String> describedIds) {
+    private static StringBuilder appendTC(StringBuilder sb, String prefix, TypeCodeImpl tc, String indent, Set<String> describedIds) {
         sb.append(indent).append(prefix);
         if (tc == null) sb.append("typecode was null");
         else tc.describe(sb, indent, describedIds);
@@ -226,9 +226,9 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
 
     private boolean equivalentRec(org.omg.CORBA.TypeCode t,
             Vector<org.omg.CORBA.TypeCode> history, Vector<org.omg.CORBA.TypeCode> otherHistory) {
-        TypeCode tc;
+        TypeCodeImpl tc;
         try {
-            tc = (TypeCode) t;
+            tc = (TypeCodeImpl) t;
         } catch (ClassCastException ex) {
             tc = _OB_convertForeignTypeCode(t);
         }
@@ -252,8 +252,8 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
             return equivalentRecHelper(tc.recType_, history, otherHistory);
         }
 
-        TypeCode tc1 = _OB_getOrigType();
-        TypeCode tc2 = tc._OB_getOrigType();
+        TypeCodeImpl tc1 = _OB_getOrigType();
+        TypeCodeImpl tc2 = tc._OB_getOrigType();
 
         if (tc1.kind_ != tc2.kind_)
             return false;
@@ -374,7 +374,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
         return true;
     }
 
-    private TypeCode getCompactTypeCodeRec(Vector<org.omg.CORBA.TypeCode> history, Vector<org.omg.CORBA.TypeCode> compacted) {
+    private TypeCodeImpl getCompactTypeCodeRec(Vector<org.omg.CORBA.TypeCode> history, Vector<org.omg.CORBA.TypeCode> compacted) {
         if (null != recId_) {
             if (null == recType_) throw new BAD_TYPECODE(describeBadTypecode(MinorIncompleteTypeCode), MinorIncompleteTypeCode, COMPLETED_NO);
             return recType_.getCompactTypeCodeRec(history, compacted);
@@ -385,28 +385,28 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
         //
         for (int i = 0; i < history.size(); i++)
             if (this == history.elementAt(i))
-                return (TypeCode) compacted.elementAt(i);
+                return (TypeCodeImpl) compacted.elementAt(i);
 
         history.addElement(this);
 
         // Create the new compacted type code (needed for recursive type codes).
-        TypeCode result = new TypeCode();
+        TypeCodeImpl result = new TypeCodeImpl();
         compacted.addElement(result);
 
         String[] names = (null == memberNames_) ?
                 null : Arrays.stream(memberNames_).map(n -> "").toArray(String[]::new);
 
-        TypeCode[] types = (null == memberTypes_) ?
-                null : Arrays.stream(memberTypes_).map(t -> t.getCompactTypeCodeRec(history, compacted)).toArray(TypeCode[]::new);
+        TypeCodeImpl[] types = (null == memberTypes_) ?
+                null : Arrays.stream(memberTypes_).map(t -> t.getCompactTypeCodeRec(history, compacted)).toArray(TypeCodeImpl[]::new);
 
-        TypeCode content = (null == contentType_) ? null : contentType_.getCompactTypeCodeRec(history, compacted);
+        TypeCodeImpl content = (null == contentType_) ? null : contentType_.getCompactTypeCodeRec(history, compacted);
 
-        TypeCode discriminator = (null == discriminatorType_) ? null : discriminatorType_.getCompactTypeCodeRec(history, compacted);
+        TypeCodeImpl discriminator = (null == discriminatorType_) ? null : discriminatorType_.getCompactTypeCodeRec(history, compacted);
 
         //
         // Compact concrete base type
         //
-        TypeCode concrete = (null == concreteBaseType_) ? null : concreteBaseType_.getCompactTypeCodeRec(history, compacted);
+        TypeCodeImpl concrete = (null == concreteBaseType_) ? null : concreteBaseType_.getCompactTypeCodeRec(history, compacted);
 
         switch (kind_.value()) {
         case _tk_null:
@@ -530,9 +530,9 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
             return recType_.equal(t);
         }
 
-        TypeCode tc;
+        TypeCodeImpl tc;
         try {
-            tc = (TypeCode) t;
+            tc = (TypeCodeImpl) t;
         } catch (ClassCastException ex) {
             tc = _OB_convertForeignTypeCode(t);
         }
@@ -889,7 +889,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
         return length_;
     }
 
-    public TypeCode content_type() throws BadKind {
+    public TypeCodeImpl content_type() throws BadKind {
         if (recId_ != null) {
             if (recType_ == null)
                 throw new BAD_TYPECODE(
@@ -1003,10 +1003,10 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
     // Application programs must not use these functions directly
     // ------------------------------------------------------------------
 
-    public TypeCode() {
+    public TypeCodeImpl() {
     }
 
-    public TypeCode _OB_getOrigType() {
+    public TypeCodeImpl _OB_getOrigType() {
         return _OB_getOrigType(this);
     }
 
@@ -1020,7 +1020,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
         return tc;
     }
 
-    static public TypeCode _OB_getOrigType(TypeCode tc) {
+    static public TypeCodeImpl _OB_getOrigType(TypeCodeImpl tc) {
         try {
             while (tc.kind() == tk_alias) tc = tc.content_type();
         } catch (BadKind ex) {
@@ -1036,12 +1036,12 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
         return Util.isSystemException(id_);
     }
 
-    static private TypeCode _OB_convertForeignTypeCodeHelper(
-            org.omg.CORBA.TypeCode tc, Hashtable<org.omg.CORBA.TypeCode, TypeCode> history,
+    static private TypeCodeImpl _OB_convertForeignTypeCodeHelper(
+            org.omg.CORBA.TypeCode tc, Hashtable<org.omg.CORBA.TypeCode, TypeCodeImpl> history,
             Vector<org.omg.CORBA.TypeCode> recHistory) {
-        if (tc instanceof TypeCode) return (TypeCode) tc;
+        if (tc instanceof TypeCodeImpl) return (TypeCodeImpl) tc;
 
-        TypeCode result;
+        TypeCodeImpl result;
 
         try {
             TCKind kind = tc.kind();
@@ -1056,7 +1056,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
                     || kindValue == _tk_value) {
                 for (int i = 0; i < recHistory.size(); i++)
                     if (tc == recHistory.elementAt(i)) {
-                        result = new TypeCode();
+                        result = new TypeCodeImpl();
                         result.recId_ = tc.id();
                         result.recType_ = history.get(tc);
                         ensure(result.recType_ != null);
@@ -1071,7 +1071,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
             if (result != null)
                 return result;
 
-            result = new TypeCode();
+            result = new TypeCodeImpl();
             history.put(tc, result);
 
             switch (kindValue) {
@@ -1121,7 +1121,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
                 for (int i = 0; i < count; i++)
                     result.memberNames_[i] = tc.member_name(i);
                 recHistory.addElement(tc);
-                result.memberTypes_ = new TypeCode[count];
+                result.memberTypes_ = new TypeCodeImpl[count];
                 for (int i = 0; i < count; i++)
                     result.memberTypes_[i] = _OB_convertForeignTypeCodeHelper(
                             tc.member_type(i), history, recHistory);
@@ -1138,7 +1138,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
                 for (int i = 0; i < count; i++)
                     result.memberNames_[i] = tc.member_name(i);
                 recHistory.addElement(tc);
-                result.memberTypes_ = new TypeCode[count];
+                result.memberTypes_ = new TypeCodeImpl[count];
                 for (int i = 0; i < count; i++)
                     result.memberTypes_[i] = _OB_convertForeignTypeCodeHelper(
                             tc.member_type(i), history, recHistory);
@@ -1197,7 +1197,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
                 for (int i = 0; i < count; i++)
                     result.memberNames_[i] = tc.member_name(i);
                 recHistory.addElement(tc);
-                result.memberTypes_ = new TypeCode[count];
+                result.memberTypes_ = new TypeCodeImpl[count];
                 for (int i = 0; i < count; i++)
                     result.memberTypes_[i] = _OB_convertForeignTypeCodeHelper(
                             tc.member_type(i), history, recHistory);
@@ -1220,10 +1220,10 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
         return result;
     }
 
-    static public TypeCode _OB_convertForeignTypeCode(org.omg.CORBA.TypeCode tc) {
-        ensure(!(tc instanceof TypeCode));
+    static public TypeCodeImpl _OB_convertForeignTypeCode(org.omg.CORBA.TypeCode tc) {
+        ensure(!(tc instanceof TypeCodeImpl));
 
-        Hashtable<org.omg.CORBA.TypeCode, TypeCode> history = new Hashtable<>(7);
+        Hashtable<org.omg.CORBA.TypeCode, TypeCodeImpl> history = new Hashtable<>(7);
         Vector<org.omg.CORBA.TypeCode> recHistory = new Vector<>();
 
         return _OB_convertForeignTypeCodeHelper(tc, history, recHistory);
@@ -1233,7 +1233,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
     // Embed recursive placeholder TypeCodes
     // ----------------------------------------------------------------------
 
-    static public void _OB_embedRecTC(TypeCode outer) {
+    static public void _OB_embedRecTC(TypeCodeImpl outer) {
         //
         // Recursive placeholder TypeCodes are illegal as "outer" argument
         //
@@ -1249,7 +1249,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
         _OB_embedRecTC(outer, outer);
     }
 
-    static public void _OB_embedRecTC(final TypeCode outer, final TypeCode inner) {
+    static public void _OB_embedRecTC(final TypeCodeImpl outer, final TypeCodeImpl inner) {
         //
         // Embed recursive placeholder TypeCodes
         //
@@ -1281,7 +1281,7 @@ final public class TypeCode extends org.omg.CORBA.TypeCode {
             case _tk_union:
             case _tk_value:
             case _tk_except:
-                for (TypeCode tc: inner.memberTypes_) {
+                for (TypeCodeImpl tc: inner.memberTypes_) {
                     ensure(outer != tc);
                     _OB_embedRecTC(outer, tc);
                 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 package test.types;
 
 import org.apache.yoko.orb.CORBA.ORBSingleton;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TCKind;
@@ -75,7 +76,7 @@ public class TestPortableTypes {
             //
             // Force the conversion to an ORBacus TypeCode
             //
-            org.apache.yoko.orb.CORBA.TypeCode tc = org.apache.yoko.orb.CORBA.TypeCode._OB_convertForeignTypeCode(type);
+            TypeCodeImpl tc = TypeCodeImpl._OB_convertForeignTypeCode(type);
 
             //
             // Reset the repository ID so that equivalent will do

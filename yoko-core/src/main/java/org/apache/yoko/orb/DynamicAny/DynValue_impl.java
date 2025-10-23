@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ package org.apache.yoko.orb.DynamicAny;
 import org.apache.yoko.orb.CORBA.Any;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
@@ -106,7 +106,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
                     // while(baseType != null)
                     while (baseType != null
                             && baseType.kind() != TCKind.tk_null) {
-                        org.omg.CORBA.TypeCode origBaseType = TypeCode
+                        org.omg.CORBA.TypeCode origBaseType = TypeCodeImpl
                                 ._OB_getOrigType(baseType);
                         ids.addElement(origBaseType.id());
                         baseType = origBaseType.concrete_base_type();
@@ -132,7 +132,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
     private void getMembers(org.omg.CORBA.TypeCode tc, Vector names,
             Vector types) {
         try {
-            org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+            org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
             org.omg.CORBA.TypeCode base = origTC.concrete_base_type();
             //
             // Workaround for bug in JDK ORB, which returns a tk_null
@@ -156,7 +156,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
             components_ = new DynAny[types_.length];
 
             for (int i = 0; i < types_.length; i++) {
-                org.omg.CORBA.TypeCode origTC = TypeCode
+                org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                         ._OB_getOrigType(types_[i]);
 
                 if ((origTC.kind().value() == _tk_value)
@@ -365,7 +365,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
         if (index_ < 0)
             throw new InvalidValue();
 
-        org.omg.CORBA.TypeCode origTC = TypeCode
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                 ._OB_getOrigType(types_[index_]);
         return origTC.kind();
     }
@@ -559,7 +559,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
         // Unmarshal component state
         //
         for (int i = 0; i < components_.length; i++) {
-            org.omg.CORBA.TypeCode origTC = TypeCode
+            org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                     ._OB_getOrigType(types_[i]);
 
             if ((origTC.kind().value() == _tk_value)
