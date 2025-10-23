@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.orb.OBMessaging;
 
+import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.osgi.ProviderLocator;
 import org.apache.yoko.util.Assert;
 import org.omg.CORBA.TypeCode;
@@ -41,7 +42,7 @@ public class UserExceptionRaiseProxy {
         try {
             raise(exceptHolder);
         } catch (UserException ex) {
-            Any any = new org.apache.yoko.orb.CORBA.Any();
+            Any any = new AnyImpl();
 
             Class exClass = ex.getClass();
             String className = exClass.getName();

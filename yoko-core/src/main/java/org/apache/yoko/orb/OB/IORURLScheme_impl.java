@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.util.HexConverter;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.LocalObject;
@@ -55,7 +55,7 @@ public class IORURLScheme_impl extends LocalObject implements URLScheme {
             if (data == null)
                 throw new MARSHAL();
 
-            InputStream in = new InputStream(data);
+            YokoInputStream in = new YokoInputStream(data);
             in._OB_readEndian();
             IOR ior = IORHelper.read(in);
             ObjectFactory objectFactory = orbInstance_.getObjectFactory();

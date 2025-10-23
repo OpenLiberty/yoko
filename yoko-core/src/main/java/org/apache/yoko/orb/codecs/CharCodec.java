@@ -78,7 +78,7 @@ import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
  *     prohibited overlong encodings as the Unicode replacement character, '\uFFFD'.
  * </p>
  */
-interface CharCodec {
+public interface CharCodec {
     @FunctionalInterface interface CharReader { char readChar(ReadBuffer in); }
 
     /**

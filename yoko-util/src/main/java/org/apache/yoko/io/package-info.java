@@ -15,15 +15,11 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.CORBA;
 
-final public class OutputStreamHolder {
-    public YokoOutputStream value;
-
-    public OutputStreamHolder() {
-    }
-
-    public OutputStreamHolder(YokoOutputStream initial) {
-        value = initial;
-    }
-}
+/**
+ * This package provides functionality for reading and writing Java primitive types
+ * from and to byte arrays. Since this is Yoko, the domain is obviously CORBA marshalling.
+ * However, this is a utility in a layer above any CORBA specifics, and deals only with Java
+ * primitive types.
+ */
+package org.apache.yoko.io;

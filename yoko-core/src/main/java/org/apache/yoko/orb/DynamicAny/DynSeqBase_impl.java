@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@
  */
 package org.apache.yoko.orb.DynamicAny;
 
-import org.apache.yoko.orb.CORBA.Any;
-import org.apache.yoko.orb.CORBA.InputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.AnyImpl;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
@@ -109,7 +109,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         try {
             contentType_ = origType_.content_type();
 
-            org.omg.CORBA.TypeCode origContent = TypeCode
+            org.omg.CORBA.TypeCode origContent = TypeCodeImpl
                     ._OB_getOrigType(contentType_);
             contentKind_ = origContent.kind();
             length_ = 0;
@@ -197,7 +197,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
     }
 
     private void getValue(int index, org.omg.CORBA.Any a) {
-        Any any = (Any) a;
+        AnyImpl any = (AnyImpl) a;
 
         //
         // Get the value from the primitive array at the given index
@@ -496,7 +496,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
                 return;
         }
 
-        Any any = new Any(orbInstance_);
+        AnyImpl any = new AnyImpl(orbInstance_);
         getValue(index, any);
         ignoreChild_ = true;
 
@@ -691,7 +691,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         org.omg.CORBA.Any[] result = new org.omg.CORBA.Any[length_];
         for (int i = 0; i < length_; i++) {
             if (primitive_) {
-                result[i] = new Any(orbInstance_);
+                result[i] = new AnyImpl(orbInstance_);
                 getValue(i, result[i]);
             } else {
                 result[i] = components_[i].to_any();
@@ -729,10 +729,10 @@ abstract class DynSeqBase_impl extends DynAny_impl {
             throw new TypeMismatch();
 
         DynAny_impl impl = (DynAny_impl) dyn_any;
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_ORBInstance(orbInstance_);
             impl._OB_marshal(out);
-            InputStream in = out.create_input_stream();
+            YokoInputStream in = out.create_input_stream();
             _OB_unmarshal(in);
         }
         notifyParent();
@@ -748,12 +748,12 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         // Convert value to an ORBacus Any - the JDK implementation
         // of TypeCode.equivalent() raises NO_IMPLEMENT
         //
-        Any val;
+        AnyImpl val;
         try {
-            val = (Any) value;
+            val = (AnyImpl) value;
         } catch (ClassCastException ex) {
             try {
-                val = new Any(value);
+                val = new AnyImpl(value);
             } catch (NullPointerException e) {
                 throw (InvalidValue)new
                     InvalidValue().initCause(e);
@@ -767,7 +767,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
             throw new InvalidValue();
 
         org.omg.CORBA.portable.InputStream in = val.create_input_stream();
-        _OB_unmarshal((InputStream) in);
+        _OB_unmarshal((YokoInputStream) in);
 
         index_ = 0;
 
@@ -778,13 +778,13 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_ORBInstance(orbInstance_);
 
         _OB_marshal(out);
 
-            InputStream in = out.create_input_stream();
-            return new Any(orbInstance_, type_, in);
+            YokoInputStream in = out.create_input_stream();
+            return new AnyImpl(orbInstance_, type_, in);
         }
     }
 
@@ -913,7 +913,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         DynValueWriter dynValueWriter = new DynValueWriter(orbInstance_,
                 factory_);
 
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_ORBInstance(orbInstance_);
             _OB_marshal(out, dynValueWriter);
 
@@ -923,7 +923,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
 
             DynSeqBase_impl seq = (DynSeqBase_impl) result;
 
-            InputStream in = out.create_input_stream();
+            YokoInputStream in = out.create_input_stream();
             seq._OB_unmarshal(in);
 
             return result;
@@ -1082,7 +1082,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
 
         validate(tk_string);
 
-        org.omg.CORBA.TypeCode origContent = TypeCode
+        org.omg.CORBA.TypeCode origContent = TypeCodeImpl
                 ._OB_getOrigType(contentType_);
 
         //
@@ -1169,7 +1169,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
 
         validate(tk_wstring);
 
-        org.omg.CORBA.TypeCode origContent = TypeCode
+        org.omg.CORBA.TypeCode origContent = TypeCodeImpl
                 ._OB_getOrigType(contentType_);
 
         //
@@ -1421,12 +1421,12 @@ abstract class DynSeqBase_impl extends DynAny_impl {
     // Internal member implementations
     // ------------------------------------------------------------------
 
-    synchronized void _OB_marshal(OutputStream out) {
+    synchronized void _OB_marshal(YokoOutputStream out) {
         _OB_marshal(out, new DynValueWriter(orbInstance_, factory_));
     }
 
-    synchronized void _OB_marshal(OutputStream out,
-            DynValueWriter dynValueWriter) {
+    synchronized void _OB_marshal(YokoOutputStream out,
+                                  DynValueWriter dynValueWriter) {
         if (origType_.kind() == TCKind.tk_sequence) {
             out.write_ulong(length_);
 
@@ -1506,7 +1506,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         }
     }
 
-    synchronized void _OB_unmarshal(InputStream in) {
+    synchronized void _OB_unmarshal(YokoInputStream in) {
         int len;
         if (origType_.kind() == TCKind.tk_array)
             len = length_;
@@ -1642,7 +1642,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         notifyParent();
     }
 
-    synchronized Any _OB_currentAny() {
+    synchronized AnyImpl _OB_currentAny() {
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
@@ -1653,7 +1653,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
             return null;
     }
 
-    synchronized Any _OB_currentAnyValue() {
+    synchronized AnyImpl _OB_currentAnyValue() {
         return null;
     }
 }

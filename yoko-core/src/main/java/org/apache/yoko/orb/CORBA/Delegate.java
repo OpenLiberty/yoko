@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -377,7 +377,7 @@ public final class Delegate extends org.omg.CORBA_2_4.portable.Delegate {
         while (true) {
             try {
                 DowncallStub downcallStub = _OB_getDowncallStub();
-                OutputStream out = downcallStub.setupRequest(self, operation, responseExpected);
+                YokoOutputStream out = downcallStub.setupRequest(self, operation, responseExpected);
                 out._OB_delegateContext(info);
                 return out;
             } catch (Exception ex) {
@@ -396,7 +396,7 @@ public final class Delegate extends org.omg.CORBA_2_4.portable.Delegate {
         // 5) If a retry is necessary, we must set the current
         // RetryInfo in TSS so that the next call to request()
         // can retrieve it.
-        OutputStream outImpl = (OutputStream) out;
+        YokoOutputStream outImpl = (YokoOutputStream) out;
         RetryInfo info = (RetryInfo) outImpl._OB_delegateContext();
         try {
             DowncallStub downcallStub = _OB_getDowncallStub();

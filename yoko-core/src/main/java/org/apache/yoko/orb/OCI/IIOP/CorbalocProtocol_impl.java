@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OCI.IIOP;
 
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OB.CorbalocProtocol;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.LocalObject;
@@ -162,7 +162,7 @@ public class CorbalocProtocol_impl extends LocalObject implements
                 body.port = (short) port;
             body.object_key = key;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 ProfileBody_1_0Helper.write(out, body);
                 profile.profile_data = out.copyWrittenBytes();
@@ -181,7 +181,7 @@ public class CorbalocProtocol_impl extends LocalObject implements
             body.object_key = key;
             body.components = new TaggedComponent[0];
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 ProfileBody_1_1Helper.write(out, body);
                 profile.profile_data = out.copyWrittenBytes();

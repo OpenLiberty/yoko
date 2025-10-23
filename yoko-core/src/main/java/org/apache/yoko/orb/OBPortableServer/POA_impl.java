@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.OBPortableServer;
 
 import org.apache.yoko.orb.CORBA.Delegate;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OB.DispatchRequest_impl;
 import org.apache.yoko.orb.OB.DispatchStrategy;
@@ -1139,7 +1139,7 @@ final public class POA_impl extends LocalObject implements POA {
                             UpcallReturn upcallReturn,
                             ProfileInfo profileInfo,
                             TransportInfo transportInfo, int requestId,
-                            String op, InputStream in,
+                            String op, YokoInputStream in,
                             ServiceContexts requestContexts) throws LocationForward {
         // Increment the outstanding request count
         if (!poaControl_.incrementRequestCount()) return null;

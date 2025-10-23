@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package org.apache.yoko.orb.OB;
 
 import static org.apache.yoko.orb.OB.CodeConverters.NULL_CONVERTER;
 
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OCI.ConnectorInfo;
@@ -89,7 +89,7 @@ public final class CollocatedClient extends Client implements DowncallEmitter {
     // OutputStream for marshalling a request
     //
     public DowncallEmitter startDowncall(Downcall down, OutputStreamHolder out) {
-        out.value = new OutputStream();
+        out.value = new YokoOutputStream();
         return this;
     }
 

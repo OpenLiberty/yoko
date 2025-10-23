@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.io.Buffer;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OBPortableServer.POAManager_impl;
@@ -29,7 +29,6 @@ import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.orb.OCI.SendReceiveMode;
 import org.apache.yoko.orb.OCI.Transport;
 import org.apache.yoko.orb.OCI.TransportInfo;
-import org.apache.yoko.orb.exceptions.Transients;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.Cache;
 import org.apache.yoko.util.Factory;
@@ -222,7 +221,7 @@ final class GIOPClient extends Client {
             ctx.wchar_data = conv.outputWcharConverter == null ? orbInstance_.getNativeWcs() : conv.outputWcharConverter.getDestinationCodeSet().id;
 
             // Create encapsulation for CONV_FRAME::CodeSetContext
-            try (OutputStream outCSC = new OutputStream()) {
+            try (YokoOutputStream outCSC = new YokoOutputStream()) {
                 outCSC._OB_writeEndian();
                 CodeSetContextHelper.write(outCSC, ctx);
 
@@ -346,7 +345,7 @@ final class GIOPClient extends Client {
             }
 
             ProfileInfo profileInfo = down.profileInfo();
-            out.value = new OutputStream(Buffer.createWriteBuffer(12).padAll(), codeConverters(), GiopVersion.get(profileInfo.major, profileInfo.minor));
+            out.value = new YokoOutputStream(Buffer.createWriteBuffer(12).padAll(), codeConverters(), GiopVersion.get(profileInfo.major, profileInfo.minor));
 
             // Create GIOP outgoing message
             GIOPOutgoingMessage outgoing = new GIOPOutgoingMessage(orbInstance_, out.value, profileInfo);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@
  */
 package org.apache.yoko.orb.DynamicAny;
 
-import org.apache.yoko.orb.CORBA.Any;
-import org.apache.yoko.orb.CORBA.InputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.AnyImpl;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
@@ -106,7 +106,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
                     // while(baseType != null)
                     while (baseType != null
                             && baseType.kind() != TCKind.tk_null) {
-                        org.omg.CORBA.TypeCode origBaseType = TypeCode
+                        org.omg.CORBA.TypeCode origBaseType = TypeCodeImpl
                                 ._OB_getOrigType(baseType);
                         ids.addElement(origBaseType.id());
                         baseType = origBaseType.concrete_base_type();
@@ -132,7 +132,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
     private void getMembers(org.omg.CORBA.TypeCode tc, Vector names,
             Vector types) {
         try {
-            org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+            org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
             org.omg.CORBA.TypeCode base = origTC.concrete_base_type();
             //
             // Workaround for bug in JDK ORB, which returns a tk_null
@@ -156,7 +156,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
             components_ = new DynAny[types_.length];
 
             for (int i = 0; i < types_.length; i++) {
-                org.omg.CORBA.TypeCode origTC = TypeCode
+                org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                         ._OB_getOrigType(types_[i]);
 
                 if ((origTC.kind().value() == _tk_value)
@@ -230,12 +230,12 @@ final class DynValue_impl extends DynValueCommon_impl implements
         // Convert value to an ORBacus Any - the JDK implementation
         // of TypeCode.equivalent() raises NO_IMPLEMENT
         //
-        Any val;
+        AnyImpl val;
         try {
-            val = (Any) value;
+            val = (AnyImpl) value;
         } catch (ClassCastException ex) {
             try {
-                val = new Any(value);
+                val = new AnyImpl(value);
             } catch (NullPointerException e) {
                 throw (InvalidValue)new
                     InvalidValue().initCause(e);
@@ -253,7 +253,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
                 InvalidValue().initCause(e);
         }
 
-        _OB_unmarshal((InputStream) in);
+        _OB_unmarshal((YokoInputStream) in);
 
         if (is_null() || components_.length == 0)
             index_ = -1;
@@ -272,9 +272,9 @@ final class DynValue_impl extends DynValueCommon_impl implements
             throw new OBJECT_NOT_EXIST();
 
         if (is_null())
-            return new Any(orbInstance_, type_, null);
+            return new AnyImpl(orbInstance_, type_, null);
         else {
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_ORBInstance(orbInstance_);
 
                 if (dynValueWriter != null)
@@ -282,8 +282,8 @@ final class DynValue_impl extends DynValueCommon_impl implements
                 else
                     _OB_marshal(out);
 
-                InputStream in = out.create_input_stream();
-                return new Any(orbInstance_, type_, in);
+                YokoInputStream in = out.create_input_stream();
+                return new AnyImpl(orbInstance_, type_, in);
             }
         }
     }
@@ -365,7 +365,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
         if (index_ < 0)
             throw new InvalidValue();
 
-        org.omg.CORBA.TypeCode origTC = TypeCode
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                 ._OB_getOrigType(types_[index_]);
         return origTC.kind();
     }
@@ -398,7 +398,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
         // name-value pairs to check for matching member names and
         // compatible TypeCodes
         //
-        Any[] values = new Any[value.length];
+        AnyImpl[] values = new AnyImpl[value.length];
         for (int i = 0; i < names_.length; i++) {
             if (value[i].id.length() > 0 && names_[i].length() > 0
                     && !value[i].id.equals(names_[i]))
@@ -410,9 +410,9 @@ final class DynValue_impl extends DynValueCommon_impl implements
             // get an ORBacus TypeCode
             //
             try {
-                values[i] = (Any) value[i].value;
+                values[i] = (AnyImpl) value[i].value;
             } catch (ClassCastException ex) {
-                values[i] = new Any(value[i].value);
+                values[i] = new AnyImpl(value[i].value);
             }
             org.omg.CORBA.TypeCode valueType = values[i]._OB_type();
             if (!valueType.equivalent(types_[i]))
@@ -487,12 +487,12 @@ final class DynValue_impl extends DynValueCommon_impl implements
     // Internal member implementations
     // ------------------------------------------------------------------
 
-    synchronized void _OB_marshal(OutputStream out) {
+    synchronized void _OB_marshal(YokoOutputStream out) {
         _OB_marshal(out, new DynValueWriter(orbInstance_, factory_));
     }
 
-    synchronized void _OB_marshal(OutputStream out,
-            DynValueWriter dynValueWriter) {
+    synchronized void _OB_marshal(YokoOutputStream out,
+                                  DynValueWriter dynValueWriter) {
         if (is_null()) {
             out.write_ulong(0);
         } else if (!dynValueWriter.writeIndirection(this, out)) {
@@ -529,7 +529,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
         }
     }
 
-    synchronized void _OB_unmarshal(InputStream in) {
+    synchronized void _OB_unmarshal(YokoInputStream in) {
         //
         // Peek at value tag
         //
@@ -559,7 +559,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
         // Unmarshal component state
         //
         for (int i = 0; i < components_.length; i++) {
-            org.omg.CORBA.TypeCode origTC = TypeCode
+            org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                     ._OB_getOrigType(types_[i]);
 
             if ((origTC.kind().value() == _tk_value)
@@ -603,7 +603,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
         notifyParent();
     }
 
-    synchronized Any _OB_currentAny() {
+    synchronized AnyImpl _OB_currentAny() {
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
@@ -615,7 +615,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
         return null;
     }
 
-    Any _OB_currentAnyValue() {
+    AnyImpl _OB_currentAnyValue() {
         return null;
     }
 }

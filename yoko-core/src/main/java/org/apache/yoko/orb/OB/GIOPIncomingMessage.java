@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.util.Assert;
 import org.omg.CORBA.BooleanHolder;
@@ -57,7 +57,7 @@ import org.omg.IOP.TaggedProfileHelper;
 public final class GIOPIncomingMessage {
     private ORBInstance orbInstance_;
 
-    private InputStream in_;
+    private YokoInputStream in_;
 
     private static int maxMessageSize_;
 
@@ -112,7 +112,7 @@ public final class GIOPIncomingMessage {
 
     private Fragment lastFragment_; // for GIOP 1.1
 
-    private void skipServiceContextList(InputStream in) {
+    private void skipServiceContextList(YokoInputStream in) {
         int len = in.read_ulong();
         for (int i = 0; i < len; i++) {
             // context_id
@@ -186,14 +186,14 @@ public final class GIOPIncomingMessage {
         return size_;
     }
 
-    InputStream input() {
-        InputStream result = in_;
+    YokoInputStream input() {
+        YokoInputStream result = in_;
         in_ = null;
         return result;
     }
 
     void extractHeader(ReadBuffer br) {
-        InputStream in = new InputStream(br, false);
+        YokoInputStream in = new YokoInputStream(br, false);
         in_ = null;
 
         if ('G' != in.read_octet() || 'I' != in.read_octet() || 'O' != in.read_octet() || 'P' != in.read_octet())
@@ -323,7 +323,7 @@ public final class GIOPIncomingMessage {
 
         // If we haven't read the request ID yet, then try to get it now
         if (lastFragment_.reqId == null) {
-            InputStream reqIn = new InputStream(lastFragment_.writeBuffer.readFromStart(), 12, swap());
+            YokoInputStream reqIn = new YokoInputStream(lastFragment_.writeBuffer.readFromStart(), 12, swap());
             try {
                 skipServiceContextList(reqIn);
                 lastFragment_.reqId = reqIn.read_ulong();
@@ -342,7 +342,7 @@ public final class GIOPIncomingMessage {
         Fragment complete;
         // GIOP 1.2 defines the FragmentHeader message header, to allow
         // interleaving of Fragment messages for different requests
-        InputStream in = new InputStream(reader, 12, swap());
+        YokoInputStream in = new YokoInputStream(reader, 12, swap());
         int reqId = in.read_ulong();
 
         // Find fragment data for request
@@ -389,7 +389,7 @@ public final class GIOPIncomingMessage {
     }
 
     private void readEntireMessage(ReadBuffer reader) {
-        in_ = new InputStream(reader, 12, swap());
+        in_ = new YokoInputStream(reader, 12, swap());
     }
 
     private void startNewFragmentedMessage(WriteBuffer writer) {
@@ -417,7 +417,7 @@ public final class GIOPIncomingMessage {
         // data.
         Integer reqId = null;
         try {
-            InputStream in = new InputStream(writer.readFromStart(), 12, swap());
+            YokoInputStream in = new YokoInputStream(writer.readFromStart(), 12, swap());
             skipServiceContextList(in);
             reqId = in.read_ulong();
         } catch (MARSHAL ignored) {
@@ -441,7 +441,7 @@ public final class GIOPIncomingMessage {
         final int reqId;
         boolean haveReqId = false;
         try {
-            InputStream in = new InputStream(writer.readFromStart(), 12, swap());
+            YokoInputStream in = new YokoInputStream(writer.readFromStart(), 12, swap());
             reqId = in.read_ulong();
         } catch (MARSHAL ex) {
             // In GIOP 1.2, the request ID is in the first 16 bytes,

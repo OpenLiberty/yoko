@@ -37,11 +37,13 @@ import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.NO_IMPLEMENT;
 import org.omg.CORBA.Principal;
 import org.omg.CORBA.TIMEOUT;
+import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.TypeCodePackage.BadKind;
 import org.omg.CORBA.TypeCodePackage.Bounds;
 import org.omg.CORBA.ValueBaseHelper;
 import org.omg.CORBA.portable.BoxedValueHelper;
 import org.omg.CORBA.portable.ValueOutputStream;
+import org.omg.CORBA_2_3.portable.OutputStream;
 import org.omg.IOP.IOR;
 import org.omg.IOP.IORHelper;
 import org.omg.IOP.TaggedProfile;
@@ -104,8 +106,8 @@ import static org.omg.CORBA.TCKind._tk_wstring;
 import static org.omg.CORBA.TCKind.tk_null;
 import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
-public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream implements ValueOutputStream {
-    private static final Logger LOGGER = Logger.getLogger(OutputStream.class.getName());
+public final class YokoOutputStream extends OutputStream implements ValueOutputStream {
+    private static final Logger LOGGER = Logger.getLogger(YokoOutputStream.class.getName());
 
     private ORBInstance orbInstance_;
     private final WriteBuffer writeBuffer;
@@ -133,15 +135,15 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         return writeBuffer.recordLength(LOGGER);
     }
 
-    private void writeTypeCodeImpl(org.omg.CORBA.TypeCode tc, Map<org.omg.CORBA.TypeCode, Integer> history) {
+    private void writeTypeCodeImpl(TypeCode tc, Map<TypeCode, Integer> history) {
         //
         // Try casting the TypeCode to org.apache.yoko.orb.CORBA.TypeCode. This
         // could
         // fail if the TypeCode was created by a foreign singleton ORB.
         //
-        TypeCode obTC = null;
+        TypeCodeImpl obTC = null;
         try {
-            obTC = (TypeCode) tc;
+            obTC = (TypeCodeImpl) tc;
         } catch (ClassCastException ignored) {
         }
 
@@ -180,7 +182,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
             return;
         }
 
-        Integer indirectionPos = (Integer) history.get(tc);
+        Integer indirectionPos = history.get(tc);
         if (indirectionPos != null) {
             write_long(-1);
             int offs = indirectionPos - writeBuffer.getPosition();
@@ -241,7 +243,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
                         _OB_writeEndian();
                         write_string(tc.id());
                         write_string(tc.name());
-                        org.omg.CORBA.TypeCode discType = tc.discriminator_type();
+                        TypeCode discType = tc.discriminator_type();
                         writeTypeCodeImpl(discType, history);
                         int defaultIndex = tc.default_index();
                         write_long(defaultIndex);
@@ -255,7 +257,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
                                 // Marshal a dummy value of the appropriate size
                                 // for the discriminator type
                                 //
-                                org.omg.CORBA.TypeCode origDiscType = TypeCode._OB_getOrigType(discType);
+                                TypeCode origDiscType = TypeCodeImpl._OB_getOrigType(discType);
                                 switch (origDiscType.kind().value()) {
                                 case _tk_short:
                                     write_short((short) 0);
@@ -347,7 +349,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
                 case _tk_value: {
                     history.put(tc, oldPos);
 
-                    org.omg.CORBA.TypeCode concreteBase = tc.concrete_base_type();
+                    TypeCode concreteBase = tc.concrete_base_type();
                     if (concreteBase == null) {
                         concreteBase = TypeCodeFactory.createPrimitiveTC(tk_null);
                     }
@@ -378,37 +380,22 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         }
     }
 
-    //
-    // Must be called prior to any writes
-    //
-    private void checkBeginChunk() {
-        Assert.ensure(valueWriter_ != null);
-        valueWriter_.checkBeginChunk();
-    }
-
     private ValueWriter valueWriter() {
-        if (valueWriter_ == null) valueWriter_ = new ValueWriter(this, writeBuffer);
-        return valueWriter_;
+        return null == valueWriter_ ? (valueWriter_ = new ValueWriter(this, writeBuffer)) : valueWriter_;
     }
 
     private void addCapacity(int size) {
         if (atEndOfGiop_1_2_Header) {
             atEndOfGiop_1_2_Header = false;
             addCapacity(size, EIGHT_BYTE_BOUNDARY);
-        } else {
-            //
-            // If we're at the end of the current buffer, then we are about
-            // to write new data. We must first check if we need to start a
-            // chunk, which may result in a recursive call to addCapacity().
-            //
-            if (writeBuffer.isComplete() && valueWriter_ != null) {
-                checkBeginChunk();
-            }
-
-            // If there isn't enough room, then reallocate the buffer
-            final boolean resized = writeBuffer.ensureAvailable(size);
-            if (resized) checkTimeout();
+            return;
         }
+        // If a new chunk is required, there will be a recursive call to addCapacity().
+        if (writeBuffer.isComplete() && valueWriter_ != null) valueWriter_.checkBeginChunk();
+
+        // If there isn't enough room, then reallocate the buffer
+        final boolean resized = writeBuffer.ensureAvailable(size);
+        if (resized) checkTimeout();
     }
 
     private void checkTimeout() {
@@ -422,14 +409,8 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     private void addCapacity(int size, AlignmentBoundary boundary) {
         Assert.ensure(boundary != NO_BOUNDARY);
 
-        //
-        // If we're at the end of the current buffer, then we are about
-        // to write new data. We must first check if we need to start a
-        // chunk, which may result in a recursive call to addCapacity().
-        //
-        if (writeBuffer.isComplete() && valueWriter_ != null) {
-            checkBeginChunk();
-        }
+        // If a new chunk is required, there will be a recursive call to addCapacity().
+        if (writeBuffer.isComplete() && valueWriter_ != null) valueWriter_.checkBeginChunk();
 
         if (atEndOfGiop_1_2_Header) {
             boundary = EIGHT_BYTE_BOUNDARY;
@@ -442,20 +423,16 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     }
 
     public void write(int b) {
-        //
         // this matches the behaviour of this function in the Java ORB
         // and not what is outlined in the java.io.OutputStream
-        //
         write_long(b);
     }
 
-    public org.omg.CORBA.ORB orb() {
-        return (orbInstance_ == null) ? null : orbInstance_.getORB();
-    }
+    public org.omg.CORBA.ORB orb() { return (orbInstance_ == null) ? null : orbInstance_.getORB(); }
 
     @Override
-    public InputStream create_input_stream() {
-        InputStream in = new InputStream(getBufferReader(), false, codeConverters_, giopVersion_);
+    public YokoInputStream create_input_stream() {
+        YokoInputStream in = new YokoInputStream(getBufferReader(), false, codeConverters_, giopVersion_);
         in._OB_ORBInstance(orbInstance_);
         return in;
     }
@@ -879,7 +856,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         }
     }
 
-    public void write_TypeCode(org.omg.CORBA.TypeCode t) {
+    public void write_TypeCode(TypeCode t) {
         // NOTE:
         // No data with natural alignment of greater than four octets
         // is needed for TypeCode. Therefore it is not necessary to do
@@ -887,7 +864,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
 
         if (t == null) throw new BAD_TYPECODE("TypeCode is nil");
 
-        writeTypeCodeImpl(t, new HashMap<org.omg.CORBA.TypeCode, Integer>());
+        writeTypeCodeImpl(t, new HashMap<TypeCode, Integer>());
     }
 
     public void write_any(org.omg.CORBA.Any value) {
@@ -977,13 +954,13 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     // Additional Yoko specific functions
     // ------------------------------------------------------------------
 
-    public void write_value(Serializable value, org.omg.CORBA.TypeCode tc, BoxedValueHelper helper) {
+    public void write_value(Serializable value, TypeCode tc, BoxedValueHelper helper) {
         checkTimeout();
         valueWriter().writeValueBox(value, tc, helper);
         checkTimeout();
     }
 
-    public void write_InputStream(final org.omg.CORBA.portable.InputStream in, org.omg.CORBA.TypeCode tc) {
+    public void write_InputStream(final org.omg.CORBA.portable.InputStream in, TypeCode tc) {
         try {
             LOGGER.fine("writing a value of type " + tc.kind().value());
 
@@ -1104,14 +1081,14 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     private void copyAnyFrom(org.omg.CORBA.portable.InputStream in) {
         // Don't do this: write_any(in.read_any())
         // This is faster:
-        org.omg.CORBA.TypeCode p = in.read_TypeCode();
+        TypeCode p = in.read_TypeCode();
         write_TypeCode(p);
         write_InputStream(in, p);
     }
 
-    private void copyValueFrom(org.omg.CORBA_2_3.portable.InputStream in, org.omg.CORBA.TypeCode tc) {
-        if (in instanceof InputStream) {
-            ((InputStream)in)._OB_remarshalValue(tc, this);
+    private void copyValueFrom(org.omg.CORBA_2_3.portable.InputStream in, TypeCode tc) {
+        if (in instanceof YokoInputStream) {
+            ((YokoInputStream)in)._OB_remarshalValue(tc, this);
         } else {
             write_value(in.read_value());
         }
@@ -1122,18 +1099,18 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         write_boolean(b);
         if (b) {
             write_Object(in.read_Object());
-        } else if (in instanceof InputStream) {
+        } else if (in instanceof YokoInputStream) {
             // We have no TypeCode information about the
             // valuetype, so we must use _tc_ValueBase and
             // rely on the type information sent on the wire
-            ((InputStream) in)._OB_remarshalValue(ValueBaseHelper.type(), this);
+            ((YokoInputStream) in)._OB_remarshalValue(ValueBaseHelper.type(), this);
         } else {
             write_value(((org.omg.CORBA_2_3.portable.InputStream) in).read_value());
         }
     }
 
-    private void copyArrayFrom(org.omg.CORBA.portable.InputStream in, org.omg.CORBA.TypeCode tc) throws BadKind {
-        final boolean swapInput = (in instanceof InputStream) && ((InputStream)in).swap_;
+    private void copyArrayFrom(org.omg.CORBA.portable.InputStream in, TypeCode tc) throws BadKind {
+        final boolean swapInput = (in instanceof YokoInputStream) && ((YokoInputStream)in).swap_;
         int len;
 
         if (tc.kind().value() == _tk_sequence) {
@@ -1145,7 +1122,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
 
         if (len <= 0) return;
 
-        org.omg.CORBA.TypeCode origContentType = TypeCode._OB_getOrigType(tc.content_type());
+        TypeCode origContentType = TypeCodeImpl._OB_getOrigType(tc.content_type());
 
         switch (origContentType.kind().value()) {
         case _tk_null:
@@ -1251,11 +1228,11 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         }
     }
 
-    private void copyUnionFrom(org.omg.CORBA.portable.InputStream in, org.omg.CORBA.TypeCode tc) throws BadKind, Bounds {
+    private void copyUnionFrom(org.omg.CORBA.portable.InputStream in, TypeCode tc) throws BadKind, Bounds {
         int defaultIndex = tc.default_index();
         int memberIndex = -1;
 
-        org.omg.CORBA.TypeCode origDiscType = TypeCode._OB_getOrigType(tc.discriminator_type());
+        TypeCode origDiscType = TypeCodeImpl._OB_getOrigType(tc.discriminator_type());
 
         switch (origDiscType.kind().value()) {
         case _tk_short: {
@@ -1402,7 +1379,6 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         else if (defaultIndex >= 0)
             write_InputStream(in, tc.member_type(defaultIndex));
 
-        return;
     }
 
     private void copyTypeCodeFrom(org.omg.CORBA.portable.InputStream in) {
@@ -1485,27 +1461,27 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         writeBuffer.readFrom(in);
     }
 
-    public OutputStream() {
+    public YokoOutputStream() {
         this(Buffer.createWriteBuffer(), null, null);
     }
 
-    public OutputStream(int initialBufferSize) {
+    public YokoOutputStream(int initialBufferSize) {
         this(Buffer.createWriteBuffer(initialBufferSize), null, null);
     }
 
-    public OutputStream(CodeConverters converters, GiopVersion giopVersion) {
+    public YokoOutputStream(CodeConverters converters, GiopVersion giopVersion) {
         this(Buffer.createWriteBuffer(), converters, giopVersion);
     }
 
-    public OutputStream(int initialBufferSize, CodeConverters converters, GiopVersion giopVersion) {
+    public YokoOutputStream(int initialBufferSize, CodeConverters converters, GiopVersion giopVersion) {
         this(Buffer.createWriteBuffer(initialBufferSize), converters, giopVersion);
     }
 
-    public OutputStream(WriteBuffer writeBuffer) {
+    public YokoOutputStream(WriteBuffer writeBuffer) {
         this(writeBuffer, null, null);
     }
 
-    public OutputStream(WriteBuffer writeBuffer, CodeConverters converters, GiopVersion giopVersion) {
+    public YokoOutputStream(WriteBuffer writeBuffer, CodeConverters converters, GiopVersion giopVersion) {
         this.writeBuffer = writeBuffer;
         this.giopVersion_ = giopVersion == null ? GIOP1_0 : giopVersion;
 
@@ -1526,7 +1502,7 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     @Override
     public void close() {}
 
-    boolean writtenBytesEqual(OutputStream that) {
+    boolean writtenBytesEqual(YokoOutputStream that) {
         return writeBuffer.dataEquals(writeBuffer);
     }
 

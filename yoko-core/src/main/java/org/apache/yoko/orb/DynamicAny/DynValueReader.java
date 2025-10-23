@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.DynamicAny;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.CORBA.MARSHAL;
@@ -47,7 +47,7 @@ final public class DynValueReader {
         instanceTable_ = new HashMap<>(131);
     }
 
-    public DynAny readValue(InputStream in, TypeCode tc) throws InconsistentTypeCode {
+    public DynAny readValue(YokoInputStream in, TypeCode tc) throws InconsistentTypeCode {
         // See if we already have a DynValue for this position
         DynAny result = getValue(in, tc);
         if (result != null) return result;
@@ -85,7 +85,7 @@ final public class DynValueReader {
         instanceTable_.put(startPos, dv);
     }
 
-    private DynAny readIndirection(InputStream in) throws MARSHAL {
+    private DynAny readIndirection(YokoInputStream in) throws MARSHAL {
         int offs = in.read_long();
         int startPos = in.getPosition() - 4 + offs;
 
@@ -95,7 +95,7 @@ final public class DynValueReader {
         return result;
     }
 
-    private DynAny getValue(InputStream in, TypeCode tc) {
+    private DynAny getValue(YokoInputStream in, TypeCode tc) {
         // See if we already have a reference for the DynValue marshalled
         // at the current position of the stream (the record would have
         // been created earlier by DynValueWriter).

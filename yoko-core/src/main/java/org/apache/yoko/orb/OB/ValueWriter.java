@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.io.WriteBuffer;
 import org.apache.yoko.orb.CORBA.DataOutputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.osgi.ProviderLocator;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.cmsf.RepIds;
@@ -45,7 +45,7 @@ import java.util.IdentityHashMap;
 import static java.security.AccessController.doPrivileged;
 import static javax.rmi.CORBA.Util.createValueHandler;
 import static javax.rmi.CORBA.Util.getCodebase;
-import static org.apache.yoko.orb.CORBA.TypeCode._OB_getOrigType;
+import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_getOrigType;
 import static org.apache.yoko.util.MinorCodes.MinorNoValueFactory;
 import static org.apache.yoko.util.MinorCodes.describeMarshal;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
@@ -56,7 +56,7 @@ import static org.omg.CORBA.TCKind._tk_string;
 public final class ValueWriter {
 
     /** The OutputStream */
-    private final OutputStream out_;
+    private final YokoOutputStream out_;
 
     /** The Buffer */
     private final WriteBuffer writeBuffer;
@@ -145,7 +145,7 @@ public final class ValueWriter {
         Assert.ensure(chunked_);
 
         // Write a placeholder for the chunk size
-        out_.write_long(0);
+        out_.write_long(0xDBDBDBDB);
 
         // Remember the position of the placeholder
         chunkSizePos_ = writeBuffer.getPosition() - 4;
@@ -234,7 +234,7 @@ public final class ValueWriter {
     // Public methods
     // ------------------------------------------------------------------
 
-    public ValueWriter(OutputStream out, WriteBuffer writeBuffer) {
+    public ValueWriter(YokoOutputStream out, WriteBuffer writeBuffer) {
         this.out_ = out;
         this.writeBuffer = writeBuffer;
         this.chunked_ = false;

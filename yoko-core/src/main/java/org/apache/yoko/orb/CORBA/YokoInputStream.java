@@ -36,6 +36,7 @@ import org.omg.CORBA.INITIALIZE;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.NO_IMPLEMENT;
 import org.omg.CORBA.Principal;
+import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.portable.BoxedValueHelper;
 import org.omg.CORBA.portable.IDLEntity;
 import org.omg.CORBA.portable.ObjectImpl;
@@ -73,7 +74,6 @@ import static org.apache.yoko.orb.OB.TypeCodeFactory.createValueBoxTC;
 import static org.apache.yoko.orb.OB.TypeCodeFactory.createWStringTC;
 import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_0;
 import static org.apache.yoko.util.Assert.ensure;
-import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidUnionDiscriminator;
 import static org.apache.yoko.util.MinorCodes.MinorLoadStub;
 import static org.apache.yoko.util.MinorCodes.MinorReadBooleanArrayOverflow;
@@ -149,7 +149,7 @@ import static org.omg.CORBA.TCKind._tk_wchar;
 import static org.omg.CORBA.TCKind._tk_wstring;
 import static org.omg.CORBA.TCKind.tk_union;
 
-final public class InputStream extends InputStreamWithOffsets {
+final public class YokoInputStream extends InputStreamWithOffsets {
     private static final Logger logger = DATA_IN_LOG;
 
     private ORBInstance orbInstance_;
@@ -192,10 +192,10 @@ final public class InputStream extends InputStreamWithOffsets {
     // Private and protected members
     // ------------------------------------------------------------------
 
-    private TypeCode checkCache(String id, int startPos, int length) {
-        TypeCode tc = null;
+    private TypeCodeImpl checkCache(String id, int startPos, int length) {
+        TypeCodeImpl tc = null;
 
-        if (id.length() > 0) {
+        if (!id.isEmpty()) {
             tc = cache_.get(id);
             if (tc != null) {
                 _OB_skip(length + startPos - readBuffer.getPosition());
@@ -205,18 +205,18 @@ final public class InputStream extends InputStreamWithOffsets {
         return tc;
     }
 
-    private org.omg.CORBA.TypeCode readTypeCodeImpl(Hashtable<Integer, TypeCode> history, boolean isTopLevel) {
+    private TypeCode readTypeCodeImpl(Hashtable<Integer, TypeCodeImpl> history, boolean isTopLevel) {
         int kind = read_ulong();
         int oldPos = readBuffer.getPosition() - 4;
         if (logger.isLoggable(Level.FINEST))
             logger.finest(String.format("Reading a TypeCode of kind %d from position 0x%x", kind, oldPos));
 
-        TypeCode tc = null;
+        TypeCodeImpl tc = null;
         if (kind == -1) {
             int offs = read_long();
             int indirectionPos = readBuffer.getPosition() - 4 + offs;
             indirectionPos += (indirectionPos & 0x3); // adjust for alignment
-            TypeCode p = history.get(indirectionPos);
+            TypeCodeImpl p = history.get(indirectionPos);
             if (p == null) {
                 throw newMarshalError(MinorReadInvTypeCodeIndirection);
             }
@@ -242,14 +242,14 @@ final public class InputStream extends InputStreamWithOffsets {
                 case _tk_ulonglong :
                 case _tk_longdouble :
                 case _tk_wchar :
-                    tc = (TypeCode) createPrimitiveTC(TCKind.from_int(kind));
+                    tc = (TypeCodeImpl) createPrimitiveTC(TCKind.from_int(kind));
                     history.put(oldPos, tc);
                     break;
 
                 case _tk_fixed : {
                     short digits = read_ushort();
                     short scale = read_short();
-                    tc = (TypeCode) createFixedTC(digits, scale);
+                    tc = (TypeCodeImpl) createFixedTC(digits, scale);
                     history.put(oldPos, tc);
                     break;
                 }
@@ -269,9 +269,9 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (isTopLevel && cache_ != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
-                        tc = (TypeCode) createInterfaceTC(id, read_string());
+                        tc = (TypeCodeImpl) createInterfaceTC(id, read_string());
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -301,22 +301,22 @@ final public class InputStream extends InputStreamWithOffsets {
                         // construct the TypeCode manually in order to
                         // add it to the history
                         //
-                        TypeCode p = new TypeCode();
+                        TypeCodeImpl p = new TypeCodeImpl();
                         history.put(oldPos, p);
                         p.kind_ = TCKind.from_int(kind);
                         p.id_ = id;
                         p.name_ = read_string();
                         int num = read_ulong();
                         p.memberNames_ = new String[num];
-                        p.memberTypes_ = new TypeCode[num];
+                        p.memberTypes_ = new TypeCodeImpl[num];
                         for (int i = 0; i < num; i++) {
                             p.memberNames_[i] = read_string();
-                            p.memberTypes_[i] = (TypeCode) readTypeCodeImpl(history, false);
+                            p.memberTypes_[i] = (TypeCodeImpl) readTypeCodeImpl(history, false);
                         }
 
                         tc = p;
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -344,22 +344,22 @@ final public class InputStream extends InputStreamWithOffsets {
                         // the TypeCode manually in order to add it to the
                         // history
                         //
-                        TypeCode p = new TypeCode();
+                        TypeCodeImpl p = new TypeCodeImpl();
                         history.put(oldPos, p);
                         p.kind_ = tk_union;
                         p.id_ = id;
                         p.name_ = read_string();
-                        p.discriminatorType_ = (TypeCode) readTypeCodeImpl(history, false);
+                        p.discriminatorType_ = (TypeCodeImpl) readTypeCodeImpl(history, false);
                         int defaultIndex = read_long();
                         int num = read_ulong();
-                        p.labels_ = new Any[num];
+                        p.labels_ = new AnyImpl[num];
                         p.memberNames_ = new String[num];
-                        p.memberTypes_ = new TypeCode[num];
+                        p.memberTypes_ = new TypeCodeImpl[num];
 
                         //
                         // Check the discriminator type
                         //
-                        TypeCode origTC = p.discriminatorType_._OB_getOrigType();
+                        TypeCodeImpl origTC = p.discriminatorType_._OB_getOrigType();
 
                         switch (origTC.kind().value()) {
                             case _tk_short :
@@ -380,14 +380,14 @@ final public class InputStream extends InputStreamWithOffsets {
                         }
 
                         for (int i = 0; i < num; i++) {
-                            p.labels_[i] = new Any();
+                            p.labels_[i] = new AnyImpl();
                             if (i == defaultIndex) {
                                 //
                                 // Unmarshal a dummy value of the
                                 // appropriate size for the
                                 // discriminator type
                                 //
-                                Any dummy = new Any();
+                                AnyImpl dummy = new AnyImpl();
                                 dummy.read_value(this, p.discriminatorType_);
 
                                 //
@@ -398,12 +398,12 @@ final public class InputStream extends InputStreamWithOffsets {
                                 p.labels_[i].read_value(this, p.discriminatorType_);
                             }
                             p.memberNames_[i] = read_string();
-                            p.memberTypes_[i] = (TypeCode) readTypeCodeImpl(history, false);
+                            p.memberTypes_[i] = (TypeCodeImpl) readTypeCodeImpl(history, false);
                         }
 
                         tc = p;
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -431,10 +431,10 @@ final public class InputStream extends InputStreamWithOffsets {
                         String[] members = new String[num];
                         for (int i = 0; i < num; i++)
                             members[i] = read_string();
-                        tc = (TypeCode) createEnumTC(id, name, members);
+                        tc = (TypeCodeImpl) createEnumTC(id, name, members);
                         history.put(oldPos, tc);
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -443,13 +443,13 @@ final public class InputStream extends InputStreamWithOffsets {
                 }
 
                 case _tk_string : {
-                    tc = (TypeCode) createStringTC(read_ulong());
+                    tc = (TypeCodeImpl) createStringTC(read_ulong());
                     history.put(oldPos, tc);
                     break;
                 }
 
                 case _tk_wstring : {
-                    tc = (TypeCode) createWStringTC(read_ulong());
+                    tc = (TypeCodeImpl) createWStringTC(read_ulong());
                     history.put(oldPos, tc);
                     break;
                 }
@@ -465,10 +465,10 @@ final public class InputStream extends InputStreamWithOffsets {
                     // the TypeCode manually in order to add it to the
                     // history
                     //
-                    TypeCode p = new TypeCode();
+                    TypeCodeImpl p = new TypeCodeImpl();
                     history.put(oldPos, p);
                     p.kind_ = TCKind.from_int(kind);
-                    p.contentType_ = (TypeCode) readTypeCodeImpl(history, false);
+                    p.contentType_ = (TypeCodeImpl) readTypeCodeImpl(history, false);
                     p.length_ = read_ulong();
 
                     tc = p;
@@ -492,11 +492,11 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (isTopLevel && cache_ != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
-                        tc = (TypeCode) createAliasTC(id, read_string(), readTypeCodeImpl(history, false));
+                        tc = (TypeCodeImpl) createAliasTC(id, read_string(), readTypeCodeImpl(history, false));
 
                         history.put(oldPos, tc);
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -524,28 +524,28 @@ final public class InputStream extends InputStreamWithOffsets {
                         // construct the TypeCode manually in order to
                         // add it to the history
                         //
-                        TypeCode p = new TypeCode();
+                        TypeCodeImpl p = new TypeCodeImpl();
                         history.put(oldPos, p);
                         p.kind_ = TCKind.from_int(kind);
                         p.id_ = id;
                         p.name_ = read_string();
                         p.typeModifier_ = read_short();
-                        p.concreteBaseType_ = (TypeCode) readTypeCodeImpl(history, false);
+                        p.concreteBaseType_ = (TypeCodeImpl) readTypeCodeImpl(history, false);
                         if (p.concreteBaseType_.kind().value() == _tk_null)
                             p.concreteBaseType_ = null;
                         int num = read_ulong();
                         p.memberNames_ = new String[num];
-                        p.memberTypes_ = new TypeCode[num];
+                        p.memberTypes_ = new TypeCodeImpl[num];
                         p.memberVisibility_ = new short[num];
                         for (int i = 0; i < num; i++) {
                             p.memberNames_[i] = read_string();
-                            p.memberTypes_[i] = (TypeCode) readTypeCodeImpl(history, false);
+                            p.memberTypes_[i] = (TypeCodeImpl) readTypeCodeImpl(history, false);
                             p.memberVisibility_[i] = read_short();
                         }
 
                         tc = p;
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -568,10 +568,10 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (isTopLevel && cache_ != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
-                        tc = (TypeCode) createValueBoxTC(id, read_string(), readTypeCodeImpl(history, false));
+                        tc = (TypeCodeImpl) createValueBoxTC(id, read_string(), readTypeCodeImpl(history, false));
                         history.put(oldPos, tc);
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -597,10 +597,10 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (isTopLevel && cache_ != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
-                        tc = (TypeCode) createAbstractInterfaceTC(id, read_string());
+                        tc = (TypeCodeImpl) createAbstractInterfaceTC(id, read_string());
                         history.put(oldPos, tc);
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -623,9 +623,9 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (isTopLevel && cache_ != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
-                        tc = (TypeCode) createNativeTC(id, read_string());
+                        tc = (TypeCodeImpl) createNativeTC(id, read_string());
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -649,10 +649,10 @@ final public class InputStream extends InputStreamWithOffsets {
                     if (isTopLevel && cache_ != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
-                        tc = (TypeCode) createLocalInterfaceTC(id, read_string());
+                        tc = (TypeCodeImpl) createLocalInterfaceTC(id, read_string());
                         history.put(oldPos, tc);
 
-                        if (id.length() > 0 && cache_ != null)
+                        if (!id.isEmpty() && cache_ != null)
                             cache_.put(id, tc);
                     }
 
@@ -668,16 +668,11 @@ final public class InputStream extends InputStreamWithOffsets {
         return tc;
     }
 
-    private ValueReader valueReader() {
-        if (valueReader_ == null)
-            valueReader_ = new ValueReader(this);
-        return valueReader_;
-    }
+    private ValueReader valueReader() { return valueReader_ == null ? (valueReader_ = new ValueReader(this)) : valueReader_; }
 
     public int available() {
         int available =  readBuffer.available();
         Assert.ensure(available >= 0);
-
         return available;
     }
 
@@ -699,7 +694,7 @@ final public class InputStream extends InputStreamWithOffsets {
             if (logger.isLoggable(Level.FINEST)) logger.finest(String.format("Boolean value is 0x%08x from position 0x%x", b, pos));
             return toBoolean(b);
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadBooleanOverflow);
+            throw newMarshalError((MinorReadBooleanOverflow), e);
         }
     }
 
@@ -736,8 +731,7 @@ final public class InputStream extends InputStreamWithOffsets {
         final CodeConverterBase converter = codeConverters_.inputWcharConverter;
 
         if (wCharReaderRequired_) {
-            if (!partOfString)
-                converter.set_reader_flags(CodeSetReader.FIRST_CHAR);
+            if (!partOfString) converter.set_reader_flags(CodeSetReader.FIRST_CHAR);
 
             int wcLen = 2;
 
@@ -750,23 +744,14 @@ final public class InputStream extends InputStreamWithOffsets {
                     throw Assert.fail();
 
                 case GIOP1_1:
-                    // align on two-byte boundary
                     readBuffer.align(TWO_BYTE_BOUNDARY);
-
                     break;
 
                 default :
-                    //
-                    // get the octet indicating the wchar len
-                    //
-                    wcLen = (int)readBuffer.readByteAsChar();
-
+                    wcLen = readBuffer.readByteAsChar();
                     break;
             }
 
-            //
-            // check for an overflow condition
-            //
             if (readBuffer.available() < wcLen) throw newMarshalError(MinorReadWCharOverflow);
 
             //
@@ -788,7 +773,7 @@ final public class InputStream extends InputStreamWithOffsets {
                     try {
                         return readBuffer.readChar();
                     } catch (IndexOutOfBoundsException e) {
-                        throw new MARSHAL(MinorReadWCharOverflow, COMPLETED_NO);
+                        throw newMarshalError(MinorReadWCharOverflow, e);
                     }
 
                 case GIOP1_1:  // TODO: understand or safely delete this case
@@ -797,18 +782,17 @@ final public class InputStream extends InputStreamWithOffsets {
                         value = (char) read_ushort();
                     else
                         value = (char) read_ulong();
-
                     break;
 
                 default : {
                     // read the length octet off the front
-                    final int wcLen = (int)readBuffer.readByteAsChar();
+                    final int wcLen = readBuffer.readByteAsChar();
 
                     // read the character off in proper endian format
                     try {
                         value = swap_ ? readBuffer.readChar_LE() : readBuffer.readChar();
                     } catch (IndexOutOfBoundsException e) {
-                        throw new MARSHAL(MinorReadWCharOverflow, COMPLETED_NO);
+                        throw newMarshalError(MinorReadWCharOverflow, e);
                     }
 
                     break;
@@ -830,7 +814,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return readBuffer.readByte();
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadOctetOverflow);
+            throw newMarshalError((MinorReadOctetOverflow), e);
         }
     }
 
@@ -840,7 +824,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return swap_ ? readBuffer.readShort_LE() : readBuffer.readShort();
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadShortOverflow);
+            throw newMarshalError((MinorReadShortOverflow), e);
         }
     }
 
@@ -860,7 +844,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return read_long();
         } catch (IndexOutOfBoundsException|MARSHAL e) {
-            throw newMarshalError(MinorReadULongOverflow);
+            throw newMarshalError((MinorReadULongOverflow), e);
         }
     }
 
@@ -870,7 +854,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return swap_ ? readBuffer.readLong_LE() : readBuffer.readLong();
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadLongLongOverflow);
+            throw newMarshalError((MinorReadLongLongOverflow), e);
         }
     }
 
@@ -878,7 +862,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return read_longlong();
         } catch (IndexOutOfBoundsException|MARSHAL e) {
-            throw newMarshalError(MinorReadULongLongOverflow);
+            throw newMarshalError((MinorReadULongLongOverflow), e);
         }
     }
 
@@ -888,7 +872,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return swap_ ? readBuffer.readFloat_LE() : readBuffer.readFloat();
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadFloatOverflow);
+            throw newMarshalError((MinorReadFloatOverflow), e);
         }
     }
 
@@ -898,7 +882,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return swap_ ? readBuffer.readDouble_LE() : readBuffer.readDouble();
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadDoubleOverflow);
+            throw newMarshalError((MinorReadDoubleOverflow), e);
         }
     }
 
@@ -1030,7 +1014,7 @@ final public class InputStream extends InputStreamWithOffsets {
                         try {
                             c = swap_ ? readBuffer.readChar_LE() : readBuffer.readChar();
                         } catch (IndexOutOfBoundsException e) {
-                            throw newMarshalError(MinorReadWStringOverflow);
+                            throw newMarshalError((MinorReadWStringOverflow), e);
                         }
                         if (wCharConversionRequired_)
                             c = converter.convert(c);
@@ -1051,7 +1035,7 @@ final public class InputStream extends InputStreamWithOffsets {
     public void read_boolean_array(boolean[] value, int offset, int length) {
         if (length <= 0) return;
         checkChunk();
-        if (readBuffer.available() < length) throw newMarshalError(MinorReadBooleanArrayOverflow);
+        if (readBuffer.available() < length) throw newMarshalError((MinorReadBooleanArrayOverflow));
         for (int i = offset; i < offset + length; i++) value[i] = toBoolean(readBuffer.readByte());
     }
 
@@ -1100,7 +1084,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             readBuffer.readBytes(value, offset, length);
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadOctetArrayOverflow);
+            throw newMarshalError((MinorReadOctetArrayOverflow), e);
         }
     }
 
@@ -1119,7 +1103,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             read_short_array(value, offset, length);
         } catch (IndexOutOfBoundsException|MARSHAL e) {
-            throw newMarshalError(MinorReadUShortArrayOverflow);
+            throw newMarshalError((MinorReadUShortArrayOverflow), e);
         }
     }
 
@@ -1140,11 +1124,15 @@ final public class InputStream extends InputStreamWithOffsets {
         return new MARSHAL(describeMarshal(minor), minor, COMPLETED_NO);
     }
 
+    private static MARSHAL newMarshalError(int minor, Throwable cause) {
+        return (MARSHAL)(newMarshalError(minor).initCause(cause instanceof MARSHAL ? cause.getCause() : cause));
+    }
+
     public void read_ulong_array(int[] value, int offset, int length) {
         try {
             read_long_array(value, offset, length);
         } catch (IndexOutOfBoundsException|MARSHAL e) {
-            throw newMarshalError(MinorReadULongArrayOverflow);
+            throw newMarshalError(MinorReadULongArrayOverflow, e);
         }
     }
 
@@ -1162,7 +1150,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             read_longlong_array(value, offset, length);
         } catch (IndexOutOfBoundsException|MARSHAL e) {
-            throw newMarshalError(MinorReadULongLongArrayOverflow);
+            throw newMarshalError(MinorReadULongLongArrayOverflow, e);
         }
     }
 
@@ -1189,7 +1177,7 @@ final public class InputStream extends InputStreamWithOffsets {
     public org.omg.CORBA.Object read_Object() {
         checkChunk();
         IOR ior = IORHelper.read(this);
-        if ((ior.type_id.length() == 0) && (ior.profiles.length == 0)) return null;
+        if ((ior.type_id.isEmpty()) && (ior.profiles.length == 0)) return null;
         if (orbInstance_ == null) throw new INITIALIZE("InputStream must be created " + "by a full ORB");
         ObjectFactory objectFactory = orbInstance_.getObjectFactory();
         return objectFactory.createObject(ior);
@@ -1224,9 +1212,7 @@ final public class InputStream extends InputStreamWithOffsets {
             return createStub(getRMIStubClass(codebase, expectedType), impl._get_delegate());
         } catch (IllegalAccessException | ClassNotFoundException | ClassCastException | PrivilegedActionException | InvocationTargetException ex) {
             logger.log(Level.FINE, "Exception creating object stub", ex);
-            MARSHAL m = new MARSHAL("Unable to create stub for class " + expectedType.getName(), MinorLoadStub, COMPLETED_NO);
-            m.initCause(ex);
-            throw m;
+            throw newMarshalError(MinorLoadStub, ex);
         }
     }
 
@@ -1240,7 +1226,7 @@ final public class InputStream extends InputStreamWithOffsets {
             return stub;
         } catch (InvocationTargetException | InstantiationException | IllegalAccessException | PrivilegedActionException ex) {
             logger.log(Level.FINE, "Exception creating object stub", ex);
-            throw as(MARSHAL::new, ex, "Unable to create stub for class " + clz.getName(), MinorLoadStub, COMPLETED_NO);
+            throw newMarshalError(MinorLoadStub, ex);
         }
     }
 
@@ -1278,7 +1264,7 @@ final public class InputStream extends InputStreamWithOffsets {
         }
     }
 
-    public org.omg.CORBA.TypeCode read_TypeCode() {
+    public TypeCode read_TypeCode() {
         // NOTE:
         // No data with natural alignment of greater than four octets
         // is needed for TypeCode. Therefore it is not necessary to do
@@ -1288,7 +1274,7 @@ final public class InputStream extends InputStreamWithOffsets {
     }
 
     public org.omg.CORBA.Any read_any() {
-        org.omg.CORBA.Any any = new Any(orbInstance_);
+        org.omg.CORBA.Any any = new AnyImpl(orbInstance_);
         any.read_value(this, read_TypeCode());
         return any;
     }
@@ -1339,8 +1325,8 @@ final public class InputStream extends InputStreamWithOffsets {
 
         try {
             return new BigDecimal(sBuffer.toString());
-        } catch (NumberFormatException ex) {
-            throw newMarshalError(MinorReadFixedInvalid);
+        } catch (NumberFormatException e) {
+            throw newMarshalError((MinorReadFixedInvalid), e);
         }
     }
 
@@ -1382,11 +1368,11 @@ final public class InputStream extends InputStreamWithOffsets {
     // ORBacus-specific methods
     // ------------------------------------------------------------------
 
-    public void read_value(org.omg.CORBA.Any any, org.omg.CORBA.TypeCode tc) {
+    public void read_value(org.omg.CORBA.Any any, TypeCode tc) {
         valueReader().readValueAny(any, tc);
     }
 
-    private InputStream(ReadBuffer readBuffer, int offs, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
+    private YokoInputStream(ReadBuffer readBuffer, int offs, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
         this.readBuffer = readBuffer.setPosition(offs);
         this.swap_ = swap;
         this.origPos_ = offs;
@@ -1398,32 +1384,32 @@ final public class InputStream extends InputStreamWithOffsets {
      * Create a new input stream that starts from where <code>that</code> input stream started.
      */
     @SuppressWarnings("CopyConstructorMissesField")
-    public InputStream(InputStream that) {
+    public YokoInputStream(YokoInputStream that) {
         this(that.readBuffer.clone(), that.origPos_, that.origSwap_, that.codeConverters_, that.giopVersion_);
         this.orbInstance_ = that.orbInstance_;
     }
 
-    public InputStream(ReadBuffer readBuffer, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
+    public YokoInputStream(ReadBuffer readBuffer, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
         this(readBuffer, 0, swap, codeConverters, giopVersion);
     }
 
-    public InputStream(byte[] data, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
+    public YokoInputStream(byte[] data, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
         this(Buffer.createReadBuffer(data), swap, codeConverters, giopVersion);
     }
 
-    public InputStream(ReadBuffer readBuffer, int offs, boolean swap) {
+    public YokoInputStream(ReadBuffer readBuffer, int offs, boolean swap) {
         this(readBuffer, offs, swap, null, null);
     }
 
-    public InputStream(ReadBuffer readBuffer, boolean swap) {
+    public YokoInputStream(ReadBuffer readBuffer, boolean swap) {
         this(readBuffer, swap, null, null);
     }
 
-    public InputStream(ReadBuffer readBuffer) {
+    public YokoInputStream(ReadBuffer readBuffer) {
         this(readBuffer, false, null, null);
     }
 
-    public InputStream(byte[] data) {
+    public YokoInputStream(byte[] data) {
         this(Buffer.createReadBuffer(data));
     }
 
@@ -1478,7 +1464,7 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             readBuffer.skipBytes(n);
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadOverflow);
+            throw newMarshalError((MinorReadOverflow), e);
         }
     }
 
@@ -1494,16 +1480,11 @@ final public class InputStream extends InputStreamWithOffsets {
         orbInstance_ = orbInstance;
 
         if (orbInstance_ != null && orbInstance_.useTypeCodeCache()) {
-            //
-            // Get the TypeCodeCache of this ORBInstance
-            //
             cache_ = TypeCodeCache.instance();
         }
     }
 
-    public ORBInstance _OB_ORBInstance() {
-        return orbInstance_;
-    }
+    public ORBInstance _OB_ORBInstance() { return orbInstance_; }
 
     public int _OB_readLongUnchecked() {
         // The chunking code needs to read a long value without entering an infinite loop
@@ -1511,19 +1492,15 @@ final public class InputStream extends InputStreamWithOffsets {
         try {
             return swap_ ? readBuffer.readInt_LE() : readBuffer.readInt();
         } catch (IndexOutOfBoundsException e) {
-            throw newMarshalError(MinorReadLongOverflow);
+            throw newMarshalError((MinorReadLongOverflow), e);
         }
     }
 
-    public void _OB_beginValue() {
-        valueReader().beginValue();
-    }
+    public void _OB_beginValue() { valueReader().beginValue(); }
 
-    public void _OB_endValue() {
-        valueReader().endValue();
-    }
+    public void _OB_endValue() { valueReader().endValue(); }
 
-    public void _OB_remarshalValue(org.omg.CORBA.TypeCode tc, OutputStream out) {
+    public void _OB_remarshalValue(TypeCode tc, YokoOutputStream out) {
         valueReader().remarshalValue(tc, out);
     }
 

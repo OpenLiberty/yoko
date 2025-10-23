@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,13 +24,13 @@ import org.omg.CORBA.NO_IMPLEMENT;
 import org.omg.CORBA.TypeCode;
 
 final public class DataOutputStream implements org.omg.CORBA.DataOutputStream {
-    private OutputStream out_;
+    private YokoOutputStream out_;
 
     // ------------------------------------------------------------------
     // Constructor
     // ------------------------------------------------------------------
 
-    public DataOutputStream(OutputStream out) {
+    public DataOutputStream(YokoOutputStream out) {
         out_ = out;
     }
 

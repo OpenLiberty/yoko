@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,10 +29,10 @@ import static org.omg.CORBA.TCKind._tk_ushort;
 import static org.omg.CORBA.TCKind._tk_value;
 import static org.omg.CORBA.TCKind.tk_enum;
 
-import org.apache.yoko.orb.CORBA.Any;
-import org.apache.yoko.orb.CORBA.InputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.AnyImpl;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
@@ -88,7 +88,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
             index_ = 0;
             defaultMember_ = origType_.default_index();
             selectedMember_ = 0;
-            origDiscTC_ = TypeCode._OB_getOrigType(discTC);
+            origDiscTC_ = TypeCodeImpl._OB_getOrigType(discTC);
 
             int count = origType_.member_count();
             memberLabels_ = new long[count];
@@ -110,7 +110,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
                     .member_type(selectedMember_);
 
             if (dynValueReader_ != null) {
-                org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(memberType);
+                org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(memberType);
 
                 if (origTC.kind().value() == _tk_value)
                     member_ = null;
@@ -297,7 +297,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
 
         case _tk_enum: {
             try {
-                Any a = (Any) any;
+                AnyImpl a = (AnyImpl) any;
                 result = ((Integer) a.value()).longValue();
             } catch (ClassCastException ex) {
                 result = any.create_input_stream().read_ulong();
@@ -435,12 +435,12 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
         // Convert value to an ORBacus Any - the JDK implementation
         // of TypeCode.equivalent() raises NO_IMPLEMENT
         //
-        Any val;
+        AnyImpl val;
         try {
-            val = (Any) value;
+            val = (AnyImpl) value;
         } catch (ClassCastException ex) {
             try {
-                val = new Any(value);
+                val = new AnyImpl(value);
             } catch (NullPointerException e) {
                 throw (InvalidValue)new
                         InvalidValue().initCause(e);
@@ -457,7 +457,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
             throw (InvalidValue)new InvalidValue().initCause(e);
         }
 
-        _OB_unmarshal((InputStream) in);
+        _OB_unmarshal((YokoInputStream) in);
 
         index_ = 0;
 
@@ -467,13 +467,13 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
     public synchronized org.omg.CORBA.Any to_any() {
         if (destroyed_) throw new OBJECT_NOT_EXIST();
 
-        OutputStream out = new OutputStream();
+        YokoOutputStream out = new YokoOutputStream();
         out._OB_ORBInstance(orbInstance_);
 
         _OB_marshal(out);
 
-        InputStream in = out.create_input_stream();
-        return new Any(orbInstance_, type_, in);
+        YokoInputStream in = out.create_input_stream();
+        return new AnyImpl(orbInstance_, type_, in);
     }
 
     public synchronized boolean equal(DynAny dyn_any) {
@@ -519,7 +519,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
             if (member_ != null) {
                 org.omg.CORBA.TypeCode memberType = origType_.member_type(selectedMember_);
 
-                org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(memberType);
+                org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(memberType);
 
                 if (origTC.kind().value() == _tk_value) {
                     Assert.ensure(result.member_ == null);
@@ -680,11 +680,11 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
     // Internal member implementations
     // ------------------------------------------------------------------
 
-    synchronized void _OB_marshal(OutputStream out) {
+    synchronized void _OB_marshal(YokoOutputStream out) {
         _OB_marshal(out, new DynValueWriter(orbInstance_, factory_));
     }
 
-    synchronized void _OB_marshal(OutputStream out,
+    synchronized void _OB_marshal(YokoOutputStream out,
                                   DynValueWriter dynValueWriter) {
         DynAny_impl impl = (DynAny_impl) disc_;
         impl._OB_marshal(out);
@@ -695,7 +695,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
         }
     }
 
-    synchronized void _OB_unmarshal(InputStream in) {
+    synchronized void _OB_unmarshal(YokoInputStream in) {
         DynAny_impl impl = (DynAny_impl) disc_;
         impl._OB_unmarshal(in);
 
@@ -711,7 +711,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
             throw Assert.fail(ex);
         }
 
-        org.omg.CORBA.TypeCode origTC = TypeCode
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                 ._OB_getOrigType(memberType);
 
         if ((origTC.kind().value() == _tk_value)
@@ -737,7 +737,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
         notifyParent();
     }
 
-    synchronized Any _OB_currentAny() {
+    synchronized AnyImpl _OB_currentAny() {
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
@@ -751,7 +751,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
             p = (DynAny_impl) member_;
         }
 
-        Any result = null;
+        AnyImpl result = null;
 
         if (p != null)
             result = p._OB_currentAnyValue();
@@ -759,7 +759,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
         return result;
     }
 
-    Any _OB_currentAnyValue() {
+    AnyImpl _OB_currentAnyValue() {
         return null;
     }
 }
