@@ -31,7 +31,7 @@ import static org.omg.CORBA.TCKind.tk_enum;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.ORBInstance;
@@ -467,7 +467,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
     public synchronized org.omg.CORBA.Any to_any() {
         if (destroyed_) throw new OBJECT_NOT_EXIST();
 
-        OutputStream out = new OutputStream();
+        YokoOutputStream out = new YokoOutputStream();
         out._OB_ORBInstance(orbInstance_);
 
         _OB_marshal(out);
@@ -680,11 +680,11 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
     // Internal member implementations
     // ------------------------------------------------------------------
 
-    synchronized void _OB_marshal(OutputStream out) {
+    synchronized void _OB_marshal(YokoOutputStream out) {
         _OB_marshal(out, new DynValueWriter(orbInstance_, factory_));
     }
 
-    synchronized void _OB_marshal(OutputStream out,
+    synchronized void _OB_marshal(YokoOutputStream out,
                                   DynValueWriter dynValueWriter) {
         DynAny_impl impl = (DynAny_impl) disc_;
         impl._OB_marshal(out);

@@ -26,7 +26,7 @@ import org.apache.yoko.orb.CORBA.NamedValue;
 import org.apache.yoko.orb.CORBA.ORBPolicyFactory_impl;
 import org.apache.yoko.orb.CORBA.ORBPolicyManager_impl;
 import org.apache.yoko.orb.CORBA.ORBSingleton;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.PolicyMap;
 import org.apache.yoko.orb.DynamicAny.DynAnyFactory_impl;
 import org.apache.yoko.orb.IOP.CodecFactory_impl;
@@ -204,7 +204,6 @@ import java.util.StringTokenizer;
 import java.util.logging.Level;
 
 import static java.security.AccessController.doPrivileged;
-import static org.apache.yoko.orb.OB.CodeSetInfo.ISO_LATIN_1;
 import static org.apache.yoko.orb.OB.CodeSetInfo.UTF_16;
 import static org.apache.yoko.orb.OB.CodeSetInfo.UTF_8;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
@@ -1030,7 +1029,7 @@ public class ORB_impl extends ORBSingleton {
                 ior = delegate._OB_origIOR();
             }
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 IORHelper.write(out, ior);
 
@@ -1276,7 +1275,7 @@ public class ORB_impl extends ORBSingleton {
         try (AutoLock readLock = destroyLock_.getReadLock()) {
             if (destroy_) throw new OBJECT_NOT_EXIST("ORB is destroyed");
 
-            OutputStream out = new OutputStream();
+            YokoOutputStream out = new YokoOutputStream();
             out._OB_ORBInstance(orbInstance_);
             return out;
         }

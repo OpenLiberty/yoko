@@ -22,7 +22,7 @@ import static org.omg.CORBA.TCKind.tk_except;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.ORBInstance;
@@ -180,7 +180,7 @@ final class DynStruct_impl extends DynAny_impl implements DynStruct {
     public synchronized org.omg.CORBA.Any to_any() {
         if (destroyed_) throw new OBJECT_NOT_EXIST();
 
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_ORBInstance(orbInstance_);
 
             _OB_marshal(out);
@@ -223,7 +223,7 @@ final class DynStruct_impl extends DynAny_impl implements DynStruct {
         //
         DynValueWriter dynValueWriter = new DynValueWriter(orbInstance_, factory_);
 
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_ORBInstance(orbInstance_);
             _OB_marshal(out, dynValueWriter);
 
@@ -450,12 +450,12 @@ final class DynStruct_impl extends DynAny_impl implements DynStruct {
     // Internal member implementations
     // ------------------------------------------------------------------
 
-    synchronized void _OB_marshal(OutputStream out) {
+    synchronized void _OB_marshal(YokoOutputStream out) {
         _OB_marshal(out, new DynValueWriter(orbInstance_, factory_));
     }
 
-    synchronized void _OB_marshal(OutputStream out,
-            DynValueWriter dynValueWriter) {
+    synchronized void _OB_marshal(YokoOutputStream out,
+                                  DynValueWriter dynValueWriter) {
         if (origType_.kind() == tk_except) {
             try {
                 out.write_string(origType_.id());

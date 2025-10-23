@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OBPortableServer.POAManagerFactory;
 import org.apache.yoko.orb.OBPortableServer.POAManager_impl;
@@ -477,7 +477,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
             LocateStatusType_1_2 status = LocateStatusType_1_2.from_int(val);
 
             // Send back locate reply message
-            try (OutputStream out = new OutputStream(Buffer.createWriteBuffer(12).padAll())) {
+            try (YokoOutputStream out = new YokoOutputStream(Buffer.createWriteBuffer(12).padAll())) {
                 ProfileInfo profileInfo = new ProfileInfo();
                 profileInfo.major = msg.version().major;
                 profileInfo.minor = msg.version().minor;
@@ -754,7 +754,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
     /** start populating the reply data */
     public void upcallBeginReply(Upcall upcall, ServiceContexts contexts) {
         upcall.createOutputStream(12);
-        OutputStream out = upcall.output();
+        YokoOutputStream out = upcall.output();
         ProfileInfo profileInfo = upcall.profileInfo();
         GIOPOutgoingMessage outgoing = new GIOPOutgoingMessage(orbInstance_, out, profileInfo);
 
@@ -782,7 +782,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
             return;
         }
 
-        OutputStream out = upcall.output();
+        YokoOutputStream out = upcall.output();
         ProfileInfo profileInfo = upcall.profileInfo();
         GIOPOutgoingMessage outgoing = new GIOPOutgoingMessage(orbInstance_,
                 out, profileInfo);
@@ -804,7 +804,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
     public void upcallBeginUserException(Upcall upcall, ServiceContexts contexts) {
         upcall.createOutputStream(12);
 
-        OutputStream out = upcall.output();
+        YokoOutputStream out = upcall.output();
         ProfileInfo profileInfo = upcall.profileInfo();
         GIOPOutgoingMessage outgoing = new GIOPOutgoingMessage(orbInstance_, out, profileInfo);
 
@@ -828,7 +828,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
     public void upcallUserException(Upcall upcall, UserException ex, ServiceContexts contexts) {
         upcall.createOutputStream(12);
 
-        OutputStream out = upcall.output();
+        YokoOutputStream out = upcall.output();
         ProfileInfo profileInfo = upcall.profileInfo();
         GIOPOutgoingMessage outgoing = new GIOPOutgoingMessage(orbInstance_,
                 out, profileInfo);
@@ -855,7 +855,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
     public void upcallSystemException(Upcall upcall, SystemException ex, ServiceContexts contexts) {
         upcall.createOutputStream(12);
 
-        OutputStream out = upcall.output();
+        YokoOutputStream out = upcall.output();
         ProfileInfo profileInfo = upcall.profileInfo();
         GIOPOutgoingMessage outgoing = new GIOPOutgoingMessage(orbInstance_, out, profileInfo);
 
@@ -880,7 +880,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
     public void upcallForward(Upcall upcall, IOR ior, boolean perm, ServiceContexts contexts) {
         upcall.createOutputStream(12);
 
-        OutputStream out = upcall.output();
+        YokoOutputStream out = upcall.output();
         ProfileInfo profileInfo = upcall.profileInfo();
         GIOPOutgoingMessage outgoing = new GIOPOutgoingMessage(orbInstance_,
                 out, profileInfo);

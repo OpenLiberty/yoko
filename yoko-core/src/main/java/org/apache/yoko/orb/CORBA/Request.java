@@ -105,7 +105,7 @@ final public class Request extends org.omg.CORBA.Request {
         Assert.ensure(downcallStub_ != null);
         Assert.ensure(downcall_ != null);
 
-        OutputStream out = downcallStub_.preMarshal(downcall_);
+        YokoOutputStream out = downcallStub_.preMarshal(downcall_);
 
         try {
             Vector ctxVec = new Vector();

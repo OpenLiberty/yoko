@@ -19,7 +19,7 @@ package org.apache.yoko.orb.DynamicAny;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.ORBInstance;
@@ -274,7 +274,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
         if (is_null())
             return new AnyImpl(orbInstance_, type_, null);
         else {
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_ORBInstance(orbInstance_);
 
                 if (dynValueWriter != null)
@@ -487,12 +487,12 @@ final class DynValue_impl extends DynValueCommon_impl implements
     // Internal member implementations
     // ------------------------------------------------------------------
 
-    synchronized void _OB_marshal(OutputStream out) {
+    synchronized void _OB_marshal(YokoOutputStream out) {
         _OB_marshal(out, new DynValueWriter(orbInstance_, factory_));
     }
 
-    synchronized void _OB_marshal(OutputStream out,
-            DynValueWriter dynValueWriter) {
+    synchronized void _OB_marshal(YokoOutputStream out,
+                                  DynValueWriter dynValueWriter) {
         if (is_null()) {
             out.write_ulong(0);
         } else if (!dynValueWriter.writeIndirection(this, out)) {

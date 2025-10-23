@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,9 @@ import org.apache.yoko.giop.MessageType;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.orb.OCI.Transport;
-import org.apache.yoko.orb.exceptions.Transients;
 import org.apache.yoko.rmi.util.ObjectUtil;
 import org.apache.yoko.util.Assert;
 import org.omg.CORBA.COMM_FAILURE;
@@ -138,7 +137,7 @@ final class GIOPConnectionThreaded extends GIOPConnection {
         if (transport_.mode() != ReceiveOnly) {
             try {
                 // Send a MessageError message
-                try (OutputStream out = new OutputStream(12)) {
+                try (YokoOutputStream out = new YokoOutputStream(12)) {
 
                     ProfileInfo profileInfo = new ProfileInfo();
 
@@ -186,7 +185,7 @@ final class GIOPConnectionThreaded extends GIOPConnection {
 
         // send a CloseConnection if we can
         if (canSendCloseConnection()) {
-            try (OutputStream out = new OutputStream(12)) {
+            try (YokoOutputStream out = new YokoOutputStream(12)) {
 
                 ProfileInfo profileInfo = new ProfileInfo();
                 profileInfo.major = giopVersion_.major;

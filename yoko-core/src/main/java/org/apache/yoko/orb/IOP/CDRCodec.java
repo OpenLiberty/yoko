@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.IOP;
 import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.LocalObject;
@@ -32,7 +32,7 @@ final class CDRCodec extends LocalObject implements Codec {
     private ORBInstance orbInstance_;
 
     public byte[] encode(Any data) {
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_ORBInstance(orbInstance_);
             out._OB_writeEndian();
             out.write_any(data);
@@ -53,7 +53,7 @@ final class CDRCodec extends LocalObject implements Codec {
     }
 
     public byte[] encode_value(Any data) {
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_ORBInstance(orbInstance_);
             out._OB_writeEndian();
             data.write_value(out);

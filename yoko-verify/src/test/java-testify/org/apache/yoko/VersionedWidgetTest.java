@@ -22,7 +22,7 @@ import acme.Widget;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OB.SendingContextRuntimes;
 import org.apache.yoko.osgi.locator.ProviderRegistryImpl;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -76,7 +76,7 @@ public abstract class VersionedWidgetTest<T> {
         @Override
         YokoInputStream encode(Widget widget) {
             WriteBuffer b = Buffer.createWriteBuffer();
-            OutputStream out = new OutputStream(b);
+            YokoOutputStream out = new YokoOutputStream(b);
             out.write_value(widget);
             return out.create_input_stream();
         }

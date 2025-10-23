@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.OCI.IIOP;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OB.Net;
 import org.apache.yoko.orb.OCI.Acceptor;
@@ -82,7 +82,7 @@ public final class TransportInfo_impl extends LocalObject implements TransportIn
                     BiDirIIOPServiceContext biDirCtxt = new BiDirIIOPServiceContext();
                     biDirCtxt.listen_points = listenMap_.getListenPoints();
 
-                    try (OutputStream out = new OutputStream()) {
+                    try (YokoOutputStream out = new YokoOutputStream()) {
                         out._OB_writeEndian();
                         BiDirIIOPServiceContextHelper.write(out, biDirCtxt);
                         // Create and fill the return context list

@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.util.Assert;
@@ -198,7 +198,7 @@ public final class CollocatedServer extends Server implements UpcallReturn {
             ProfileInfo profileInfo = down.profileInfo();
             int reqId = down.requestId();
             String op = down.operation();
-            OutputStream out = down.output();
+            YokoOutputStream out = down.output();
             ServiceContexts requestContexts = down.getRequestContexts();
 
             //
@@ -333,7 +333,7 @@ public final class CollocatedServer extends Server implements UpcallReturn {
     public synchronized void upcallEndReply(Upcall upcall) {
         Downcall down = (Downcall) callMap_.get(upcall.requestId());
         if (down == null) return ; // Might be null if the request timed out
-        OutputStream out = upcall.output();
+        YokoOutputStream out = upcall.output();
         YokoInputStream in = new YokoInputStream(out.getBufferReader());
         in.__setSendingContextRuntime(LOCAL_CODE_BASE);
         down.setNoException(in);
@@ -355,7 +355,7 @@ public final class CollocatedServer extends Server implements UpcallReturn {
 
         // Might be null if the request timed out or destroyed
         if (down == null) return;
-        OutputStream out = upcall.output();
+        YokoOutputStream out = upcall.output();
         YokoInputStream in = new YokoInputStream(out.getBufferReader());
         in.__setSendingContextRuntime(LOCAL_CODE_BASE);
         down.setUserException(in);
@@ -374,7 +374,7 @@ public final class CollocatedServer extends Server implements UpcallReturn {
         //
 
         upcallBeginUserException(upcall, replyContexts);
-        OutputStream out = upcall.output();
+        YokoOutputStream out = upcall.output();
         try {
             throw Assert.fail("Cannot marshal the exception in Java without the helper");
         } catch (SystemException e) {

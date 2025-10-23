@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.Messaging.MaxHopsPolicy_impl;
 import org.apache.yoko.orb.Messaging.QueueOrderPolicy_impl;
 import org.apache.yoko.orb.Messaging.RebindPolicy_impl;
@@ -229,7 +229,7 @@ final public class MessageRoutingUtil {
 
             value.ptype = REBIND_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 RebindModeHelper.write(out, mode);
                 value.pvalue = out.copyWrittenBytes();
@@ -244,7 +244,7 @@ final public class MessageRoutingUtil {
 
             value.ptype = REQUEST_PRIORITY_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 PriorityRangeHelper.write(out, range);
                 value.pvalue = out.copyWrittenBytes();
@@ -258,7 +258,7 @@ final public class MessageRoutingUtil {
 
             value.ptype = REPLY_PRIORITY_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 PriorityRangeHelper.write(out, range);
                 value.pvalue = out.copyWrittenBytes();
@@ -272,7 +272,7 @@ final public class MessageRoutingUtil {
 
             value.ptype = REQUEST_START_TIME_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 UtcTHelper.write(out, time);
                 value.pvalue = out.copyWrittenBytes();
@@ -286,7 +286,7 @@ final public class MessageRoutingUtil {
 
             value.ptype = REQUEST_END_TIME_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 UtcTHelper.write(out, time);
 
@@ -301,7 +301,7 @@ final public class MessageRoutingUtil {
 
             value.ptype = REPLY_START_TIME_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 UtcTHelper.write(out, time);
 
@@ -316,7 +316,7 @@ final public class MessageRoutingUtil {
 
             value.ptype = REPLY_END_TIME_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 UtcTHelper.write(out, time);
 
@@ -332,7 +332,7 @@ final public class MessageRoutingUtil {
 
             value.ptype = REQUEST_END_TIME_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 UtcTHelper.write(out, timeout);
 
@@ -348,7 +348,7 @@ final public class MessageRoutingUtil {
 
             value.ptype = REPLY_END_TIME_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 UtcTHelper.write(out, timeout);
 
@@ -363,7 +363,7 @@ final public class MessageRoutingUtil {
 
             value.ptype = ROUTING_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 RoutingTypeRangeHelper.write(out, range);
 
@@ -378,7 +378,7 @@ final public class MessageRoutingUtil {
 
             value.ptype = MAX_HOPS_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 out.write_ushort(hops);
 
@@ -393,7 +393,7 @@ final public class MessageRoutingUtil {
 
             value.ptype = QUEUE_ORDER_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 OrderingHelper.write(out, order);
 
@@ -547,7 +547,7 @@ final public class MessageRoutingUtil {
 
             val.ptype = REBIND_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 RebindModeHelper.write(out, policyList.rebindMode);
                 val.pvalue = out.copyWrittenBytes();
@@ -565,7 +565,7 @@ final public class MessageRoutingUtil {
 
             val.ptype = QUEUE_ORDER_POLICY_TYPE.value;
 
-            try (OutputStream out = new OutputStream()) {
+            try (YokoOutputStream out = new YokoOutputStream()) {
                 out._OB_writeEndian();
                 OrderingHelper.write(out, policyList.queueOrder);
                 val.pvalue = out.copyWrittenBytes();

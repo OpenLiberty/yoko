@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OBPortableServer.POA_impl;
 import org.apache.yoko.orb.OCI.ProfileInfo;
@@ -77,7 +77,7 @@ public final class PIUpcall extends Upcall {
         super.postUnmarshal();
     }
 
-    public OutputStream preMarshal() throws LocationForward {
+    public YokoOutputStream preMarshal() throws LocationForward {
         piManager_.serverSendReply(requestInfo_);
         return super.preMarshal();
     }
@@ -98,7 +98,7 @@ public final class PIUpcall extends Upcall {
 
     // Marshalling is handled by the skeletons.
     // If called by a portable skeleton, the exception will be null.
-    public OutputStream beginUserException(UserException ex) {
+    public YokoOutputStream beginUserException(UserException ex) {
         try {
             piManager_.serverSendException(requestInfo_, false, ex);
         } catch (SystemException e) {

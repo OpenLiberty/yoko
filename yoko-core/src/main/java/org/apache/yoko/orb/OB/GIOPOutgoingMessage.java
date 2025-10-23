@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.util.Assert;
@@ -40,7 +40,7 @@ public final class GIOPOutgoingMessage {
 
     private ORBInstance orbInstance_;
 
-    private OutputStream out_;
+    private YokoOutputStream out_;
 
     private ProfileInfo profileInfo_;
 
@@ -97,7 +97,7 @@ public final class GIOPOutgoingMessage {
     // ----------------------------------------------------------------------
 
     GIOPOutgoingMessage(ORBInstance orbInstance,
-            OutputStream out,
+            YokoOutputStream out,
             ProfileInfo profileInfo) {
         orbInstance_ = orbInstance;
         out_ = out;

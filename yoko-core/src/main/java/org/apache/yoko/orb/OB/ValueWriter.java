@@ -19,7 +19,7 @@ package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.io.WriteBuffer;
 import org.apache.yoko.orb.CORBA.DataOutputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.osgi.ProviderLocator;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.cmsf.RepIds;
@@ -56,7 +56,7 @@ import static org.omg.CORBA.TCKind._tk_string;
 public final class ValueWriter {
 
     /** The OutputStream */
-    private final OutputStream out_;
+    private final YokoOutputStream out_;
 
     /** The Buffer */
     private final WriteBuffer writeBuffer;
@@ -234,7 +234,7 @@ public final class ValueWriter {
     // Public methods
     // ------------------------------------------------------------------
 
-    public ValueWriter(OutputStream out, WriteBuffer writeBuffer) {
+    public ValueWriter(YokoOutputStream out, WriteBuffer writeBuffer) {
         this.out_ = out;
         this.writeBuffer = writeBuffer;
         this.chunked_ = false;

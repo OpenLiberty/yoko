@@ -21,7 +21,7 @@ import acme.AbstractInterface;
 import acme.AbstractValue;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.util.yasf.Yasf;
 import org.apache.yoko.util.yasf.YasfThreadLocal;
@@ -51,13 +51,13 @@ import static testify.matchers.ByteArrayMatchers.matchesHex;
 class JavaValueNullFieldsTest {
     private static final EnumSet<Yasf> OLD_STYLE = EnumSet.of(ENUM_FIXED);
 
-    OutputStream out;
+    YokoOutputStream out;
     byte[] data;
     YokoInputStream in;
     @BeforeEach
     void setupStreams() {
-        out = new OutputStream(null, GiopVersion.GIOP1_2);
-        out = (OutputStream) ORB.init().create_output_stream();
+        out = new YokoOutputStream(null, GiopVersion.GIOP1_2);
+        out = (YokoOutputStream) ORB.init().create_output_stream();
     }
 
     @Test

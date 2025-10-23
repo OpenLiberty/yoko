@@ -19,7 +19,7 @@ package org.apache.yoko.orb.DynamicAny;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.ORBInstance;
@@ -729,7 +729,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
             throw new TypeMismatch();
 
         DynAny_impl impl = (DynAny_impl) dyn_any;
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_ORBInstance(orbInstance_);
             impl._OB_marshal(out);
             YokoInputStream in = out.create_input_stream();
@@ -778,7 +778,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_ORBInstance(orbInstance_);
 
         _OB_marshal(out);
@@ -913,7 +913,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
         DynValueWriter dynValueWriter = new DynValueWriter(orbInstance_,
                 factory_);
 
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_ORBInstance(orbInstance_);
             _OB_marshal(out, dynValueWriter);
 
@@ -1421,12 +1421,12 @@ abstract class DynSeqBase_impl extends DynAny_impl {
     // Internal member implementations
     // ------------------------------------------------------------------
 
-    synchronized void _OB_marshal(OutputStream out) {
+    synchronized void _OB_marshal(YokoOutputStream out) {
         _OB_marshal(out, new DynValueWriter(orbInstance_, factory_));
     }
 
-    synchronized void _OB_marshal(OutputStream out,
-            DynValueWriter dynValueWriter) {
+    synchronized void _OB_marshal(YokoOutputStream out,
+                                  DynValueWriter dynValueWriter) {
         if (origType_.kind() == TCKind.tk_sequence) {
             out.write_ulong(length_);
 
