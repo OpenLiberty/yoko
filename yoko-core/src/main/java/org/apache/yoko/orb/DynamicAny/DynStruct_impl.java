@@ -21,7 +21,7 @@ import static org.omg.CORBA.TCKind._tk_value;
 import static org.omg.CORBA.TCKind.tk_except;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
@@ -167,7 +167,7 @@ final class DynStruct_impl extends DynAny_impl implements DynStruct {
                 InvalidValue().initCause(e);
         }
 
-        _OB_unmarshal((InputStream) in);
+        _OB_unmarshal((YokoInputStream) in);
 
         if (components_.length == 0) // empty exception
             index_ = -1;
@@ -185,7 +185,7 @@ final class DynStruct_impl extends DynAny_impl implements DynStruct {
 
             _OB_marshal(out);
 
-            InputStream in = out.create_input_stream();
+            YokoInputStream in = out.create_input_stream();
             return new AnyImpl(orbInstance_, type_, in);
         }
     }
@@ -232,7 +232,7 @@ final class DynStruct_impl extends DynAny_impl implements DynStruct {
             DynAny result = prepare(type_, dynValueReader_, false);
             DynAny_impl impl = (DynAny_impl) result;
 
-            InputStream in = out.create_input_stream();
+            YokoInputStream in = out.create_input_stream();
             impl._OB_unmarshal(in);
 
             return result;
@@ -470,7 +470,7 @@ final class DynStruct_impl extends DynAny_impl implements DynStruct {
         }
     }
 
-    synchronized void _OB_unmarshal(InputStream in) {
+    synchronized void _OB_unmarshal(YokoInputStream in) {
         if (origType_.kind() == tk_except) {
             in.read_string();
         }

@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.OBMessaging;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.osgi.ProviderLocator;
 import org.apache.yoko.util.Assert;
 import org.omg.CORBA.Any;
@@ -48,7 +48,7 @@ public class ExceptionHolder_impl extends _ExceptionHolder {
     // throws org.omg.CORBA.UserException
     {
         if (is_system_exception) {
-            InputStream in = _OB_inputStream();
+            YokoInputStream in = _OB_inputStream();
             SystemException sysEx = SystemExceptionHelper.read(in);
 
             switch (sysEx.getClass().getName()) {
@@ -139,8 +139,8 @@ public class ExceptionHolder_impl extends _ExceptionHolder {
     // Obtain an input stream from the marshalled exception sequence. This
     // is used for unmarshalling the exception.
     //
-    public InputStream _OB_inputStream() {
-        return new InputStream(marshaled_exception, false, null, GIOP1_2);
+    public YokoInputStream _OB_inputStream() {
+        return new YokoInputStream(marshaled_exception, false, null, GIOP1_2);
     }
 
     //

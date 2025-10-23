@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OBPortableServer;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.BootManager_impl;
@@ -96,7 +96,7 @@ final class POAOAInterface_impl extends LocalObject implements OAInterface {
             UpcallReturn upcallReturn,
             ProfileInfo profileInfo,
             TransportInfo transportInfo, int requestId,
-            String op, InputStream in,
+            String op, YokoInputStream in,
             ServiceContexts requestContexts) {
         Upcall upcall = null;
         logger.fine("Creating upcall for operation " + op); 

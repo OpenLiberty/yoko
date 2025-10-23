@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.OCI.ConFactory;
 import org.apache.yoko.orb.OCI.ConFactoryRegistry;
 import org.apache.yoko.orb.OCI.ConFactoryRegistryHelper;
@@ -88,7 +88,7 @@ public class IORDump {
         if (p.tag == TAG_MULTIPLE_COMPONENTS.value) {
             sb.append("multiple components");
 
-            InputStream in = new InputStream(p.profile_data);
+            YokoInputStream in = new YokoInputStream(p.profile_data);
             in._OB_readEndian();
 
             int cnt = in.read_ulong();
@@ -120,7 +120,7 @@ public class IORDump {
     private static String describeIorString(ORB orb, String ref, boolean describeByteOrder) {
         if (!ref.startsWith("IOR:")) return "IOR is invalid\n";
         byte[] data = HexConverter.asciiToOctets(ref, 4);
-        InputStream in = new InputStream(data);
+        YokoInputStream in = new YokoInputStream(data);
 
         StringBuilder sb = new StringBuilder();
         // If this IOR is not encoded to string by this VM, the byte order might be of interest

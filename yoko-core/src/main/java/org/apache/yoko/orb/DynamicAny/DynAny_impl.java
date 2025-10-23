@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.DynamicAny;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
@@ -1004,7 +1004,7 @@ abstract class DynAny_impl extends LocalObject implements
         try (OutputStream out = new OutputStream()) {
             out._OB_ORBInstance(orbInstance_);
             impl._OB_marshal(out);
-            InputStream in = out.create_input_stream();
+            YokoInputStream in = out.create_input_stream();
             return in.read_value();
         }
     }
@@ -1246,7 +1246,7 @@ abstract class DynAny_impl extends LocalObject implements
 
     abstract void _OB_marshal(OutputStream out, DynValueWriter dynValueWriter);
 
-    abstract void _OB_unmarshal(InputStream in);
+    abstract void _OB_unmarshal(YokoInputStream in);
 
     abstract AnyImpl _OB_currentAny();
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OCI.IIOP;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OB.Net;
@@ -99,7 +99,7 @@ public final class TransportInfo_impl extends LocalObject implements TransportIn
     public void handle_service_contexts(ServiceContexts contexts) {
         ServiceContext context = contexts.get(BI_DIR_IIOP.value);
         if (context == null) return;
-        InputStream in = new InputStream(context.context_data);
+        YokoInputStream in = new YokoInputStream(context.context_data);
         in._OB_readEndian();
 
         // unmarshal the octets back to the bidir format

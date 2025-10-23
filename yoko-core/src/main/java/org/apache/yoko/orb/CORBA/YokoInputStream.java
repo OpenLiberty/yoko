@@ -149,7 +149,7 @@ import static org.omg.CORBA.TCKind._tk_wchar;
 import static org.omg.CORBA.TCKind._tk_wstring;
 import static org.omg.CORBA.TCKind.tk_union;
 
-final public class InputStream extends InputStreamWithOffsets {
+final public class YokoInputStream extends InputStreamWithOffsets {
     private static final Logger logger = DATA_IN_LOG;
 
     private ORBInstance orbInstance_;
@@ -1376,7 +1376,7 @@ final public class InputStream extends InputStreamWithOffsets {
         valueReader().readValueAny(any, tc);
     }
 
-    private InputStream(ReadBuffer readBuffer, int offs, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
+    private YokoInputStream(ReadBuffer readBuffer, int offs, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
         this.readBuffer = readBuffer.setPosition(offs);
         this.swap_ = swap;
         this.origPos_ = offs;
@@ -1388,32 +1388,32 @@ final public class InputStream extends InputStreamWithOffsets {
      * Create a new input stream that starts from where <code>that</code> input stream started.
      */
     @SuppressWarnings("CopyConstructorMissesField")
-    public InputStream(InputStream that) {
+    public YokoInputStream(YokoInputStream that) {
         this(that.readBuffer.clone(), that.origPos_, that.origSwap_, that.codeConverters_, that.giopVersion_);
         this.orbInstance_ = that.orbInstance_;
     }
 
-    public InputStream(ReadBuffer readBuffer, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
+    public YokoInputStream(ReadBuffer readBuffer, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
         this(readBuffer, 0, swap, codeConverters, giopVersion);
     }
 
-    public InputStream(byte[] data, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
+    public YokoInputStream(byte[] data, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
         this(Buffer.createReadBuffer(data), swap, codeConverters, giopVersion);
     }
 
-    public InputStream(ReadBuffer readBuffer, int offs, boolean swap) {
+    public YokoInputStream(ReadBuffer readBuffer, int offs, boolean swap) {
         this(readBuffer, offs, swap, null, null);
     }
 
-    public InputStream(ReadBuffer readBuffer, boolean swap) {
+    public YokoInputStream(ReadBuffer readBuffer, boolean swap) {
         this(readBuffer, swap, null, null);
     }
 
-    public InputStream(ReadBuffer readBuffer) {
+    public YokoInputStream(ReadBuffer readBuffer) {
         this(readBuffer, false, null, null);
     }
 
-    public InputStream(byte[] data) {
+    public YokoInputStream(byte[] data) {
         this(Buffer.createReadBuffer(data));
     }
 

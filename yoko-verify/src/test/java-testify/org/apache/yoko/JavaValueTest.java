@@ -19,7 +19,7 @@ package org.apache.yoko;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.SimplyCloseable;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.rmi.impl.ValueHandlerImpl;
@@ -56,7 +56,7 @@ import static testify.hex.HexParser.HEX_DUMP;
  */
 class JavaValueTest {
     OutputStream out;
-    InputStream in;
+    YokoInputStream in;
 
     enum NameComponents {;
 

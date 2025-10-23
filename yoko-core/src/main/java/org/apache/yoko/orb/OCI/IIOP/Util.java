@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OCI.IIOP;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.Net;
@@ -112,7 +112,7 @@ final public class Util {
         // TODO: Internal error?
         Assert.ensure(profile < ior.profiles.length);
 
-        InputStream in = new InputStream(ior.profiles[profile].profile_data);
+        YokoInputStream in = new YokoInputStream(ior.profiles[profile].profile_data);
         in._OB_readEndian();
         ProfileBody_1_0 body = ProfileBody_1_0Helper
                 .read(in);
@@ -152,7 +152,7 @@ final public class Util {
             //
             // Get the IIOP profile body
             //
-            InputStream in = new InputStream(ior.profiles[i].profile_data);
+            YokoInputStream in = new YokoInputStream(ior.profiles[i].profile_data);
             in._OB_readEndian();
             ProfileBody_1_0 body = ProfileBody_1_0Helper.read(in);
 
@@ -202,7 +202,7 @@ final public class Util {
     private static boolean taggedComponentsMatch(TaggedComponent[] components, String host, short port, Codec codec, boolean matchLoopback) {
         for (final TaggedComponent component : components) {
             if (component.tag == TAG_ALTERNATE_IIOP_ADDRESS.value) {
-                InputStream s = new InputStream(component.component_data);
+                YokoInputStream s = new YokoInputStream(component.component_data);
                 s._OB_readEndian();
                 String altHost = s.read_string();
                 short altPort = s.read_ushort();
@@ -275,7 +275,7 @@ final public class Util {
         bodies1 = new ProfileBody_1_0[cnt1];
         for (p1 = 0, b1 = 0; p1 < ior1.profiles.length; p1++)
             if (ior1.profiles[p1].tag == TAG_INTERNET_IOP.value) {
-                InputStream in = new InputStream(ior1.profiles[p1].profile_data);
+                YokoInputStream in = new YokoInputStream(ior1.profiles[p1].profile_data);
                 in._OB_readEndian();
                 bodies1[b1++] = ProfileBody_1_0Helper.read(in);
             }
@@ -289,7 +289,7 @@ final public class Util {
         bodies2 = new ProfileBody_1_0[cnt2];
         for (p2 = 0, b2 = 0; p2 < ior2.profiles.length; p2++)
             if (ior2.profiles[p2].tag == TAG_INTERNET_IOP.value) {
-                InputStream in = new InputStream(ior2.profiles[p2].profile_data);
+                YokoInputStream in = new YokoInputStream(ior2.profiles[p2].profile_data);
                 in._OB_readEndian();
                 bodies2[b2++] = ProfileBody_1_0Helper.read(in);
             }
@@ -376,7 +376,7 @@ final public class Util {
             //
             // Get the first IIOP profile body
             //
-            InputStream in = new InputStream(profile.profile_data);
+            YokoInputStream in = new YokoInputStream(profile.profile_data);
             in._OB_readEndian();
             ProfileBody_1_0 body = ProfileBody_1_0Helper.read(in);
 

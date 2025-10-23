@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.IOP;
 import org.apache.yoko.orb.CORBA.AnyImpl;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.CORBA.Any;
@@ -42,7 +42,7 @@ final class CDRCodec extends LocalObject implements Codec {
 
     public Any decode(byte[] data) throws FormatMismatch {
         try {
-            InputStream in = new InputStream(data);
+            YokoInputStream in = new YokoInputStream(data);
             in._OB_ORBInstance(orbInstance_);
             in._OB_readEndian();
 
@@ -65,7 +65,7 @@ final class CDRCodec extends LocalObject implements Codec {
         if (tc == null) throw new TypeMismatch();
 
         try {
-            InputStream in = new InputStream(data);
+            YokoInputStream in = new YokoInputStream(data);
             in._OB_ORBInstance(orbInstance_);
             in._OB_readEndian();
 

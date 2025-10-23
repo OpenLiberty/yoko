@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OCI.IIOP;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.OB.Net;
 import org.apache.yoko.orb.OCI.AccFactory;
@@ -192,7 +192,7 @@ final class AccFactory_impl extends LocalObject implements AccFactory {
         for (int profile = 0; profile < ior.value.profiles.length; profile++) {
             if (ior.value.profiles[profile].tag == TAG_INTERNET_IOP.value) {
                 // Extract the 1_0 profile body
-                InputStream in = new InputStream(ior.value.profiles[profile].profile_data);
+                YokoInputStream in = new YokoInputStream(ior.value.profiles[profile].profile_data);
                 in._OB_readEndian();
                 ProfileBody_1_0 body = ProfileBody_1_0Helper.read(in);
 

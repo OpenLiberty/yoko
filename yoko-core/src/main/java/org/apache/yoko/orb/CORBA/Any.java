@@ -270,7 +270,7 @@ final public class Any extends org.omg.CORBA.Any {
         case _tk_value_box:
         case _tk_abstract_interface: {
             try {
-                InputStream is = (InputStream) in;
+                YokoInputStream is = (YokoInputStream) in;
                 is.read_value(this, typeCode);
             } catch (ClassCastException ex) {
                 try {
@@ -389,7 +389,7 @@ final public class Any extends org.omg.CORBA.Any {
         case _tk_value:
         case _tk_value_box:
         case _tk_abstract_interface:
-            if (any.value instanceof InputStream)
+            if (any.value instanceof YokoInputStream)
                 readValue(any.create_input_stream());
             else
                 value = any.value;
@@ -487,7 +487,7 @@ final public class Any extends org.omg.CORBA.Any {
 
         case _tk_value:
         case _tk_value_box: {
-            if (value instanceof InputStream && any.value instanceof InputStream) {
+            if (value instanceof YokoInputStream && any.value instanceof YokoInputStream) {
                 return compareValuesAsInputStreams(this, any);
             } else
                 return false;
@@ -496,7 +496,7 @@ final public class Any extends org.omg.CORBA.Any {
         case _tk_abstract_interface: {
             if (value instanceof org.omg.CORBA.Object && any.value instanceof org.omg.CORBA.Object) {
                 return extract_Object()._is_equivalent(any.extract_Object());
-            } else if (value instanceof InputStream && any.value instanceof InputStream) {
+            } else if (value instanceof YokoInputStream && any.value instanceof YokoInputStream) {
                 return compareValuesAsInputStreams(this, any);
             }
             return false;
@@ -512,8 +512,8 @@ final public class Any extends org.omg.CORBA.Any {
     }
 
     private static boolean compareValuesAsInputStreams(Any any1, Any any2) {
-        ReadBuffer buf1 = ((InputStream) any1.value).getBuffer();
-        ReadBuffer buf2 = ((InputStream) any2.value).getBuffer();
+        ReadBuffer buf1 = ((YokoInputStream) any1.value).getBuffer();
+        ReadBuffer buf2 = ((YokoInputStream) any2.value).getBuffer();
         return buf1.dataEquals(buf2);
     }
 
@@ -619,7 +619,7 @@ final public class Any extends org.omg.CORBA.Any {
         case _tk_sequence:
         case _tk_array: {
             OutputStream o = (OutputStream) out;
-            InputStream in = (InputStream) value;
+            YokoInputStream in = (YokoInputStream) value;
             in._OB_reset();
             o.write_InputStream(in, typeCode);
             break;
@@ -627,8 +627,8 @@ final public class Any extends org.omg.CORBA.Any {
 
         case _tk_value: {
             OutputStream o = (OutputStream) out;
-            if (value instanceof InputStream) {
-                InputStream in = (InputStream) value;
+            if (value instanceof YokoInputStream) {
+                YokoInputStream in = (YokoInputStream) value;
                 in._OB_reset();
                 o.write_InputStream(in, typeCode);
             } else
@@ -638,8 +638,8 @@ final public class Any extends org.omg.CORBA.Any {
 
         case _tk_value_box: {
             OutputStream o = (OutputStream) out;
-            if (value instanceof InputStream) {
-                InputStream in = (InputStream) value;
+            if (value instanceof YokoInputStream) {
+                YokoInputStream in = (YokoInputStream) value;
                 in._OB_reset();
                 o.write_InputStream(in, typeCode);
             } else {
@@ -669,8 +669,8 @@ final public class Any extends org.omg.CORBA.Any {
 
         case _tk_abstract_interface: {
             OutputStream o = (OutputStream) out;
-            if (value != null && value instanceof InputStream) {
-                InputStream in = (InputStream) value;
+            if (value != null && value instanceof YokoInputStream) {
+                YokoInputStream in = (YokoInputStream) value;
                 in._OB_reset();
                 ensure(!in.read_boolean());
                 o.write_abstract_interface(in.read_value());
@@ -702,8 +702,8 @@ final public class Any extends org.omg.CORBA.Any {
     }
 
     public synchronized org.omg.CORBA.portable.InputStream create_input_stream() {
-        if (value instanceof InputStream) {
-            return new InputStream(((InputStream) value));
+        if (value instanceof YokoInputStream) {
+            return new YokoInputStream(((YokoInputStream) value));
         } else {
             try (OutputStream out = new OutputStream()) {
                 out._OB_ORBInstance(orbInstance);
@@ -969,8 +969,8 @@ final public class Any extends org.omg.CORBA.Any {
             throw new BAD_OPERATION(describeBadOperation(MinorTypeMismatch), MinorTypeMismatch, COMPLETED_NO);
         }
 
-        if (value instanceof InputStream) {
-            InputStream in = (InputStream) value;
+        if (value instanceof YokoInputStream) {
+            YokoInputStream in = (YokoInputStream) value;
             in._OB_reset();
             if (kind == tk_abstract_interface) ensure(!in.read_boolean());
             return in.read_value();

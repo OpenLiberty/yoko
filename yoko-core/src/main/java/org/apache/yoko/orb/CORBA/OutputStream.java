@@ -429,8 +429,8 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     public org.omg.CORBA.ORB orb() { return (orbInstance_ == null) ? null : orbInstance_.getORB(); }
 
     @Override
-    public InputStream create_input_stream() {
-        InputStream in = new InputStream(getBufferReader(), false, codeConverters_, giopVersion_);
+    public YokoInputStream create_input_stream() {
+        YokoInputStream in = new YokoInputStream(getBufferReader(), false, codeConverters_, giopVersion_);
         in._OB_ORBInstance(orbInstance_);
         return in;
     }
@@ -1085,8 +1085,8 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
     }
 
     private void copyValueFrom(org.omg.CORBA_2_3.portable.InputStream in, org.omg.CORBA.TypeCode tc) {
-        if (in instanceof InputStream) {
-            ((InputStream)in)._OB_remarshalValue(tc, this);
+        if (in instanceof YokoInputStream) {
+            ((YokoInputStream)in)._OB_remarshalValue(tc, this);
         } else {
             write_value(in.read_value());
         }
@@ -1097,18 +1097,18 @@ public final class OutputStream extends org.omg.CORBA_2_3.portable.OutputStream 
         write_boolean(b);
         if (b) {
             write_Object(in.read_Object());
-        } else if (in instanceof InputStream) {
+        } else if (in instanceof YokoInputStream) {
             // We have no TypeCode information about the
             // valuetype, so we must use _tc_ValueBase and
             // rely on the type information sent on the wire
-            ((InputStream) in)._OB_remarshalValue(ValueBaseHelper.type(), this);
+            ((YokoInputStream) in)._OB_remarshalValue(ValueBaseHelper.type(), this);
         } else {
             write_value(((org.omg.CORBA_2_3.portable.InputStream) in).read_value());
         }
     }
 
     private void copyArrayFrom(org.omg.CORBA.portable.InputStream in, org.omg.CORBA.TypeCode tc) throws BadKind {
-        final boolean swapInput = (in instanceof InputStream) && ((InputStream)in).swap_;
+        final boolean swapInput = (in instanceof YokoInputStream) && ((YokoInputStream)in).swap_;
         int len;
 
         if (tc.kind().value() == _tk_sequence) {

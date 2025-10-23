@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,10 +30,9 @@ import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OCI.ConnectorInfo;
@@ -41,7 +40,6 @@ import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.orb.OCI.ProfileInfoHolder;
 import org.apache.yoko.orb.OCI.TransportInfo;
 import org.apache.yoko.util.Assert;
-import org.apache.yoko.util.MinorCodes;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.BooleanHolder;
 import org.omg.CORBA.COMM_FAILURE;
@@ -306,12 +304,12 @@ public final class DowncallStub {
     // Unmarshalling interception points
     //
 
-    public InputStream preUnmarshal(Downcall down) throws LocationForward, FailureException {
+    public YokoInputStream preUnmarshal(Downcall down) throws LocationForward, FailureException {
         return down.preUnmarshal();
     }
 
-    public InputStream preUnmarshal(Downcall down, BooleanHolder uex) throws LocationForward, FailureException {
-        InputStream in = down.preUnmarshal();
+    public YokoInputStream preUnmarshal(Downcall down, BooleanHolder uex) throws LocationForward, FailureException {
+        YokoInputStream in = down.preUnmarshal();
         uex.value = down.userException();
         return in;
     }
@@ -584,7 +582,7 @@ public final class DowncallStub {
     //
     // Invoke a request from a portable stub
     //
-    public InputStream invoke(
+    public YokoInputStream invoke(
             org.omg.CORBA.Object self,
             org.apache.yoko.orb.CORBA.OutputStream out)
             throws ApplicationException,
@@ -623,7 +621,7 @@ public final class DowncallStub {
             }
 
             if (response) {
-                InputStream in = down.preUnmarshal();
+                YokoInputStream in = down.preUnmarshal();
 
                 if (down.userException()) {
                     String id = null;
@@ -798,7 +796,7 @@ public final class DowncallStub {
         if (ctx.downcallStub != this)
             throw new RemarshalException();
 
-        InputStream tmpIn = (InputStream) out.create_input_stream();
+        YokoInputStream tmpIn = (YokoInputStream) out.create_input_stream();
 
         //
         // Unmarshal the message header

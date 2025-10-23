@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.DynamicAny;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
@@ -253,7 +253,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
                 InvalidValue().initCause(e);
         }
 
-        _OB_unmarshal((InputStream) in);
+        _OB_unmarshal((YokoInputStream) in);
 
         if (is_null() || components_.length == 0)
             index_ = -1;
@@ -282,7 +282,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
                 else
                     _OB_marshal(out);
 
-                InputStream in = out.create_input_stream();
+                YokoInputStream in = out.create_input_stream();
                 return new AnyImpl(orbInstance_, type_, in);
             }
         }
@@ -529,7 +529,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
         }
     }
 
-    synchronized void _OB_unmarshal(InputStream in) {
+    synchronized void _OB_unmarshal(YokoInputStream in) {
         //
         // Peek at value tag
         //

@@ -22,7 +22,7 @@ import static java.math.BigDecimal.ROUND_DOWN;
 import java.math.BigDecimal;
 
 import org.apache.yoko.orb.CORBA.AnyImpl;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.util.Assert;
@@ -243,7 +243,7 @@ final class DynFixed_impl extends DynAny_impl implements
         _OB_marshal(out);
     }
 
-    synchronized void _OB_unmarshal(InputStream in) {
+    synchronized void _OB_unmarshal(YokoInputStream in) {
         try {
             value_ = in.read_fixed().movePointLeft(origType_.fixed_scale());
         } catch (BadKind ex) {

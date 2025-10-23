@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OBPortableServer.POA_impl;
@@ -42,7 +42,7 @@ public final class PIUpcall extends Upcall {
     public PIUpcall(ORBInstance orbInstance, UpcallReturn upcallReturn,
                     ProfileInfo profileInfo,
                     TransportInfo transportInfo, int requestId,
-                    String op, InputStream in,
+                    String op, YokoInputStream in,
                     ServiceContexts requestContexts, PIManager piManager) {
         super(orbInstance, upcallReturn, profileInfo, transportInfo, requestId, op, in, requestContexts);
         piManager_ = piManager;

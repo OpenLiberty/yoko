@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,11 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.util.Assert;
-import org.apache.yoko.util.MinorCodes;
-import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.INITIALIZE;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.CORBA.Policy;
@@ -214,7 +212,7 @@ public final class CollocatedServer extends Server implements UpcallReturn {
                     break;
 
                 case OBJECT_HERE:
-                    InputStream in = new InputStream(out.getBufferReader());
+                    YokoInputStream in = new YokoInputStream(out.getBufferReader());
                     down.setNoException(in);
                     break;
 
@@ -233,7 +231,7 @@ public final class CollocatedServer extends Server implements UpcallReturn {
                 return true;
             }
 
-            final InputStream in = new InputStream(out.getBufferReader());
+            final YokoInputStream in = new YokoInputStream(out.getBufferReader());
             in.__setSendingContextRuntime(LOCAL_CODE_BASE);
             if (down.responseExpected()) {
                 //
@@ -336,7 +334,7 @@ public final class CollocatedServer extends Server implements UpcallReturn {
         Downcall down = (Downcall) callMap_.get(upcall.requestId());
         if (down == null) return ; // Might be null if the request timed out
         OutputStream out = upcall.output();
-        InputStream in = new InputStream(out.getBufferReader());
+        YokoInputStream in = new YokoInputStream(out.getBufferReader());
         in.__setSendingContextRuntime(LOCAL_CODE_BASE);
         down.setNoException(in);
         callMap_.remove(down.requestId());
@@ -358,7 +356,7 @@ public final class CollocatedServer extends Server implements UpcallReturn {
         // Might be null if the request timed out or destroyed
         if (down == null) return;
         OutputStream out = upcall.output();
-        InputStream in = new InputStream(out.getBufferReader());
+        YokoInputStream in = new YokoInputStream(out.getBufferReader());
         in.__setSendingContextRuntime(LOCAL_CODE_BASE);
         down.setUserException(in);
         callMap_.remove(down.requestId());

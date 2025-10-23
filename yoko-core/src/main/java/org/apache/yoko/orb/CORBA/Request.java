@@ -148,7 +148,7 @@ final public class Request extends org.omg.CORBA.Request {
         Assert.ensure(downcall_ != null);
 
         BooleanHolder uex = new BooleanHolder();
-        InputStream in = downcallStub_.preUnmarshal(downcall_, uex);
+        YokoInputStream in = downcallStub_.preUnmarshal(downcall_, uex);
 
         if (in == null) {
             Assert.ensure(!uex.value);
