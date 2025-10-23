@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -145,7 +145,7 @@ public final class ValueWriter {
         Assert.ensure(chunked_);
 
         // Write a placeholder for the chunk size
-        out_.write_long(0);
+        out_.write_long(0xDBDBDBDB);
 
         // Remember the position of the placeholder
         chunkSizePos_ = writeBuffer.getPosition() - 4;
