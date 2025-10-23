@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 import org.apache.yoko.orb.CORBA.Any;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.orb.OB.TypeCodeFactory;
 import org.apache.yoko.util.Assert;
@@ -72,7 +72,7 @@ final class DynBasic_impl extends DynAny_impl {
             org.omg.CORBA.TypeCode type) {
         super(factory, orbInstance, type);
 
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(type);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(type);
         switch (origTC.kind().value()) {
         case _tk_null:
         case _tk_void:
@@ -212,7 +212,7 @@ final class DynBasic_impl extends DynAny_impl {
         }
 
         org.omg.CORBA.TypeCode tc = any_._OB_type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
 
         if (!tc.equivalent(type_))
             throw new TypeMismatch();

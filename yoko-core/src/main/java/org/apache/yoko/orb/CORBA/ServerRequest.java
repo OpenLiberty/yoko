@@ -168,7 +168,7 @@ public class ServerRequest extends org.omg.CORBA.ServerRequest {
             throw new BAD_INV_ORDER("set_exception() has "
                     + "already been called");
 
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(value.type());
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(value.type());
         if (origTC.kind() != tk_except)
             throw new BAD_PARAM(
                     describeBadParam(MinorNoExceptionInAny),

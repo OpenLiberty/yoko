@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.DynamicAny;
 
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.CORBA.Any;
 import org.omg.DynamicAny.DynAny;
@@ -52,7 +52,7 @@ final class DynArray_impl extends DynSeqBase_impl implements
             throws TypeMismatch,
             InvalidValue {
         for (int i = 0; i < value.length; i++) {
-            org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(value[i]
+            org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(value[i]
                     .type());
             if (origTC.kind() != contentKind_)
                 throw new TypeMismatch();
@@ -78,7 +78,7 @@ final class DynArray_impl extends DynSeqBase_impl implements
             throws TypeMismatch,
             InvalidValue {
         for (int i = 0; i < value.length; i++) {
-            org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(value[i]
+            org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(value[i]
                     .type());
             if (origTC.kind() != contentKind_)
                 throw new TypeMismatch();

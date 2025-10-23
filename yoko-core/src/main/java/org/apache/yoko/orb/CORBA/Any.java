@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,8 +39,8 @@ import java.util.logging.Logger;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.logging.Logger.getLogger;
-import static org.apache.yoko.orb.CORBA.TypeCode._OB_convertForeignTypeCode;
-import static org.apache.yoko.orb.CORBA.TypeCode._OB_getOrigType;
+import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_convertForeignTypeCode;
+import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_getOrigType;
 import static org.apache.yoko.orb.OB.TypeCodeFactory.createPrimitiveTC;
 import static org.apache.yoko.util.Assert.ensure;
 import static org.apache.yoko.util.Assert.fail;
@@ -117,8 +117,8 @@ final public class Any extends org.omg.CORBA.Any {
     
     private ORBInstance orbInstance;
     private org.omg.CORBA.TypeCode typeCode;
-    private TypeCode yokoTypeCode;
-    private TypeCode origTypeCode;
+    private TypeCodeImpl yokoTypeCode;
+    private TypeCodeImpl origTypeCode;
     private Object value;
 
     @Override
@@ -157,7 +157,7 @@ final public class Any extends org.omg.CORBA.Any {
         typeCode = tc;
 
         // Get an equivalent Yoko TypeCode
-        yokoTypeCode = tc instanceof TypeCode ? (TypeCode) tc : _OB_convertForeignTypeCode(tc);
+        yokoTypeCode = tc instanceof TypeCodeImpl ? (TypeCodeImpl) tc : _OB_convertForeignTypeCode(tc);
 
         //
         // Cache the unaliased TypeCode

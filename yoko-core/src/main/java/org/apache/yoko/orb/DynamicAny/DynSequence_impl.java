@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,7 @@
  */
 package org.apache.yoko.orb.DynamicAny;
 
-import org.apache.yoko.orb.CORBA.Any;
-import org.apache.yoko.orb.CORBA.InputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.DynamicAny.DynAny;
 import org.omg.DynamicAny.DynAnyFactory;
@@ -73,7 +70,7 @@ final class DynSequence_impl extends DynSeqBase_impl implements
             InvalidValue {
         for (int i = 0; i < value.length; i++) {
             org.omg.CORBA.TypeCode tc = value[i].type();
-            org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+            org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
             if (origTC.kind() != contentKind_)
                 throw new TypeMismatch();
         }
@@ -101,7 +98,7 @@ final class DynSequence_impl extends DynSeqBase_impl implements
             InvalidValue {
         for (int i = 0; i < value.length; i++) {
             org.omg.CORBA.TypeCode tc = value[i].type();
-            org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+            org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
             if (origTC.kind() != contentKind_)
                 throw new TypeMismatch();
         }

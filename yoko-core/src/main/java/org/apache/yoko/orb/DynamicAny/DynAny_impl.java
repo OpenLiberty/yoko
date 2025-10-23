@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ package org.apache.yoko.orb.DynamicAny;
 import org.apache.yoko.orb.CORBA.Any;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.MinorCodes;
 import org.apache.yoko.orb.OB.ORBInstance;
@@ -29,7 +29,6 @@ import org.omg.CORBA.BAD_OPERATION;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.BooleanSeqHelper;
 import org.omg.CORBA.CharSeqHelper;
-import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.CustomMarshal;
 import org.omg.CORBA.DoubleSeqHelper;
 import org.omg.CORBA.FloatSeqHelper;
@@ -75,7 +74,7 @@ abstract class DynAny_impl extends LocalObject implements
         factory_ = factory;
         orbInstance_ = orbInstance;
         type_ = type;
-        origType_ = TypeCode._OB_getOrigType(type_);
+        origType_ = TypeCodeImpl._OB_getOrigType(type_);
     }
 
     // ------------------------------------------------------------------
@@ -308,7 +307,7 @@ abstract class DynAny_impl extends LocalObject implements
             throw new InvalidValue();
 
         org.omg.CORBA.TypeCode tc = any.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
         if (origTC.kind() != TCKind.tk_string)
             throw new TypeMismatch();
 
@@ -339,7 +338,7 @@ abstract class DynAny_impl extends LocalObject implements
             throw new InvalidValue();
 
         org.omg.CORBA.TypeCode tc = any.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
         if (origTC.kind() != TCKind.tk_objref
                 && origTC.kind() != org.omg.CORBA_2_4.TCKind.tk_local_interface)
             throw new TypeMismatch();
@@ -409,7 +408,7 @@ abstract class DynAny_impl extends LocalObject implements
             throw new InvalidValue();
 
         org.omg.CORBA.TypeCode tc = any.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
         if (origTC.kind() != TCKind.tk_wstring)
             throw new TypeMismatch();
 
@@ -488,7 +487,7 @@ abstract class DynAny_impl extends LocalObject implements
         // Ensure the given value has the proper type
         //
         org.omg.CORBA.TypeCode tc = comp.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
         if (origTC.kind() != TCKind.tk_value
                 && origTC.kind() != TCKind.tk_value_box)
             throw new TypeMismatch();
@@ -528,7 +527,7 @@ abstract class DynAny_impl extends LocalObject implements
             throw new InvalidValue();
 
         org.omg.CORBA.TypeCode type = any.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(type);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(type);
 
         if (origTC.kind() != TCKind.tk_abstract_interface)
             throw new TypeMismatch();
@@ -996,7 +995,7 @@ abstract class DynAny_impl extends LocalObject implements
         // Ensure the given value has the proper type
         //
         org.omg.CORBA.TypeCode tc = comp.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
         if (origTC.kind() != TCKind.tk_value
                 && origTC.kind() != TCKind.tk_value_box)
             throw new TypeMismatch();
@@ -1019,7 +1018,7 @@ abstract class DynAny_impl extends LocalObject implements
             throw new InvalidValue();
 
         org.omg.CORBA.TypeCode type = any.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(type);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(type);
 
         if (origTC.kind() != TCKind.tk_abstract_interface)
             throw new TypeMismatch();

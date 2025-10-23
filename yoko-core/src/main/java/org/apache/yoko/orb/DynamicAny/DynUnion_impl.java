@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import static org.omg.CORBA.TCKind.tk_enum;
 import org.apache.yoko.orb.CORBA.Any;
 import org.apache.yoko.orb.CORBA.InputStream;
 import org.apache.yoko.orb.CORBA.OutputStream;
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
@@ -88,7 +88,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
             index_ = 0;
             defaultMember_ = origType_.default_index();
             selectedMember_ = 0;
-            origDiscTC_ = TypeCode._OB_getOrigType(discTC);
+            origDiscTC_ = TypeCodeImpl._OB_getOrigType(discTC);
 
             int count = origType_.member_count();
             memberLabels_ = new long[count];
@@ -110,7 +110,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
                     .member_type(selectedMember_);
 
             if (dynValueReader_ != null) {
-                org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(memberType);
+                org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(memberType);
 
                 if (origTC.kind().value() == _tk_value)
                     member_ = null;
@@ -519,7 +519,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
             if (member_ != null) {
                 org.omg.CORBA.TypeCode memberType = origType_.member_type(selectedMember_);
 
-                org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(memberType);
+                org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(memberType);
 
                 if (origTC.kind().value() == _tk_value) {
                     Assert.ensure(result.member_ == null);
@@ -711,7 +711,7 @@ final class DynUnion_impl extends DynAny_impl implements DynUnion {
             throw Assert.fail(ex);
         }
 
-        org.omg.CORBA.TypeCode origTC = TypeCode
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                 ._OB_getOrigType(memberType);
 
         if ((origTC.kind().value() == _tk_value)

@@ -45,7 +45,7 @@ import java.util.IdentityHashMap;
 import static java.security.AccessController.doPrivileged;
 import static javax.rmi.CORBA.Util.createValueHandler;
 import static javax.rmi.CORBA.Util.getCodebase;
-import static org.apache.yoko.orb.CORBA.TypeCode._OB_getOrigType;
+import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_getOrigType;
 import static org.apache.yoko.util.MinorCodes.MinorNoValueFactory;
 import static org.apache.yoko.util.MinorCodes.describeMarshal;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;

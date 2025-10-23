@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ import static org.omg.CORBA.TCKind._tk_wstring;
 import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
 import org.apache.yoko.orb.CORBA.InputStream;
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.util.Assert;
 import org.omg.CORBA.Any;
@@ -127,14 +127,14 @@ final public class DynAnyFactory_impl extends LocalObject
             throws InconsistentTypeCode {
         DynAny result = null;
 
-        TypeCode type = null;
+        TypeCodeImpl type = null;
         try {
-            type = (TypeCode) tc;
+            type = (TypeCodeImpl) tc;
         } catch (ClassCastException ex) {
-            type = TypeCode._OB_convertForeignTypeCode(tc);
+            type = TypeCodeImpl._OB_convertForeignTypeCode(tc);
         }
 
-        org.omg.CORBA.TypeCode origTC = TypeCode
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                 ._OB_getOrigType(type);
         switch (origTC.kind().value()) {
         case _tk_struct:
@@ -176,14 +176,14 @@ final public class DynAnyFactory_impl extends LocalObject
             throws InconsistentTypeCode {
         DynAny result = null;
 
-        TypeCode type = null;
+        TypeCodeImpl type = null;
         try {
-            type = (TypeCode) tc;
+            type = (TypeCodeImpl) tc;
         } catch (ClassCastException ex) {
-            type = TypeCode._OB_convertForeignTypeCode(tc);
+            type = TypeCodeImpl._OB_convertForeignTypeCode(tc);
         }
 
-        org.omg.CORBA.TypeCode origTC = TypeCode
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                 ._OB_getOrigType(type);
         switch (origTC.kind().value()) {
         case _tk_null:
