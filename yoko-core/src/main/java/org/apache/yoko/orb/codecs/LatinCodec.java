@@ -19,7 +19,7 @@ package org.apache.yoko.orb.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
-import org.apache.yoko.util.Collectors;
+import org.apache.yoko.orb.OB.CodeSetInfo;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -27,6 +27,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import static java.nio.ByteBuffer.allocate;
 import static java.util.Collections.unmodifiableMap;
@@ -42,34 +43,55 @@ class LatinCodec implements CharCodec {
     static LatinCodec getLatinCodec(Charset charset) {
         if (!charset.canEncode()) throw new UnsupportedCharsetException(charset.name());
         switch (charset.name()) {
-            case Latin2.NAME: return Latin2.INSTANCE;
-            case Latin3.NAME: return Latin3.INSTANCE;
-            case Latin4.NAME: return Latin4.INSTANCE;
-            case Latin5.NAME: return Latin5.INSTANCE;
-            case Latin7.NAME: return Latin7.INSTANCE;
-            case Latin9.NAME: return Latin9.INSTANCE;
+            case ISO_8859_2.NAME: return ISO_8859_2.INSTANCE;
+            case ISO_8859_3.NAME: return ISO_8859_3.INSTANCE;
+            case ISO_8859_4.NAME: return ISO_8859_4.INSTANCE;
+            case ISO_8859_5.NAME: return ISO_8859_5.INSTANCE;
+            case ISO_8859_6.NAME: return ISO_8859_6.INSTANCE;
+            case ISO_8859_7.NAME: return ISO_8859_7.INSTANCE;
+            case ISO_8859_8.NAME: return ISO_8859_8.INSTANCE;
+            case ISO_8859_9.NAME: return ISO_8859_9.INSTANCE;
             default: throw new UnsupportedCharsetException(charset.name());
         }
+    }
+
+    static LatinCodec getLatinCodec(CodeSetInfo csi) {
+        switch (csi) {
+            case ISO_LATIN_2: return ISO_8859_2.INSTANCE;
+            case ISO_LATIN_3: return ISO_8859_3.INSTANCE;
+            case ISO_LATIN_4: return ISO_8859_4.INSTANCE;
+            case ISO_8859_5: return ISO_8859_5.INSTANCE;
+            case ISO_8859_6: return ISO_8859_6.INSTANCE;
+            case ISO_8859_7: return ISO_8859_7.INSTANCE;
+            case ISO_8859_8: return ISO_8859_8.INSTANCE;
+            case ISO_8859_9: return ISO_8859_9.INSTANCE;
+        }
+        throw new UnsupportedCharsetException(csi.name());
     }
 
     // Use holder classes for the codec instances to allow SEPARATE, lazy initialization of each instance.
     // (e.g. if only Latin-2 is used, the others are never created.)
     // N.B. NAME is a compile-time constant and gets inlined so using it does not drive class initialization
     // whereas dereferencing INSTANCE forces initialization.  (See JLS 12.4)
-    private interface Latin2 { String NAME = "ISO-8859-2"; LatinCodec INSTANCE = new LatinCodec(NAME); }
-    private interface Latin3 { String NAME = "ISO-8859-3"; LatinCodec INSTANCE = new LatinCodec(NAME); }
-    private interface Latin4 { String NAME = "ISO-8859-4"; LatinCodec INSTANCE = new LatinCodec(NAME); }
-    private interface Latin5 { String NAME = "ISO-8859-5"; LatinCodec INSTANCE = new LatinCodec(NAME); }
-    private interface Latin7 { String NAME = "ISO-8859-7"; LatinCodec INSTANCE = new LatinCodec(NAME); }
-    private interface Latin9 { String NAME = "ISO-8859-9"; LatinCodec INSTANCE = new LatinCodec(NAME); }
+    private interface ISO_8859_2 { String NAME = "ISO-8859-2"; LatinCodec INSTANCE = new LatinCodec(NAME); }
+    private interface ISO_8859_3 { String NAME = "ISO-8859-3"; LatinCodec INSTANCE = new LatinCodec(NAME); }
+    private interface ISO_8859_4 { String NAME = "ISO-8859-4"; LatinCodec INSTANCE = new LatinCodec(NAME); }
+    private interface ISO_8859_5 { String NAME = "ISO-8859-5"; LatinCodec INSTANCE = new LatinCodec(NAME); }
+    private interface ISO_8859_6 { String NAME = "ISO-8859-6"; LatinCodec INSTANCE = new LatinCodec(NAME); }
+    private interface ISO_8859_7 { String NAME = "ISO-8859-7"; LatinCodec INSTANCE = new LatinCodec(NAME); }
+    private interface ISO_8859_8 { String NAME = "ISO-8859-8"; LatinCodec INSTANCE = new LatinCodec(NAME); }
+    private interface ISO_8859_9 { String NAME = "ISO-8859-9"; LatinCodec INSTANCE = new LatinCodec(NAME); }
 
+    final String name;
     final char[] decoderArray;
     final Map<Character, Byte> encoderMap;
 
     private LatinCodec(String name) {
+        Charset cs  = Charset.forName(name);
+        this.name = cs.name();
         ByteBuffer bytes = range(0, 256)
                 .collect(() -> allocate(256), (bb, b) -> bb.put(b, (byte) b), neverCombine());
-        CharBuffer chars = Charset.forName(name).decode(bytes);
+        CharBuffer chars = cs.decode(bytes);
         decoderArray = chars.array();
         encoderMap = unmodifiableMap(range(0, 256)
                 .filter(i -> UNICODE_REPLACEMENT_CHAR != decoderArray[i])
@@ -82,5 +104,20 @@ class LatinCodec implements CharCodec {
 
     public char readChar(ReadBuffer in) {
         return decoderArray[in.readByteAsChar()];
+    }
+
+    @Override
+    public String name() { return name; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof LatinCodec)) return false;
+        LatinCodec that = (LatinCodec) o;
+        return Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(name);
     }
 }

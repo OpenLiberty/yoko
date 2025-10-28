@@ -26,7 +26,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.io.EOFException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -82,9 +81,10 @@ abstract class AbstractLatinCodecTest {
     }
 }
 
-class IsoLatin2Test extends AbstractLatinCodecTest { IsoLatin2Test() { super("ISO-8859-2"); } }
-class IsoLatin3Test extends AbstractLatinCodecTest { IsoLatin3Test() { super("ISO-8859-3"); } }
-class IsoLatin4Test extends AbstractLatinCodecTest { IsoLatin4Test() { super("ISO-8859-4"); } }
-class IsoLatin5Test extends AbstractLatinCodecTest { IsoLatin5Test() { super("ISO-8859-5"); } }
-class IsoLatin7Test extends AbstractLatinCodecTest { IsoLatin7Test() { super("ISO-8859-7"); } }
-class IsoLatin9Test extends AbstractLatinCodecTest { IsoLatin9Test() { super("ISO-8859-9"); } }
+class Iso_8859_2Test extends AbstractLatinCodecTest { Iso_8859_2Test() { super("ISO-8859-2"); } }
+class Iso_8859_3Test extends AbstractLatinCodecTest { Iso_8859_3Test() { super("ISO-8859-3"); } }
+class Iso_8859_4Test extends AbstractLatinCodecTest { Iso_8859_4Test() { super("ISO-8859-4"); } }
+class Iso_8859_5Test extends AbstractLatinCodecTest { Iso_8859_5Test() { super("ISO-8859-5"); } }
+class Iso_8859_6Test extends AbstractLatinCodecTest { Iso_8859_6Test() { super("ISO-8859-6"); } }
+class Iso_8859_7Test extends AbstractLatinCodecTest { Iso_8859_7Test() { super("ISO-8859-7"); } }
+class Iso_8859_9Test extends AbstractLatinCodecTest { Iso_8859_9Test() { super("ISO-8859-9"); } }

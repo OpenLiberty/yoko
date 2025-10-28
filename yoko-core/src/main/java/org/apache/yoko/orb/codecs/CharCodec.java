@@ -20,6 +20,7 @@ package org.apache.yoko.orb.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
+import org.apache.yoko.orb.OB.CodeSetInfo;
 import org.omg.CORBA.DATA_CONVERSION;
 
 import java.nio.charset.Charset;
@@ -102,6 +103,18 @@ public interface CharCodec {
         return getLatinCodec(charset);
     }
 
+    static CharCodec forRegistryId(int id) throws UnsupportedCharsetException {
+        CodeSetInfo csi = CodeSetInfo.forRegistryId(id);
+        switch (csi) {
+            case UTF_16: return SimpleWcharCodec.UTF_16;
+            case UTF_8: return new Utf8Codec();
+
+        }
+        throw new UnsupportedCharsetException("Charset registry id = " + id);
+    }
+
+    String name();
+
     /**
      * Encodes a character to a buffer.
      * <p>
@@ -157,4 +170,7 @@ public interface CharCodec {
     default boolean readFinished() { return true; }
     /** Check whether the last character was not a high surrogate. */
     default boolean writeFinished() { return true; }
+
+    /** Provides an identical object that can be used concurrently with this one */
+    default CharCodec getInstanceOrCopy() { return this; }
 }

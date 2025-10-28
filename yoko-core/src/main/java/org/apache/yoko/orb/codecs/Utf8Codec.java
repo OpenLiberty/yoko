@@ -192,4 +192,16 @@ final class Utf8Codec implements CharCodec {
 
     public boolean readFinished() { return 0 == lowSurrogate; }
     public boolean writeFinished() { return 0 == highSurrogate; }
+
+    @Override
+    public CharCodec getInstanceOrCopy() { return new Utf8Codec(); }
+
+    @Override
+    public String name() { return "UTF-8"; }
+
+    @Override
+    public boolean equals(Object o) { return o instanceof Utf8Codec; }
+
+    @Override
+    public int hashCode() { return name().hashCode(); }
 }

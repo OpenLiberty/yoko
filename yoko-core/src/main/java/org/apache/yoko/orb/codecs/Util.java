@@ -50,7 +50,7 @@ enum Util {
     static CharCodec getUnicodeCodec(String name) {
         switch (name.toUpperCase()) {
         case "UTF-8": return new Utf8Codec();
-        case "UTF-16": return SimpleCodec.UTF_16;
+        case "UTF-16": return SimpleWcharCodec.UTF_16;
         case "US-ASCII": return SimpleCodec.US_ASCII;
         case "ISO-8859-1": return SimpleCodec.ISO_LATIN_1;
         default: return null;

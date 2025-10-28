@@ -24,19 +24,8 @@ import org.apache.yoko.io.WriteBuffer;
 import static org.apache.yoko.orb.codecs.Util.BYTE_ORDER_MARKER;
 import static org.apache.yoko.orb.codecs.Util.BYTE_SWAPD_MARKER;
 import static org.apache.yoko.orb.codecs.Util.ZERO_WIDTH_NO_BREAK_SPACE;
-import static org.apache.yoko.orb.codecs.Util.expect7bit;
-import static org.apache.yoko.orb.codecs.Util.require7bit;
-import static org.apache.yoko.orb.codecs.Util.require8bit;
 
-enum SimpleCodec implements CharCodec {
-    US_ASCII {
-        public char readChar(ReadBuffer in) { return expect7bit(in.readByteAsChar()); }
-        public void writeChar(char c, WriteBuffer out) { out.writeByte(require7bit(c)); }
-    },
-    ISO_LATIN_1 {
-        public char readChar(ReadBuffer in) { return in.readByteAsChar(); } // no checking - a single-byte character can't be > 0xFF
-        public void writeChar(char c, WriteBuffer out) { out.writeByte(require8bit(c)); }
-    },
+enum SimpleWcharCodec implements WcharCodec {
     UTF_16 {
         public char readChar(ReadBuffer in) {
             char ch = in.readChar();
