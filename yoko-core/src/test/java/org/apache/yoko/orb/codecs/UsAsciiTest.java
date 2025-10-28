@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.apache.yoko.orb.codecs.Util.ASCII_REPLACEMENT_CHAR;
 
-class UsAsciiTest extends AbstractSimpleCodecTest implements TestData {
+class UsAsciiTest extends AbstractSimpleCodecTest<CharCodec> implements TestData {
     UsAsciiTest() { super("US-ASCII", WriteBuffer::writeByte, ReadBuffer::readByteAsChar); }
     boolean isDoubleByte() { return false; }
 

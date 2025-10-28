@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,9 +50,9 @@ enum Util {
     static CharCodec getUnicodeCodec(String name) {
         switch (name.toUpperCase()) {
         case "UTF-8": return new Utf8Codec();
-        case "UTF-16": return SimpleCodec.UTF_16;
-        case "US-ASCII": return SimpleCodec.US_ASCII;
-        case "ISO-8859-1": return SimpleCodec.ISO_LATIN_1;
+        case "UTF-16": return SimpleWcharCodec.UTF_16;
+        case "US-ASCII": return SimpleCharCodec.US_ASCII;
+        case "ISO-8859-1": return SimpleCharCodec.ISO_LATIN_1;
         default: return null;
         }
     }

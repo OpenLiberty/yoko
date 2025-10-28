@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -192,4 +192,16 @@ final class Utf8Codec implements CharCodec {
 
     public boolean readFinished() { return 0 == lowSurrogate; }
     public boolean writeFinished() { return 0 == highSurrogate; }
+
+    @Override
+    public CharCodec getInstanceOrCopy() { return new Utf8Codec(); }
+
+    @Override
+    public String name() { return "UTF-8"; }
+
+    @Override
+    public boolean equals(Object o) { return o instanceof Utf8Codec; }
+
+    @Override
+    public int hashCode() { return name().hashCode(); }
 }

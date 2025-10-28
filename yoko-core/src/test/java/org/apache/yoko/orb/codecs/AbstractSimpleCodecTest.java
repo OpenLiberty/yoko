@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,16 +27,20 @@ import static org.apache.yoko.orb.codecs.Util.UNICODE_REPLACEMENT_CHAR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public abstract class AbstractSimpleCodecTest {
+/**
+ * Superclass for Codec tests.
+ * @param <CODEC> the type of Codec to test: CharCodec or WcharCodec
+ */
+public abstract class AbstractSimpleCodecTest<CODEC extends CharCodec> {
     @FunctionalInterface  interface ExpectedCharWriter { void writeTo(WriteBuffer w, char c); }
     @FunctionalInterface  interface ExpectedCharReader { char readFrom(ReadBuffer w); }
     private WriteBuffer out;
-    final SimpleCodec codec;
+    final CODEC codec;
     final ExpectedCharWriter expectedCharWriter;
     final ExpectedCharReader expectedCharReader;
 
     AbstractSimpleCodecTest(String name, ExpectedCharWriter expectedCharWriter, ExpectedCharReader expectedCharReader) {
-        this.codec = (SimpleCodec) CharCodec.forName(name);
+        this.codec = (CODEC)CharCodec.forName(name);
         this.expectedCharWriter = expectedCharWriter;
         this.expectedCharReader = expectedCharReader;
     }
@@ -44,6 +48,7 @@ public abstract class AbstractSimpleCodecTest {
     @BeforeEach
     void newWriteBuffer() { out = Buffer.createWriteBuffer(16); }
 
+    void writeExpectedByte(int b) { assert b == (0xFF & b); out.writeByte(b); }
     void writeExpectedChar(char expectedChar) { expectedCharWriter.writeTo(out, expectedChar); }
 
     ReadBuffer getReadBuffer() { return out.trim().readFromStart(); }
@@ -68,9 +73,10 @@ public abstract class AbstractSimpleCodecTest {
         assertEquals(expected, expectedCharReader.readFrom(in));
         codec.assertNoBufferedCharData();
         assertTrue(in.isComplete());
-        // try it using writeNextChar() too
+        // For WcharCodecs, check beginToWriteString() too
+        if (!(codec instanceof WcharCodec)) return;
         newWriteBuffer();
-        codec.writeNextChar(c, out);
+        ((WcharCodec)codec).beginToWriteString(c, out);
         in = getReadBuffer();
         assertEquals(expected, expectedCharReader.readFrom(in));
     }
