@@ -169,7 +169,6 @@ public @interface ConfigureServer {
     @Target({ANNOTATION_TYPE, FIELD})
     @Retention(RUNTIME)
     @interface NameServiceUrl {
-        /** A literal string to match the server name. Not a regular expression since the remote object can exist on only one server. */
         ServerName serverName() default DEFAULT_SERVER;
     }
 
