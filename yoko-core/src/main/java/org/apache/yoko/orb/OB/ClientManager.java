@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +16,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.apache.yoko.orb.OB;
-
-import static java.util.Collections.synchronizedSet;
-import static org.apache.yoko.orb.exceptions.Transients.NO_USABLE_PROFILE_IN_IOR;
-import static org.apache.yoko.util.MinorCodes.MinorORBDestroyed;
-import static org.apache.yoko.util.MinorCodes.describeInitialize;
-import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Vector;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.apache.yoko.orb.OBPortableServer.POAManager;
 import org.apache.yoko.orb.OBPortableServer.POAManagerFactory;
@@ -50,6 +37,19 @@ import org.omg.CORBA.Policy;
 import org.omg.IOP.IOR;
 import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 import org.omg.PortableServer.POAManagerPackage.State;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static java.util.Collections.synchronizedSet;
+import static org.apache.yoko.orb.exceptions.Transients.NO_USABLE_PROFILE_IN_IOR;
+import static org.apache.yoko.util.MinorCodes.MinorORBDestroyed;
+import static org.apache.yoko.util.MinorCodes.describeInitialize;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 public final class ClientManager {
     static final Logger logger = Logger.getLogger(ClientManager.class.getName());
@@ -212,10 +212,7 @@ public final class ClientManager {
 
                     // add the information for the new client to the collection to be returned
                     for (ProfileInfo profileInfo : client.getUsableProfiles(ior, policies)) {
-                        ClientProfilePair pair = new ClientProfilePair();
-                        pair.client = client;
-                        pair.profile = profileInfo;
-                        pairs.addElement(pair);
+                        pairs.addElement(new ClientProfilePair(client, profileInfo));
                     }
 
                     //
@@ -245,10 +242,7 @@ public final class ClientManager {
                 }
 
                 for (ProfileInfo profileInfo : reusableClient.getUsableProfiles(ior, policies)) {
-                    ClientProfilePair pair = new ClientProfilePair();
-                    pair.client = reusableClient;
-                    pair.profile = profileInfo;
-                    pairs.addElement(pair);
+                    pairs.addElement(new ClientProfilePair(reusableClient, profileInfo));
                 }
             }
         }
@@ -311,10 +305,7 @@ public final class ClientManager {
                     // Add client/profile pairs
                     //
                     for (ProfileInfo clientProfileInfo : newClient.getUsableProfiles(ior, policies)) {
-                        ClientProfilePair pair = new ClientProfilePair();
-                        pair.client = newClient;
-                        pair.profile = clientProfileInfo;
-                        pairs.addElement(pair);
+                        pairs.addElement(new ClientProfilePair(newClient, clientProfileInfo));
                     }
 
                     // If no private clients have been requested, also add the
