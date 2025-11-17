@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -149,7 +149,7 @@ public class PoaManagerServerTest {
         testDSI.aMethod();
 
         // Try discard_request with wait completion == true, shouldn't work since the discard_request call is done through the POAManagerProxy.
-        assertThrowsExactly(RemoteException.class, BAD_INV_ORDER.class, () -> proxy.discard_requests(true));
+        assertThrowsExactly(RemoteException.class, () -> proxy.discard_requests(true), BAD_INV_ORDER.class);
 
         assertSame(proxy.get_state(), State._ACTIVE);
 
@@ -168,7 +168,7 @@ public class PoaManagerServerTest {
         testDSI.aMethod();
 
         //Try hold_request with wait completion == true, shouldn't work since the hold_request call is done through the POAManagerProxy.
-        assertThrowsExactly(RemoteException.class, BAD_INV_ORDER.class, () -> proxy.hold_requests(true));
+        assertThrowsExactly(RemoteException.class, () -> proxy.hold_requests(true), BAD_INV_ORDER.class);
         // Expected, ensure the state didn't change
         assertSame(proxy.get_state(), State._ACTIVE);
 
@@ -195,8 +195,8 @@ public class PoaManagerServerTest {
         proxy.discard_requests(false);
         assertSame(proxy.get_state(), State._DISCARDING);
 
-        assertThrowsExactly(ExecutionException.class, TRANSIENT.class, f1::get);
-        assertThrowsExactly(ExecutionException.class, TRANSIENT.class, f2::get);
+        assertThrowsExactly(ExecutionException.class, f1::get, TRANSIENT.class);
+        assertThrowsExactly(ExecutionException.class, f2::get, TRANSIENT.class);
 
         // Test hold_requests when discarding.
         proxy.hold_requests(false);
@@ -215,7 +215,7 @@ public class PoaManagerServerTest {
     void testDeactivate(Proxy proxy) throws Exception {
         // Try to deactivate with wait completion == true, shouldn't work since the hold_request call is done through the POAManagerProxy.
         proxy.activate();
-        assertThrowsExactly(RemoteException.class, BAD_INV_ORDER.class, () -> proxy.deactivate(true, true));
+        assertThrowsExactly(RemoteException.class, () -> proxy.deactivate(true, true), BAD_INV_ORDER.class);
 
         // Expected, ensure the state didn't change
         assertSame(proxy.get_state(), State._ACTIVE);

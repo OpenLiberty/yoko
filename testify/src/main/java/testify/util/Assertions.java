@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public enum Assertions {
     ;
@@ -32,36 +33,22 @@ public enum Assertions {
         throw new AssertionFailedError(String.format(format, params));
     }
 
-    public static <T extends Throwable> T assertThrows(Class<T> type, Executable executable) {
-        return org.junit.jupiter.api.Assertions.assertThrows(type, executable);
+    public static void assertThrows(Class<? extends Throwable> expected, Executable executable, Class<? extends Throwable>... causalTypeChain) {
+         Throwable t = org.junit.jupiter.api.Assertions.assertThrows(expected, executable);
+         for (Class<? extends Throwable> causeType: causalTypeChain) {
+             t = t.getCause();
+             if (causeType.isInstance(t)) continue;
+             fail("Expected caused by " + causeType + " but was caused by " + t, t);
+         }
     }
 
-    public static <T extends Throwable> T assertThrows(Class<? extends Throwable> type, Class<T> causeType, Executable executable) {
-        Throwable cause = assertThrows(type,executable).getCause();
-        assertThat(cause, is(instanceOf(causeType)));
-        return causeType.cast(cause);
-    }
-
-    public static <T extends Throwable> T assertThrows(Class<? extends Throwable> type, Class<? extends Throwable> type2, Class<T> causeType, Executable executable) {
-        Throwable cause = assertThrows(type,type2,executable).getCause();
-        assertThat(cause, is(instanceOf(causeType)));
-        return causeType.cast(cause);
-    }
-
-    public static <T extends Throwable> T assertThrowsExactly(Class<T> type, Executable executable) {
-        return org.junit.jupiter.api.Assertions.assertThrowsExactly(type, executable);
-    }
-
-    public static <T extends Throwable> T assertThrowsExactly(Class<? extends Throwable> type, Class<T> causeType, Executable executable) {
-        Throwable cause = assertThrowsExactly(type,executable).getCause();
-        assertSame(causeType, notNull(cause).getClass());
-        return causeType.cast(cause);
-    }
-
-    public static <T extends Throwable> T assertThrowsExactly(Class<? extends Throwable> type, Class<? extends Throwable> type2, Class<T> causeType, Executable executable) {
-        Throwable cause = assertThrowsExactly(type,type2,executable).getCause();
-        assertSame(causeType, notNull(cause).getClass());
-        return causeType.cast(cause);
+    public static void assertThrowsExactly(Class<? extends Throwable> expected, Executable executable, Class<? extends Throwable>... causalTypeChain) {
+        Throwable t = org.junit.jupiter.api.Assertions.assertThrowsExactly(expected, executable);
+        for (Class<? extends Throwable> causeType: causalTypeChain) {
+            t = t.getCause();
+            if (causeType == notNull(t).getClass()) continue;
+            fail("Expected caused by exactly " + causeType + " but was caused by " + t, t);
+        }
     }
 
     private static <T> T notNull(T t) {
