@@ -376,9 +376,13 @@ public final class DowncallStub {
     public boolean locate_request() throws LocationForward, FailureException {
         logger.fine("performing a locate_request"); 
         while (true) {
+            // This throws a FailureException when there are no CP pairs left to try,
+            // which breaks out of this loop and gets caught and handled elsewhere.
             ClientProfilePair cp = getClientProfilePair();
 
             try {
+                // Initialize 'down' in the inner try block so that
+                // any sysex is handled as part of failure/retry processing.
                 Downcall down;
                 try {
                     down = createLocateRequestDowncall(cp);
