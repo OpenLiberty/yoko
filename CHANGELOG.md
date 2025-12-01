@@ -1,3 +1,8 @@
+## [v1.5.2] - 2025-11-18
+
+### 🐛 Bug Fixes
+
+- Handle SystemException from createLocateRequestDowncall
 ## [v1.5.1]
 
 ### Bug Fixes

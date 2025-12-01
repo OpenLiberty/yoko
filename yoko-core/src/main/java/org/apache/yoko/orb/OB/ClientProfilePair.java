@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +19,30 @@ package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.orb.OCI.ProfileInfo;
 
+import java.util.Objects;
+
 //
 // A client/profile pair
 //
 public final class ClientProfilePair {
-    public Client client;
+    public final Client client;
+    public final ProfileInfo profile;
 
-    public ProfileInfo profile;
+    public ClientProfilePair(Client client, ProfileInfo profile) {
+        this.client = client;
+        this.profile = profile;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ClientProfilePair)) return false;
+        ClientProfilePair that = (ClientProfilePair)o;
+        return ((this.client == that.client) && (this.profile == that.profile));
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(client, profile);
+    }
 }

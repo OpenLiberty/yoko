@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2025 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,20 +17,6 @@
  */
 package org.apache.yoko.orb.OB;
 
-import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
-import static org.apache.yoko.io.Buffer.createWriteBuffer;
-import static org.apache.yoko.logging.VerboseLogging.RETRY_LOG;
-import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
-import static org.apache.yoko.orb.exceptions.Transients.NO_USABLE_PROFILE_IN_IOR;
-import static org.apache.yoko.util.MinorCodes.MinorShutdownCalled;
-import static org.apache.yoko.util.MinorCodes.describeBadInvOrder;
-import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
-
-import java.util.Vector;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.apache.yoko.orb.CORBA.InputStream;
@@ -41,7 +27,6 @@ import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.orb.OCI.ProfileInfoHolder;
 import org.apache.yoko.orb.OCI.TransportInfo;
 import org.apache.yoko.util.Assert;
-import org.apache.yoko.util.MinorCodes;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.BooleanHolder;
 import org.omg.CORBA.COMM_FAILURE;
@@ -83,6 +68,19 @@ import org.omg.Messaging.PolicyValueSeqHelper;
 import org.omg.Messaging.PolicyValueSeqHolder;
 import org.omg.Messaging.ReplyHandler;
 
+import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
+import static org.apache.yoko.io.Buffer.createWriteBuffer;
+import static org.apache.yoko.logging.VerboseLogging.RETRY_LOG;
+import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
+import static org.apache.yoko.orb.exceptions.Transients.NO_USABLE_PROFILE_IN_IOR;
+import static org.apache.yoko.util.MinorCodes.MinorShutdownCalled;
+import static org.apache.yoko.util.MinorCodes.describeBadInvOrder;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+
 //
 // DowncallStub is equivalent to the C++ class OB::MarshalStubImpl
 //
@@ -123,32 +121,23 @@ public final class DowncallStub {
     // ------------------------------------------------------------------
     // Private and protected member implementations
     // ------------------------------------------------------------------
-
-    private synchronized Client getClientProfilePair(ProfileInfoHolder profileInfo)
-            throws FailureException {
-        //
+    private synchronized ClientProfilePair getClientProfilePair() throws FailureException {
         // Lazy initialization of the client/profile pairs
-        //
-        if (clientProfilePairs_ == null) {
-            //
+        if (null == clientProfilePairs_) {
             // Get all clients that can be used
-            //
             ClientManager clientManager = orbInstance_.getClientManager();
             clientProfilePairs_ = clientManager.getClientProfilePairs(IOR_, policies_.value);
         }
 
-        //
         // If we can't get any client/profile pairs, set and raise the
         // failure exception, and let the stub handle this.
-        //
         if (clientProfilePairs_.isEmpty()) {
             RETRY_LOG.fine("No profiles available");
             throw new FailureException(NO_USABLE_PROFILE_IN_IOR.create());
         }
-
-        ClientProfilePair clientProfilePair = clientProfilePairs_.elementAt(0);
-        profileInfo.value = clientProfilePair.profile;
-        return clientProfilePair.client;
+        // NB: see handleFailureException() for how clientProfilePairs_ is modified (pruned) in exception
+        // processing (so the first element may change)
+        return clientProfilePairs_.elementAt(0);
     }
 
     private void destroy() {
@@ -199,62 +188,58 @@ public final class DowncallStub {
     // Operations to create new Downcall objects
     //
     public Downcall createDowncall(String op, boolean resp) throws FailureException {
-        ProfileInfoHolder profile = new ProfileInfoHolder();
-        Client client = getClientProfilePair(profile);
+        final ClientProfilePair cp = getClientProfilePair();
+        final ProfileInfo profile = cp.profile;
+        final Client client = cp.client;
         Assert.ensure(client != null);
 
         if (!policies_.interceptor) {
-            return new Downcall(orbInstance_, client, profile.value, policies_, op, resp);
+            return new Downcall(orbInstance_, client, profile, policies_, op, resp);
         }
 
         PIManager piManager = orbInstance_.getPIManager();
         if (piManager.haveClientInterceptors()) {
-            return new PIVoidDowncall(orbInstance_, client, profile.value, policies_, op, resp, IOR_, origIOR_, piManager);
+            return new PIVoidDowncall(orbInstance_, client, profile, policies_, op, resp, IOR_, origIOR_, piManager);
         } else {
-            return new Downcall(orbInstance_, client, profile.value, policies_, op, resp);
+            return new Downcall(orbInstance_, client, profile, policies_, op, resp);
         }
     }
 
-    public Downcall createLocateRequestDowncall() throws FailureException {
-        ProfileInfoHolder profile = new ProfileInfoHolder();
-        Client client = getClientProfilePair(profile);
-        Assert.ensure(client != null);
-
-        //
-        // A LocateRequest is not seen by the interceptors
-        //
-        return new Downcall(orbInstance_, client, profile.value, policies_, "_locate", true);
+    public Downcall createLocateRequestDowncall(ClientProfilePair cp) {
+        return new Downcall(orbInstance_, cp.client, cp.profile, policies_, "_locate", true);
     }
 
     public Downcall createPIArgsDowncall(String op, boolean resp, ParameterDesc[] argDesc, ParameterDesc retDesc, TypeCode[] exceptionTC) throws FailureException {
-        ProfileInfoHolder profile = new ProfileInfoHolder();
-        Client client = getClientProfilePair(profile);
+        final ClientProfilePair cp = getClientProfilePair();
+        final ProfileInfo profile = cp.profile;
+        final Client client = cp.client;
         Assert.ensure(client != null);
 
         if (!policies_.interceptor)
-            return new Downcall(orbInstance_, client, profile.value, policies_, op, resp);
+            return new Downcall(orbInstance_, client, profile, policies_, op, resp);
 
         PIManager piManager = orbInstance_.getPIManager();
         if (piManager.haveClientInterceptors()) {
-            return new PIArgsDowncall(orbInstance_, client, profile.value, policies_, op, resp, IOR_, origIOR_, piManager, argDesc, retDesc, exceptionTC);
+            return new PIArgsDowncall(orbInstance_, client, profile, policies_, op, resp, IOR_, origIOR_, piManager, argDesc, retDesc, exceptionTC);
         } else {
-            return new Downcall(orbInstance_, client, profile.value, policies_, op, resp);
+            return new Downcall(orbInstance_, client, profile, policies_, op, resp);
         }
     }
 
     public Downcall createPIDIIDowncall(String op, boolean resp, NVList args, NamedValue result, ExceptionList exceptions) throws FailureException {
-        ProfileInfoHolder profile = new ProfileInfoHolder();
-        Client client = getClientProfilePair(profile);
+        final ClientProfilePair cp = getClientProfilePair();
+        final ProfileInfo profile = cp.profile;
+        final Client client = cp.client;
         Assert.ensure(client != null);
 
         if (!policies_.interceptor)
-            return new Downcall(orbInstance_, client, profile.value, policies_, op, resp);
+            return new Downcall(orbInstance_, client, profile, policies_, op, resp);
 
         PIManager piManager = orbInstance_.getPIManager();
         if (piManager.haveClientInterceptors()) {
-            return new PIDIIDowncall(orbInstance_, client, profile.value, policies_, op, resp, IOR_, origIOR_, piManager, args, result, exceptions);
+            return new PIDIIDowncall(orbInstance_, client, profile, policies_, op, resp, IOR_, origIOR_, piManager, args, result, exceptions);
         } else {
-            return new Downcall(orbInstance_, client, profile.value, policies_, op, resp);
+            return new Downcall(orbInstance_, client, profile, policies_, op, resp);
         }
     }
 
@@ -340,44 +325,23 @@ public final class DowncallStub {
         down.setUserException(ex);
     }
 
-    //
-    // Handle a FailureException
-    //
-    public synchronized void handleFailureException(Downcall down, FailureException ex) throws FailureException {
-        //
-        // Only called if there is really a failure
-        //
+    public synchronized void handleFailureException(ClientProfilePair cp, FailureException ex) throws FailureException {
         Assert.ensure(ex.exception != null);
-
-        //
-        // If there was a failure, release the client and remove the
-        // faulty client/profile pair, whether we retry or not
-        //
-        Client client = down.client();
-        ProfileInfo profile = down.profileInfo();
-
+        final Client client = cp.client;
         final ClientManager clientManager = orbInstance_.getClientManager();
-        //
         // Make sure the ORB has not been destroyed
-        //
-        if (clientManager == null)
+        if (null == clientManager)
             throw new BAD_INV_ORDER(
-                    describeBadInvOrder(
-                            MinorShutdownCalled),
-                            MinorShutdownCalled,
-                            COMPLETED_NO);
+                    describeBadInvOrder(MinorShutdownCalled),
+                    MinorShutdownCalled,
+                    COMPLETED_NO);
 
-        for (ClientProfilePair pair : clientProfilePairs_) {
-            if (pair.client == client && pair.profile == profile) {
-                clientManager.releaseClient(pair.client);
-                clientProfilePairs_.remove(pair);
-                break;
-            }
-        }
+        clientProfilePairs_.stream()
+                .filter(cp::equals)
+                .findFirst()
+                .ifPresent(clientProfilePairs_::remove);
 
-        //
         // We only retry upon COMM_FAILURE, TRANSIENT, and NO_RESPONSE
-        //
         try {
             throw ex.exception;
         } catch (COMM_FAILURE|TRANSIENT|NO_RESPONSE forceRetry) {
@@ -388,53 +352,52 @@ public final class DowncallStub {
             throw ex; // Not "throw e;"!
         }
 
-        //
         // We can't retry if RETRY_STRICT or RETRY_NEVER is set and the
         // completion status is not COMPLETED_NO
-        //
         if (policies_.retry.mode != RETRY_ALWAYS.value && ex.exception.completed != COMPLETED_NO) {
             throw ex;
         }
 
-        //
         // If no client/profile pairs are left, we cannot retry either
-        //
         if (clientProfilePairs_.isEmpty()) {
             logger.log(Level.FINE, "no profiles left to try", ex.exception);
             throw ex;
         }
 
-        //
         // OK, let's continue with the next profile
-        //
         logger.log(Level.FINE, "trying next profile", ex.exception);
+    }
+
+    // Handle a FailureException
+    public synchronized void handleFailureException(Downcall down, FailureException ex) throws FailureException {
+        handleFailureException(new ClientProfilePair(down.client(), down.profileInfo()), ex);
     }
 
     public boolean locate_request() throws LocationForward, FailureException {
         logger.fine("performing a locate_request"); 
         while (true) {
-            Downcall down = createLocateRequestDowncall();
+            // This throws a FailureException when there are no CP pairs left to try,
+            // which breaks out of this loop and gets caught and handled elsewhere.
+            ClientProfilePair cp = getClientProfilePair();
 
             try {
+                // Initialize 'down' in the inner try block so that
+                // any sysex is handled as part of failure/retry processing.
+                Downcall down;
                 try {
-                    //
+                    down = createLocateRequestDowncall(cp);
                     // Get the client and force a binding
-                    //
                     Client client = down.client();
                     client.bind(policies_.connectTimeout);
 
-                    //
                     // If the LocateRequest policy is false, then return now
-                    //
                     if (!policies_.locateRequest) {
                         logger.fine("LocateRequest policy is false, returning true"); 
                         return true;
                     }
 
-                    //
                     // If the client doesn't support two-way invocations,
                     // then silently pretend the locate request succeeded
-                    //
                     if (!client.twoway()) {
                         logger.fine("Two-way invocations not supported, returning true");
                         return true;
@@ -456,15 +419,14 @@ public final class DowncallStub {
                 return false;
             } catch (FailureException ex) {
                 logger.log(Level.FINE, "Object lookup failure", ex); 
-                handleFailureException(down, ex);
+                handleFailureException(cp, ex);
             }
         }
     }
 
     public ConnectorInfo get_oci_connector_info() {
         try {
-            ProfileInfoHolder profileInfo = new ProfileInfoHolder();
-            Client client = getClientProfilePair(profileInfo);
+            Client client = getClientProfilePair().client;
             Assert.ensure(client != null);
             return client.connectorInfo();
         } catch (FailureException ex) {
@@ -474,8 +436,7 @@ public final class DowncallStub {
 
     public TransportInfo get_oci_transport_info() {
         try {
-            ProfileInfoHolder profileInfo = new ProfileInfoHolder();
-            Client client = getClientProfilePair(profileInfo);
+            Client client = getClientProfilePair().client;
             Assert.ensure(client != null);
             return client.transportInfo();
         } catch (FailureException ex) {
@@ -516,12 +477,8 @@ public final class DowncallStub {
     //
     // public org.apache.yoko.orb.CORBA.OutputStream
     public CodeConverters setupPollingRequest(ServiceContextListHolder sclHolder, OutputStreamHolder out) throws FailureException {
-
-        //
         // Obtain information regarding our target
-        //
-        ProfileInfoHolder info = new ProfileInfoHolder();
-        Client client = getClientProfilePair(info);
+        Client client = getClientProfilePair().client;
 
         out.value = new org.apache.yoko.orb.CORBA.OutputStream(client.codeConverters(), GIOP1_2);
 
@@ -552,7 +509,9 @@ public final class DowncallStub {
         WriteBuffer writeBuffer = createWriteBuffer(12).padAll();
 
         // Obtain information regarding our target
-        Client client = getClientProfilePair(info);
+        final ClientProfilePair cp = getClientProfilePair();
+        final Client client = cp.client;
+        info.value = cp.profile;
 
         out.value = new org.apache.yoko.orb.CORBA.OutputStream(writeBuffer, client.codeConverters(), GIOP1_2);
         ServiceContexts contexts = client.getAMIRouterContexts();
@@ -712,13 +671,10 @@ public final class DowncallStub {
         PersistentRequestRouter router = MessageRoutingUtil.getPersistentRouterFromConfig(orbInstance_);
         Assert.ensure(router != null);
 
-        //
         // Obtain information regarding our target
-        //
-        ProfileInfoHolder info = new ProfileInfoHolder();
-        info.value = null;
+        final ProfileInfo profile;
         try {
-            getClientProfilePair(info);
+            profile = getClientProfilePair().profile;
         } catch (FailureException ex) {
             throw new RemarshalException();
         }
@@ -726,14 +682,14 @@ public final class DowncallStub {
         //
         // Get the profile index
         //
-        short index = (short) info.value.index;
+        short index = (short) profile.index;
 
         //
         // Create the router to_visit list
         //
         RouterListHolder to_visit = new RouterListHolder();
         to_visit.value = new Router[0];
-        MessageRoutingUtil.getRouterListFromComponents(orbInstance_, info.value, to_visit);
+        MessageRoutingUtil.getRouterListFromComponents(orbInstance_, profile, to_visit);
 
         //
         // Obtain the target objects
@@ -751,16 +707,16 @@ public final class DowncallStub {
         //
         payload.service_contexts = scl;
         payload.giop_version = new Version();
-        payload.giop_version.major = info.value.major;
-        payload.giop_version.minor = info.value.minor;
+        payload.giop_version.major = profile.major;
+        payload.giop_version.minor = profile.minor;
         payload.response_flags = 1;
         payload.reserved = new byte[3];
         payload.reserved[0] = 0;
         payload.reserved[1] = 0;
         payload.reserved[2] = 0;
         payload.operation = operation;
-        payload.object_key = new byte[info.value.key.length];
-        System.arraycopy(info.value.key, 0, payload.object_key, 0, info.value.key.length);
+        payload.object_key = new byte[profile.key.length];
+        System.arraycopy(profile.key, 0, payload.object_key, 0, profile.key.length);
 
         MessageBody messageBody = new MessageBody();
         messageBody.byte_order = false; // Java is always false

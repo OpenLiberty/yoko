@@ -63,7 +63,7 @@ def gitBasicDateUtc = BASIC_ISO_DATE.format(gitIsoDateUtc)
 // OSGi permits '-' and '_' within the qualifier, but not at either end
 // OSGi permits no other punctuation or whitespace
 // Set the version to major.minor.patch.YYYYMMDD_GITHASH
-def yokoVersion = "1.5.1.${gitBasicDateUtc.take(8)}_${gitHash.take(10)}"
+def yokoVersion = "1.5.2.${gitBasicDateUtc.take(8)}_${gitHash.take(10)}"
 
 // set system properties for use in bundle metadata
 System.setProperty("git.hash", gitHash);
