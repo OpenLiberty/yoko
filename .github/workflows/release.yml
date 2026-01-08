@@ -1,0 +1,177 @@
+# Copyright 2026 IBM Corporation and others.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.5.3 - without v prefix)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for git-cliff
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set version variables
+      id: version
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        VERSION_TAG="v${VERSION}"
+        RELEASE_BRANCH="release/${VERSION}"
+        echo "version=${VERSION}" >> $GITHUB_OUTPUT
+        echo "version_tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
+        echo "release_branch=${RELEASE_BRANCH}" >> $GITHUB_OUTPUT
+        echo "Release version: ${VERSION}"
+        echo "Version tag: ${VERSION_TAG}"
+        echo "Release branch: ${RELEASE_BRANCH}"
+    
+    - name: Configure git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+    
+    - name: Create release branch
+      run: |
+        git checkout -b ${{ steps.version.outputs.release_branch }}
+        git push -u origin ${{ steps.version.outputs.release_branch }}
+    
+    - name: Install git-cliff
+      run: |
+        curl -L https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-$(uname -m)-unknown-linux-gnu.tar.gz | tar xz
+        sudo mv git-cliff-*/git-cliff /usr/local/bin/
+        git-cliff --version
+    
+    - name: Set up JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: 'gradle'
+    
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+    
+    - name: Validate Gradle wrapper
+      uses: gradle/wrapper-validation-action@v2
+    
+    - name: Update CHANGELOG with git-cliff
+      run: ./gradlew updateChangelogForTag -PreleaseTag=${{ steps.version.outputs.version_tag }}
+    
+    - name: Commit CHANGELOG changes
+      run: |
+        if git diff --quiet CHANGELOG.md; then
+          echo "CHANGELOG.md unchanged"
+        else
+          git add CHANGELOG.md
+          git commit -m "chore(release): update CHANGELOG for ${{ steps.version.outputs.version }}"
+          git push origin ${{ steps.version.outputs.release_branch }}
+        fi
+    
+    - name: Build and test
+      run: ./gradlew clean build test
+      env:
+        GRADLE_OPTS: -Dorg.gradle.daemon=false
+    
+    - name: Assemble release artifacts
+      run: ./gradlew assembleRelease
+    
+    - name: Generate release notes
+      run: ./gradlew generateReleaseNotes
+    
+    - name: Create distribution
+      run: ./gradlew createDistribution
+    
+    - name: Create annotated tag
+      run: |
+        git tag -a ${{ steps.version.outputs.version_tag }} -m "Release ${{ steps.version.outputs.version }}"
+        git push origin ${{ steps.version.outputs.version_tag }}
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.version_tag }}
+        name: Yoko ${{ steps.version.outputs.version }}
+        body_path: build/release/RELEASE_NOTES.md
+        draft: false
+        prerelease: false
+        files: |
+          build/release/*.jar
+          build/release/*.sha256
+          build/release/*.sha512
+          build/distributions/*.zip
+        fail_on_unmatched_files: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Merge release branch to main
+      run: |
+        git checkout main
+        git pull origin main
+        git merge --ff-only ${{ steps.version.outputs.release_branch }}
+        git push origin main
+    
+    - name: Delete release branch
+      run: |
+        git push origin --delete ${{ steps.version.outputs.release_branch }}
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: release-artifacts
+        path: |
+          build/release/
+          build/distributions/
+        retention-days: 30
+    
+    - name: Publish to Maven Local (for verification)
+      run: ./gradlew publishToMavenLocal
+      continue-on-error: true
+    
+    - name: Summary
+      run: |
+        echo "## 🎉 Release Complete!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Tag:** ${{ steps.version.outputs.version_tag }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Release Branch:** ${{ steps.version.outputs.release_branch }} (merged to main)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 Artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "The following artifacts have been published:" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        ls -lh build/release/*.jar | awk '{print "- " $9 " (" $5 ")"}' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- [View Release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version_tag }})" >> $GITHUB_STEP_SUMMARY
+        echo "- [Download Assets](https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version_tag }}/yoko-${{ steps.version.outputs.version }}-dist.zip)" >> $GITHUB_STEP_SUMMARY
+
+# Made with Bob
