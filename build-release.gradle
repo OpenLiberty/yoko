@@ -148,6 +148,103 @@ task updateChangelogForTag {
     }
 }
 
+// Task to interactively bump the semantic version
+task bumpVersion {
+    group = 'release'
+    description = 'Interactively bump the semantic version (major, minor, or patch)'
+    
+    doLast {
+        def propsFile = file('gradle.properties')
+        if (!propsFile.exists()) {
+            throw new GradleException("gradle.properties not found")
+        }
+        
+        // Read current version from gradle.properties
+        def props = new Properties()
+        propsFile.withInputStream { props.load(it) }
+        def currentVersion = props.getProperty('version')
+        
+        if (!currentVersion) {
+            throw new GradleException("No version property found in gradle.properties")
+        }
+        
+        // Parse semantic version
+        def versionPattern = /^(\d+)\.(\d+)\.(\d+)$/
+        def matcher = currentVersion =~ versionPattern
+        
+        if (!matcher.matches()) {
+            throw new GradleException("Version '${currentVersion}' does not match semantic versioning format (major.minor.patch)")
+        }
+        
+        def major = matcher.group(1).toInteger()
+        def minor = matcher.group(2).toInteger()
+        def patch = matcher.group(3).toInteger()
+        
+        println """
+╔════════════════════════════════════════════════════════════════╗
+║                    Version Bump Utility                        ║
+╚════════════════════════════════════════════════════════════════╝
+
+Current version: ${currentVersion}
+
+Select version component to bump:
+  1) Major version (${major}.${minor}.${patch} → ${major + 1}.0.0)
+  2) Minor version (${major}.${minor}.${patch} → ${major}.${minor + 1}.0)
+  3) Patch version (${major}.${minor}.${patch} → ${major}.${minor}.${patch + 1})
+  4) Cancel
+
+Enter choice [1-4]: """
+        
+        // Use standard input instead of System.console() for better compatibility
+        def reader = new BufferedReader(new InputStreamReader(System.in))
+        def choice = reader.readLine()?.trim()
+        
+        if (!choice) {
+            throw new GradleException("No input received. Please run this task in an interactive terminal.")
+        }
+        
+        def newVersion
+        switch (choice) {
+            case '1':
+                newVersion = "${major + 1}.0.0"
+                break
+            case '2':
+                newVersion = "${major}.${minor + 1}.0"
+                break
+            case '3':
+                newVersion = "${major}.${minor}.${patch + 1}"
+                break
+            case '4':
+                println "\nVersion bump cancelled."
+                return
+            default:
+                throw new GradleException("Invalid choice: ${choice}")
+        }
+        
+        println "\nUpdating version from ${currentVersion} to ${newVersion}..."
+        
+        // Update gradle.properties
+        def content = propsFile.text
+        def updatedContent = content.replaceAll(
+            /(?m)^version=.*$/,
+            "version=${newVersion}"
+        )
+        propsFile.text = updatedContent
+        
+        println """
+✅ Version updated successfully!
+
+Old version: ${currentVersion}
+New version: ${newVersion}
+
+Next steps:
+  1. Review the change: git diff gradle.properties
+  2. Commit the change: git add gradle.properties && git commit -m "chore: bump version to ${newVersion}"
+  3. Update CHANGELOG: ./gradlew updateChangelog
+"""
+    }
+}
+
 // Task to test release preparation without making changes
 task testRelease {
     group = 'release'

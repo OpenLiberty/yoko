@@ -27,9 +27,20 @@ The Yoko project now has a comprehensive, automated release process similar to G
 
 ## 🚀 Quick Start
 
-### Create a Release (3 Simple Steps)
+### Create a Release (4 Simple Steps)
 
-1. **Update CHANGELOG.md using git-cliff**
+1. **Bump the version (if needed)**
+   ```bash
+   # Interactive version bump
+   ./gradlew bumpVersion
+   
+   # Then commit the change
+   git add gradle.properties
+   git commit -m "chore: bump version to X.Y.Z"
+   git push origin main
+   ```
+
+2. **Update CHANGELOG.md using git-cliff**
    ```bash
    # Update for all commits since last tag
    ./gradlew updateChangelog
@@ -38,14 +49,14 @@ The Yoko project now has a comprehensive, automated release process similar to G
    ./gradlew updateChangelogForTag -PreleaseTag=v1.5.3
    ```
 
-2. **Commit and Push**
+3. **Commit and Push**
    ```bash
    git add CHANGELOG.md
    git commit -m "chore: prepare release v1.5.3"
    git push origin main
    ```
 
-3. **Create Release** (choose one method):
+4. **Create Release** (choose one method):
 
    **Method A: Automated via GitHub UI (Recommended)**
    - Go to Actions → Release workflow
@@ -74,6 +85,9 @@ All release tasks are accessible from Gradle:
 # View all release tasks
 ./gradlew tasks --group=release
 
+# Bump semantic version interactively
+./gradlew bumpVersion
+
 # Prepare release branch (creates branch, updates CHANGELOG)
 ./gradlew prepareReleaseBranch -PreleaseVersion=1.5.3
 
@@ -99,6 +113,40 @@ All release tasks are accessible from Gradle:
 # Create GitHub release
 ./gradlew createGitHubRelease
 ```
+
+## 📌 Version Management
+
+The project version is managed in `gradle.properties`:
+
+```properties
+version=1.5.2
+```
+
+### Bumping the Version
+
+Use the interactive `bumpVersion` task:
+
+```bash
+./gradlew bumpVersion
+```
+
+This will:
+1. Read the current version from `gradle.properties`
+2. Parse it as semantic version (major.minor.patch)
+3. Prompt you to choose which component to bump:
+   - **Major**: 1.5.2 → 2.0.0 (breaking changes)
+   - **Minor**: 1.5.2 → 1.6.0 (new features)
+   - **Patch**: 1.5.2 → 1.5.3 (bug fixes)
+4. Update `gradle.properties` with the new version
+5. Provide next steps for committing the change
+
+### Build Versions
+
+During development, the build automatically appends build metadata:
+- Format: `{version}.{YYYYMMDD}_{gitHash}`
+- Example: `1.5.2.20260109_e6f1be5788`
+
+For releases, the version tag (e.g., `v1.5.3`) determines the release version.
 
 ## 🔧 How It Works
 
