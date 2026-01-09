@@ -135,12 +135,13 @@ task updateChangelogForTag {
         
         println "Updating CHANGELOG.md for tag: ${versionTag}"
         
-        // Run git-cliff with tag range
+        // Run git-cliff with tag, using --unreleased and --prepend to preserve existing entries
         exec {
             commandLine 'git-cliff',
                 '--config', cliffConfig.absolutePath,
                 '--tag', versionTag,
-                '--output', changelogFile.absolutePath
+                '--unreleased',
+                '--prepend', changelogFile.absolutePath
         }
         
         println "✅ CHANGELOG.md updated for ${versionTag}"
@@ -322,10 +323,10 @@ task prepareReleaseBranch {
             commandLine 'git', 'push', '-u', 'origin', releaseBranch
         }
         
-        // Update CHANGELOG using git-cliff
+        // Update CHANGELOG using git-cliff, preserving existing entries
         println "Updating CHANGELOG.md..."
         exec {
-            commandLine 'git-cliff', '--config', 'cliff.toml', '--tag', versionTag, '--output', 'CHANGELOG.md'
+            commandLine 'git-cliff', '--config', 'cliff.toml', '--tag', versionTag, '--unreleased', '--prepend', 'CHANGELOG.md'
         }
         
         // Commit CHANGELOG if changed
