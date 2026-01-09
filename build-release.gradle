@@ -96,9 +96,10 @@ task updateChangelog {
         
         println "Updating CHANGELOG.md using git-cliff..."
         
-        // Run git-cliff to update CHANGELOG
+        // Run git-cliff to update only unreleased changes, preserving existing entries
+        // Use --unreleased to only add new changes since the last tag
         exec {
-            commandLine 'git-cliff', '--config', cliffConfig.absolutePath, '--output', changelogFile.absolutePath
+            commandLine 'git-cliff', '--config', cliffConfig.absolutePath, '--unreleased', '--prepend', changelogFile.absolutePath
         }
         
         println "✅ CHANGELOG.md updated successfully"
