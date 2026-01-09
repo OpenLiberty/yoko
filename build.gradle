@@ -59,14 +59,16 @@ def gitHash = 'git rev-parse HEAD'.execute().text.trim()
 // compute git commit date
 def gitIsoDate = 'git log -1 --date=iso-strict --pretty=format:%cd'.execute().text.trim()
 // convert from author's time zone to UTC
-def gitIsoDateUtc = ISO_OFFSET_DATE_TIME.parse(gitIsoDate, Instant::from).atZone(ZoneOffset.UTC)
+def gitIsoDateUtc = Instant.from(ISO_OFFSET_DATE_TIME.parse(gitIsoDate)).atZone(ZoneOffset.UTC)
 def gitBasicDateUtc = BASIC_ISO_DATE.format(gitIsoDateUtc)
 // Although SemVer2.0 prescribes '+' and '-' separators after major.minor.patch
 // OSGi mandates major.minor.patch.qualifier
 // OSGi permits '-' and '_' within the qualifier, but not at either end
 // OSGi permits no other punctuation or whitespace
-// Set the version to major.minor.patch.YYYYMMDD_GITHASH
-def yokoVersion = "1.5.2.${gitBasicDateUtc.take(8)}_${gitHash.take(10)}"
+// Read base version from gradle.properties and append build metadata
+// For releases, the version tag determines the actual release version
+def baseVersion = project.hasProperty('version') ? project.property('version') : '1.5.2'
+def yokoVersion = "${baseVersion}.${gitBasicDateUtc.take(8)}_${gitHash.take(10)}"
 
 // set system properties for use in bundle metadata
 System.setProperty("git.hash", gitHash);
