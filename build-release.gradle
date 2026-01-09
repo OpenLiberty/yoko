@@ -195,10 +195,12 @@ Select version component to bump:
 
 Enter choice [1-4]: """
         
-        def choice = System.console()?.readLine()?.trim()
+        // Use standard input instead of System.console() for better compatibility
+        def reader = new BufferedReader(new InputStreamReader(System.in))
+        def choice = reader.readLine()?.trim()
         
         if (!choice) {
-            throw new GradleException("No input received. This task requires an interactive terminal.")
+            throw new GradleException("No input received. Please run this task in an interactive terminal.")
         }
         
         def newVersion
