@@ -81,10 +81,23 @@ jobs:
     - name: Validate Gradle wrapper
       uses: gradle/wrapper-validation-action@v2
     
+    - name: Check if CHANGELOG already has this version
+      id: check_changelog
+      run: |
+        if grep -q "## \[v\?${{ steps.version.outputs.version }}\]" CHANGELOG.md; then
+          echo "has_version=true" >> $GITHUB_OUTPUT
+          echo "✓ CHANGELOG.md already contains version ${{ steps.version.outputs.version }}"
+        else
+          echo "has_version=false" >> $GITHUB_OUTPUT
+          echo "ℹ️  CHANGELOG.md does not contain version ${{ steps.version.outputs.version }}"
+        fi
+    
     - name: Update CHANGELOG with git-cliff
+      if: steps.check_changelog.outputs.has_version == 'false'
       run: ./gradlew updateChangelogForTag -PreleaseTag=${{ steps.version.outputs.version_tag }}
     
     - name: Commit CHANGELOG changes
+      if: steps.check_changelog.outputs.has_version == 'false'
       run: |
         if git diff --quiet CHANGELOG.md; then
           echo "CHANGELOG.md unchanged"

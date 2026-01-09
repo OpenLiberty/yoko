@@ -56,7 +56,9 @@ The Yoko project now has a comprehensive, automated release process similar to G
    git tag v1.5.3
    git push origin v1.5.3
    ```
-   GitHub Actions will automatically update CHANGELOG and create the release.
+   GitHub Actions will create the release. If CHANGELOG.md doesn't already contain
+   this version, it will be automatically generated. If you've already manually
+   edited the CHANGELOG for this version, it will be preserved.
    
    **Method B: Manual via Gradle**
    ```bash
