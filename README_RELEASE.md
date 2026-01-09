@@ -12,19 +12,15 @@ The Yoko project now has a comprehensive, automated release process similar to G
 - ✅ Publishes releases to GitHub with all binaries attached
 - ✅ Can be triggered manually via Gradle or automatically via Git tags
 
-## 📁 Files Created
+## 📁 Files
 
 ### Gradle Configuration
 - **`build-release.gradle`** - Main release configuration with all Gradle tasks
 - **`build.gradle`** - Updated to include release configuration
+- **`gradle.properties`** - Version management
 
 ### GitHub Actions
 - **`.github/workflows/release.yml`** - Automated release workflow triggered by version tags
-
-### Documentation
-- **`docs/RELEASE_PROCESS.md`** - Comprehensive release process documentation
-- **`docs/RELEASE_QUICK_START.md`** - Quick reference guide for releases
-- **`README_RELEASE.md`** - This file
 
 ### Scripts
 - **`scripts/test-release.sh`** - Test script to verify release configuration
@@ -219,10 +215,7 @@ Each release includes:
 
 ## 📚 Documentation
 
-For detailed information, see:
-
-- **[RELEASE_PROCESS.md](docs/RELEASE_PROCESS.md)** - Complete release documentation
-- **[RELEASE_QUICK_START.md](docs/RELEASE_QUICK_START.md)** - Quick reference guide
+This file (README_RELEASE.md) contains all release documentation.
 
 ## 🧪 Testing
 
@@ -279,8 +272,8 @@ This verifies:
 
 For questions or issues:
 
-1. Check the documentation in `docs/`
-2. Review existing releases for examples
+1. Review this documentation
+2. Check existing releases for examples
 3. Run `./scripts/test-release.sh` to verify setup
 4. Open an issue on GitHub
 
