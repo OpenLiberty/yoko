@@ -1,3 +1,16 @@
+## [v1.5.3] - 2026-01-09
+
+### 🚀 Features
+
+- Remove euro-centric codeset locales; prefer UTF-8
+- Default native char codeset to UTF-8
+- Add comprehensive release system with git-cliff integration
+
+### 🐛 Bug Fixes
+
+- Garbled GIOP message logging
+- Skip bounds check for UTF-8/UTF-16/UCS-2
+- Correctly identify UTF-8 2-byte and 3-byte sequences
 ## [v1.5.2] - 2025-11-18
 
 ### 🐛 Bug Fixes
