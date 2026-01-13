@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,26 +21,22 @@ package org.apache.yoko.orb.OCI;
 // IDL:orb.yoko.apache.org/OCI/ProfileInfo:1.0
 //
 /**
- *
  * Basic information about an IOR profile. Profiles for specific
  * protocols contain additional data. (For example, an IIOP profile
  * also contains a hostname and a port number.)
- *
- * @member key The object key.
- *
- * @member major The major version number of the ORB's protocol. (For
- * example, the major GIOP version, if the underlying ORB uses GIOP.)
- *
- * @member minor The minor version number of the ORB's protocol. (For
- * example, the minor GIOP version, if the underlying ORB uses GIOP.)
- *
- * @member id The id of the profile that contains this information.
- *
- * @member index The position index of this profile in an IOR.
- *
- * @member components A sequence of tagged components.
- *
- **/
+ * <p>
+ * This class contains the following fields:
+ * <ul>
+ * <li>{@code key} - The object key.</li>
+ * <li>{@code major} - The major version number of the ORB's protocol. (For
+ * example, the major GIOP version, if the underlying ORB uses GIOP.)</li>
+ * <li>{@code minor} - The minor version number of the ORB's protocol. (For
+ * example, the minor GIOP version, if the underlying ORB uses GIOP.)</li>
+ * <li>{@code id} - The id of the profile that contains this information.</li>
+ * <li>{@code index} - The position index of this profile in an IOR.</li>
+ * <li>{@code components} - A sequence of tagged components.</li>
+ * </ul>
+ */
 
 final public class ProfileInfo implements org.omg.CORBA.portable.IDLEntity
 {

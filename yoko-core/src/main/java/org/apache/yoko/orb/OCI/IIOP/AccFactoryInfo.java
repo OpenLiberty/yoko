@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,16 +17,16 @@
  */
 package org.apache.yoko.orb.OCI.IIOP;
 
+import org.apache.yoko.orb.OCI.AccFactory;
+
 //
 // IDL:orb.yoko.apache.org/OCI/IIOP/AccFactoryInfo:1.0
 //
 /**
- *
  * Information on an IIOP OCI Acceptor Factory object.
  *
  * @see AccFactory
- *
- **/
+ */
 
 public interface AccFactoryInfo extends AccFactoryInfoOperations,
                                         org.apache.yoko.orb.OCI.AccFactoryInfo

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.orb.OB.URLRegistryPackage.SchemeAlreadyExists;
+import org.omg.CORBA.BAD_PARAM;
 
 //
 // IDL:orb.yoko.apache.org/OB/URLRegistry:1.0
@@ -70,7 +71,6 @@ public interface URLRegistryOperations
     // IDL:orb.yoko.apache.org/OB/URLRegistry/parse_url:1.0
     //
     /**
-     *
      * Convert a URL into an object reference by delegating to a
      * registered URLScheme object.
      *
@@ -78,9 +78,8 @@ public interface URLRegistryOperations
      *
      * @return An object reference.
      *
-     * @exception BAD_PARAM In case the URL is invalid.
-     *
-     **/
+     * @throws BAD_PARAM In case the URL is invalid.
+     */
 
     org.omg.CORBA.Object
     parse_url(String url);

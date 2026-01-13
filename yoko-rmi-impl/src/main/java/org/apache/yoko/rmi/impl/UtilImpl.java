@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -266,7 +266,7 @@ public class UtilImpl implements UtilDelegate {
 
     /**
      * Write an org.omg.CORBA.Any containing the given object.
-     * <p/>
+     * <p>
      * The object is not converted or translated, simply written. Thus, it must
      * be either an IDL-generated entity, a Serializable value or an
      * org.omg.CORBA.Object. Specifically, a Remote objects and Servants cannot
@@ -370,7 +370,7 @@ public class UtilImpl implements UtilDelegate {
 
     /**
      * Write a remote object. It must already be exported.
-     * <p/>
+     * <p>
      * This method accepts values of org.omg.CORBA.Object (including stubs), and
      * instances of java.rmi.Remote for objects that have already been exported.
      */
@@ -614,7 +614,7 @@ public class UtilImpl implements UtilDelegate {
 
     /**
      * Copy a single object, maintaining internal reference integrity.
-     * <p/>
+     * <p>
      * This is done by writing and reading the object to/from a temporary
      * stream. As such, this should be called after the receiving context's
      * class-loaders etc. have been set up.
@@ -662,7 +662,7 @@ public class UtilImpl implements UtilDelegate {
 
     /**
      * Copy an array of objects, maintaining internal reference integrity.
-     * <p/>
+     * <p>
      * This is done by writing and reading the object array to/from a temporary
      * stream. As such, this should be called after the receiving context's
      * class-loaders etc. have been set up.

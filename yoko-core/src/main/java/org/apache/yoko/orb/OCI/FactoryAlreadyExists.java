@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,12 +24,8 @@ package org.apache.yoko.orb.OCI;
 import org.omg.CORBA.UserException;
 
 /**
- *
  * A factory with the given plugin id already exists.
- *
- * @member id The plugin id.
- *
- **/
+ */
 
 final public class FactoryAlreadyExists extends UserException
 {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@
  */
 package org.apache.yoko.orb.OCI;
 
+import org.omg.CORBA.COMM_FAILURE;
+import org.omg.CORBA.TRANSIENT;
+
 //
 // IDL:orb.yoko.apache.org/OCI/Acceptor:1.0
 //
@@ -26,7 +29,7 @@ package org.apache.yoko.orb.OCI;
  * servers to accept client connection requests. It also provides
  * operations for the management of IOR profiles.
  *
- * @see AccRegistry
+ * @see AccFactoryRegistry
  * @see AccFactory
  * @see Transport
  *
@@ -70,13 +73,11 @@ public interface AcceptorOperations
     // IDL:orb.yoko.apache.org/OCI/Acceptor/close:1.0
     //
     /**
-     *
      * Closes the Acceptor. <code>accept</code> or <code>listen</code>
      * may not be called after <code>close</code> has been called.
      *
-     * @exception COMM_FAILURE In case of an error.
-     *
-     **/
+     * @throws COMM_FAILURE In case of an error.
+     */
 
     void
     close();
@@ -85,13 +86,11 @@ public interface AcceptorOperations
     // IDL:orb.yoko.apache.org/OCI/Acceptor/shutdown:1.0
     //
     /**
-     *
      * Shutdown the Acceptor. After shutdown, the socket will not
      * listen to further connection requests.
      *
-     * @exception COMM_FAILURE In case of an error.
-     *
-     **/
+     * @throws COMM_FAILURE In case of an error.
+     */
 
     void
     shutdown();
@@ -100,14 +99,12 @@ public interface AcceptorOperations
     // IDL:orb.yoko.apache.org/OCI/Acceptor/listen:1.0
     //
     /**
-     *
      * Sets the acceptor up to listen for incoming connections. Until
      * this method is called on the acceptor, new connection requests
      * should result in a connection request failure.
-     * 
-     * @exception COMM_FAILURE In case of an error.
      *
-     **/
+     * @throws COMM_FAILURE In case of an error.
+     */
 
     void
     listen();
@@ -116,7 +113,6 @@ public interface AcceptorOperations
     // IDL:orb.yoko.apache.org/OCI/Acceptor/accept:1.0
     //
     /**
-     *
      * Used by CORBA servers to accept client connection requests. It
      * returns a Transport object, which can be used for sending and
      * receiving octet streams to and from the client.
@@ -128,9 +124,8 @@ public interface AcceptorOperations
      *
      * @return The new Transport object.
      *
-     * @exception COMM_FAILURE In case of an error.
-     *
-     **/
+     * @throws COMM_FAILURE In case of an error.
+     */
 
     Transport
     accept(boolean block);
@@ -139,16 +134,14 @@ public interface AcceptorOperations
     // IDL:orb.yoko.apache.org/OCI/Acceptor/connect_self:1.0
     //
     /**
-     *
      * Connect to this acceptor. This operation can be used to unblock
      * threads that are blocking in <code>accept</code>.
      *
      * @return The new Transport object.
      *
-     * @exception TRANSIENT If the server cannot be contacted.
-     * @exception COMM_FAILURE In case of other errors.
-     *
-     **/
+     * @throws TRANSIENT If the server cannot be contacted.
+     * @throws COMM_FAILURE In case of other errors.
+     */
 
     Transport
     connect_self();

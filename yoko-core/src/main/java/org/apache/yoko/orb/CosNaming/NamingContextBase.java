@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -138,7 +138,6 @@ public abstract class NamingContextBase extends NamingContextExtPOA
      * @exception NotFound
      * @exception CannotProceed
      * @exception InvalidName
-     * @exception AlreadyBound
      */
     public void rebind (NameComponent[] n, org.omg.CORBA.Object obj) throws NotFound, CannotProceed, InvalidName {
         // perform various name validations
@@ -248,7 +247,6 @@ public abstract class NamingContextBase extends NamingContextExtPOA
      * @exception NotFound
      * @exception CannotProceed
      * @exception InvalidName
-     * @exception AlreadyBound
      */
     public void rebind_context (NameComponent[] n, NamingContext nc) throws NotFound, CannotProceed, InvalidName {
         // perform various name validations
@@ -308,7 +306,6 @@ public abstract class NamingContextBase extends NamingContextExtPOA
      * @exception NotFound
      * @exception CannotProceed
      * @exception InvalidName
-     * @exception AlreadyBound
      */
     public org.omg.CORBA.Object resolve (NameComponent[] n) throws NotFound, CannotProceed, InvalidName {
         // perform various name validations
@@ -356,7 +353,6 @@ public abstract class NamingContextBase extends NamingContextExtPOA
      * @exception NotFound
      * @exception CannotProceed
      * @exception InvalidName
-     * @exception AlreadyBound
      */
     public void unbind (NameComponent[] n) throws NotFound, CannotProceed, InvalidName {
         // perform various name validations
@@ -598,7 +594,6 @@ public abstract class NamingContextBase extends NamingContextExtPOA
      * calling context.
      *
      * @return A new NamingContext item.
-     * @exception NotFound
      * @exception SystemException
      */
     public abstract NamingContext new_context()  throws SystemException;

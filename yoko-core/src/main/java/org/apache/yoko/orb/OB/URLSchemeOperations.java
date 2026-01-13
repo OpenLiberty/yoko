@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.apache.yoko.orb.OB;
+
+import org.omg.CORBA.BAD_PARAM;
 
 //
 // IDL:orb.yoko.apache.org/OB/URLScheme:1.0
@@ -49,16 +51,14 @@ public interface URLSchemeOperations
     // IDL:orb.yoko.apache.org/OB/URLScheme/parse_url:1.0
     //
     /**
-     *
      * Convert a URL into an object reference.
      *
      * @param url The complete URL, including the scheme.
      *
      * @return An object reference.
      *
-     * @exception BAD_PARAM In case the URL is invalid.
-     *
-     **/
+     * @throws BAD_PARAM In case the URL is invalid.
+     */
 
     org.omg.CORBA.Object
     parse_url(String url);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import static org.apache.yoko.util.Collectors.toBitSet;
 import static org.apache.yoko.util.Collectors.toUnmodifiableEnumSet;
 
 /**
- * <h1>YASF &mdash; Yoko Auxiliary Stream Format</h1>
+ * <h2>YASF &mdash; Yoko Auxiliary Stream Format</h2>
  * This class encapsulates all the Yoko fixes that affect the stream format.
  * In order to ensure compatibility with older versions of Yoko,
  * the stream format fix level is communicated between ORBs using two media:

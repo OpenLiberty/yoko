@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ public class BundleProviderLoader implements Comparable<BundleProviderLoader> {
      * Load a provider class.
      *
      * @return The provider class from the target bundle.
-     * @exception Exception
+     * @throws ClassNotFoundException if the class cannot be found in the bundle
      */
     public Class<?> loadClass() throws ClassNotFoundException {
         try {

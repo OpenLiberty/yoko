@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,8 +37,6 @@ public interface DomainOperations
      * @param name The server name
      * @param exec The server executable path
      * @param host The server host name
-     *
-     * @return Whether an entry already existed
      *
      **/
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,17 +21,16 @@ package org.apache.yoko.orb.OBPortableServer;
 // IDL:orb.yoko.apache.org/OBPortableServer/SynchronizationPolicyValue:1.0
 //
 /**
- *
  * This enumeration details the synchronization strategies for method
  * dispatch.
- *
- * @member NO_SYNCHRONIZATION No direct synchronization is applied
- * @member SYNCHRONIZE_ON_POA Method calls are synchronized on a POA
- * @member SYNCHRONIZE_ON_ORB Method calls are synchronized on the ORB
+ * <ul>
+ * <li>{@link #NO_SYNCHRONIZATION} - No direct synchronization is applied</li>
+ * <li>{@link #SYNCHRONIZE_ON_POA} - Method calls are synchronized on a POA</li>
+ * <li>{@link #SYNCHRONIZE_ON_ORB} - Method calls are synchronized on the ORB</li>
+ * </ul>
  *
  * @see SynchronizationPolicy
- *
- **/
+ */
 
 public class SynchronizationPolicyValue implements org.omg.CORBA.portable.IDLEntity
 {
