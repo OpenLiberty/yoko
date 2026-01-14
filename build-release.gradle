@@ -815,6 +815,30 @@ task createGitHubRelease {
         }
         def releaseVersion = "v${versionMatcher.group(1)}"
         
+        // Check if tag already exists
+        try {
+            def checkTag = "git rev-parse --verify ${releaseVersion}".execute()
+            checkTag.waitFor()
+            if (checkTag.exitValue() == 0) {
+                throw new GradleException("Git tag ${releaseVersion} already exists. Use './gradlew rollbackRelease -PreleaseVersion=${releaseVersion.substring(1)}' to remove it, or bump the version in gradle.properties")
+            }
+        } catch (IOException e) {
+            // Tag doesn't exist, which is good
+        }
+
+        // Check if GitHub release already exists
+        try {
+            def checkRelease = "gh release view ${releaseVersion}".execute()
+            def output = new ByteArrayOutputStream()
+            checkRelease.consumeProcessOutput(output, output)
+            checkRelease.waitFor()
+            if (checkRelease.exitValue() == 0) {
+                throw new GradleException("GitHub release ${releaseVersion} already exists. Use './gradlew rollbackRelease -PreleaseVersion=${releaseVersion.substring(1)}' to remove it, or bump the version in gradle.properties")
+            }
+        } catch (IOException e) {
+            // Release doesn't exist, which is good
+        }
+
         println "Creating GitHub release: ${releaseVersion}"
         
         // Create release
