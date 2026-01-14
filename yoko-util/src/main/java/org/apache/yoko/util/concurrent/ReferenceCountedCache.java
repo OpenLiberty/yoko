@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,9 +33,9 @@ import java.util.concurrent.ConcurrentMap;
  * A thread-safe map that counts references and facilitates clean-up of unused entries.
  * References are acquired when any of the getter methods are called:
  * <ul>
- *     <li>{@link #get(K)}</li>
- *     <li>{@link #getOrCreate(K, Factory<V>)}</li>
- *     <li>{@link #getOrCreate(K, KeyedFactory<K,V>)}</li>
+ *     <li>{@link #get(Object)}</li>
+ *     <li>{@link #getOrCreate(Object, Factory)}</li>
+ *     <li>{@link #getOrCreate(Object, KeyedFactory)}</li>
  * </ul>
  * Each of these methods returns a reference object that must be
  * released when no longer required by calling {@link Reference#close()}.
@@ -50,7 +50,7 @@ import java.util.concurrent.ConcurrentMap;
  * No clean-up happens when a value is explicitly removed by a call to either of the remove methods:
  * <ul>
  *     <li>{@link #remove(Reference)}</li>
- *     <li>{@link #remove(K, V)}</li>
+ *     <li>{@link #remove(Object, Object)}</li>
  * </ul>
  *
  * @param <K> the key type, compared by equality

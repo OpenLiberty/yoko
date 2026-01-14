@@ -28,6 +28,8 @@ public enum Interop {
      * Some ORBs are sensitive to this.
      * If Yoko is talking to an IBM Java ORB (Java &lt;=8)
      * mask the defaultWriteObject flag.
+     * @param customRepId the custom repository ID
+     * @return true if the defaultWriteObject flag should be set
      */
     public static boolean flagDefaultWriteObject(String customRepId) {
         if (null == customRepId) return true;
