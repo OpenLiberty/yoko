@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,7 +89,6 @@ public class TransientNamingContext extends NamingContextBase {
      * calling context.
      *
      * @return A new NamingContext item.
-     * @exception org.omg.CosNaming.NamingContextPackage.NotFound
      * @exception SystemException
      */
     public NamingContext new_context() throws SystemException {

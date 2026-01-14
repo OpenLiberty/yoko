@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,17 @@
  */
 package org.apache.yoko.orb.OCI.IIOP;
 
+import org.apache.yoko.orb.OCI.Acceptor;
+
 //
 // IDL:orb.yoko.apache.org/OCI/IIOP/AcceptorInfo:1.0
 //
 /**
- *
  * Information on an IIOP OCI Acceptor object.
  *
  * @see Acceptor
- * @see AcceptorInfo
- *
- **/
+ * @see org.apache.yoko.orb.OCI.AcceptorInfo
+ */
 
 public interface AcceptorInfo extends AcceptorInfoOperations,
                                       org.apache.yoko.orb.OCI.AcceptorInfo

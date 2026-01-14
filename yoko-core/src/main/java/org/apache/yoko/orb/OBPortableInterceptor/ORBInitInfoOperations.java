@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,14 +22,13 @@ package org.apache.yoko.orb.OBPortableInterceptor;
 //
 
 import org.omg.CORBA.ORB;
+import org.omg.PortableInterceptor.ORBInitInfo;
 
 /**
- *
  * This interface is a proprietary extension to the standard ORBInitInfo.
  *
- * @see PortableInterceptor::ORBInitInfo
- *
- **/
+ * @see ORBInitInfo
+ */
 
 public interface ORBInitInfoOperations extends org.omg.PortableInterceptor.ORBInitInfoOperations
 {

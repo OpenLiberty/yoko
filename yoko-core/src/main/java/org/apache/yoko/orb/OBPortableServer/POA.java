@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,16 +17,16 @@
  */
 package org.apache.yoko.orb.OBPortableServer;
 
+import org.omg.PortableServer.POAManager;
+
 //
 // IDL:orb.yoko.apache.org/OBPortableServer/POA:1.0
 //
 /**
- *
  * This interface is a proprietary extension to the standard POA.
  *
- * @see PortableServer::POAManager
- *
- **/
+ * @see POAManager
+ */
 
 public interface POA extends POAOperations,
                              org.omg.PortableServer.POA

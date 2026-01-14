@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
  */
 package org.apache.yoko.orb.OBPortableServer;
 
+import org.apache.yoko.orb.OB.DispatchStrategy;
+
 //
 // IDL:orb.yoko.apache.org/OBPortableServer/DispatchStrategyPolicy:1.0
 //
@@ -24,13 +26,11 @@ package org.apache.yoko.orb.OBPortableServer;
 import org.omg.CORBA.Policy;
 
 /**
- *
  * The dispatch strategy policy. This policy controls the method
  * dispatch strategy.
  *
- * @see OB::DispatchStrategy
- *
- **/
+ * @see DispatchStrategy
+ */
 
 public interface DispatchStrategyPolicy extends DispatchStrategyPolicyOperations,
                                                 Policy

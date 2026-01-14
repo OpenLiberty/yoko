@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,16 +23,14 @@ import org.omg.CORBA.PolicyOperations;
 // IDL:orb.yoko.apache.org/OB/TimeoutPolicy:1.0
 //
 /**
- *
  * The timeout policy. This policy can be used to specify the
  * default timeout for connection establishment and requests.
- * If an object also has <code>ConnectionTimeoutPolicy</code> or
- * <code>RequestTimeoutPolicy</code> set, those values have precedence.
+ * If an object also has {@link ConnectTimeoutPolicy} or
+ * {@link RequestTimeoutPolicy} set, those values have precedence.
  *
- * @see ConnectionTimeoutPolicy
+ * @see ConnectTimeoutPolicy
  * @see RequestTimeoutPolicy
- *
- **/
+ */
 
 public interface TimeoutPolicyOperations extends PolicyOperations
 {

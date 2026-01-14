@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
+import org.omg.CORBA.BAD_PARAM;
 import org.omg.IOP.TaggedProfile;
 
 //
@@ -52,7 +53,6 @@ public interface CorbalocProtocolOperations
     // IDL:orb.yoko.apache.org/OB/CorbalocProtocol/parse_address:1.0
     //
     /**
-     *
      * Parse a protocol address and create a tagged profile for inclusion
      * in an IOR.
      *
@@ -66,9 +66,8 @@ public interface CorbalocProtocolOperations
      *
      * @return A tagged profile.
      *
-     * @exception BAD_PARAM In case the address is invalid.
-     *
-     **/
+     * @throws BAD_PARAM In case the address is invalid.
+     */
 
     TaggedProfile
     parse_address(String addr,

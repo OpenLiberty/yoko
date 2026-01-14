@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ import static org.apache.yoko.util.rofl.Rofl.RemoteOrb.IBM;
 import static org.apache.yoko.util.rofl.Rofl.RemoteOrb.NO_DATA;
 
 /**
- * <h1>ROFL &mdash; RemoteOrbFinessingLogic</h1>
+ * <h2>ROFL &mdash; RemoteOrbFinessingLogic</h2>
  * This class encapsulates all the fixes that affect the stream format when talking to other ORBs.
  * These will be read in from two sources:
  * <ul>

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.apache.yoko.orb.OCI;
+
+import org.omg.CORBA.COMM_FAILURE;
+import org.omg.CORBA.TRANSIENT;
 
 //
 // IDL:orb.yoko.apache.org/OCI/Connector:1.0
@@ -53,17 +56,15 @@ public interface ConnectorOperations
     // IDL:orb.yoko.apache.org/OCI/Connector/connect:1.0
     //
     /**
-     *
      * Used by CORBA clients to establish a connection to a CORBA
      * server. It returns a Transport object, which can be used for
      * sending and receiving octet streams to and from the server.
      *
      * @return The new Transport object.
      *
-     * @exception TRANSIENT If the server cannot be contacted.
-     * @exception COMM_FAILURE In case of other errors.
-     *
-     **/
+     * @throws TRANSIENT If the server cannot be contacted.
+     * @throws COMM_FAILURE In case of other errors.
+     */
 
     Transport
     connect();
@@ -72,7 +73,6 @@ public interface ConnectorOperations
     // IDL:orb.yoko.apache.org/OCI/Connector/connect_timeout:1.0
     //
     /**
-     *
      * Similar to <code>connect</code>, but it is possible to specify
      * a timeout. On return the caller can test whether there was a
      * timeout by checking whether a nil object reference was returned.
@@ -81,10 +81,9 @@ public interface ConnectorOperations
      *
      * @return The new Transport object.
      *
-     * @exception TRANSIENT If the server cannot be contacted.
-     * @exception COMM_FAILURE In case of other errors.
-     *
-     **/
+     * @throws TRANSIENT If the server cannot be contacted.
+     * @throws COMM_FAILURE In case of other errors.
+     */
 
     Transport
     connect_timeout(int timeout);

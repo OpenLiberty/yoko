@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,4 +24,10 @@ dependencies {
   implementation project(":yoko-spec-corba")
   implementation project(":yoko-rmi-spec")
   compileOnly project(":jdk-supplement")
+}
+
+javadoc {
+  // Exclude SunMiscFilterAdapter which uses sun.misc.ObjectInputFilter (Java 8 only)
+  // This class is not available in Java 9+ where java.io.ObjectInputFilter is used instead
+  exclude '**/SunMiscFilterAdapter.java'
 }

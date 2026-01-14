@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ public interface ProcessEndpointManagerOperations
      * and the ProcessManager
      *
      * @param server The server name
-     * @param instance The Server Instance ID
+     * @param id The Server Instance ID
      * @param pid The Server Process ID
      * @param endpoint The ProcessEndpoint
      *

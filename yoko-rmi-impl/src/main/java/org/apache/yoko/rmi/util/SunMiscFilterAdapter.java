@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,10 @@ import java.security.PrivilegedAction;
 import static java.security.AccessController.doPrivileged;
 import static sun.misc.ObjectInputFilter.Status.REJECTED;
 
+/**
+ * Adapter for the legacy sun.misc.ObjectInputFilter (Java 8).
+ * For Java 9+, see {@link java.io.ObjectInputFilter}.
+ */
 final class SunMiscFilterAdapter extends BaseFilterAdapter<ObjectInputFilter, Info, Status> {
     SunMiscFilterAdapter() { super(Config.getSerialFilter(), REJECTED); }
 

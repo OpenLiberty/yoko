@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,13 +33,11 @@ public interface CurrentOperations extends org.omg.CORBA.CurrentOperations
     // IDL:orb.yoko.apache.org/OCI/Current/get_oci_transport_info:1.0
     //
     /**
-     *
      * This method returns the Transport information object for the
      * Transport used to invoke the current request.
      *
-     * @returns The Transport information object.
-     *
-     **/
+     * @return The Transport information object.
+     */
 
     TransportInfo
     get_oci_transport_info();
