@@ -20,8 +20,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., 1.5.3 - without v prefix)'
-        required: true
+        description: 'Release version (optional - defaults to version from gradle.properties)'
+        required: false
         type: string
 
 permissions:
@@ -42,7 +42,14 @@ jobs:
     - name: Set version variables
       id: version
       run: |
-        VERSION="${{ github.event.inputs.version }}"
+        # Use input version if provided, otherwise read from gradle.properties
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+          echo "Using version from workflow input: ${VERSION}"
+        else
+          VERSION=$(grep '^version=' gradle.properties | cut -d'=' -f2)
+          echo "Using version from gradle.properties: ${VERSION}"
+        fi
         VERSION_TAG="v${VERSION}"
         RELEASE_BRANCH="release/${VERSION}"
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
@@ -52,6 +59,36 @@ jobs:
         echo "Version tag: ${VERSION_TAG}"
         echo "Release branch: ${RELEASE_BRANCH}"
     
+    - name: Check if release already exists
+      id: check_release
+      run: |
+        # Check if tag already exists
+        if git rev-parse ${{ steps.version.outputs.version_tag }} >/dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "❌ Tag ${{ steps.version.outputs.version_tag }} already exists"
+          exit 1
+        fi
+
+        # Check if GitHub release already exists
+        if gh release view ${{ steps.version.outputs.version_tag }} >/dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "❌ GitHub release ${{ steps.version.outputs.version_tag }} already exists"
+          exit 1
+        fi
+
+        # Check if release branch already exists
+        if git ls-remote --heads origin ${{ steps.version.outputs.release_branch }} | grep -q ${{ steps.version.outputs.release_branch }}; then
+          echo "branch_exists=true" >> $GITHUB_OUTPUT
+          echo "⚠️  Release branch ${{ steps.version.outputs.release_branch }} already exists"
+          echo "This may indicate a previous release attempt. Consider cleaning up or using a different version."
+          exit 1
+        fi
+
+        echo "exists=false" >> $GITHUB_OUTPUT
+        echo "✓ No existing release found for ${{ steps.version.outputs.version_tag }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Configure git
       run: |
         git config user.name "github-actions[bot]"
