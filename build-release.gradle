@@ -802,7 +802,10 @@ task createGitHubRelease {
         
         def releaseNotesFile = file("${buildDir}/release/RELEASE_NOTES.md")
         def releaseDir = file("${buildDir}/release")
-        def distFile = file("${buildDir}/distributions/yoko-${version}-dist.zip")
+        
+        // Get the actual distribution file created by createDistribution task
+        def distTask = tasks.getByName('createDistribution')
+        def distFile = distTask.archiveFile.get().asFile
         
         // Extract version from CHANGELOG
         def changelog = file('CHANGELOG.md').text
