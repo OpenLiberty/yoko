@@ -64,8 +64,17 @@ jobs:
     
     - name: Install git-cliff
       run: |
-        curl -L https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-$(uname -m)-unknown-linux-gnu.tar.gz | tar xz
+        # Get the latest release download URL from GitHub API
+        DOWNLOAD_URL=$(curl -s https://api.github.com/repos/orhun/git-cliff/releases/latest | \
+          grep "browser_download_url.*$(uname -m)-unknown-linux-gnu.tar.gz\"" | \
+          grep -v "\.sha" | \
+          grep -v "\.sig" | \
+          cut -d '"' -f 4)
+        echo "Downloading git-cliff from: $DOWNLOAD_URL"
+        curl -L "$DOWNLOAD_URL" -o git-cliff.tar.gz
+        tar xzf git-cliff.tar.gz
         sudo mv git-cliff-*/git-cliff /usr/local/bin/
+        rm -rf git-cliff-* git-cliff.tar.gz
         git-cliff --version
     
     - name: Set up JDK 11
