@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ public enum VerboseLogging {
      * FINER:  code sets, codebase, YASF, service context counting
      * FINEST: requests, request counts, parallel requests etc.
      * </pre>
-     * <br/>
+     * <p>
      */
     public static final Logger CONN_LOG = Logger.getLogger("yoko.verbose.connection");
     /** @see #CONN_LOG */
@@ -153,6 +153,11 @@ public enum VerboseLogging {
     /**
      * Use this as a pass-through (or not) method to log <code>loggable</code> and <code>reason</code>
      * to <code>logger</code> at the {@link java.util.logging.Level#WARNING} level.
+     * @param <L> the type of throwable
+     * @param logger the logger to use
+     * @param loggable the throwable to log
+     * @param reason the reason message
+     * @return the loggable throwable
      */
     public static <L extends Throwable> L warned(Logger logger, L loggable, String reason) {
         logger.log(WARNING, reason, loggable);
