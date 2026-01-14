@@ -1,3 +1,25 @@
+## [v1.5.3_rc1] - 2026-01-14
+
+### 🚀 Features
+
+- Use varargs in CodeSetComponent constructor
+- Remove euro-centric codeset locales; prefer UTF-8
+- Default native char codeset to UTF-8
+- Add better codecs
+- Refactor alternate latin codecs to use Java charsets
+- Add read/write finished checks
+- Add BOM-handling to UTF-16
+- Add copyOfRange function
+- Encode unmatched surrogates as '?' in UTF8
+
+### 🐛 Bug Fixes
+
+- CopyRemainingBytes() should start from current position
+- Read UTF-16 empty string properly
+- Garbled GIOP message logging
+- Decode bad UTF8 bytes to replacement char
+- Skip bounds check for UTF-8/UTF-16/UCS-2
+- Correctly identify UTF-8 2-byte and 3-byte sequences
 ## [v1.5.3] - 2026-01-09
 
 ### 🚀 Features
