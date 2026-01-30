@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,12 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.junit.jupiter.api.Test;
 import org.omg.CORBA.ORB;
 import org.omg.IOP.IOR;
 import org.omg.IOP.IORHelper;
+
 import testify.iiop.annotation.ConfigureOrb;
 
 import static org.apache.yoko.util.HexConverter.fromHex;
@@ -51,7 +52,7 @@ public class IORDumpTest {
     private String describe(String ref) {
         byte[] data = fromHex(ref, 4);
         assertThat(data, is(not(nullValue())));
-        InputStream in = new InputStream(data);
+        YokoInputStream in = new YokoInputStream(data);
         in._OB_readEndian();
         IOR ior = IORHelper.read(in);
         String s = IORDump.describeIor(orb, ior);

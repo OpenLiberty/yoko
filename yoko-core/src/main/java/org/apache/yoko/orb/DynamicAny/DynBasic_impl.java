@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,10 +44,10 @@ import static org.omg.CORBA.TCKind.tk_any;
 import static org.omg.CORBA.TCKind.tk_null;
 import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
-import org.apache.yoko.orb.CORBA.Any;
-import org.apache.yoko.orb.CORBA.InputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.AnyImpl;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.orb.OB.TypeCodeFactory;
 import org.apache.yoko.util.Assert;
@@ -60,7 +60,7 @@ import org.omg.DynamicAny.DynAnyPackage.InvalidValue;
 import org.omg.DynamicAny.DynAnyPackage.TypeMismatch;
 
 final class DynBasic_impl extends DynAny_impl {
-    private Any any_;
+    private AnyImpl any_;
 
     //
     // This object needs a component when the type is tk_any
@@ -72,69 +72,69 @@ final class DynBasic_impl extends DynAny_impl {
             org.omg.CORBA.TypeCode type) {
         super(factory, orbInstance, type);
 
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(type);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(type);
         switch (origTC.kind().value()) {
         case _tk_null:
         case _tk_void:
-            any_ = new Any(orbInstance_, type, null);
+            any_ = new AnyImpl(orbInstance_, type, null);
             break;
 
         case _tk_short:
         case _tk_ushort:
         case _tk_long:
         case _tk_ulong:
-            any_ = new Any(orbInstance_, type, Integer.valueOf(0));
+            any_ = new AnyImpl(orbInstance_, type, Integer.valueOf(0));
             break;
 
         case _tk_longlong:
         case _tk_ulonglong:
-            any_ = new Any(orbInstance_, type, Long.valueOf(0L));
+            any_ = new AnyImpl(orbInstance_, type, Long.valueOf(0L));
             break;
 
         case _tk_float:
-            any_ = new Any(orbInstance_, type, Float.valueOf(0F));
+            any_ = new AnyImpl(orbInstance_, type, Float.valueOf(0F));
             break;
 
         case _tk_double:
-            any_ = new Any(orbInstance_, type, Double.valueOf(0D));
+            any_ = new AnyImpl(orbInstance_, type, Double.valueOf(0D));
             break;
 
         case _tk_boolean:
-            any_ = new Any(orbInstance_, type, FALSE);
+            any_ = new AnyImpl(orbInstance_, type, FALSE);
             break;
 
         case _tk_char:
         case _tk_wchar:
-            any_ = new Any(orbInstance_, type, Character.valueOf((char) 0));
+            any_ = new AnyImpl(orbInstance_, type, Character.valueOf((char) 0));
             break;
 
         case _tk_octet:
-            any_ = new Any(orbInstance_, type, Byte.valueOf((byte) 0));
+            any_ = new AnyImpl(orbInstance_, type, Byte.valueOf((byte) 0));
             break;
 
         case _tk_any:
-            any_ = new Any(orbInstance_, type, new Any(orbInstance_));
+            any_ = new AnyImpl(orbInstance_, type, new AnyImpl(orbInstance_));
             break;
 
         case _tk_TypeCode: {
             org.omg.CORBA.TypeCode nullTC = TypeCodeFactory
                     .createPrimitiveTC(tk_null);
-            any_ = new Any(orbInstance_, type, nullTC);
+            any_ = new AnyImpl(orbInstance_, type, nullTC);
             break;
         }
 
         case _tk_objref:
         case _tk_local_interface:
-            any_ = new Any(orbInstance_, type, null);
+            any_ = new AnyImpl(orbInstance_, type, null);
             break;
 
         case _tk_string:
         case _tk_wstring:
-            any_ = new Any(orbInstance_, type, new String(""));
+            any_ = new AnyImpl(orbInstance_, type, new String(""));
             break;
 
         case _tk_abstract_interface:
-            any_ = new Any(orbInstance_, type, null);
+            any_ = new AnyImpl(orbInstance_, type, null);
             break;
 
         case _tk_value:
@@ -147,7 +147,7 @@ final class DynBasic_impl extends DynAny_impl {
             } catch (BadKind ex) {
                 throw Assert.fail(ex);
             }
-            any_ = new Any(orbInstance_, type, null);
+            any_ = new AnyImpl(orbInstance_, type, null);
             break;
 
         case _tk_Principal:
@@ -189,7 +189,7 @@ final class DynBasic_impl extends DynAny_impl {
         if (!dyn_any.type().equivalent(type_))
             throw new TypeMismatch();
 
-        any_ = (Any) dyn_any.to_any();
+        any_ = (AnyImpl) dyn_any.to_any();
 
         notifyParent();
     }
@@ -205,14 +205,14 @@ final class DynBasic_impl extends DynAny_impl {
         // of TypeCode.equivalent() raises NO_IMPLEMENT
         //
         try {
-            any_ = new Any(value);
+            any_ = new AnyImpl(value);
         } catch (NullPointerException ex) {
             throw (InvalidValue)new 
                 InvalidValue().initCause(ex);
         }
 
         org.omg.CORBA.TypeCode tc = any_._OB_type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
 
         if (!tc.equivalent(type_))
             throw new TypeMismatch();
@@ -246,7 +246,7 @@ final class DynBasic_impl extends DynAny_impl {
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
-        return new Any(any_);
+        return new AnyImpl(any_);
     }
 
     public synchronized org.omg.CORBA.Any to_any(DynValueWriter dynValueWriter) {
@@ -356,7 +356,7 @@ final class DynBasic_impl extends DynAny_impl {
             throw new OBJECT_NOT_EXIST();
 
         DynBasic_impl result = new DynBasic_impl(factory_, orbInstance_, type_);
-        result.any_ = new Any(any_);
+        result.any_ = new AnyImpl(any_);
         return result;
     }
 
@@ -388,16 +388,16 @@ final class DynBasic_impl extends DynAny_impl {
     // Internal member implementations
     // ------------------------------------------------------------------
 
-    synchronized void _OB_marshal(OutputStream out) {
+    synchronized void _OB_marshal(YokoOutputStream out) {
         any_.write_value(out);
     }
 
-    synchronized void _OB_marshal(OutputStream out,
-            DynValueWriter dynValueWriter) {
+    synchronized void _OB_marshal(YokoOutputStream out,
+                                  DynValueWriter dynValueWriter) {
         _OB_marshal(out);
     }
 
-    synchronized void _OB_unmarshal(InputStream in) {
+    synchronized void _OB_unmarshal(YokoInputStream in) {
         any_.read_value(in, type_);
 
         if (comp_ != null)
@@ -406,14 +406,14 @@ final class DynBasic_impl extends DynAny_impl {
         notifyParent();
     }
 
-    synchronized Any _OB_currentAny() {
+    synchronized AnyImpl _OB_currentAny() {
         if (destroyed_)
             throw new OBJECT_NOT_EXIST();
 
         return any_;
     }
 
-    synchronized Any _OB_currentAnyValue() {
+    synchronized AnyImpl _OB_currentAnyValue() {
         return any_;
     }
 
@@ -422,7 +422,7 @@ final class DynBasic_impl extends DynAny_impl {
             return null;
 
         if (comp_ == null)
-            comp_ = create((Any) any_.value(), true);
+            comp_ = create((AnyImpl) any_.value(), true);
 
         return comp_;
     }
@@ -438,11 +438,11 @@ final class DynBasic_impl extends DynAny_impl {
             checkValue(any_, tk_any);
 
             DynAny_impl impl = (DynAny_impl) p;
-            Any implAny = impl._OB_currentAny();
+            AnyImpl implAny = impl._OB_currentAny();
             checkValue(implAny, tk_any);
-            Any any = (Any) implAny.value();
+            AnyImpl any = (AnyImpl) implAny.value();
 
-            any_.replace(any_.type(), new Any(any));
+            any_.replace(any_.type(), new AnyImpl(any));
 
             if (comp_ != null)
                 comp_ = null;

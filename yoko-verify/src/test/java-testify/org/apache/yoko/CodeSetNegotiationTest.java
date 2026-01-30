@@ -21,7 +21,7 @@ import acme.RemoteFunction;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.OB.CodeSetInfo;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -206,7 +206,7 @@ public abstract class CodeSetNegotiationTest {
         out.trim();
 
         // Read in the CodeSetComponentInfo and return it
-        InputStream is = new InputStream(codeSetComponentInfoData);
+        YokoInputStream is = new YokoInputStream(codeSetComponentInfoData);
         assertThat(is.read(), is(0)); // read in the endian byte, next read will align automatically and skip padding
         return CodeSetComponentInfoHelper.read(is);
     }

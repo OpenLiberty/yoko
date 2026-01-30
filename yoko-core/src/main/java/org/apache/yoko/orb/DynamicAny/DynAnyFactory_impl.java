@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,8 +52,9 @@ import static org.omg.CORBA.TCKind._tk_wchar;
 import static org.omg.CORBA.TCKind._tk_wstring;
 import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
-import org.apache.yoko.orb.CORBA.InputStream;
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.AnyImpl;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.util.Assert;
 import org.omg.CORBA.Any;
@@ -127,14 +128,14 @@ final public class DynAnyFactory_impl extends LocalObject
             throws InconsistentTypeCode {
         DynAny result = null;
 
-        TypeCode type = null;
+        TypeCodeImpl type = null;
         try {
-            type = (TypeCode) tc;
+            type = (TypeCodeImpl) tc;
         } catch (ClassCastException ex) {
-            type = TypeCode._OB_convertForeignTypeCode(tc);
+            type = TypeCodeImpl._OB_convertForeignTypeCode(tc);
         }
 
-        org.omg.CORBA.TypeCode origTC = TypeCode
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                 ._OB_getOrigType(type);
         switch (origTC.kind().value()) {
         case _tk_struct:
@@ -176,14 +177,14 @@ final public class DynAnyFactory_impl extends LocalObject
             throws InconsistentTypeCode {
         DynAny result = null;
 
-        TypeCode type = null;
+        TypeCodeImpl type = null;
         try {
-            type = (TypeCode) tc;
+            type = (TypeCodeImpl) tc;
         } catch (ClassCastException ex) {
-            type = TypeCode._OB_convertForeignTypeCode(tc);
+            type = TypeCodeImpl._OB_convertForeignTypeCode(tc);
         }
 
-        org.omg.CORBA.TypeCode origTC = TypeCode
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl
                 ._OB_getOrigType(type);
         switch (origTC.kind().value()) {
         case _tk_null:
@@ -274,10 +275,10 @@ final public class DynAnyFactory_impl extends LocalObject
         Any aSeq = orbInstance_.getORB().create_any();
         AnySeqHelper.insert(aSeq, values);
 
-        org.apache.yoko.orb.CORBA.Any valSeq;
-        valSeq = (org.apache.yoko.orb.CORBA.Any) aSeq;
+        AnyImpl valSeq;
+        valSeq = (AnyImpl) aSeq;
 
-        InputStream in = (InputStream) valSeq.create_input_stream();
+        YokoInputStream in = (YokoInputStream) valSeq.create_input_stream();
 
         // NOTE: the input stream I obtain does not contain
         // indirections that "span" the original members of the sequence.
@@ -294,7 +295,7 @@ final public class DynAnyFactory_impl extends LocalObject
                 allow_truncate);
 
         for (int i = 0; i < values.length; i++) {
-            org.omg.CORBA.TypeCode type = ((org.apache.yoko.orb.CORBA.Any) values[i])
+            org.omg.CORBA.TypeCode type = ((AnyImpl) values[i])
                     ._OB_type();
 
             result[i] = prepare_dyn_any_from_type_code(type, dynValueReader);

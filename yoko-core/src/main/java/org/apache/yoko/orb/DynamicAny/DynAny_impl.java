@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,10 @@
  */
 package org.apache.yoko.orb.DynamicAny;
 
-import org.apache.yoko.orb.CORBA.Any;
-import org.apache.yoko.orb.CORBA.InputStream;
-import org.apache.yoko.orb.CORBA.OutputStream;
-import org.apache.yoko.orb.CORBA.TypeCode;
+import org.apache.yoko.orb.CORBA.AnyImpl;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
+import org.apache.yoko.orb.CORBA.TypeCodeImpl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.MinorCodes;
 import org.apache.yoko.orb.OB.ORBInstance;
@@ -29,7 +29,6 @@ import org.omg.CORBA.BAD_OPERATION;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.BooleanSeqHelper;
 import org.omg.CORBA.CharSeqHelper;
-import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.CustomMarshal;
 import org.omg.CORBA.DoubleSeqHelper;
 import org.omg.CORBA.FloatSeqHelper;
@@ -75,14 +74,14 @@ abstract class DynAny_impl extends LocalObject implements
         factory_ = factory;
         orbInstance_ = orbInstance;
         type_ = type;
-        origType_ = TypeCode._OB_getOrigType(type_);
+        origType_ = TypeCodeImpl._OB_getOrigType(type_);
     }
 
     // ------------------------------------------------------------------
     // Private and protected member implementations
     // ------------------------------------------------------------------
 
-    protected void checkValue(Any any, TCKind kind) throws TypeMismatch, InvalidValue {
+    protected void checkValue(AnyImpl any, TCKind kind) throws TypeMismatch, InvalidValue {
         if (any == null)
             throw new InvalidValue();
 
@@ -191,7 +190,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_boolean(boolean value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_boolean);
 
@@ -203,7 +202,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_octet(byte value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_octet);
 
@@ -215,7 +214,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_char(char value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_char);
 
@@ -227,7 +226,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_short(short value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_short);
 
@@ -239,7 +238,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_ushort(short value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_ushort);
 
@@ -251,7 +250,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_long(int value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_long);
 
@@ -263,7 +262,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_ulong(int value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_ulong);
 
@@ -275,7 +274,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_float(float value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_float);
 
@@ -287,7 +286,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_double(double value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_double);
 
@@ -299,7 +298,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_string(String value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         // Don't use checkValue() - we must accomodate bounded and
         // unbounded strings
@@ -308,7 +307,7 @@ abstract class DynAny_impl extends LocalObject implements
             throw new InvalidValue();
 
         org.omg.CORBA.TypeCode tc = any.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
         if (origTC.kind() != TCKind.tk_string)
             throw new TypeMismatch();
 
@@ -331,7 +330,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_reference(org.omg.CORBA.Object value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         // Don't use checkValue()
 
@@ -339,7 +338,7 @@ abstract class DynAny_impl extends LocalObject implements
             throw new InvalidValue();
 
         org.omg.CORBA.TypeCode tc = any.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
         if (origTC.kind() != TCKind.tk_objref
                 && origTC.kind() != org.omg.CORBA_2_4.TCKind.tk_local_interface)
             throw new TypeMismatch();
@@ -352,7 +351,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_typecode(org.omg.CORBA.TypeCode value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_TypeCode);
 
@@ -364,7 +363,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_longlong(long value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_longlong);
 
@@ -376,7 +375,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_ulonglong(long value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_ulonglong);
 
@@ -388,7 +387,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_wchar(char value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_wchar);
 
@@ -400,7 +399,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_wstring(String value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         // Don't use checkValue() - we must accomodate bounded and
         // unbounded strings
@@ -409,7 +408,7 @@ abstract class DynAny_impl extends LocalObject implements
             throw new InvalidValue();
 
         org.omg.CORBA.TypeCode tc = any.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
         if (origTC.kind() != TCKind.tk_wstring)
             throw new TypeMismatch();
 
@@ -432,11 +431,11 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_any(org.omg.CORBA.Any value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, TCKind.tk_any);
 
-        Any val = new Any(value);
+        AnyImpl val = new AnyImpl(value);
         val._OB_ORBInstance(orbInstance_);
         any.replace(any.type(), val);
 
@@ -488,7 +487,7 @@ abstract class DynAny_impl extends LocalObject implements
         // Ensure the given value has the proper type
         //
         org.omg.CORBA.TypeCode tc = comp.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
         if (origTC.kind() != TCKind.tk_value
                 && origTC.kind() != TCKind.tk_value_box)
             throw new TypeMismatch();
@@ -513,7 +512,7 @@ abstract class DynAny_impl extends LocalObject implements
         //
         // Create an any and invoke from_any
         //
-        Any any = new Any(orbInstance_, tc, value);
+        AnyImpl any = new AnyImpl(orbInstance_, tc, value);
         comp.from_any(any);
 
         notifyParent();
@@ -522,13 +521,13 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_abstract(Object value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
 
         org.omg.CORBA.TypeCode type = any.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(type);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(type);
 
         if (origTC.kind() != TCKind.tk_abstract_interface)
             throw new TypeMismatch();
@@ -548,7 +547,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_boolean_seq(boolean[] value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, BooleanSeqHelper.type().kind());
 
@@ -560,7 +559,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_octet_seq(byte[] value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, OctetSeqHelper.type().kind());
 
@@ -572,7 +571,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_char_seq(char[] value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, CharSeqHelper.type().kind());
 
@@ -584,7 +583,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_wchar_seq(char[] value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, WCharSeqHelper.type().kind());
 
@@ -596,7 +595,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_short_seq(short[] value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, ShortSeqHelper.type().kind());
 
@@ -608,7 +607,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_ushort_seq(short[] value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, UShortSeqHelper.type().kind());
 
@@ -620,7 +619,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_long_seq(int[] value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, LongSeqHelper.type().kind());
 
@@ -632,7 +631,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_ulong_seq(int[] value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, ULongSeqHelper.type().kind());
 
@@ -644,7 +643,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_longlong_seq(long[] value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, LongLongSeqHelper.type().kind());
 
@@ -656,7 +655,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_ulonglong_seq(long[] value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, ULongLongSeqHelper.type().kind());
 
@@ -668,7 +667,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_float_seq(float[] value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, FloatSeqHelper.type().kind());
 
@@ -680,7 +679,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized void insert_double_seq(double[] value)
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         checkValue(any, DoubleSeqHelper.type().kind());
 
@@ -692,7 +691,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized boolean get_boolean()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -708,7 +707,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized byte get_octet()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -724,7 +723,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized char get_char()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -740,7 +739,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized short get_short()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -756,7 +755,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized short get_ushort()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -772,7 +771,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized int get_long()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -788,7 +787,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized int get_ulong()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -804,7 +803,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized float get_float()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -820,7 +819,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized double get_double()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -836,7 +835,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized String get_string()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -852,7 +851,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized org.omg.CORBA.Object get_reference()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -868,7 +867,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized org.omg.CORBA.TypeCode get_typecode()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -884,7 +883,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized long get_longlong()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -900,7 +899,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized long get_ulonglong()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -916,7 +915,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized char get_wchar()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -932,7 +931,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized String get_wstring()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -948,7 +947,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized org.omg.CORBA.Any get_any()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -996,16 +995,16 @@ abstract class DynAny_impl extends LocalObject implements
         // Ensure the given value has the proper type
         //
         org.omg.CORBA.TypeCode tc = comp.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(tc);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(tc);
         if (origTC.kind() != TCKind.tk_value
                 && origTC.kind() != TCKind.tk_value_box)
             throw new TypeMismatch();
 
         DynAny_impl impl = (DynAny_impl) comp;
-        try (OutputStream out = new OutputStream()) {
+        try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_ORBInstance(orbInstance_);
             impl._OB_marshal(out);
-            InputStream in = out.create_input_stream();
+            YokoInputStream in = out.create_input_stream();
             return in.read_value();
         }
     }
@@ -1013,13 +1012,13 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized Object get_abstract()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
 
         org.omg.CORBA.TypeCode type = any.type();
-        org.omg.CORBA.TypeCode origTC = TypeCode._OB_getOrigType(type);
+        org.omg.CORBA.TypeCode origTC = TypeCodeImpl._OB_getOrigType(type);
 
         if (origTC.kind() != TCKind.tk_abstract_interface)
             throw new TypeMismatch();
@@ -1039,7 +1038,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized boolean[] get_boolean_seq()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -1055,7 +1054,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized byte[] get_octet_seq()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -1071,7 +1070,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized char[] get_char_seq()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -1087,7 +1086,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized char[] get_wchar_seq()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -1103,7 +1102,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized short[] get_short_seq()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -1119,7 +1118,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized short[] get_ushort_seq()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -1135,7 +1134,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized int[] get_long_seq()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -1151,7 +1150,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized int[] get_ulong_seq()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -1167,7 +1166,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized long[] get_longlong_seq()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -1183,7 +1182,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized long[] get_ulonglong_seq()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -1199,7 +1198,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized float[] get_float_seq()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -1215,7 +1214,7 @@ abstract class DynAny_impl extends LocalObject implements
     public synchronized double[] get_double_seq()
             throws TypeMismatch,
             InvalidValue {
-        Any any = _OB_currentAny();
+        AnyImpl any = _OB_currentAny();
 
         if (any == null)
             throw new InvalidValue();
@@ -1243,15 +1242,15 @@ abstract class DynAny_impl extends LocalObject implements
     // Yoko internal functions
     // ------------------------------------------------------------------
 
-    abstract void _OB_marshal(OutputStream out);
+    abstract void _OB_marshal(YokoOutputStream out);
 
-    abstract void _OB_marshal(OutputStream out, DynValueWriter dynValueWriter);
+    abstract void _OB_marshal(YokoOutputStream out, DynValueWriter dynValueWriter);
 
-    abstract void _OB_unmarshal(InputStream in);
+    abstract void _OB_unmarshal(YokoInputStream in);
 
-    abstract Any _OB_currentAny();
+    abstract AnyImpl _OB_currentAny();
 
-    abstract Any _OB_currentAnyValue();
+    abstract AnyImpl _OB_currentAnyValue();
 
     DynAny _OB_getDynAny() {
         return null;

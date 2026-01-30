@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.io.ReadBuffer;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.INV_OBJREF;
@@ -50,7 +50,7 @@ final class CodeConverterNone extends CodeConverterBase {
         throw new BAD_PARAM(describeBadParam(MinorNoWcharCodeSet), MinorNoWcharCodeSet, COMPLETED_NO);
     }
 
-    public void write_wchar(OutputStream out, char v) {
+    public void write_wchar(YokoOutputStream out, char v) {
         throw new INV_OBJREF(describeInvObjref(MinorWcharCodeSetRequired), MinorWcharCodeSetRequired, COMPLETED_NO);
     }
 

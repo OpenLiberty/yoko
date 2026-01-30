@@ -19,6 +19,7 @@ package org.apache.yoko.orb.CORBA;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.orb.OB.ORBInstance;
+import org.omg.CORBA.Any;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.BAD_OPERATION;
 import org.omg.CORBA.DATA_CONVERSION;
@@ -112,8 +113,8 @@ import static org.omg.CORBA.TCKind.tk_wstring;
 import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 import static org.omg.CORBA_2_4.TCKind.tk_local_interface;
 
-final public class Any extends org.omg.CORBA.Any {
-    private static final Logger logger = getLogger(Any.class.getName());
+public final class AnyImpl extends Any {
+    private static final Logger logger = getLogger(AnyImpl.class.getName());
     
     private ORBInstance orbInstance;
     private org.omg.CORBA.TypeCode typeCode;
@@ -332,7 +333,7 @@ final public class Any extends org.omg.CORBA.Any {
         }
     }
 
-    private void copyFrom(Any any) {
+    private void copyFrom(AnyImpl any) {
         orbInstance = any.orbInstance;
         typeCode = any.typeCode;
         yokoTypeCode = any.yokoTypeCode;
@@ -405,7 +406,7 @@ final public class Any extends org.omg.CORBA.Any {
     // Standard IDL to Java Mapping
     // ------------------------------------------------------------------
 
-    public synchronized boolean equal(org.omg.CORBA.Any a) {
+    public synchronized boolean equal(Any a) {
         if (a == null)
             return false;
 
@@ -415,15 +416,15 @@ final public class Any extends org.omg.CORBA.Any {
         if (!typeCode.equal(a.type()))
             return false;
 
-        Any any;
+        AnyImpl any;
         try {
-            any = (Any) a;
+            any = (AnyImpl) a;
         } catch (ClassCastException ex) {
             //
             // Argument may have been created by a foreign singleton ORB,
             // so we'll use a temporary.
             //
-            any = new Any(a);
+            any = new AnyImpl(a);
         }
 
         if (value == any.value)
@@ -511,7 +512,7 @@ final public class Any extends org.omg.CORBA.Any {
         }
     }
 
-    private static boolean compareValuesAsInputStreams(Any any1, Any any2) {
+    private static boolean compareValuesAsInputStreams(AnyImpl any1, AnyImpl any2) {
         ReadBuffer buf1 = ((YokoInputStream) any1.value).getBuffer();
         ReadBuffer buf2 = ((YokoInputStream) any2.value).getBuffer();
         return buf1.dataEquals(buf2);
@@ -598,7 +599,7 @@ final public class Any extends org.omg.CORBA.Any {
             break;
 
         case _tk_any:
-            out.write_any((org.omg.CORBA.Any) value);
+            out.write_any((Any) value);
             break;
 
         case _tk_TypeCode:
@@ -833,12 +834,12 @@ final public class Any extends org.omg.CORBA.Any {
         value = val;
     }
 
-    public synchronized org.omg.CORBA.Any extract_any() throws BAD_OPERATION {
+    public synchronized Any extract_any() throws BAD_OPERATION {
         checkValue(tk_any);
-        return (org.omg.CORBA.Any) value;
+        return (Any) value;
     }
 
-    public synchronized void insert_any(org.omg.CORBA.Any val) {
+    public synchronized void insert_any(Any val) {
         type(createPrimitiveTC(tk_any));
         value = val;
     }
@@ -994,21 +995,21 @@ final public class Any extends org.omg.CORBA.Any {
     // Application programs must not use these functions directly
     // ------------------------------------------------------------------
 
-    public Any() {
+    public AnyImpl() {
         this((ORBInstance) null);
     }
 
-    public Any(ORBInstance orbInstance) {
+    public AnyImpl(ORBInstance orbInstance) {
         this.orbInstance = orbInstance;
         type(createPrimitiveTC(tk_null));
         value = null;
     }
 
-    public Any(Any any) {
+    public AnyImpl(AnyImpl any) {
         copyFrom(any);
     }
 
-    public Any(org.omg.CORBA.Any any) {
+    public AnyImpl(Any any) {
         //
         // This constructor creates a new Any using the standard interface
         //
@@ -1016,8 +1017,8 @@ final public class Any extends org.omg.CORBA.Any {
         //
         // Optimization
         //
-        if (any instanceof Any) {
-            copyFrom((Any) any);
+        if (any instanceof AnyImpl) {
+            copyFrom((AnyImpl) any);
             return;
         }
 
@@ -1113,7 +1114,7 @@ final public class Any extends org.omg.CORBA.Any {
         }
     }
 
-    public Any(ORBInstance orbInstance, org.omg.CORBA.TypeCode type, Object value) {
+    public AnyImpl(ORBInstance orbInstance, org.omg.CORBA.TypeCode type, Object value) {
         this.orbInstance = orbInstance;
         setType(type);
         this.value = value;

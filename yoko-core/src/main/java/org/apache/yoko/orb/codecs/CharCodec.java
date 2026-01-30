@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ package org.apache.yoko.orb.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
+import org.apache.yoko.orb.OB.CodeSetInfo;
 import org.omg.CORBA.DATA_CONVERSION;
 
 import java.nio.charset.Charset;
@@ -78,7 +79,7 @@ import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
  *     prohibited overlong encodings as the Unicode replacement character, '\uFFFD'.
  * </p>
  */
-interface CharCodec {
+public interface CharCodec {
     @FunctionalInterface interface CharReader { char readChar(ReadBuffer in); }
 
     /**
@@ -102,6 +103,18 @@ interface CharCodec {
         return getLatinCodec(charset);
     }
 
+    static CharCodec forRegistryId(int id) throws UnsupportedCharsetException {
+        CodeSetInfo csi = CodeSetInfo.forRegistryId(id);
+        switch (csi) {
+            case UTF_16: return SimpleWcharCodec.UTF_16;
+            case UTF_8: return new Utf8Codec();
+
+        }
+        throw new UnsupportedCharsetException("Charset registry id = " + id);
+    }
+
+    String name();
+
     /**
      * Encodes a character to a buffer.
      * <p>
@@ -120,25 +133,9 @@ interface CharCodec {
      */
     void writeChar(char c, WriteBuffer out);
 
-    /**
-     * For non-byte-oriented codecs, there may be a byte-order marker to be written at the start of a string or character.
-     * A caller should use this method to write subsequent chars to avoid writing extra BOMs.
-     */
-    default void writeNextChar(char c, WriteBuffer out) { writeChar(c, out); }
-
     /** Read the next char */
     char readChar(ReadBuffer in);
 
-    /**
-     * For non-byte-oriented codecs, there may be a byte-order marker to indicate the endianness of the encoded bytes.
-     * This BOM can only occur at the start of a string, or before an individual character.
-     * For a string, a caller should call this method to determine the ordering.
-     *
-     * On byte-oriented codecs, this method will return a byte-oriented (endian-free) reader.
-     *
-     * @return the endian-informed reader with which to read in the rest of the string.
-     */
-    default CharReader beginString(ReadBuffer in) { return this::readChar; }
 
     /**
      * Check there is no unfinished character data.
@@ -157,4 +154,7 @@ interface CharCodec {
     default boolean readFinished() { return true; }
     /** Check whether the last character was not a high surrogate. */
     default boolean writeFinished() { return true; }
+
+    /** Provides an identical object that can be used concurrently with this one */
+    default CharCodec getInstanceOrCopy() { return this; }
 }

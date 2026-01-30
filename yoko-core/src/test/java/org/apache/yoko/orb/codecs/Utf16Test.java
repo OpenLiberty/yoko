@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class Utf16Test extends AbstractSimpleCodecTest implements TestData {
+class Utf16Test extends AbstractSimpleCodecTest<WcharCodec> implements TestData {
     static final char BOM = '\uFEFF';
     static final char ANTI_BOM = '\uFFFE';
 
@@ -81,53 +81,58 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
     @Test
     void testBomPlusSingleChar() {
         // BOM should be discarded, next two bytes should be read as char
+        writeExpectedByte(4);
         writeExpectedChar('\uFEFF');
         writeExpectedChar('A');
-        ReadBuffer bomA = getReadBuffer();
-        assertEquals('A', codec.readChar(bomA));
-        codec.assertNoBufferedCharData();
-        assertTrue(bomA.isComplete());
+        assertEndianCharIs('A');
     }
 
     @Test
     void testBomPlusSingleCharLittleEndian() {
         // swapped BOM should be discarded, next two bytes should be read as other endian char
+        writeExpectedByte(4);
         writeExpectedChar(ANTI_BOM);
         writeExpectedChar('\u4100'); // byte-swapped 'A'
+        assertEndianCharIs('A');
+    }
+
+    @Test
+    void testBomBom() {
+        writeExpectedByte(4);
+        writeExpectedChar(BOM);
+        writeExpectedChar(BOM);
+        assertEndianCharIs(BOM);
+    }
+
+    @Test
+    void testBomBomLittleEndian() {
+        writeExpectedByte(4);
+        writeExpectedChar(ANTI_BOM);
+        writeExpectedChar(ANTI_BOM);
+        assertEndianCharIs(BOM);
+    }
+
+    private void assertEndianCharIs(char expectedChar) {
         ReadBuffer bomA = getReadBuffer();
-        assertEquals('A', codec.readChar(bomA));
+        assertEquals(expectedChar, codec.readCharWithLength(bomA));
+        codec.assertNoBufferedCharData();
+        assertTrue(bomA.isComplete());
+        // now skip back 4 bytes and try to read it as the first char of a string
+        bomA.skipBytes(-4);
+        assertEquals(expectedChar, codec.beginToReadString(bomA).readChar(bomA));
         codec.assertNoBufferedCharData();
         assertTrue(bomA.isComplete());
     }
 
     @Test
-    void testBomBom() {
-        writeExpectedChar(BOM);
-        writeExpectedChar(BOM);
-        // BOM should be discarded, next two bytes should be read as char
-        ReadBuffer bombom = getReadBuffer();
-        assertEquals(BOM, codec.readChar(bombom));
-        assertTrue(bombom.isComplete());
-    }
-
-    @Test
-    void testBomBomLittleEndian() {
-        writeExpectedChar(ANTI_BOM);
-        writeExpectedChar(ANTI_BOM);
-        ReadBuffer bombom = getReadBuffer();
-        // BOM should be discarded, next two bytes should be read as byte-swapped char
-        assertEquals(BOM, codec.readChar(bombom));
-        assertTrue(bombom.isComplete());
-    }
-
-    @Test
     void testBomOnItsOwn() {
+        writeExpectedByte(2);
         writeExpectedChar(BOM);
         // If the only character available is a BOM (0xFEFF),
         // then either this was an empty string, or if we are expecting a char
         // it genuinely is a single ZERO WIDTH NO BREAK SPACE character (also 0xFEFF)
         ReadBuffer singleBom = getReadBuffer();
-        assertEquals(BOM, codec.readChar(singleBom));
+        assertEquals(BOM, codec.readCharWithLength(singleBom));
         assertTrue(singleBom.isComplete());
     }
 
@@ -165,7 +170,7 @@ class Utf16Test extends AbstractSimpleCodecTest implements TestData {
     private void testStringOfChars(String expected, boolean swap) {
         for (char c: expected.toCharArray()) writeExpectedChar(c);
         ReadBuffer in = swap ? getByteSwappedReadBuffer() : getReadBuffer();
-        CharReader rdr = codec.beginString(in);
+        CharReader rdr = codec.beginToReadString(in);
         StringBuilder sb = new StringBuilder();
         while (!in.isComplete()) {
             sb.append(rdr.readChar(in));

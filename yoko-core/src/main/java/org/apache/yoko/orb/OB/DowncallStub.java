@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,24 @@
  */
 package org.apache.yoko.orb.OB;
 
+import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
+import static org.apache.yoko.io.Buffer.createWriteBuffer;
+import static org.apache.yoko.logging.VerboseLogging.RETRY_LOG;
+import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
+import static org.apache.yoko.orb.exceptions.Transients.NO_USABLE_PROFILE_IN_IOR;
+import static org.apache.yoko.util.MinorCodes.MinorShutdownCalled;
+import static org.apache.yoko.util.MinorCodes.describeBadInvOrder;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+
+import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
-import org.apache.yoko.orb.CORBA.InputStream;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OCI.ConnectorInfo;
 import org.apache.yoko.orb.OCI.ProfileInfo;
@@ -67,19 +81,6 @@ import org.omg.Messaging.PolicyValue;
 import org.omg.Messaging.PolicyValueSeqHelper;
 import org.omg.Messaging.PolicyValueSeqHolder;
 import org.omg.Messaging.ReplyHandler;
-
-import java.util.Vector;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
-import static org.apache.yoko.io.Buffer.createWriteBuffer;
-import static org.apache.yoko.logging.VerboseLogging.RETRY_LOG;
-import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
-import static org.apache.yoko.orb.exceptions.Transients.NO_USABLE_PROFILE_IN_IOR;
-import static org.apache.yoko.util.MinorCodes.MinorShutdownCalled;
-import static org.apache.yoko.util.MinorCodes.describeBadInvOrder;
-import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 //
 // DowncallStub is equivalent to the C++ class OB::MarshalStubImpl
@@ -247,7 +248,7 @@ public final class DowncallStub {
     // Marshalling interception points
     //
 
-    public org.apache.yoko.orb.CORBA.OutputStream preMarshal(Downcall down) throws LocationForward, FailureException {
+    public YokoOutputStream preMarshal(Downcall down) throws LocationForward, FailureException {
         return down.preMarshal();
     }
 
@@ -291,12 +292,12 @@ public final class DowncallStub {
     // Unmarshalling interception points
     //
 
-    public InputStream preUnmarshal(Downcall down) throws LocationForward, FailureException {
+    public YokoInputStream preUnmarshal(Downcall down) throws LocationForward, FailureException {
         return down.preUnmarshal();
     }
 
-    public InputStream preUnmarshal(Downcall down, BooleanHolder uex) throws LocationForward, FailureException {
-        InputStream in = down.preUnmarshal();
+    public YokoInputStream preUnmarshal(Downcall down, BooleanHolder uex) throws LocationForward, FailureException {
+        YokoInputStream in = down.preUnmarshal();
         uex.value = down.userException();
         return in;
     }
@@ -447,14 +448,14 @@ public final class DowncallStub {
     //
     // Prepare a request from a portable stub
     //
-    public org.apache.yoko.orb.CORBA.OutputStream setupRequest(
+    public YokoOutputStream setupRequest(
             org.omg.CORBA.Object self, String operation, boolean responseExpected) throws LocationForward, FailureException {
         while (true) {
             Downcall downcall = createDowncall(
                     operation, responseExpected);
 
             try {
-                org.apache.yoko.orb.CORBA.OutputStream out = preMarshal(downcall);
+                YokoOutputStream out = preMarshal(downcall);
                 //
                 // The InvocationContext is associated with the OutputStream
                 // and retrieved by invoke()
@@ -480,7 +481,7 @@ public final class DowncallStub {
         // Obtain information regarding our target
         Client client = getClientProfilePair().client;
 
-        out.value = new org.apache.yoko.orb.CORBA.OutputStream(client.codeConverters(), GIOP1_2);
+        out.value = new YokoOutputStream(client.codeConverters(), GIOP1_2);
 
         sclHolder.value = client.getAMIRouterContexts().toArray();
 
@@ -513,7 +514,7 @@ public final class DowncallStub {
         final Client client = cp.client;
         info.value = cp.profile;
 
-        out.value = new org.apache.yoko.orb.CORBA.OutputStream(writeBuffer, client.codeConverters(), GIOP1_2);
+        out.value = new YokoOutputStream(writeBuffer, client.codeConverters(), GIOP1_2);
         ServiceContexts contexts = client.getAMIRouterContexts();
 
         GIOPOutgoingMessage outgoing = new GIOPOutgoingMessage(orbInstance_, out.value, info.value);
@@ -543,9 +544,9 @@ public final class DowncallStub {
     //
     // Invoke a request from a portable stub
     //
-    public InputStream invoke(
+    public YokoInputStream invoke(
             org.omg.CORBA.Object self,
-            org.apache.yoko.orb.CORBA.OutputStream out)
+            YokoOutputStream out)
             throws ApplicationException,
             RemarshalException, LocationForward,
             FailureException {
@@ -553,7 +554,7 @@ public final class DowncallStub {
         // We should have an InvocationContext associated with the
         // OutputStream
         //
-        org.apache.yoko.orb.CORBA.OutputStream o = out;
+        YokoOutputStream o = out;
         InvocationContext ctx = (InvocationContext) o._OB_invocationContext();
         Assert.ensure(ctx != null);
 
@@ -582,7 +583,7 @@ public final class DowncallStub {
             }
 
             if (response) {
-                InputStream in = down.preUnmarshal();
+                YokoInputStream in = down.preUnmarshal();
 
                 if (down.userException()) {
                     String id = null;
@@ -649,7 +650,7 @@ public final class DowncallStub {
         //
         // We should have an InvocationContext associated with the OutputStream
         //
-        org.apache.yoko.orb.CORBA.OutputStream o = (org.apache.yoko.orb.CORBA.OutputStream) out;
+        YokoOutputStream o = (YokoOutputStream) out;
         InvocationContext ctx = (InvocationContext) o._OB_invocationContext();
         Assert.ensure(ctx != null);
 
@@ -744,7 +745,7 @@ public final class DowncallStub {
         // We should have an InvocationContext associated with the
         // OutputStream
         //
-        org.apache.yoko.orb.CORBA.OutputStream o = (org.apache.yoko.orb.CORBA.OutputStream) out;
+        YokoOutputStream o = (YokoOutputStream) out;
         InvocationContext ctx = (InvocationContext) o._OB_invocationContext();
         Assert.ensure(ctx != null);
 
@@ -754,7 +755,7 @@ public final class DowncallStub {
         if (ctx.downcallStub != this)
             throw new RemarshalException();
 
-        InputStream tmpIn = (InputStream) out.create_input_stream();
+        YokoInputStream tmpIn = (YokoInputStream) out.create_input_stream();
 
         //
         // Unmarshal the message header
@@ -860,7 +861,7 @@ public final class DowncallStub {
         // Create an output stream an write the PolicyValueSeq
         //
         if (invocPoliciesHolder.value != null) {
-            try (org.apache.yoko.orb.CORBA.OutputStream scOut = new org.apache.yoko.orb.CORBA.OutputStream()) {
+            try (YokoOutputStream scOut = new YokoOutputStream()) {
                 scOut._OB_writeEndian();
                 PolicyValueSeqHelper.write(scOut, invocPoliciesHolder.value);
                 invocPoliciesSC.context_data = scOut.copyWrittenBytes();

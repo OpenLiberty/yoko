@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import org.apache.yoko.orb.CORBA.OutputStream;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.util.Assert;
@@ -49,7 +49,7 @@ public class MessageQueue {
         // Add the message header
         try {
             // Save stream position and rewind
-            OutputStream out = down.output();
+            YokoOutputStream out = down.output();
 
             int pos = out.getPosition();
             out.setPosition(0);

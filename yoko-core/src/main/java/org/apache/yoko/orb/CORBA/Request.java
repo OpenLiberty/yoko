@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ import org.apache.yoko.orb.OB.Logger;
 import org.apache.yoko.orb.OB.MultiRequestSender;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.util.Assert;
-import org.apache.yoko.util.MinorCodes;
 import org.omg.CORBA.ARG_IN;
 import org.omg.CORBA.ARG_INOUT;
 import org.omg.CORBA.ARG_OUT;
@@ -106,7 +105,7 @@ final public class Request extends org.omg.CORBA.Request {
         Assert.ensure(downcallStub_ != null);
         Assert.ensure(downcall_ != null);
 
-        OutputStream out = downcallStub_.preMarshal(downcall_);
+        YokoOutputStream out = downcallStub_.preMarshal(downcall_);
 
         try {
             Vector ctxVec = new Vector();
@@ -149,7 +148,7 @@ final public class Request extends org.omg.CORBA.Request {
         Assert.ensure(downcall_ != null);
 
         BooleanHolder uex = new BooleanHolder();
-        InputStream in = downcallStub_.preUnmarshal(downcall_, uex);
+        YokoInputStream in = downcallStub_.preUnmarshal(downcall_, uex);
 
         if (in == null) {
             Assert.ensure(!uex.value);
@@ -165,7 +164,7 @@ final public class Request extends org.omg.CORBA.Request {
                 for (int i = 0; i < exceptions_.count(); i++) {
                     TypeCode tc = exceptions_.item(i);
                     if (tc.id().equals(id)) {
-                        org.omg.CORBA.Any any = new Any(delegate_
+                        org.omg.CORBA.Any any = new AnyImpl(delegate_
                                 ._OB_ORBInstance());
                         any.read_value(in, tc);
                         UnknownUserException ex = new UnknownUserException(
@@ -728,7 +727,7 @@ final public class Request extends org.omg.CORBA.Request {
         target_ = target;
         operation_ = operation;
         arguments_ = new NVList(delegate_.orb(target_));
-        result_ = new NamedValue("", new Any(delegate_._OB_ORBInstance()),
+        result_ = new NamedValue("", new AnyImpl(delegate_._OB_ORBInstance()),
                 ARG_OUT.value);
         environment_ = new Environment();
         exceptions_ = new ExceptionList();
