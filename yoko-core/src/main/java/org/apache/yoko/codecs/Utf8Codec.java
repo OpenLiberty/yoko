@@ -15,7 +15,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
@@ -29,8 +29,8 @@ import static java.lang.Character.toCodePoint;
 import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.logging.VerboseLogging.DATA_IN_LOG;
 import static org.apache.yoko.logging.VerboseLogging.DATA_OUT_LOG;
-import static org.apache.yoko.orb.codecs.Util.ASCII_REPLACEMENT_BYTE;
-import static org.apache.yoko.orb.codecs.Util.UNICODE_REPLACEMENT_CHAR;
+import static org.apache.yoko.codecs.Util.ASCII_REPLACEMENT_BYTE;
+import static org.apache.yoko.codecs.Util.UNICODE_REPLACEMENT_CHAR;
 import static org.apache.yoko.util.MinorCodes.MinorUTF8Encoding;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
 

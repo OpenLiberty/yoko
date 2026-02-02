@@ -15,14 +15,14 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import static org.apache.yoko.orb.codecs.Util.ASCII_REPLACEMENT_CHAR;
+import static org.apache.yoko.codecs.Util.ASCII_REPLACEMENT_CHAR;
 
 class IsoLatin1Test extends AbstractSimpleCodecTest<CharCodec> implements TestData {
     IsoLatin1Test() { super("ISO-8859-1", WriteBuffer::writeByte, ReadBuffer::readByteAsChar); }

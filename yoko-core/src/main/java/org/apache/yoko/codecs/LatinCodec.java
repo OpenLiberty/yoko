@@ -15,7 +15,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
@@ -32,8 +32,8 @@ import java.util.Objects;
 import static java.nio.ByteBuffer.allocate;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.IntStream.range;
-import static org.apache.yoko.orb.codecs.Util.ASCII_REPLACEMENT_BYTE;
-import static org.apache.yoko.orb.codecs.Util.UNICODE_REPLACEMENT_CHAR;
+import static org.apache.yoko.codecs.Util.ASCII_REPLACEMENT_BYTE;
+import static org.apache.yoko.codecs.Util.UNICODE_REPLACEMENT_CHAR;
 import static org.apache.yoko.util.Collectors.neverCombine;
 
 /**

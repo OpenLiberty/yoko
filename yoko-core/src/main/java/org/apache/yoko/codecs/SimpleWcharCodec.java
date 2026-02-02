@@ -15,16 +15,16 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 
 import static org.apache.yoko.logging.VerboseLogging.DATA_IN_LOG;
-import static org.apache.yoko.orb.codecs.Util.BYTE_ORDER_MARKER;
-import static org.apache.yoko.orb.codecs.Util.BYTE_SWAPD_MARKER;
-import static org.apache.yoko.orb.codecs.Util.UNICODE_REPLACEMENT_CHAR;
-import static org.apache.yoko.orb.codecs.Util.ZERO_WIDTH_NO_BREAK_SPACE;
+import static org.apache.yoko.codecs.Util.BYTE_ORDER_MARKER;
+import static org.apache.yoko.codecs.Util.BYTE_SWAPD_MARKER;
+import static org.apache.yoko.codecs.Util.UNICODE_REPLACEMENT_CHAR;
+import static org.apache.yoko.codecs.Util.ZERO_WIDTH_NO_BREAK_SPACE;
 
 enum SimpleWcharCodec implements WcharCodec {
     UTF_16 {

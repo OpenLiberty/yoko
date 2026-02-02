@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
@@ -27,8 +27,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
 
-import static org.apache.yoko.orb.codecs.LatinCodec.getLatinCodec;
-import static org.apache.yoko.orb.codecs.Util.getUnicodeCodec;
+import static org.apache.yoko.codecs.LatinCodec.getLatinCodec;
+import static org.apache.yoko.codecs.Util.getUnicodeCodec;
 import static org.apache.yoko.util.MinorCodes.MinorUTF8Encoding;
 import static org.apache.yoko.util.MinorCodes.MinorUTF8Overflow;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;

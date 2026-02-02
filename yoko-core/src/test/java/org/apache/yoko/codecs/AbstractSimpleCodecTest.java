@@ -15,15 +15,17 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
+import org.apache.yoko.codecs.CharCodec;
+import org.apache.yoko.codecs.WcharCodec;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.junit.jupiter.api.BeforeEach;
 
-import static org.apache.yoko.orb.codecs.Util.ASCII_REPLACEMENT_CHAR;
-import static org.apache.yoko.orb.codecs.Util.UNICODE_REPLACEMENT_CHAR;
+import static org.apache.yoko.codecs.Util.ASCII_REPLACEMENT_CHAR;
+import static org.apache.yoko.codecs.Util.UNICODE_REPLACEMENT_CHAR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
