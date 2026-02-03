@@ -17,12 +17,13 @@
  */
 package org.apache.yoko.orb.CORBA;
 
+import org.apache.yoko.codecs.CharCodec;
+import org.apache.yoko.codecs.WcharCodec;
 import org.apache.yoko.io.AlignmentBoundary;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.SimplyCloseable;
 import org.apache.yoko.io.WriteBuffer;
-import org.apache.yoko.orb.OB.CodeConverterBase;
 import org.apache.yoko.orb.OB.CodeConverters;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.orb.OB.TypeCodeFactory;
@@ -31,7 +32,6 @@ import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.Timeout;
 import org.omg.CORBA.BAD_TYPECODE;
-import org.omg.CORBA.DATA_CONVERSION;
 import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.NO_IMPLEMENT;
@@ -53,10 +53,10 @@ import java.math.BigDecimal;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Vector;
 import java.util.logging.Logger;
 
+import static java.util.logging.Level.FINEST;
 import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.FOUR_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.NO_BOUNDARY;
@@ -113,11 +113,6 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     private final WriteBuffer writeBuffer;
     private final GiopVersion giopVersion_;
     private final CodeConverters codeConverters_;
-    private final boolean charWriterRequired_;
-    private final boolean charConversionRequired_;
-    private final boolean wCharWriterRequired_;
-    private final boolean wCharConversionRequired_;
-    private final boolean charBoundsCheckRequired_;
 
     // Handles all OBV marshalling
     private ValueWriter valueWriter_;
@@ -137,11 +132,8 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     }
 
     private void writeTypeCodeImpl(TypeCode tc, Map<TypeCode, Integer> history) {
-        //
         // Try casting the TypeCode to org.apache.yoko.orb.CORBA.TypeCode. This
-        // could
-        // fail if the TypeCode was created by a foreign singleton ORB.
-        //
+        // could fail if the TypeCode was created by a foreign singleton ORB.
         TypeCodeImpl obTC = null;
         try {
             obTC = (TypeCodeImpl) tc;
@@ -157,7 +149,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
             }
         }
 
-        LOGGER.finest("Writing a type code of type " + tc.kind().value());
+        if (LOGGER.isLoggable(FINEST)) LOGGER.finest("Writing a type code of type " + (tc == null ? null : tc.kind()));
 
         // For performance reasons, handle the primitive TypeCodes first
         switch (tc.kind().value()) {
@@ -210,7 +202,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
                 case _tk_native: {
                     history.put(tc, oldPos);
 
-                    try  (SimplyCloseable sc = recordLength()) {
+                    try  (SimplyCloseable ignored = recordLength()) {
                         _OB_writeEndian();
                         write_string(tc.id());
                         write_string(tc.name());
@@ -223,7 +215,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
                 case _tk_except: {
                     history.put(tc, oldPos);
 
-                    try  (SimplyCloseable sc = recordLength()) {
+                    try  (SimplyCloseable ignored = recordLength()) {
                         _OB_writeEndian();
                         write_string(tc.id());
                         write_string(tc.name());
@@ -240,7 +232,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
                 case _tk_union: {
                     history.put(tc, oldPos);
 
-                    try  (SimplyCloseable sc = recordLength()) {
+                    try  (SimplyCloseable ignored = recordLength()) {
                         _OB_writeEndian();
                         write_string(tc.id());
                         write_string(tc.name());
@@ -303,7 +295,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
                 case _tk_enum: {
                     history.put(tc, oldPos);
 
-                    try  (SimplyCloseable sc = recordLength()) {
+                    try  (SimplyCloseable ignored = recordLength()) {
                         _OB_writeEndian();
                         write_string(tc.id());
                         write_string(tc.name());
@@ -324,7 +316,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
                 case _tk_array: {
                     history.put(tc, oldPos);
 
-                    try  (SimplyCloseable sc = recordLength()) {
+                    try  (SimplyCloseable ignored = recordLength()) {
                         _OB_writeEndian();
                         writeTypeCodeImpl(tc.content_type(), history);
                         write_ulong(tc.length());
@@ -337,7 +329,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
                 case _tk_value_box: {
                     history.put(tc, oldPos);
 
-                    try  (SimplyCloseable sc = recordLength()) {
+                    try  (SimplyCloseable ignored = recordLength()) {
                         _OB_writeEndian();
                         write_string(tc.id());
                         write_string(tc.name());
@@ -355,7 +347,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
                         concreteBase = TypeCodeFactory.createPrimitiveTC(tk_null);
                     }
 
-                    try  (SimplyCloseable sc = recordLength()) {
+                    try  (SimplyCloseable ignored = recordLength()) {
                         _OB_writeEndian();
                         write_string(tc.id());
                         write_string(tc.name());
@@ -444,108 +436,28 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     }
 
     public void write_char(char value) {
-        if (value > 255)
-            throw new DATA_CONVERSION("char value exceeds 255: " + (int) value);
-
-        addCapacity(1);
-
-        final CodeConverterBase converter = codeConverters_.outputCharConverter;
-
-        if (charConversionRequired_)
-            value = converter.convert(value);
-
-        if (charWriterRequired_)
-            converter.write_char(writeBuffer, value);
-        else
-            writeBuffer.writeByte(value);
+        final CharCodec codec = codeConverters_.charCodec;
+        addCapacity(codec.octetCount(value));
+        codec.writeChar(value, writeBuffer);
     }
 
     public void write_wchar(char value) {
-        write_wchar(value, false);
-    }
+        final WcharCodec codec = codeConverters_.wcharCodec;
 
-    private void write_wchar(char value, boolean partOfString) {
-        final CodeConverterBase converter = codeConverters_.outputWcharConverter;
+        switch (giopVersion_) {
+        case GIOP1_0:
+        case GIOP1_1:
+            // add aligned space for 1 character
+            addCapacity(codec.charSize(), TWO_BYTE_BOUNDARY);
+            // write 2-byte character in big endian
+            codec.writeChar(value, writeBuffer);
+            break;
 
-        //
-        // pre-convert the character if necessary
-        //
-        if (wCharConversionRequired_)
-            value = converter.convert(value);
-
-        if (wCharWriterRequired_) {
-            //
-            // For GIOP 1.1 non byte-oriented wide characters are written
-            // as ushort or ulong, depending on their maximum length
-            // listed in the code set registry.
-            //
-            switch (giopVersion_) {
-            case GIOP1_0:
-                // we don't support special writers for GIOP 1.0 if
-                // conversion is required or if a writer is required
-                throw Assert.fail();
-
-            case GIOP1_1: {
-                // get the length of the character
-                int len = converter.write_count_wchar(value);
-
-                // For GIOP 1.1 we are limited to 2-byte wchars
-                // so make sure to check for that
-                Assert.ensure(len == 2);
-
-                // allocate aligned space
-                addCapacity(2, TWO_BYTE_BOUNDARY);
-
-                // write using the writer
-                converter.write_wchar(writeBuffer, value);
-                break;
-            }
-
-            default: {
-                // get the length of the character
-                int len = converter.write_count_wchar(value);
-
-                // write the octet length at the beginning
-                write_octet((byte) len);
-
-                // add unaligned capacity
-                addCapacity(len);
-
-                // write the actual character
-                converter.write_wchar(writeBuffer, value);
-                break;
-            }
-            }
-        } else {
-            switch (giopVersion_) {
-            case GIOP1_0: {
-                // Orbix2000/Orbacus/E compatible 1.0 marshal
-
-                // add aligned capacity
-                addCapacity(2, TWO_BYTE_BOUNDARY);
-
-                // write 2-byte character in big endian
-                writeBuffer.writeChar(value);
-            }
-                break;
-
-            case GIOP1_1: {
-                write_ushort((short) value);
-            }
-                break;
-
-            default: {
-                // add unaligned space for character
-                addCapacity(3);
-
-                // write the octet length at the start
-                writeBuffer.writeByte(2);
-
-                // write the character in big endian format
-                writeBuffer.writeChar(value);
-            }
-                break;
-            }
+        default:
+            // add unaligned space for 1 length-and-character
+            addCapacity(codec.octetCountLengthsAndWchars(1));
+            codec.writeLengthAndChar(value, writeBuffer);
+            break;
         }
     }
 
@@ -587,140 +499,76 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
 
     public void write_string(String value) {
         LOGGER.finest("Writing string value " + value);
+        final CharCodec codec = codeConverters_.charCodec;
         final char[] arr = value.toCharArray();
-        final CodeConverterBase converter = codeConverters_.outputCharConverter;
 
-        if (charWriterRequired_) { // write one or more bytes per char
-            // We don't know how much space each character will require: each char could take up to four bytes.
-            // To avoid re-allocation, create a large enough temporary buffer up front.
-            // NOTE: we need to use a temporary buffer to count the bytes reliably, because
-            // chunking can add bytes other than just the chars to be written.
-            final WriteBuffer tmpWriter = Buffer.createWriteBuffer(4 + value.length() * 4 + 1);
-            if (charConversionRequired_) {
-                for (char c : arr) converter.write_char(tmpWriter, converter.convert(checkChar(c)));
-            } else {
-                for (char c : arr) converter.write_char(tmpWriter, checkChar(c));
-            }
-            // write the null terminator
-            tmpWriter.writeByte(0);
-            // ignore any unused space in the buffer
-            tmpWriter.trim();
-            // write the length
-            write_ulong(tmpWriter.length());
-            // and write the contents
-            addCapacity(tmpWriter.length());
-            tmpWriter.readFromStart().readBytes(writeBuffer);
-        } else { // write one byte per char
-            int len = arr.length;
-            int capacity = len + 1;
-            write_ulong(capacity); // writes the length and ensures a two-byte boundary alignment
-            addCapacity(capacity);
-            if (charConversionRequired_) {
-                for (char c: arr) writeBuffer.writeByte(converter.convert(checkChar(c)));
-            } else {
-                for (char c: arr) writeBuffer.writeByte(checkChar(c));
-            }
+        if (codec.isFixedWidth()) {
+            int numOctets = arr.length * codec.charSize() + 1;
+            write_ulong(numOctets); // writes the length
+            addCapacity(numOctets);
+            for (char c: arr) codec.writeChar(c, writeBuffer);
             // write null terminator
             writeBuffer.writeByte(0);
+        } else {
+            // UTF-8 is the only supported non-fixed-width char encoding.
+            // Each Java char can require at most 3 bytes of UTF-8;
+            // any 4 byte UTF-8 sequence is a surrogate pair in Java.
+            // Use a temporary buffer to count bytes needed and allocate them up front.
+            // This keeps the data in a single chunk (not mandatory, but sensible).
+            final WriteBuffer tmpWriter = Buffer.createWriteBuffer(arr.length * 3 + 1);
+            for (char c : arr) codec.writeChar(c, tmpWriter);
+            // write the null terminator and compute the length, ignoring any unused space in the buffer
+            int numOctets = tmpWriter.writeByte(0).trim().length();
+            // write the length
+            write_ulong(numOctets);
+            // and write the contents
+            addCapacity(numOctets);
+            tmpWriter.readFromStart().readBytes(writeBuffer);
         }
-    }
-
-    private char checkChar(char c) {
-        // Only validate for 8-bit charsets (not UTF-8, UTF-16, or UCS-2)
-        if (charBoundsCheckRequired_ && c > 0xff) {
-            throw new DATA_CONVERSION(
-                String.format("Character 0x%04x out of range for 8-bit charset", (int)c));
-        }
-        return c;
     }
 
     public void write_wstring(String value) {
-        final char[] arr = value.toCharArray();
-        final int len = arr.length;
-
-        LOGGER.finest("Writing wstring value " + value);
-        //
-        // get converter/writer instance
-        //
-        final CodeConverterBase converter = codeConverters_.outputWcharConverter;
-
-        //
-        // for GIOP 1.0/1.1 we don't need to differentiate between
-        // strings requiring a writer/converter (or not) since they can
-        // be handled by the write_wchar() method
-        //
+        if (LOGGER.isLoggable(FINEST)) LOGGER.finest("Writing wstring value " + value);
         switch (giopVersion_) {
             case GIOP1_0:
             case GIOP1_1:
-                //
-                // write the length of the string
-                //
-                write_ulong(len + 1);
-
-                //
-                // now write all the characters
-                //
-                for (char anArr : arr) write_wchar(anArr, true);
-
-                //
-                // and the null terminator
-                //
-                write_wchar((char) 0, true);
-                return;
+                write_wstring_pre_1_2(value);
+                break;
             default:
+                write_wstring_1_2(value);
         }
+    }
 
-        // save the starting position and write the gap to place the length of the string later
-        try (SimplyCloseable sc = recordLength()) {
-            if (wCharWriterRequired_) {
-                for (char anArr : arr) {
-                    char v = anArr;
+    private void write_wstring_pre_1_2(String value) {
+        // write the length of the string in chars
+        write_ulong(value.length() + 1);
+        // already 4-byte aligned, so just add the needed capacity for len 2-byte chars
+        addCapacity(2*(value.length() + 1));
+        final WcharCodec codec = codeConverters_.wcharCodec;
+        // now write all the characters
+        for (int i = 0; i < value.length(); i++) codec.writeChar(value.charAt(i), writeBuffer);
+        // and the null terminator
+        codec.writeChar((char) 0, writeBuffer);
+    }
 
-                    //
-                    // check if the character requires conversion
-                    //
-                    if (wCharConversionRequired_) v = converter.convert(v);
-
-                    //
-                    // add capacity for the character
-                    //
-                    addCapacity(converter.write_count_wchar(v));
-
-                    //
-                    // write the character
-                    //
-                    converter.write_wchar(writeBuffer, v);
-                }
-            } else {
-                //
-                // since we don't require a special writer, each character
-                // MUST be 2-bytes in size
-                //
-                addCapacity(len << 1);
-
-                for (char anArr : arr) {
-                    char v = anArr;
-
-                    //
-                    // check for conversion
-                    //
-                    if (wCharConversionRequired_) v = converter.convert(v);
-
-                    //
-                    // write character in big endian format
-                    //
-                    writeBuffer.writeChar(v);
-                }
-            }
+    private void write_wstring_1_2(String value) {
+        // GIOP 1.2 encodes the length of the string in octets and does not require a null terminator
+        // first deal with the empty string case
+        if (value.isEmpty()) {
+            write_ulong(0);
+            return;
         }
-
-        //
-        // we've handled GIOP 1.0/1.1 above so this must be GIOP 1.2+
-        //
-
-        //
-        // write the octet length
-        //
+        // now we know there is a first character
+        final WcharCodec codec = codeConverters_.wcharCodec;
+        int numOctets = codec.octetCount(value);
+        // write the length of the string in octets
+        write_ulong(numOctets);
+        // add unaligned capacity
+        addCapacity(numOctets);
+        // write the first character, including optional BOM
+        codec.beginToWriteString(value.charAt(0), writeBuffer);
+        // write the rest of the characters
+        for (int i = 1; i < value.length(); i++) codec.writeChar(value.charAt(i), writeBuffer);
     }
 
     public void write_boolean_array(boolean[] value, int offset, int length) {
@@ -733,43 +581,11 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     }
 
     public void write_char_array(char[] value, int offset, int length) {
-        if (length > 0) {
-            addCapacity(length);
-
-            if (!(charWriterRequired_ || charConversionRequired_)) {
-                for (int i = offset; i < offset + length; i++) {
-                    if (value[i] > 255)
-                        throw new DATA_CONVERSION("char value exceeds 255: " + (int) value[i]);
-
-                    writeBuffer.writeByte(value[i]);
-                }
-            } else {
-                final CodeConverterBase converter = codeConverters_.outputCharConverter;
-
-                //
-                // Intermediate variable used for efficiency
-                //
-                boolean bothRequired = charWriterRequired_
-                        && charConversionRequired_;
-
-                for (int i = offset; i < offset + length; i++) {
-                    if (value[i] > 255)
-                        throw new DATA_CONVERSION("char value exceeds 255: " + (int) value[i]);
-
-                    if (bothRequired)
-                        converter.write_char(writeBuffer, converter.convert(value[i]));
-                    else if (charWriterRequired_)
-                        converter.write_char(writeBuffer, value[i]);
-                    else
-                        writeBuffer.writeByte(converter.convert(value[i]));
-                }
-            }
-        }
+        for (int i = offset; i < offset + length; i++) write_char(value[i]);
     }
 
     public void write_wchar_array(char[] value, int offset, int length) {
-        for (int i = offset; i < offset + length; i++)
-            write_wchar(value[i], false);
+        for (int i = offset; i < offset + length; i++) write_wchar(value[i]);
     }
 
     public void write_octet_array(byte[] value, int offset, int length) {
@@ -864,7 +680,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     public void write_TypeCode(TypeCode t) {
         // NOTE:
         // No data with natural alignment of greater than four octets
-        // is needed for TypeCode. Therefore it is not necessary to do
+        // is needed for TypeCode. Therefore, it is not necessary to do
         // encapsulation in a separate buffer.
 
         if (t == null) throw new BAD_TYPECODE("TypeCode is nil");
@@ -1157,13 +973,9 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
             break;
 
         case _tk_char:
-            if (charWriterRequired_ || charConversionRequired_) {
-                char[] ch = new char[len];
-                in.read_char_array(ch, 0, len);
-                write_char_array(ch, 0, len);
-            } else {
-                readFrom(in, len);
-            }
+            char[] ch = new char[len];
+            in.read_char_array(ch, 0, len);
+            write_char_array(ch, 0, len);
             break;
 
         case _tk_wchar: {
@@ -1489,28 +1301,6 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     public YokoOutputStream(WriteBuffer writeBuffer, CodeConverters converters, GiopVersion giopVersion) {
         this.writeBuffer = writeBuffer;
         this.giopVersion_ = giopVersion == null ? GIOP1_0 : giopVersion;
-
-        {
-            Optional<CodeConverterBase> charConv = Optional.ofNullable(converters).map(c -> c.outputCharConverter);
-            this.charWriterRequired_ = charConv.map(cc -> cc.writerRequired()).orElse(false);
-            this.charConversionRequired_ = charConv.map(cc -> cc.conversionRequired()).orElse(false);
-            // Cache whether bounds checking is needed for char conversion
-            // UTF-8, UTF-16, and UCS-2 can handle full 16-bit range, others need validation
-            this.charBoundsCheckRequired_ = charConv
-                .map(cc -> {
-                    org.apache.yoko.orb.OB.CodeSetInfo destCodeSet = cc.getDestinationCodeSet();
-                    return destCodeSet != org.apache.yoko.orb.OB.CodeSetInfo.UTF_8
-                        && destCodeSet != org.apache.yoko.orb.OB.CodeSetInfo.UTF_16
-                        && destCodeSet != org.apache.yoko.orb.OB.CodeSetInfo.UCS_2;
-                })
-                .orElse(Boolean.FALSE);
-        }
-        {
-            Optional<CodeConverterBase> wcharConv = Optional.ofNullable(converters).map(c -> c.outputWcharConverter);
-            this.wCharWriterRequired_ = wcharConv.map(cc -> cc.writerRequired()).orElse(false);
-            this.wCharConversionRequired_ = wcharConv.map(cc -> cc.conversionRequired()).orElse(false);
-        }
-
         this.codeConverters_ = CodeConverters.createCopy(converters);
     }
 

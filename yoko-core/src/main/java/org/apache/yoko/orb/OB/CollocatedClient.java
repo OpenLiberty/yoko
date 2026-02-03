@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import static org.apache.yoko.orb.OB.CodeConverters.NULL_CONVERTER;
+import static org.apache.yoko.orb.OB.CodeConverters.COLLOCATED;
 
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
@@ -39,7 +39,7 @@ public final class CollocatedClient extends Client implements DowncallEmitter {
     // ----------------------------------------------------------------------
 
     public CollocatedClient(CollocatedServer server, int concModel) {
-        super(concModel, NULL_CONVERTER);
+        super(concModel, COLLOCATED);
         server_ = server;
     }
 

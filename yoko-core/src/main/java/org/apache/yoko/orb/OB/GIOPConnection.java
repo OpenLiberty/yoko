@@ -169,7 +169,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
         if (csSC == null) return;
         CodeSetContext csCtx = CodeSetUtil.extractCodeSetContext(csSC);
 
-        this.codeConverters_ = CodeConverters.create(orbInstance_, csCtx.char_data, csCtx.wchar_data);
+        this.codeConverters_ = CodeConverters.create(csCtx.char_data, csCtx.wchar_data);
 
         if (CONN_IN_LOG.isLoggable(Level.FINEST)) {
             String msg = String.format("receiving transmission code sets%nchar code set: %s%nwchar code set: %s",

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,69 +17,58 @@
  */
 package org.apache.yoko.orb.OB;
 
+import org.apache.yoko.codecs.CharCodec;
+import org.apache.yoko.codecs.WcharCodec;
+
 import java.util.Objects;
 
-import static org.apache.yoko.orb.OB.CodeSetDatabase.getConverter;
-import static org.apache.yoko.orb.OB.CodeSetInfo.UTF_16;
+import static org.apache.yoko.codecs.CharCodec.NULL_CODEC;
 
-final public class CodeConverters {
-    // This class may look immutable, but CodeConverterBase holds reader and writer objects that are stateful and mutable
-    public static final CodeConverters NULL_CONVERTER = new CodeConverters(null, null, null, null);
+// This class may look immutable, but charCodec can contain state (while reading a surrogate pair from UTF-8)
+public final class CodeConverters {
+    static final CodeConverters COLLOCATED = new CodeConverters(NULL_CODEC, NULL_CODEC);
 
-    public final CodeConverterBase inputCharConverter;
-    public final CodeConverterBase outputCharConverter;
-    public final CodeConverterBase inputWcharConverter;
-    public final CodeConverterBase outputWcharConverter;
+    public final CharCodec charCodec;
+    public final WcharCodec wcharCodec;
 
-    private CodeConverters(CodeConverterBase charIn, CodeConverterBase charOut, CodeConverterBase wcharIn, CodeConverterBase wcharOut) {
-        inputCharConverter = charIn;
-        outputCharConverter = charOut;
-        inputWcharConverter = wcharIn;
-        outputWcharConverter = wcharOut;
+    private CodeConverters(CharCodec cc, WcharCodec wc) {
+        this.charCodec = cc;
+        this.wcharCodec = wc;
     }
 
-    private CodeConverters(CodeConverters c) {
-        this(c.inputCharConverter, c.outputCharConverter, c.inputWcharConverter, c.outputWcharConverter);
+    private CodeConverters(CodeConverters that) {
+        this(that.charCodec.getInstanceOrCopy(), that.wcharCodec.getInstanceOrCopy());
     }
 
     public static CodeConverters createCopy(CodeConverters template) {
-        if (template == null) return NULL_CONVERTER;
-        if (template == NULL_CONVERTER) return NULL_CONVERTER;
+        if (template == null) return COLLOCATED;
+        if (template == COLLOCATED) return COLLOCATED;
         return new CodeConverters(template);
     }
 
-    public static CodeConverters create(ORBInstance orbInst, int alienCs, int alienWcs) {
-        final int nativeCs = orbInst.getNativeCs();
-        final int nativeWcs = orbInst.getNativeWcs();
-        final CodeConverterBase charIn = getConverter(alienCs, nativeCs);
-        final CodeConverterBase charOut = getConverter(nativeCs, alienCs);
-        final CodeConverterBase wcharIn = getConverter(alienWcs, nativeWcs);
-        final CodeConverterBase wcharOut = getConverter(nativeWcs, alienWcs);
-        if (charIn == null && charOut == null && wcharIn == null && wcharOut == null) return NULL_CONVERTER;
-        return new CodeConverters(charIn, charOut, wcharIn, wcharOut);
+    public static CodeConverters create(int tcs, int twcs) {
+        CharCodec cc = CharCodec.forRegistryId(tcs);
+        WcharCodec wc = WcharCodec.forRegistryId(twcs);
+        return new CodeConverters(cc, wc);
     }
 
     public static CodeConverters createForWcharWriteOnly() {
-        return new CodeConverters(null, null, null, getConverter(UTF_16, UTF_16));
+        return new CodeConverters(null, WcharCodec.getDefault());
     }
 
-    public boolean equals(Object other) {
-        if (! (other instanceof CodeConverters)) return false;
-
-        CodeConverters that = (CodeConverters) other;
-
-        return Objects.equals(this.inputCharConverter, that.inputCharConverter) &&
-                Objects.equals(this.outputCharConverter, that.outputCharConverter) &&
-                Objects.equals(this.inputWcharConverter, that.inputWcharConverter) &&
-                Objects.equals(this.outputWcharConverter, that.outputWcharConverter);
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof CodeConverters)) return false;
+        CodeConverters that = (CodeConverters) o;
+        return Objects.equals(charCodec, that.charCodec) && Objects.equals(wcharCodec, that.wcharCodec);
     }
 
+    @Override
     public int hashCode() {
-        return Objects.hash(inputCharConverter, outputCharConverter, inputWcharConverter, outputWcharConverter);
+        return Objects.hash(charCodec, wcharCodec);
     }
 
     public String toString() {
-        return String.format("CodeConverters{%noutputCharConverter=%s%noutputWcharConverter=%s%n}",
-                outputCharConverter, outputWcharConverter);
+        return String.format("CodeConverters{%ncharCodec=%s%nwcharCodec=%s%n}", charCodec, wcharCodec);
     }
 }

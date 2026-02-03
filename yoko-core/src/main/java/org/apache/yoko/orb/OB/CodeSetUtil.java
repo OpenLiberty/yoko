@@ -80,13 +80,13 @@ final public class CodeSetUtil {
 
         final CodeSetComponentInfo info = getCodeSetInfoFromComponents(orbInstance, profileInfo);
 
-        if (info == null) return CodeConverters.create(orbInstance, ISO_LATIN_1.id, orbInstance.getDefaultWcs());
+        if (info == null) return CodeConverters.create(ISO_LATIN_1.id, orbInstance.getDefaultWcs());
 
         CodeSetComponent client_cs = createCodeSetComponent(orbInstance.getNativeCs(), false);
         CodeSetComponent client_wcs = createCodeSetComponent(orbInstance.getNativeWcs(), true);
         final int tcs_c = determineTCS(client_cs, info.ForCharData, UTF_8.id);
         final int tcs_wc = determineTCS(client_wcs, info.ForWcharData, UTF_16.id);
-        return CodeConverters.create(orbInstance, tcs_c, tcs_wc);
+        return CodeConverters.create(tcs_c, tcs_wc);
     }
 
     static CodeSetContext extractCodeSetContext(ServiceContext csSC) {

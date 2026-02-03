@@ -106,12 +106,13 @@ public interface CharCodec {
 
     static CharCodec forRegistryId(int id) throws UnsupportedCharsetException {
         CodeSetInfo csi = CodeSetInfo.forRegistryId(id);
+        if (null == csi) throw new UnsupportedCharsetException(String.format("Unknown registry id: 0x%08x", id));
         switch (csi) {
             case UTF_16: return SimpleWcharCodec.UTF_16;
             case UTF_8: return new Utf8Codec();
-
+            case ISO_LATIN_1: return SimpleCharCodec.ISO_LATIN_1;
+            default: return LatinCodec.getLatinCodec(csi); // throws if unknown
         }
-        throw new UnsupportedCharsetException("Charset registry id = " + id);
     }
 
     String name();

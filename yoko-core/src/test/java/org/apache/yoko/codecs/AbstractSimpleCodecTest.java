@@ -17,8 +17,6 @@
  */
 package org.apache.yoko.codecs;
 
-import org.apache.yoko.codecs.CharCodec;
-import org.apache.yoko.codecs.WcharCodec;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;

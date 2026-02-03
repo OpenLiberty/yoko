@@ -17,13 +17,14 @@
  */
 package org.apache.yoko.orb.CORBA;
 
+import org.apache.yoko.codecs.CharCodec;
+import org.apache.yoko.codecs.CharCodec.CharReader;
+import org.apache.yoko.codecs.WcharCodec;
 import org.apache.yoko.io.AlignmentBoundary;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.orb.OB.CodeBaseProxy;
-import org.apache.yoko.orb.OB.CodeConverterBase;
 import org.apache.yoko.orb.OB.CodeConverters;
-import org.apache.yoko.orb.OB.CodeSetReader;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.orb.OB.ObjectFactory;
 import org.apache.yoko.orb.OB.TypeCodeCache;
@@ -54,9 +55,9 @@ import java.security.PrivilegedActionException;
 import java.util.Hashtable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.IntStream;
 
 import static java.security.AccessController.doPrivileged;
+import static java.util.stream.IntStream.range;
 import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.FOUR_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.TWO_BYTE_BOUNDARY;
@@ -96,7 +97,6 @@ import static org.apache.yoko.util.MinorCodes.MinorReadOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadShortArrayOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadShortOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadStringNoTerminator;
-import static org.apache.yoko.util.MinorCodes.MinorReadStringNullChar;
 import static org.apache.yoko.util.MinorCodes.MinorReadStringOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadStringZeroLength;
 import static org.apache.yoko.util.MinorCodes.MinorReadULongArrayOverflow;
@@ -171,18 +171,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
 
     private TypeCodeCache cache_;
 
-    //
-    // Character conversion properties
-    //
     private CodeConverters codeConverters_;
-
-    private boolean charReaderRequired_;
-
-    private boolean charConversionRequired_;
-
-    private boolean wCharReaderRequired_;
-
-    private boolean wCharConversionRequired_;
 
     private CodeBase sendingContextRuntime_;
 
@@ -592,7 +581,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                     String id = read_string();
 
                     if (logger.isLoggable(Level.FINE))
-                        logger.fine(String.format("Abstract interface typecode encapsulaton length=0x%x id=%s", length, id));
+                        logger.fine(String.format("Abstract interface typecode encapsulation length=0x%x id=%s", length, id));
 
                     if (isTopLevel && cache_ != null)
                         tc = checkCache(id, typePos, length); // may advance pos
@@ -704,109 +693,27 @@ final public class YokoInputStream extends InputStreamWithOffsets {
 
     public char read_char() {
         checkChunk();
-        if (readBuffer.available() < 1) throw newMarshalError(MinorReadCharOverflow);
-
-        if (charReaderRequired_ || charConversionRequired_) {
-            final CodeConverterBase converter = codeConverters_.inputCharConverter;
-
-            if (charReaderRequired_ && charConversionRequired_)
-                return converter.convert(converter.read_char(readBuffer));
-            else if (charReaderRequired_)
-                return converter.read_char(readBuffer);
-            else
-                return converter.convert(readBuffer.readByteAsChar());
-        } else {
-            return readBuffer.readByteAsChar();
+        try {
+            return codeConverters_.charCodec.readChar(readBuffer);
+        } catch (IndexOutOfBoundsException e) {
+            throw newMarshalError(MinorReadCharOverflow, e);
         }
     }
 
     public char read_wchar() {
-        return read_wchar(false);
-    }
-
-    private char read_wchar(boolean partOfString) {
         checkChunk();
-
-        char value;
-        final CodeConverterBase converter = codeConverters_.inputWcharConverter;
-
-        if (wCharReaderRequired_) {
-            if (!partOfString) converter.set_reader_flags(CodeSetReader.FIRST_CHAR);
-
-            int wcLen = 2;
-
+        try {
             switch (giopVersion_) {
                 case GIOP1_0:
-                    // we should not require a reader for GIOP 1.0
-                    // wchars since this would mean we are using UTF-16.
-                    // This is not available in Orbix/E compatibility,
-                    // only UCS-2...
-                    throw Assert.fail();
-
                 case GIOP1_1:
                     readBuffer.align(TWO_BYTE_BOUNDARY);
-                    break;
-
-                default :
-                    wcLen = readBuffer.readByteAsChar();
-                    break;
+                    return codeConverters_.wcharCodec.readCharWithEndianFlag(readBuffer, swap_);
+                default:
+                    return codeConverters_.wcharCodec.readLengthAndChar(readBuffer);
             }
-
-            if (readBuffer.available() < wcLen) throw newMarshalError(MinorReadWCharOverflow);
-
-            //
-            // read in the value with the reader
-            //
-            value = converter.read_wchar(readBuffer, wcLen);
-        } else {
-            //
-            // no reader is required then
-            //
-            switch (giopVersion_) {
-                case GIOP1_0:
-                    // UCS-2 is the native wchar codeset for both Orbacus and Orbix/E so conversion should not be necessary
-                    Assert.ensure(!wCharConversionRequired_);
-
-                    readBuffer.align(TWO_BYTE_BOUNDARY);
-
-                    // assume big-endian (both Orbacus and Orbix/E do here) and read in the wchar
-                    try {
-                        return readBuffer.readChar();
-                    } catch (IndexOutOfBoundsException e) {
-                        throw newMarshalError(MinorReadWCharOverflow, e);
-                    }
-
-                case GIOP1_1:  // TODO: understand or safely delete this case
-                    // read according to the endian of the message
-                    if (converter.getSourceCodeSet().max_bytes <= 2)
-                        value = (char) read_ushort();
-                    else
-                        value = (char) read_ulong();
-                    break;
-
-                default : {
-                    // read the length octet off the front
-                    final int wcLen = readBuffer.readByteAsChar();
-
-                    // read the character off in proper endian format
-                    try {
-                        value = swap_ ? readBuffer.readChar_LE() : readBuffer.readChar();
-                    } catch (IndexOutOfBoundsException e) {
-                        throw newMarshalError(MinorReadWCharOverflow, e);
-                    }
-
-                    break;
-                }
-            }
+        } catch (IndexOutOfBoundsException e) {
+            throw newMarshalError(MinorReadWCharOverflow, e);
         }
-
-        //
-        // perform conversion is necessary
-        //
-        if (wCharConversionRequired_)
-            value = converter.convert(value);
-
-        return value;
     }
 
     public byte read_octet() {
@@ -905,131 +812,81 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         // Java strings don't need null terminators, so our string length will be at most one less than the byte count
         StringBuilder sb = new StringBuilder(byteCount - 1);
 
-        final CodeConverterBase converter = codeConverters_.inputCharConverter;
-        final int expectedRemainder = readBuffer.available() - (byteCount - 1);
+        final CharCodec codec = codeConverters_.charCodec;
+        final int endPosition = readBuffer.getPosition() + byteCount - 1;
 
-        while (readBuffer.available() > expectedRemainder) {
-            final char value = charReaderRequired_ ? converter.read_char(readBuffer) : readBuffer.readByteAsChar();
-
-            // String must not contain null characters
-            if (value == 0) throw newMarshalError(MinorReadStringNullChar);
-
-            sb.append(charConversionRequired_ ? converter.convert(value) : value);
+        try {
+            while (readBuffer.getPosition() < endPosition) {
+                sb.append(codec.readChar(readBuffer));
+            }
+        } catch (IndexOutOfBoundsException e) {
+            throw newMarshalError(MinorReadStringOverflow, e);
         }
+
         // throw MARSHAL if the converter read too many bytes
-        if (readBuffer.available() < expectedRemainder) throw newMarshalError(MinorReadStringOverflow);
-
-
+        if (readBuffer.getPosition() > endPosition) throw newMarshalError(MinorReadStringOverflow);
+        // All the supported char codecs would use a single zero byte for a null character.
+        // The COLLOCATED codec writes two-byte Java chars (even for non-wide char encoding)
+        // but this is only ever to the same ORB, so it is ok to read a single zero byte
+        // as long as this is written explicitly in write_string() as well as here.
+        // (i.e. do NOT use the codec to write the null terminator)
         if (readBuffer.readByte() != 0) throw newMarshalError(MinorReadStringNoTerminator);
 
         return sb.toString();
     }
 
     public String read_wstring() {
-        final String s;
         checkChunk();
-
-        final CodeConverterBase converter = codeConverters_.inputWcharConverter;
-
-        //
-        // read the length of the string (specified in characters for
-        // GIOP 1.0/1.1 and in octets for GIOP 1.2+)
-        //
-        int len = read_ulong();
-        if (logger.isLoggable(Level.FINE))
-            logger.fine(String.format("Reading wstring of length 0x%x", len));
-
-        switch (giopVersion_) {
-
-            case GIOP1_0:
-            case GIOP1_1: {
-                //
-                // it is not legal in GIOP 1.0/1.1 for a string to be 0 in
-                // length... it MUST have a null terminator
-                //
-                if (len == 0) {
-                    throw newMarshalError(MinorReadWStringZeroLength);
-                }
-
-                char[] tmp = new char[len];
-
-                if (wCharReaderRequired_) {
-                    converter.set_reader_flags(CodeSetReader.FIRST_CHAR);
-                }
-
-                for (int i = 0; i < len; i++) {
-                    tmp[i] = read_wchar(true);
-                }
-
-                //
-                // Check for terminating null wchar
-                //
-                if (tmp[len - 1] != 0)
-                    throw newMarshalError(MinorReadWStringNoTerminator);
-
-                //
-                // create the final string
-                //
-                s = new String(tmp, 0, len - 1);
-
-                break;
+        try {
+            switch (giopVersion_) {
+                case GIOP1_0:
+                case GIOP1_1:
+                    return read_wstring_pre_1_2();
+                default:
+                    return read_wstring_1_2();
             }
-
-            default : {
-                StringBuilder stringBuffer = new StringBuilder(len);
-
-                if (wCharReaderRequired_) {
-                    converter.set_reader_flags(CodeSetReader.FIRST_CHAR);
-
-                    //
-                    // start adding the characters to the string buffer
-                    //
-                    while (len > 0) {
-                        if (readBuffer.available() < 2)
-                            throw newMarshalError(MinorReadWStringOverflow);
-
-                        int wcLen = converter.read_count_wchar(readBuffer.peekChar());
-
-                        len -= wcLen;
-
-                        // check for an overflow in the read
-                        if (readBuffer.available() < wcLen) throw newMarshalError(MinorReadWStringOverflow);
-
-                        char c = converter.read_wchar(readBuffer, wcLen);
-                        if (wCharConversionRequired_) c = converter.convert(c);
-                        //
-                        stringBuffer.append(c);
-                    }
-                } else {
-                    final int wcLen = 2;
-
-                    while (len > 0) {
-                        len -= wcLen;
-
-                        // read in the char using the message endian
-                        // format for GIOP 1.2/1.3
-                        // REVISIT: GIOP 1.4 changes these rules
-                        // TODO: UTF-16 never took the endianness from the message!
-                        char c;
-                        try {
-                            c = swap_ ? readBuffer.readChar_LE() : readBuffer.readChar();
-                        } catch (IndexOutOfBoundsException e) {
-                            throw newMarshalError((MinorReadWStringOverflow), e);
-                        }
-                        if (wCharConversionRequired_)
-                            c = converter.convert(c);
-
-                        stringBuffer.append(c);
-                    }
-                }
-
-                s = stringBuffer.toString();
-
-                break;
-            }
+        } catch (IndexOutOfBoundsException e) {
+            throw newMarshalError(MinorReadWStringOverflow, e);
         }
+    }
 
-        return s;
+    private String read_wstring_pre_1_2() {
+        // read the length of the string (in characters for GIOP 1.0/1.1)
+        int numChars = read_ulong();
+        if (logger.isLoggable(Level.FINE)) logger.fine(String.format("Reading GIOP 1.0 wstring of length %d chars", numChars));
+        // it is not legal in GIOP 1.0/1.1 for a string to be 0 in length... it MUST have a null terminator
+        if (numChars == 0) throw newMarshalError(MinorReadWStringZeroLength);
+        // in GIOP 1.0/1.1, every char must be encoded as EXACTLY two bytes
+        if (readBuffer.available() < numChars * 2) throw newMarshalError(MinorReadWStringOverflow);
+
+        // in GIOP 1.0/1.1, there is no BOM - use the endianness from context
+        char[] tmp = new char[numChars];
+
+        final WcharCodec wcharCodec = codeConverters_.wcharCodec;
+        for (int i = 0; i < numChars; i++) tmp[i] = wcharCodec.readCharWithEndianFlag(readBuffer, swap_);
+
+        // Check for terminating null wchar
+        if (0 != tmp[numChars - 1]) throw newMarshalError(MinorReadWStringNoTerminator);
+
+        return new String(tmp, 0, numChars - 1);
+    }
+
+    private String read_wstring_1_2() {
+        // read the length of the string (in octets for GIOP 1.2+)
+        int numOctets = read_ulong();
+        if (readBuffer.available() < numOctets) throw newMarshalError(MinorReadWStringOverflow);
+
+        if (logger.isLoggable(Level.FINE)) logger.fine(String.format("Reading GIOP 1.2 wstring of length 0x%x octets", numOctets));
+        // In GIOP 1.2 there is no terminating null char, but there might be a BOM
+        StringBuilder builder = new StringBuilder(numOctets / 2);
+
+        final int endPosition = readBuffer.getPosition() + numOctets;
+        // this method checks for and consumes a BOM if present, returning the appropriately endian char reader
+        CharReader reader = codeConverters_.wcharCodec.beginToReadString(readBuffer);
+
+        while (readBuffer.getPosition() < endPosition) builder.append(reader.readChar(readBuffer));
+
+        return builder.toString();
     }
 
     public void read_boolean_array(boolean[] value, int offset, int length) {
@@ -1040,42 +897,11 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     }
 
     public void read_char_array(char[] value, int offset, int length) {
-        if (length <= 0) return;
-        checkChunk();
-
-        if (readBuffer.available() < length) throw newMarshalError(MinorReadCharArrayOverflow);
-
-        if (!(charReaderRequired_ || charConversionRequired_)) {
-            for (int i = offset; i < offset + length; i++)
-                value[i] = readBuffer.readByteAsChar();
-        } else {
-            final CodeConverterBase converter = codeConverters_.inputCharConverter;
-
-            //
-            // Intermediate variable used for efficiency
-            //
-            boolean bothRequired = charReaderRequired_ && charConversionRequired_;
-
-            for (int i = offset; i < offset + length; i++) {
-                if (bothRequired)
-                    value[i] = converter.convert(converter.read_char(readBuffer));
-                else if (charReaderRequired_)
-                    value[i] = converter.read_char(readBuffer);
-                else {
-                    final char c = readBuffer.readByteAsChar();
-                    value[i] = converter.convert(c);
-                }
-            }
-        }
+        for (int i = offset; i < offset + length; i++) value[i] = read_char();
     }
 
-    public void read_wchar_array(char[] value, int offset, int length) {
-        if (length <= 0) return;
-        if (readBuffer.available() < length)
-            throw newMarshalError(MinorReadCharArrayOverflow);
-
-        for (int i = offset; i < offset + length; i++)
-            value[i] = read_wchar(false);
+    public void read_wchar_array(char[] value, int offset, int numChars) {
+        for (int i = offset; i < offset + numChars; i++) value[i] = read_wchar();
     }
 
     public void read_octet_array(byte[] value, int offset, int length) {
@@ -1094,7 +920,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         readBuffer.align(TWO_BYTE_BOUNDARY);
 
         if (readBuffer.available() < length * 2) throw newMarshalError(MinorReadShortArrayOverflow);
-        IntStream.range(offset, offset + length).forEach( swap_ ?
+        range(offset, offset + length).forEach(swap_ ?
                 i -> value[i] = readBuffer.readShort_LE() :
                 i -> value[i] = readBuffer.readShort());
     }
@@ -1115,7 +941,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         if (readBuffer.available() < length * 4)
             throw newMarshalError(MinorReadLongArrayOverflow);
 
-        IntStream.range(offset, offset + length).forEach( swap_ ?
+        range(offset, offset + length).forEach( swap_ ?
                 i -> value[i] = readBuffer.readInt_LE() :
                 i -> value[i] = readBuffer.readInt());
     }
@@ -1141,7 +967,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         checkChunk();
         readBuffer.align(EIGHT_BYTE_BOUNDARY);
         if (readBuffer.available() < length * 8) throw newMarshalError(MinorReadLongLongArrayOverflow);
-        IntStream.range(offset, offset + length).forEach( swap_ ?
+        range(offset, offset + length).forEach( swap_ ?
                 i -> value[i] = readBuffer.readLong_LE() :
                 i -> value[i] = readBuffer.readLong());
     }
@@ -1159,7 +985,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         checkChunk();
         readBuffer.align(FOUR_BYTE_BOUNDARY);
         if (readBuffer.available() < length * 4) throw newMarshalError(MinorReadFloatArrayOverflow);
-        IntStream.range(offset, offset + length).forEach( swap_ ?
+        range(offset, offset + length).forEach( swap_ ?
                 i -> value[i] = readBuffer.readFloat_LE() :
                 i -> value[i] = readBuffer.readFloat());
     }
@@ -1169,7 +995,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         checkChunk();
         readBuffer.align(EIGHT_BYTE_BOUNDARY);
         if (readBuffer.available() < length * 8) throw newMarshalError(MinorReadDoubleArrayOverflow);
-        IntStream.range(offset, offset + length).forEach( swap_ ?
+        range(offset, offset + length).forEach( swap_ ?
                 i -> value[i] = readBuffer.readDouble_LE() :
                 i -> value[i] = readBuffer.readDouble());
     }
@@ -1267,7 +1093,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     public TypeCode read_TypeCode() {
         // NOTE:
         // No data with natural alignment of greater than four octets
-        // is needed for TypeCode. Therefore it is not necessary to do
+        // is needed for TypeCode. Therefore, it is not necessary to do
         // encapsulation in a separate buffer.
         checkChunk();
         return readTypeCodeImpl(new Hashtable<>(), true);
@@ -1364,10 +1190,6 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         return valueReader().readAbstractInterface(clz);
     }
 
-    // ------------------------------------------------------------------
-    // ORBacus-specific methods
-    // ------------------------------------------------------------------
-
     public void read_value(org.omg.CORBA.Any any, TypeCode tc) {
         valueReader().readValueAny(any, tc);
     }
@@ -1415,24 +1237,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
 
     public void _OB_codeConverters(CodeConverters converters, GiopVersion giopVersion) {
         if (giopVersion != null) giopVersion_ = giopVersion;
-        charReaderRequired_ = false;
-        charConversionRequired_ = false;
-        wCharReaderRequired_ = false;
-        wCharConversionRequired_ = false;
-
         codeConverters_ = CodeConverters.createCopy(converters);
-
-        if (converters != null) {
-            if (codeConverters_.inputCharConverter != null) {
-                charReaderRequired_ = codeConverters_.inputCharConverter.readerRequired();
-                charConversionRequired_ = codeConverters_.inputCharConverter.conversionRequired();
-            }
-
-            if (codeConverters_.inputWcharConverter != null) {
-                wCharReaderRequired_ = codeConverters_.inputWcharConverter.readerRequired();
-                wCharConversionRequired_ = codeConverters_.inputWcharConverter.conversionRequired();
-            }
-        }
     }
 
     public CodeConverters _OB_codeConverters() {

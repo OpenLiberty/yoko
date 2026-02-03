@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,22 +26,6 @@ import static org.apache.yoko.orb.OB.CodeSetInfo.areCompatibleCodesets;
 
 enum CodeSetDatabase {
     ;
-
-    static CodeConverterBase getConverter(int from, int to) {
-        CodeSetInfo fromSet = CodeSetInfo.forRegistryId(from);
-        CodeSetInfo toSet = CodeSetInfo.forRegistryId(to);
-        return getConverter(fromSet, toSet);
-    }
-
-    static CodeConverterBase getConverter(CodeSetInfo fromSet, CodeSetInfo toSet) {
-        // Optimization: don't use converter for identical narrow codesets
-        if (toSet != null && toSet == fromSet && toSet.max_bytes == 1) return null;
-
-        if (fromSet == null || toSet == null) return new CodeConverterNone(fromSet, toSet);
-
-        // the unsupported codesets should have been filtered out by the initial handshake
-        return new CodeConverterImpl(fromSet, toSet);
-    }
 
     /**
      * The logic of this method is taken from "Code Set Negotiation" (see CORBA 3.0.3 section 13.10.2.6).
