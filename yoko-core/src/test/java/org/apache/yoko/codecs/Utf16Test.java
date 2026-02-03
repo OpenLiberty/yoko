@@ -114,7 +114,7 @@ class Utf16Test extends AbstractSimpleCodecTest<WcharCodec> implements TestData 
 
     private void assertEndianCharIs(char expectedChar) {
         ReadBuffer bomA = getReadBuffer();
-        assertEquals(expectedChar, codec.readCharWithLength(bomA));
+        assertEquals(expectedChar, codec.readLengthAndChar(bomA));
         codec.assertNoBufferedCharData();
         assertTrue(bomA.isComplete());
         // now skip back 4 bytes and try to read it as the first char of a string
@@ -132,7 +132,7 @@ class Utf16Test extends AbstractSimpleCodecTest<WcharCodec> implements TestData 
         // then either this was an empty string, or if we are expecting a char
         // it genuinely is a single ZERO WIDTH NO BREAK SPACE character (also 0xFEFF)
         ReadBuffer singleBom = getReadBuffer();
-        assertEquals(BOM, codec.readCharWithLength(singleBom));
+        assertEquals(BOM, codec.readLengthAndChar(singleBom));
         assertTrue(singleBom.isComplete());
     }
 

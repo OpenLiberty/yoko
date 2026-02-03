@@ -81,6 +81,7 @@ import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
  */
 public interface CharCodec {
     @FunctionalInterface interface CharReader { char readChar(ReadBuffer in); }
+    WcharCodec NULL_CODEC = SimpleWcharCodec.NULL_CODEC;
 
     /**
      * Get a char codec instance for the named Java charset.
@@ -116,6 +117,27 @@ public interface CharCodec {
     String name();
 
     /**
+     * Returns true iff the encoding always uses the same number of octets per char
+     */
+    default boolean isFixedWidth() { return true; }
+
+    /**
+     * Returns the number of octets per char iff {@link #isFixedWidth()} returns <code>true</code>
+     * @throws UnsupportedOperationException for non-fixed-width encodings
+     */
+    default int charSize() { return 1; }
+    /**
+     * Read the next char.
+     * @throws IndexOutOfBoundsException if the buffer does not contain enough bytes to read a single char
+     */
+    char readChar(ReadBuffer in);
+
+    /**
+     * Gives the number of octets needed to encode the specified char.
+     */
+    default int octetCount(char c) { return 1; }
+
+    /**
      * Encodes a character to a buffer.
      * <p>
      *     If the character is a {@link Character#highSurrogate(int)},
@@ -132,10 +154,6 @@ public interface CharCodec {
      * @param out the buffer to which the character should be written
      */
     void writeChar(char c, WriteBuffer out);
-
-    /** Read the next char */
-    char readChar(ReadBuffer in);
-
 
     /**
      * Check there is no unfinished character data.

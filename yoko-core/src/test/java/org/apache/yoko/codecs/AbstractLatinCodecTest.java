@@ -72,6 +72,7 @@ abstract class AbstractLatinCodecTest {
         writeBuffer.writeByte(b);
         char actual = codec.readChar(readBuffer);
         assertEquals(expected, actual);
+        assertEquals(1, codec.octetCount(expected));
     }
 
     @Test

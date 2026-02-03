@@ -34,8 +34,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @param <CODEC> the type of Codec to test: CharCodec or WcharCodec
  */
 public abstract class AbstractSimpleCodecTest<CODEC extends CharCodec> {
-    @FunctionalInterface  interface ExpectedCharWriter { void writeTo(WriteBuffer w, char c); }
-    @FunctionalInterface  interface ExpectedCharReader { char readFrom(ReadBuffer w); }
+    @FunctionalInterface interface ExpectedCharWriter { void writeTo(WriteBuffer w, char c); }
+    @FunctionalInterface interface ExpectedCharReader { char readFrom(ReadBuffer w); }
     private WriteBuffer out;
     final CODEC codec;
     final ExpectedCharWriter expectedCharWriter;
@@ -70,7 +70,10 @@ public abstract class AbstractSimpleCodecTest<CODEC extends CharCodec> {
     }
 
     void assertEncoding(char c, char expected) {
+        int origPosition = out.getPosition();
         codec.writeChar(c, out);
+        // check the octetCount() matches what was written
+        assertEquals(out.getPosition() - origPosition, codec.octetCount(c), "bytes written should match octet count");
         ReadBuffer in = getReadBuffer();
         assertEquals(expected, expectedCharReader.readFrom(in));
         codec.assertNoBufferedCharData();
@@ -86,7 +89,10 @@ public abstract class AbstractSimpleCodecTest<CODEC extends CharCodec> {
     void assertEncodingFails(char c) {
         assertDecoding(c, UNICODE_REPLACEMENT_CHAR);
         newWriteBuffer();
+        int origPosition = out.getPosition();
         assertEncoding(c, isDoubleByte() ? UNICODE_REPLACEMENT_CHAR : ASCII_REPLACEMENT_CHAR);
+        // check the octetCount() matches what was written
+        assertEquals(out.getPosition() - origPosition, codec.octetCount(c), "bytes written should match octet count");
     }
 
     abstract boolean isDoubleByte();

@@ -77,8 +77,6 @@ class Utf8Test implements TestData {
     @ParameterizedTest(name = "Encode 4-byte UTF-8 char: {0} ({2})") @MethodSource("_4_ByteChars")
     void testEncode4ByteChar(String hex, int codepoint, String c) { checkEncoding(codepoint, c); }
 
-    // Invalid UTF-8 tests moved to Utf8InvalidTest.java
-
     private void checkDecoding(int codepoint, String expected) {
         ByteBuffer bb = UTF_8.encode(expected);
         ReadBuffer in = out.writeBytes(bb.array(), bb.arrayOffset(), bb.remaining()).trim().newReadBuffer();

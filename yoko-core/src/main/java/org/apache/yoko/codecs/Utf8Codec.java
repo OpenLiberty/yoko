@@ -37,7 +37,6 @@ import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
 final class Utf8Codec implements CharCodec {
     static class InternalException extends Exception {
         InternalException(String message) { super(message); }
-        InternalException(String message, Throwable cause) { super(message, cause); }
     }
 
     // These are the minimum acceptable values for the encoding length, indexed by the number of bytes.
@@ -45,6 +44,12 @@ final class Utf8Codec implements CharCodec {
 
     private char highSurrogate = 0;
     private char lowSurrogate = 0;
+
+    @Override
+    public boolean isFixedWidth() { return false; }
+
+    @Override
+    public int charSize() { throw new UnsupportedOperationException(); }
 
     public char readChar(ReadBuffer in) {
         // return unread low surrogate char if there is one
@@ -84,7 +89,7 @@ final class Utf8Codec implements CharCodec {
             // return the high surrogate FIRST
             return highSurrogate(codepoint);
         } catch (Exception e) {
-            // something went wrong while reading a multi-byte encoding
+            // something went wrong while reading a multibyte encoding
             DATA_IN_LOG.log(WARNING, e, () -> String.format("Bad input while reading multi-byte encoding beginning at position 0x%d: 0x%s", pos, in.asHex(pos, in.getPosition()).toUpperCase()));
             DATA_IN_LOG.fine(in::dumpAllDataWithPosition);
             // so return a replacement character and set the pointer just past this lead byte
@@ -112,6 +117,18 @@ final class Utf8Codec implements CharCodec {
         int i = 0xFF & in.readByte();
         if (2 != i >> 6) throw new InternalException(String.format("Illegal UTF-8 continuation byte: 0x%02X", i));
         return i & 0x3F;
+    }
+
+    @Override
+    public int octetCount(char c) {
+        // Surrogate pairs in UTF-16 need 4 bytes in UTF-8.
+        // When we receive the high surrogate, we write a single char '?', so return 1
+        if (isHighSurrogate(c)) return 1;
+        // Unless received out of order, the low surrogate will need a further 3 bytes.
+        // The out-of-order case will only need 1 byte for '?'.
+        if (isLowSurrogate(c)) return highSurrogate == 0 ? 1 : 3;
+        // if it isn't a surrogate pair, compute the length by bounds-checking.
+        return getUtf8Len(c);
     }
 
     public void writeChar(char c, WriteBuffer out) {

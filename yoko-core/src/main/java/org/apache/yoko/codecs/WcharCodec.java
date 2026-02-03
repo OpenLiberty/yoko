@@ -44,7 +44,17 @@ public interface WcharCodec extends CharCodec {
     }
 
     @Override
+    default int charSize() { return 2; }
+
+    @Override
     default char readChar(ReadBuffer in) { return in.readChar(); } // UTF-16 chars are already in Java format
+
+    @Override
+    default int octetCount(char c) { return 2; }
+
+    int octetCount(String s);
+
+    int octetCountLengthsAndWchars(int numChars);
 
     @Override
     default void writeChar(char c, WriteBuffer out) { out.writeChar(c); } // Java chars are already in UTF-16 format
@@ -64,14 +74,14 @@ public interface WcharCodec extends CharCodec {
      * However, it can be 4, if the wchar is preceded by a BOM.
      * This method should be used to read a BOM and then a wchar, i.e. if the length byte was 4.
      */
-    char readCharWithLength(ReadBuffer in);
+    char readLengthAndChar(ReadBuffer in);
 
     /**
      * In GIOP 1.2, wchars are preceded by a single octet.
      * This contains the number of octets in the char is encoding,
      * including any necessary BOM.
      */
-    void writeCharWithLength(char c, WriteBuffer out);
+    void writeLengthAndChar(char c, WriteBuffer out);
 
     /**
      * In GIOP 1.2, for UTF-16, there may be a byte-order marker to indicate the endianness of the encoded bytes.

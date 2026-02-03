@@ -28,11 +28,18 @@ import static org.apache.yoko.codecs.Util.ZERO_WIDTH_NO_BREAK_SPACE;
 
 enum SimpleWcharCodec implements WcharCodec {
     UTF_16 {
+        public int octetCount(String s) {
+            if (s.startsWith(""+ZERO_WIDTH_NO_BREAK_SPACE)) return 2 * (s.length() + 1);
+            return 2 * s.length();
+        }
+
+        public int octetCountLengthsAndWchars(int numChars) { return 3 * numChars; }
+
         public char readCharWithEndianFlag(ReadBuffer in, boolean swapBytes) {
             return swapBytes ? in.readChar_LE() : in.readChar();
         }
 
-        public char readCharWithLength(ReadBuffer in) {
+        public char readLengthAndChar(ReadBuffer in) {
             byte len = in.readByte();
             switch (len) {
                 case 2:
@@ -71,7 +78,7 @@ enum SimpleWcharCodec implements WcharCodec {
             out.writeChar(c);
         }
 
-        public void writeCharWithLength(char c, WriteBuffer out) {
+        public void writeLengthAndChar(char c, WriteBuffer out) {
             // Older versions of Yoko ignore the encoded length and just read two bytes anyway.
             // So, never write a BOM, and stick to two bytes.
             out.writeByte(2);
@@ -86,14 +93,18 @@ enum SimpleWcharCodec implements WcharCodec {
      * e.g. it never writes any lengths or BOMs, so it never reads any lengths or BOMs.
      */
     NULL {
+        public int octetCount(String s) { return 2 * s.length(); }
+
+        public int octetCountLengthsAndWchars(int numChars) { return 2 * numChars; }
+
         public char readCharWithEndianFlag(ReadBuffer in, boolean swapBytes) { return in.readChar(); }
 
-        public char readCharWithLength(ReadBuffer in) { return in.readChar(); }
+        public char readLengthAndChar(ReadBuffer in) { return in.readChar(); }
 
         public CharReader beginToReadString(ReadBuffer in) { return this::readChar; }
 
         public void beginToWriteString(char c, WriteBuffer out) { out.writeChar(c); }
 
-        public void writeCharWithLength(char c, WriteBuffer out) { out.writeChar(c);}
+        public void writeLengthAndChar(char c, WriteBuffer out) { out.writeChar(c);}
     };
 }
