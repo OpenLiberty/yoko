@@ -47,12 +47,8 @@ final public class CodeSetUtil {
     }
 
     static CodeSetComponentInfo getCodeSetInfoFromComponents(ORBInstance orbInstance, ProfileInfo profileInfo) {
-        // For IIOP 1.0 use proprietary mechanism (ISOLATIN1 and UCS2), if configured.
-        if (profileInfo.major == 1 && profileInfo.minor == 0) {
-            if (!orbInstance.extendedWchar()) return null;
-            // proprietary codeset configured, so use ISO Latin 1 for char and UCS 2 for wchar
-            return new CodeSetComponentInfo(new CodeSetComponent(ISO_LATIN_1.id), new CodeSetComponent(UCS_2.id));
-        }
+        // IIOP 1.0 profiles have no components
+        if (profileInfo.major == 1 && profileInfo.minor == 0) return null;
 
         // For IIOP 1.1 or newer extract codeset from profile
         return Stream.of(profileInfo.components)
@@ -70,7 +66,11 @@ final public class CodeSetUtil {
         final CodeSetComponentInfo info = getCodeSetInfoFromComponents(orbInstance, profileInfo);
 
         // defaults if no codeset profile was found in the IOR
-        if (info == null) return CodecPair.create(ISO_LATIN_1.id, orbInstance.getDefaultWcs());
+        if (info == null) {
+            return profileInfo.major == 1 && profileInfo.minor == 0 ?
+                    CodecPair.create(ISO_LATIN_1.id, orbInstance.getDefaultWcs()) :
+                    CodecPair.create(UTF_8.id, orbInstance.getDefaultWcs());
+        }
 
         CodeSetComponent client_cs = createCodeSetComponent(orbInstance.getNativeCs(), false);
         CodeSetComponent client_wcs = createCodeSetComponent(orbInstance.getNativeWcs(), true);

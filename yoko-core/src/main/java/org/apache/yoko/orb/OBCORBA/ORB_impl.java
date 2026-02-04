@@ -858,7 +858,7 @@ public class ORB_impl extends ORBSingleton {
         int concModel = Client.Blocking;
         int nativeCs = UTF_8.id;
         int nativeWcs = UTF_16.id;
-        int defaultWcs = 0;
+        int defaultWcs = UTF_16.id;
 
         for (String key: properties.stringPropertyNames()) {
             if (!key.startsWith("yoko.orb.")) continue;

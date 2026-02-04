@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ import static java.util.concurrent.Executors.newCachedThreadPool;
 
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -77,7 +76,6 @@ public final class ORBInstance {
     private UnknownExceptionStrategy unknownExceptionStrategy;
     private final URLRegistry urlRegistry;
     private final boolean useTypeCodeCache;
-    private final boolean extendedWchar;
     private OrbAsyncHandler asyncHandler;
     private final AtomicBoolean destroyCalled = new AtomicBoolean(); // True if destroy() was called
 
@@ -149,10 +147,6 @@ public final class ORBInstance {
         // Use the TypeCode cache?
         String tcc = this.properties.getProperty("yoko.orb.use_type_code_cache");
         useTypeCodeCache = tcc == null || !tcc.equals("false");
-
-        // Support wchar/wstring for IIOP 1.0?
-        String extWchar = this.properties.getProperty("yoko.orb.extended_wchar");
-        extendedWchar = extWchar != null && extWchar.equals("true");
 
         // get the number of AMI worker threads
         String amiWorkersStr = this.properties.getProperty("yoko.orb.ami_workers");
@@ -356,10 +350,6 @@ public final class ORBInstance {
 
     public boolean useTypeCodeCache() {
         return useTypeCodeCache;
-    }
-
-    public boolean extendedWchar() {
-        return extendedWchar;
     }
 
     public OrbAsyncHandler getAsyncHandler() {
