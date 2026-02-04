@@ -155,7 +155,7 @@ public class Upcall {
 
     public void createOutputStream(int offset) {
         final GiopVersion giopVersion = GiopVersion.get(profileInfo_.major, profileInfo_.minor);
-        out_ = new YokoOutputStream(createWriteBuffer(offset).padAll(), in_._OB_codeConverters(), giopVersion);
+        out_ = new YokoOutputStream(createWriteBuffer(offset).padAll(), in_.getCodecs(), giopVersion);
     }
 
     public YokoInputStream preUnmarshal() {
@@ -198,7 +198,7 @@ public class Upcall {
             addUnsentConnectionServiceContexts();
             upcallReturn_.upcallBeginReply(this, replyContexts);
         } else {
-            out_ = new YokoOutputStream(in_._OB_codeConverters(), GiopVersion.get(profileInfo_.major, profileInfo_.minor));
+            out_ = new YokoOutputStream(in_.getCodecs(), GiopVersion.get(profileInfo_.major, profileInfo_.minor));
         }
         out_._OB_ORBInstance(this.orbInstance());
         if (out_ != null) out_.setTimeout(timeout);
@@ -278,8 +278,8 @@ public class Upcall {
     private static void createUnknownExceptionServiceContexts(UnknownException ex, ServiceContexts replyContexts) {
         final Throwable t = ex.originalEx;
         try (CmsfOverride o = CmsfThreadLocal.override()) {
-            CodeConverters codeConverters = CodeConverters.createForWcharWriteOnly();
-            try (YokoOutputStream os = new YokoOutputStream(codeConverters, GIOP1_2)) {
+            CodecPair codecs = CodecPair.createForWcharWriteOnly();
+            try (YokoOutputStream os = new YokoOutputStream(codecs, GIOP1_2)) {
                 os._OB_writeEndian();
                 os.write_value(t, Throwable.class);
                 ServiceContext sc = new ServiceContext(UnknownExceptionInfo.value, os.copyWrittenBytes());

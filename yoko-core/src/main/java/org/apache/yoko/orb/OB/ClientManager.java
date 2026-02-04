@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -279,9 +279,9 @@ public final class ClientManager {
                 // have.
                 //
                 for (ProfileInfo profileInfo: profileInfos) {
-                    CodeConverters conv = CodeSetUtil.getCodeConverters(orbInstance, profileInfo);
+                    CodecPair codecs = CodeSetUtil.getNegotiatedCodecs(orbInstance, profileInfo);
 
-                    Client newClient = new GIOPClient(orbInstance, connector, concModel_, conv, enableBidir);
+                    Client newClient = new GIOPClient(orbInstance, connector, concModel_, codecs, enableBidir);
 
                     if (!pairs.isEmpty()) {
                         boolean matched = false;

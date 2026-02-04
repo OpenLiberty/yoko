@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.CORBA;
 
-import org.apache.yoko.orb.OB.CodeConverters;
+import org.apache.yoko.orb.OB.CodecPair;
 import org.apache.yoko.orb.OB.DowncallStub;
 import org.apache.yoko.orb.OB.FailureException;
 import org.apache.yoko.orb.OB.GIOPOutgoingMessage;
@@ -83,7 +83,7 @@ abstract public class ObjectImpl extends org.omg.CORBA_2_4.portable.ObjectImpl {
     }
 
     // public org.apache.yoko.orb.CORBA.OutputStream
-    public CodeConverters _OB_setup_ami_poll_request(
+    public CodecPair _OB_setup_ami_poll_request(
             ServiceContextListHolder sclHolder,
             OutputStreamHolder out) {
         Delegate delegate = (Delegate) _get_delegate();
@@ -91,7 +91,7 @@ abstract public class ObjectImpl extends org.omg.CORBA_2_4.portable.ObjectImpl {
         try {
             DowncallStub downStub = delegate
                     ._OB_getDowncallStub();
-            CodeConverters cc = downStub
+            CodecPair cc = downStub
                     .setupPollingRequest(sclHolder, out);
 
             return cc;

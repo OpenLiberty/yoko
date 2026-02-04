@@ -20,6 +20,7 @@ package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
+import org.apache.yoko.orb.OB.CodeSetInfo;
 
 import static org.apache.yoko.codecs.Util.expect7bit;
 import static org.apache.yoko.codecs.Util.require7bit;
@@ -27,10 +28,12 @@ import static org.apache.yoko.codecs.Util.require8bit;
 
 enum SimpleCharCodec implements CharCodec {
     US_ASCII {
+        public CodeSetInfo getCodeSetInfo() { return CodeSetInfo.ISO_646_IRV; }
         public char readChar(ReadBuffer in) { return expect7bit(in.readByteAsChar()); }
         public void writeChar(char c, WriteBuffer out) { out.writeByte(require7bit(c)); }
     },
     ISO_LATIN_1 {
+        public CodeSetInfo getCodeSetInfo() { return CodeSetInfo.ISO_LATIN_1; }
         public char readChar(ReadBuffer in) { return in.readByteAsChar(); } // no checking - a single-byte character can't be > 0xFF
         public void writeChar(char c, WriteBuffer out) { out.writeByte(require8bit(c)); }
     }

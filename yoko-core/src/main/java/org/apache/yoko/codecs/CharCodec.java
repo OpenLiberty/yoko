@@ -81,7 +81,8 @@ import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
  */
 public interface CharCodec {
     @FunctionalInterface interface CharReader { char readChar(ReadBuffer in); }
-    WcharCodec NULL_CODEC = SimpleWcharCodec.NULL_CODEC;
+    CharCodec NULL_CHAR_CODEC = SimpleWcharCodec.NULL;
+    CharCodec DEFAULT_CHAR_CODEC = SimpleCharCodec.ISO_LATIN_1;
 
     /**
      * Get a char codec instance for the named Java charset.
@@ -116,6 +117,8 @@ public interface CharCodec {
     }
 
     String name();
+
+    CodeSetInfo getCodeSetInfo();
 
     /**
      * Returns true iff the encoding always uses the same number of octets per char

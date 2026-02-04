@@ -429,8 +429,8 @@ public class Downcall {
                 Assert.ensure(responseExpected_);
                 in_ = in;
                 in_._OB_ORBInstance(orbInstance_);
-                CodeConverters codeConverters = client_.codeConverters();
-                in_._OB_codeConverters(codeConverters, GiopVersion.get(profileInfo_.major, profileInfo_.minor));
+                CodecPair codecs = client_.codecs();
+                in_.setCodecsAndGiopVersion(codecs, GiopVersion.get(profileInfo_.major, profileInfo_.minor));
             }
             if (null != stateWaitCondition) stateWaitCondition.signalAll();
         }
@@ -443,8 +443,8 @@ public class Downcall {
             state = State.USER_EXCEPTION;
             in_ = in;
             in_._OB_ORBInstance(orbInstance_);
-            CodeConverters codeConverters = client_.codeConverters();
-            in_._OB_codeConverters(codeConverters, GiopVersion.get(profileInfo_.major, profileInfo_.minor));
+            CodecPair codecs = client_.codecs();
+            in_.setCodecsAndGiopVersion(codecs, GiopVersion.get(profileInfo_.major, profileInfo_.minor));
             if (null != stateWaitCondition) stateWaitCondition.signalAll();
         }
     }

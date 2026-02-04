@@ -31,7 +31,6 @@ import org.apache.yoko.orb.OCI.Transport;
 import org.apache.yoko.orb.OCI.TransportInfo;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.Cache;
-import org.apache.yoko.util.Factory;
 import org.apache.yoko.util.Reference;
 import org.omg.BiDirPolicy.BOTH;
 import org.omg.CONV_FRAME.CodeSetContext;
@@ -51,7 +50,7 @@ import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINEST;
 import static org.apache.yoko.logging.VerboseLogging.CONN_OUT_LOG;
 import static org.apache.yoko.orb.OB.CodeSetInfo.ISO_LATIN_1;
-import static org.apache.yoko.orb.OB.CodeSetUtil.getCodeConverters;
+import static org.apache.yoko.orb.OB.CodeSetUtil.getNegotiatedCodecs;
 import static org.apache.yoko.orb.OB.SendingContextRuntimes.SENDING_CONTEXT_RUNTIME;
 import static org.apache.yoko.orb.exceptions.Transients.ACTIVE_CONNECTION_MANAGEMENT;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
@@ -63,12 +62,12 @@ final class GIOPClient extends Client {
 
     @Override
     public String toString() {
-        return super.toString() + " to " + connector_.get_info() + " -- " + connection_;
+        return super.toString() + " to " + connector.get_info() + " -- " + connection_;
     }
 
-    protected ORBInstance orbInstance_;
+    private ORBInstance orbInstance;
 
-    protected final Connector connector_;
+    private final Connector connector;
 
     /** A lazily final field pointing (eventually) to the single connection for the lifetime of this object */
     private GIOPConnection connection_;
@@ -76,24 +75,24 @@ final class GIOPClient extends Client {
     private Reference<GIOPConnection> connectionRef;
 
     /** Codesets SC */
-    protected ServiceContext codeSetSC_;
+    private ServiceContext codeSetSC;
 
-    protected ServiceContext codeBaseSC_;
+    private ServiceContext codeBaseSC;
 
-    protected boolean bidirWorker_; // is the worker bidir?
+    private final boolean bidirWorker; // is the worker bidir?
 
-    private boolean destroy_; // True if destroy() was called
+    private boolean destroyCalled; // True if destroy() was called
 
     // ----------------------------------------------------------------------
     // GIOPClient private and protected member implementations
     // ----------------------------------------------------------------------
 
-    // uses the prepopulated connector_ (not connected) to do a lookup,
+    // uses the prepopulated connector (not connected) to do a lookup,
     // checking if a bidir connection alias exists... it returns it if
     // it does and returns null otherwise
-    protected GIOPConnection find_bidir_worker() {
+    private GIOPConnection findBidirWorker() {
         try {
-            for (POAManager poaManager : orbInstance_.getPOAManagerFactory().list()) {
+            for (POAManager poaManager : orbInstance.getPOAManagerFactory().list()) {
                 for (Server aServSeq : ((POAManager_impl) poaManager)._OB_getServerManager().getServers()) {
                     GIOPConnection conn = ((GIOPServer) aServSeq)._OB_getGIOPServerStarter().getMatchingConnection(connectorInfo());
                     if (conn != null) return conn;
@@ -108,8 +107,8 @@ final class GIOPClient extends Client {
     // a new worker is created, with the timeout specified as second
     // parameter.
     //
-    protected synchronized GIOPConnection getWorker(boolean create, final int timeout) {
-        if (destroy_)
+    private synchronized GIOPConnection getWorker(boolean create, final int timeout) {
+        if (destroyCalled)
             throw ACTIVE_CONNECTION_MANAGEMENT.create();
 
         if (connection_ == null)
@@ -135,16 +134,11 @@ final class GIOPClient extends Client {
     }
 
     private synchronized void reuseOrCreateOutboundConnection(boolean create, final int timeout) {
-        Cache<ConnectorInfo, GIOPConnection> connCache = orbInstance_.getOutboundConnectionCache();
+        Cache<ConnectorInfo, GIOPConnection> connCache = orbInstance.getOutboundConnectionCache();
         if (create) {
-            connectionRef = connCache.getOrCreate(connector_.get_info(), new Factory<GIOPConnection>() {
-                @Override
-                public GIOPConnection create() {
-                    return createOutboundConnection(timeout);
-                }
-            });
+            connectionRef = connCache.getOrCreate(connector.get_info(), () -> createOutboundConnection(timeout));
         } else {
-            connectionRef = connCache.get(connector_.get_info());
+            connectionRef = connCache.get(connector.get_info());
         }
         connCache.clean();
         connection_ = connectionRef.get();
@@ -154,7 +148,7 @@ final class GIOPClient extends Client {
         // service requests so we need to set ourselves up as a
         // server (to correct map the OAInterfaces)
         //
-        if (bidirWorker_)
+        if (bidirWorker)
             connection_.activateServerSide();
     }
 
@@ -162,7 +156,7 @@ final class GIOPClient extends Client {
         //
         // first attempt to locate a reusable bidir connection
         //
-        connection_ = find_bidir_worker();
+        connection_ = findBidirWorker();
 
         if (connection_ == null) return;
 
@@ -176,23 +170,23 @@ final class GIOPClient extends Client {
         // Trace connection attempt
         if (CONN_OUT_LOG.isLoggable(FINE)) {
             String timeout = t >= 0 ? t + "ms" : "none";
-            String msg = String.format("trying to establish connection: %s    timeout: %s", connector_, timeout);
+            String msg = String.format("trying to establish connection: %s    timeout: %s", connector, timeout);
             CONN_OUT_LOG.fine(msg);
         }
 
         //
         // Create new transport, using the connector
         //
-        // For symetry reasons, GIOPClientStarterThreaded should also be
+        // For symmetry reasons, GIOPClientStarterThreaded should also be
         // added, even though these classes only have a trivial
         // functionality. Or perhaps the GIOPClientStarterThreaded tries to
-        // connect() in the backgound? Just an idea...
+        // connect() in the background? Just an idea...
         //
 
         Transport transport;
 
         if (t >= 0) {
-            transport = connector_.connect_timeout(t);
+            transport = connector.connect_timeout(t);
 
             //
             // Was there a timeout?
@@ -200,7 +194,7 @@ final class GIOPClient extends Client {
             if (transport == null)
                 throw new NO_RESPONSE("Connection timeout", 0, COMPLETED_NO);
         } else {
-            transport = connector_.connect();
+            transport = connector.connect();
             Assert.ensure(transport != null);
         }
 
@@ -208,17 +202,17 @@ final class GIOPClient extends Client {
         // Create new worker
         //
         Assert.ensure(concurrencyModel == Threaded);
-        return new GIOPConnectionThreaded(orbInstance_, transport, this);
+        return new GIOPConnectionThreaded(orbInstance, transport, this);
     }
 
     // initialize internal service contexts
     private void initServiceContexts() {
-        if (codeSetSC_ == null) {
+        if (codeSetSC == null) {
             CodeSetContext ctx = new CodeSetContext();
-            CodeConverters conv = codeConverters();
+            CodecPair codecs = codecs();
 
-            ctx.char_data = conv.outputCharConverter == null ? ISO_LATIN_1.id : conv.outputCharConverter.getDestinationCodeSet().id;
-            ctx.wchar_data = conv.outputWcharConverter == null ? orbInstance_.getNativeWcs() : conv.outputWcharConverter.getDestinationCodeSet().id;
+            ctx.char_data = codecs.charCodec.getCodeSetInfo().id;
+            ctx.wchar_data = codecs.wcharCodec.getCodeSetInfo().id;
 
             // Create encapsulation for CONV_FRAME::CodeSetContext
             try (YokoOutputStream outCSC = new YokoOutputStream()) {
@@ -227,13 +221,13 @@ final class GIOPClient extends Client {
 
                 // Create service context containing the
                 // CONV_FRAME::CodeSetContext encapsulation
-                codeSetSC_ = new ServiceContext();
-                codeSetSC_.context_id = CodeSets.value;
+                codeSetSC = new ServiceContext();
+                codeSetSC.context_id = CodeSets.value;
 
-                codeSetSC_.context_data = outCSC.copyWrittenBytes();
+                codeSetSC.context_data = outCSC.copyWrittenBytes();
             }
         }
-        if (codeBaseSC_ == null) codeBaseSC_ = SENDING_CONTEXT_RUNTIME;
+        if (codeBaseSC == null) codeBaseSC = SENDING_CONTEXT_RUNTIME;
         // NOTE: We don't initialize the INVOCATION_POLICIES service context
         // here because the list of policies can change from one invocation to
         // the next. Instead, we need to get the policies and build the
@@ -242,20 +236,20 @@ final class GIOPClient extends Client {
 
     GIOPClient(ORBInstance orbInstance,
                Connector connector, int concModel,
-               CodeConverters conv, boolean bidirEnable) {
+               CodecPair conv, boolean bidirEnable) {
         super(concModel, conv);
-        orbInstance_ = orbInstance;
-        connector_ = connector;
+        this.orbInstance = orbInstance;
+        this.connector = connector;
         connection_ = null;
-        destroy_ = false;
-        bidirWorker_ = bidirEnable;
+        destroyCalled = false;
+        bidirWorker = bidirEnable;
     }
 
     /** Destroy the client */
     public synchronized void destroy() {
-        if (destroy_) return;
+        if (destroyCalled) return;
         try (Reference<?> closeMe = connectionRef) {
-            destroy_ = true;
+            destroyCalled = true;
         }
     }
 
@@ -270,24 +264,24 @@ final class GIOPClient extends Client {
         initServiceContexts();
 
         // return the list
-        return ServiceContexts.unmodifiable(codeSetSC_);
+        return ServiceContexts.unmodifiable(codeSetSC);
     }
 
     /** Get all profiles that are usable with this client */
     public ProfileInfo[] getUsableProfiles(IOR ior, Policy[] policies) {
         // Get all profiles usable for the connector
         List<ProfileInfo> profileInfos = new ArrayList<>();
-        for (ProfileInfo anAll : connector_.get_usable_profiles(ior, policies)) {
-            CodeConverters conv = getCodeConverters(orbInstance_, anAll);
+        for (ProfileInfo anAll : connector.get_usable_profiles(ior, policies)) {
+            CodecPair conv = getNegotiatedCodecs(orbInstance, anAll);
             // Filter out profiles which would require a different code converter
-            if (codeConverters().equals(conv)) profileInfos.add(anAll);
+            if (codecs().equals(conv)) profileInfos.add(anAll);
         }
-        return profileInfos.toArray(new ProfileInfo[profileInfos.size()]);
+        return profileInfos.toArray(new ProfileInfo[0]);
     }
 
     /** Get the OCI Connector info */
     public ConnectorInfo connectorInfo() {
-        return connector_.get_info();
+        return connector.get_info();
     }
 
     /** Get the OCI Transport info */
@@ -320,13 +314,13 @@ final class GIOPClient extends Client {
             byte major = down.profileInfo().major;
             byte minor = down.profileInfo().minor;
             if (!connection.isRequestSent() && (major > 1 || minor >= 1)) {
-                if (CONN_OUT_LOG.isLoggable(FINEST)) CONN_OUT_LOG.finest("sending transmission code sets: \n" + codeConverters());
+                if (CONN_OUT_LOG.isLoggable(FINEST)) CONN_OUT_LOG.finest("sending transmission code sets: \n" + codecs());
 
-                Assert.ensure(codeSetSC_ != null);
-                down.addToRequestContexts(codeSetSC_);
+                Assert.ensure(codeSetSC != null);
+                down.addToRequestContexts(codeSetSC);
 
-                Assert.ensure(codeBaseSC_ != null);
-                down.addToRequestContexts(codeBaseSC_);
+                Assert.ensure(codeBaseSC != null);
+                down.addToRequestContexts(codeBaseSC);
             }
 
             // 
@@ -345,10 +339,10 @@ final class GIOPClient extends Client {
             }
 
             ProfileInfo profileInfo = down.profileInfo();
-            out.value = new YokoOutputStream(Buffer.createWriteBuffer(12).padAll(), codeConverters(), GiopVersion.get(profileInfo.major, profileInfo.minor));
+            out.value = new YokoOutputStream(Buffer.createWriteBuffer(12).padAll(), codecs(), GiopVersion.get(profileInfo.major, profileInfo.minor));
 
             // Create GIOP outgoing message
-            GIOPOutgoingMessage outgoing = new GIOPOutgoingMessage(orbInstance_, out.value, profileInfo);
+            GIOPOutgoingMessage outgoing = new GIOPOutgoingMessage(orbInstance, out.value, profileInfo);
 
             // Write header
             if (down.operation().equals("_locate"))
@@ -369,7 +363,7 @@ final class GIOPClient extends Client {
         if (!!!(other instanceof GIOPClient)) return false;
         GIOPClient that = (GIOPClient) other;
 
-        return this.connector_.equal(that.connector_) && this.codeConverters().equals(that.codeConverters());
+        return this.connector.equal(that.connector) && this.codecs().equals(that.codecs());
     }
 
     /** Force connection establishment */

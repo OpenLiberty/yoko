@@ -82,13 +82,15 @@ class LatinCodec implements CharCodec {
     private interface ISO_8859_8 { String NAME = "ISO-8859-8"; LatinCodec INSTANCE = new LatinCodec(NAME); }
     private interface ISO_8859_9 { String NAME = "ISO-8859-9"; LatinCodec INSTANCE = new LatinCodec(NAME); }
 
-    final String name;
-    final char[] decoderArray;
-    final Map<Character, Byte> encoderMap;
+    private final String name;
+    private final CodeSetInfo codeSetInfo;
+    private final char[] decoderArray;
+    private final Map<Character, Byte> encoderMap;
 
     private LatinCodec(String name) {
         Charset cs  = Charset.forName(name);
         this.name = cs.name();
+        this.codeSetInfo = CodeSetInfo.forName(name);
         ByteBuffer bytes = range(0, 256)
                 .collect(() -> allocate(256), (bb, b) -> bb.put(b, (byte) b), neverCombine());
         CharBuffer chars = cs.decode(bytes);
@@ -108,6 +110,9 @@ class LatinCodec implements CharCodec {
 
     @Override
     public String name() { return name; }
+
+    @Override
+    public CodeSetInfo getCodeSetInfo() { return codeSetInfo; }
 
     @Override
     public boolean equals(Object o) {

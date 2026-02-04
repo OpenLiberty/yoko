@@ -477,11 +477,11 @@ public final class DowncallStub {
     // Prepare a polling request from a portable stub
     //
     // public org.apache.yoko.orb.CORBA.OutputStream
-    public CodeConverters setupPollingRequest(ServiceContextListHolder sclHolder, OutputStreamHolder out) throws FailureException {
+    public CodecPair setupPollingRequest(ServiceContextListHolder sclHolder, OutputStreamHolder out) throws FailureException {
         // Obtain information regarding our target
         Client client = getClientProfilePair().client;
 
-        out.value = new YokoOutputStream(client.codeConverters(), GIOP1_2);
+        out.value = new YokoOutputStream(client.codecs(), GIOP1_2);
 
         sclHolder.value = client.getAMIRouterContexts().toArray();
 
@@ -493,7 +493,7 @@ public final class DowncallStub {
         ctx.downcall = null;
         out.value._OB_invocationContext(ctx);
 
-        return client.codeConverters();
+        return client.codecs();
     }
 
     // Creates an output stream that holds an AMI router request. Note
@@ -514,7 +514,7 @@ public final class DowncallStub {
         final Client client = cp.client;
         info.value = cp.profile;
 
-        out.value = new YokoOutputStream(writeBuffer, client.codeConverters(), GIOP1_2);
+        out.value = new YokoOutputStream(writeBuffer, client.codecs(), GIOP1_2);
         ServiceContexts contexts = client.getAMIRouterContexts();
 
         GIOPOutgoingMessage outgoing = new GIOPOutgoingMessage(orbInstance_, out.value, info.value);

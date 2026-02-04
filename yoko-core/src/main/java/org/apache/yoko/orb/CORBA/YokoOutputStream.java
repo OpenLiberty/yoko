@@ -24,13 +24,14 @@ import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.SimplyCloseable;
 import org.apache.yoko.io.WriteBuffer;
-import org.apache.yoko.orb.OB.CodeConverters;
+import org.apache.yoko.orb.OB.CodecPair;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.orb.OB.TypeCodeFactory;
 import org.apache.yoko.orb.OB.ValueWriter;
 import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.Timeout;
+import org.omg.CORBA.Any;
 import org.omg.CORBA.BAD_TYPECODE;
 import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.MARSHAL;
@@ -109,21 +110,21 @@ import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 public final class YokoOutputStream extends OutputStream implements ValueOutputStream {
     private static final Logger LOGGER = Logger.getLogger(YokoOutputStream.class.getName());
 
-    private ORBInstance orbInstance_;
+    private ORBInstance orbInstance;
     private final WriteBuffer writeBuffer;
-    private final GiopVersion giopVersion_;
-    private final CodeConverters codeConverters_;
+    private final GiopVersion giopVersion;
+    private final CodecPair codecs;
 
     // Handles all OBV marshalling
-    private ValueWriter valueWriter_;
+    private ValueWriter valueWriter;
 
     // In GIOP 1.2, the body must be aligned on an 8-byte boundary.
     // This flag is used to keep track of when that alignment is necessary.
     private boolean atEndOfGiop_1_2_Header = false;
 
-    private Object invocationContext_;
+    private Object invocationContext;
 
-    private Object delegateContext_;
+    private Object delegateContext;
     private Timeout timeout = Timeout.NEVER;
 
     private SimplyCloseable recordLength() {
@@ -374,7 +375,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     }
 
     private ValueWriter valueWriter() {
-        return null == valueWriter_ ? (valueWriter_ = new ValueWriter(this, writeBuffer)) : valueWriter_;
+        return null == valueWriter ? (valueWriter = new ValueWriter(this, writeBuffer)) : valueWriter;
     }
 
     private void addCapacity(int size) {
@@ -384,7 +385,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
             return;
         }
         // If a new chunk is required, there will be a recursive call to addCapacity().
-        if (writeBuffer.isComplete() && valueWriter_ != null) valueWriter_.checkBeginChunk();
+        if (writeBuffer.isComplete() && valueWriter != null) valueWriter.checkBeginChunk();
 
         // If there isn't enough room, then reallocate the buffer
         final boolean resized = writeBuffer.ensureAvailable(size);
@@ -403,7 +404,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         Assert.ensure(boundary != NO_BOUNDARY);
 
         // If a new chunk is required, there will be a recursive call to addCapacity().
-        if (writeBuffer.isComplete() && valueWriter_ != null) valueWriter_.checkBeginChunk();
+        if (writeBuffer.isComplete() && valueWriter != null) valueWriter.checkBeginChunk();
 
         if (atEndOfGiop_1_2_Header) {
             boundary = EIGHT_BYTE_BOUNDARY;
@@ -421,12 +422,12 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         write_long(b);
     }
 
-    public org.omg.CORBA.ORB orb() { return (orbInstance_ == null) ? null : orbInstance_.getORB(); }
+    public org.omg.CORBA.ORB orb() { return (orbInstance == null) ? null : orbInstance.getORB(); }
 
     @Override
     public YokoInputStream create_input_stream() {
-        YokoInputStream in = new YokoInputStream(getBufferReader(), false, codeConverters_, giopVersion_);
-        in._OB_ORBInstance(orbInstance_);
+        YokoInputStream in = new YokoInputStream(getBufferReader(), false, codecs, giopVersion);
+        in._OB_ORBInstance(orbInstance);
         return in;
     }
 
@@ -436,15 +437,15 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     }
 
     public void write_char(char value) {
-        final CharCodec codec = codeConverters_.charCodec;
+        final CharCodec codec = codecs.charCodec;
         addCapacity(codec.octetCount(value));
         codec.writeChar(value, writeBuffer);
     }
 
     public void write_wchar(char value) {
-        final WcharCodec codec = codeConverters_.wcharCodec;
+        final WcharCodec codec = codecs.wcharCodec;
 
-        switch (giopVersion_) {
+        switch (giopVersion) {
         case GIOP1_0:
         case GIOP1_1:
             // add aligned space for 1 character
@@ -499,7 +500,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
 
     public void write_string(String value) {
         LOGGER.finest("Writing string value " + value);
-        final CharCodec codec = codeConverters_.charCodec;
+        final CharCodec codec = codecs.charCodec;
         final char[] arr = value.toCharArray();
 
         if (codec.isFixedWidth()) {
@@ -529,7 +530,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
 
     public void write_wstring(String value) {
         if (LOGGER.isLoggable(FINEST)) LOGGER.finest("Writing wstring value " + value);
-        switch (giopVersion_) {
+        switch (giopVersion) {
             case GIOP1_0:
             case GIOP1_1:
                 write_wstring_pre_1_2(value);
@@ -544,7 +545,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         write_ulong(value.length() + 1);
         // already 4-byte aligned, so just add the needed capacity for len 2-byte chars
         addCapacity(2*(value.length() + 1));
-        final WcharCodec codec = codeConverters_.wcharCodec;
+        final WcharCodec codec = codecs.wcharCodec;
         // now write all the characters
         for (int i = 0; i < value.length(); i++) codec.writeChar(value.charAt(i), writeBuffer);
         // and the null terminator
@@ -559,7 +560,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
             return;
         }
         // now we know there is a first character
-        final WcharCodec codec = codeConverters_.wcharCodec;
+        final WcharCodec codec = codecs.wcharCodec;
         int numOctets = codec.octetCount(value);
         // write the length of the string in octets
         write_ulong(numOctets);
@@ -688,7 +689,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         writeTypeCodeImpl(t, new HashMap<TypeCode, Integer>());
     }
 
-    public void write_any(org.omg.CORBA.Any value) {
+    public void write_any(Any value) {
         LOGGER.finest("Writing an ANY value of type " + value.type().kind());
         write_TypeCode(value.type());
         value.write_value(this);
@@ -931,7 +932,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     }
 
     private void copyArrayFrom(org.omg.CORBA.portable.InputStream in, TypeCode tc) throws BadKind {
-        final boolean swapInput = (in instanceof YokoInputStream) && ((YokoInputStream)in).swap_;
+        final boolean swapInput = (in instanceof YokoInputStream) && ((YokoInputStream)in).swapBytes;
         int len;
 
         if (tc.kind().value() == _tk_sequence) {
@@ -1286,22 +1287,22 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         this(Buffer.createWriteBuffer(initialBufferSize), null, null);
     }
 
-    public YokoOutputStream(CodeConverters converters, GiopVersion giopVersion) {
-        this(Buffer.createWriteBuffer(), converters, giopVersion);
+    public YokoOutputStream(CodecPair codecs, GiopVersion giopVersion) {
+        this(Buffer.createWriteBuffer(), codecs, giopVersion);
     }
 
-    public YokoOutputStream(int initialBufferSize, CodeConverters converters, GiopVersion giopVersion) {
-        this(Buffer.createWriteBuffer(initialBufferSize), converters, giopVersion);
+    public YokoOutputStream(int initialBufferSize, CodecPair codecs, GiopVersion giopVersion) {
+        this(Buffer.createWriteBuffer(initialBufferSize), codecs, giopVersion);
     }
 
     public YokoOutputStream(WriteBuffer writeBuffer) {
         this(writeBuffer, null, null);
     }
 
-    public YokoOutputStream(WriteBuffer writeBuffer, CodeConverters converters, GiopVersion giopVersion) {
+    public YokoOutputStream(WriteBuffer writeBuffer, CodecPair codecs, GiopVersion giopVersion) {
         this.writeBuffer = writeBuffer;
-        this.giopVersion_ = giopVersion == null ? GIOP1_0 : giopVersion;
-        this.codeConverters_ = CodeConverters.createCopy(converters);
+        this.giopVersion = giopVersion == null ? GIOP1_0 : giopVersion;
+        this.codecs = CodecPair.createCopy(codecs);
     }
 
     @Override
@@ -1348,23 +1349,23 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     }
 
     public void _OB_ORBInstance(ORBInstance orbInstance) {
-        orbInstance_ = orbInstance;
+        this.orbInstance = orbInstance;
     }
 
     public void _OB_invocationContext(Object invocationContext) {
-        invocationContext_ = invocationContext;
+        this.invocationContext = invocationContext;
     }
 
     public Object _OB_invocationContext() {
-        return invocationContext_;
+        return invocationContext;
     }
 
     void _OB_delegateContext(Object delegateContext) {
-        delegateContext_ = delegateContext;
+        this.delegateContext = delegateContext;
     }
 
     Object _OB_delegateContext() {
-        return delegateContext_;
+        return delegateContext;
     }
 
     @Override

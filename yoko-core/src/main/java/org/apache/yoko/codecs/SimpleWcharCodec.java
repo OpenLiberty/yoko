@@ -19,6 +19,7 @@ package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
+import org.apache.yoko.orb.OB.CodeSetInfo;
 
 import static org.apache.yoko.logging.VerboseLogging.DATA_IN_LOG;
 import static org.apache.yoko.codecs.Util.BYTE_ORDER_MARKER;
@@ -28,6 +29,8 @@ import static org.apache.yoko.codecs.Util.ZERO_WIDTH_NO_BREAK_SPACE;
 
 enum SimpleWcharCodec implements WcharCodec {
     UTF_16 {
+        public CodeSetInfo getCodeSetInfo() { return CodeSetInfo.UTF_16; }
+
         public int octetCount(String s) {
             if (s.startsWith(""+ZERO_WIDTH_NO_BREAK_SPACE)) return 2 * (s.length() + 1);
             return 2 * s.length();
@@ -89,10 +92,12 @@ enum SimpleWcharCodec implements WcharCodec {
      * This converter is for use in collocated scenarios, where the sender and the receiver
      * are in the same process, using the same ORB instance.
      * <br>
-     * It takes some shortcuts because it exchanges data with another instance of the very same class.
+     * It takes shortcuts because it exchanges data with another instance of the very same class.
      * e.g. it never writes any lengths or BOMs, so it never reads any lengths or BOMs.
      */
     NULL {
+        public CodeSetInfo getCodeSetInfo() { return CodeSetInfo.NONE; }
+
         public int octetCount(String s) { return 2 * s.length(); }
 
         public int octetCountLengthsAndWchars(int numChars) { return 2 * numChars; }

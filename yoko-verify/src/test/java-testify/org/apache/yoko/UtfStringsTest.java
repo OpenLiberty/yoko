@@ -21,7 +21,7 @@ import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.ORB;
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
-import org.apache.yoko.orb.OB.CodeConverters;
+import org.apache.yoko.orb.OB.CodecPair;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -194,8 +194,8 @@ class UtfStringsTest {
     static YokoOutputStream newUtfSpecificOutputStream() {
         ORB orb = (ORB) ORB.init((String[]) null, null);
         ORBInstance orbInst = orb._OB_ORBInstance();
-        CodeConverters codeConverters = CodeConverters.create(orbInst, UTF_8.id, UTF_16.id);
-        return new YokoOutputStream(codeConverters, GIOP1_2);
+        CodecPair codecs = CodecPair.create(UTF_8.id, UTF_16.id);
+        return new YokoOutputStream(codecs, GIOP1_2);
     }
 
     @ParameterizedTest(name = "{0}")

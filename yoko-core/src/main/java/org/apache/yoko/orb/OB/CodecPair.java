@@ -22,44 +22,52 @@ import org.apache.yoko.codecs.WcharCodec;
 
 import java.util.Objects;
 
-import static org.apache.yoko.codecs.CharCodec.NULL_CODEC;
+import static org.apache.yoko.codecs.CharCodec.DEFAULT_CHAR_CODEC;
+import static org.apache.yoko.codecs.CharCodec.NULL_CHAR_CODEC;
+import static org.apache.yoko.codecs.WcharCodec.NULL_WCHAR_CODEC;
 
-// This class may look immutable, but charCodec can contain state (while reading a surrogate pair from UTF-8)
-public final class CodeConverters {
-    static final CodeConverters COLLOCATED = new CodeConverters(NULL_CODEC, NULL_CODEC);
+// This class may look immutable, but charCodec can contain state (while reading/writing a surrogate pair from/to UTF-8)
+public final class CodecPair {
+    /**
+     * The default codecs for GIOP 1.0.
+     * TODO: consider whether we need an UNSUPPORTED wchar codec that throws exceptions for wchars
+     */
+    static final CodecPair DEFAULT = new CodecPair(DEFAULT_CHAR_CODEC, WcharCodec.DEFAULT_WCHAR_CODEC);
+    static final CodecPair COLLOCATED = new CodecPair(NULL_CHAR_CODEC, NULL_WCHAR_CODEC);
 
     public final CharCodec charCodec;
     public final WcharCodec wcharCodec;
 
-    private CodeConverters(CharCodec cc, WcharCodec wc) {
+    private CodecPair(CharCodec cc, WcharCodec wc) {
         this.charCodec = cc;
         this.wcharCodec = wc;
     }
 
-    private CodeConverters(CodeConverters that) {
+    private CodecPair(CodecPair that) {
         this(that.charCodec.getInstanceOrCopy(), that.wcharCodec.getInstanceOrCopy());
     }
 
-    public static CodeConverters createCopy(CodeConverters template) {
-        if (template == null) return COLLOCATED;
+    public static CodecPair createCopy(CodecPair template) {
+        if (template == null) return DEFAULT;
+        if (template == DEFAULT) return DEFAULT;
         if (template == COLLOCATED) return COLLOCATED;
-        return new CodeConverters(template);
+        return new CodecPair(template);
     }
 
-    public static CodeConverters create(int tcs, int twcs) {
+    public static CodecPair create(int tcs, int twcs) {
         CharCodec cc = CharCodec.forRegistryId(tcs);
         WcharCodec wc = WcharCodec.forRegistryId(twcs);
-        return new CodeConverters(cc, wc);
+        return new CodecPair(cc, wc);
     }
 
-    public static CodeConverters createForWcharWriteOnly() {
-        return new CodeConverters(null, WcharCodec.getDefault());
+    public static CodecPair createForWcharWriteOnly() {
+        return new CodecPair(null, WcharCodec.getDefault());
     }
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof CodeConverters)) return false;
-        CodeConverters that = (CodeConverters) o;
+        if (!(o instanceof CodecPair)) return false;
+        CodecPair that = (CodecPair) o;
         return Objects.equals(charCodec, that.charCodec) && Objects.equals(wcharCodec, that.wcharCodec);
     }
 

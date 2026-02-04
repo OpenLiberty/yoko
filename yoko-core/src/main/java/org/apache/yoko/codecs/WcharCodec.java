@@ -25,7 +25,9 @@ import java.nio.charset.UnsupportedCharsetException;
 import java.util.Optional;
 
 public interface WcharCodec extends CharCodec {
-    static WcharCodec getDefault() { return SimpleWcharCodec.UTF_16; }
+    WcharCodec NULL_WCHAR_CODEC = SimpleWcharCodec.NULL;
+    WcharCodec DEFAULT_WCHAR_CODEC = SimpleWcharCodec.UTF_16;
+    static WcharCodec getDefault() { return DEFAULT_WCHAR_CODEC; }
 
     static WcharCodec forName(String name) {
         return Optional.of(name)

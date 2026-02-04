@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
-import static org.apache.yoko.orb.OB.CodeConverters.COLLOCATED;
+import static org.apache.yoko.orb.OB.CodecPair.COLLOCATED;
 
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;

@@ -19,6 +19,7 @@ package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
+import org.apache.yoko.orb.OB.CodeSetInfo;
 import org.omg.CORBA.DATA_CONVERSION;
 
 import static java.lang.Character.highSurrogate;
@@ -215,6 +216,9 @@ final class Utf8Codec implements CharCodec {
 
     @Override
     public String name() { return "UTF-8"; }
+
+    @Override
+    public CodeSetInfo getCodeSetInfo() { return CodeSetInfo.UTF_8; }
 
     @Override
     public boolean equals(Object o) { return o instanceof Utf8Codec; }

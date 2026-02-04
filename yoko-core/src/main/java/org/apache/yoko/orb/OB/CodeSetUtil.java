@@ -64,29 +64,22 @@ final public class CodeSetUtil {
                 .findFirst().orElse(null);
     }
 
-    //
-    // Get code converters from ProfileInfo and/or IOR
-    //
-    static CodeConverters getCodeConverters(ORBInstance orbInstance, ProfileInfo profileInfo) {
-        //
-        // Set up code converters
-        //
-        //
+    static CodecPair getNegotiatedCodecs(ORBInstance orbInstance, ProfileInfo profileInfo) {
         // Other transmission codesets than the defaults can only be
         // determined if a codeset profile was present in the IOR.
-        // The fallbacks in this case according to the specification
-        // are UTF-8 (not ISOLATIN1!) and UTF-16 (not UCS2!).
-        //
-
         final CodeSetComponentInfo info = getCodeSetInfoFromComponents(orbInstance, profileInfo);
 
-        if (info == null) return CodeConverters.create(ISO_LATIN_1.id, orbInstance.getDefaultWcs());
+        // defaults if no codeset profile was found in the IOR
+        if (info == null) return CodecPair.create(ISO_LATIN_1.id, orbInstance.getDefaultWcs());
 
         CodeSetComponent client_cs = createCodeSetComponent(orbInstance.getNativeCs(), false);
         CodeSetComponent client_wcs = createCodeSetComponent(orbInstance.getNativeWcs(), true);
+        // A codeset profile was present.
+        // The fallbacks in this case according to the specification
+        // are UTF-8 (not ISOLATIN1!) and UTF-16 (not UCS2!).
         final int tcs_c = determineTCS(client_cs, info.ForCharData, UTF_8.id);
         final int tcs_wc = determineTCS(client_wcs, info.ForWcharData, UTF_16.id);
-        return CodeConverters.create(tcs_c, tcs_wc);
+        return CodecPair.create(tcs_c, tcs_wc);
     }
 
     static CodeSetContext extractCodeSetContext(ServiceContext csSC) {

@@ -24,7 +24,7 @@ import org.apache.yoko.io.AlignmentBoundary;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.orb.OB.CodeBaseProxy;
-import org.apache.yoko.orb.OB.CodeConverters;
+import org.apache.yoko.orb.OB.CodecPair;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.orb.OB.ObjectFactory;
 import org.apache.yoko.orb.OB.TypeCodeCache;
@@ -32,6 +32,7 @@ import org.apache.yoko.orb.OB.ValueReader;
 import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.rmi.impl.InputStreamWithOffsets;
 import org.apache.yoko.util.Assert;
+import org.omg.CORBA.Any;
 import org.omg.CORBA.BAD_TYPECODE;
 import org.omg.CORBA.INITIALIZE;
 import org.omg.CORBA.MARSHAL;
@@ -79,7 +80,6 @@ import static org.apache.yoko.util.MinorCodes.MinorInvalidUnionDiscriminator;
 import static org.apache.yoko.util.MinorCodes.MinorLoadStub;
 import static org.apache.yoko.util.MinorCodes.MinorReadBooleanArrayOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadBooleanOverflow;
-import static org.apache.yoko.util.MinorCodes.MinorReadCharArrayOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadCharOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadDoubleArrayOverflow;
 import static org.apache.yoko.util.MinorCodes.MinorReadDoubleOverflow;
@@ -152,30 +152,30 @@ import static org.omg.CORBA.TCKind.tk_union;
 final public class YokoInputStream extends InputStreamWithOffsets {
     private static final Logger logger = DATA_IN_LOG;
 
-    private ORBInstance orbInstance_;
+    private ORBInstance orbInstance;
 
     private final ReadBuffer readBuffer;
 
-    boolean swap_;
+    boolean swapBytes;
 
-    private GiopVersion giopVersion_ = GIOP1_0;
+    private GiopVersion giopVersion = GIOP1_0;
 
-    private final int origPos_;
+    private final int origPos;
 
-    private final boolean origSwap_;
+    private final boolean origSwap;
 
     //
     // Handles all OBV marshaling
     //
-    private ValueReader valueReader_;
+    private ValueReader valueReader;
 
-    private TypeCodeCache cache_;
+    private TypeCodeCache cache;
 
-    private CodeConverters codeConverters_;
+    private CodecPair codecs;
 
-    private CodeBase sendingContextRuntime_;
+    private CodeBase sendingContextRuntime;
 
-    private String codebase_;
+    private String codebase;
 
     // ------------------------------------------------------------------
     // Private and protected members
@@ -185,7 +185,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         TypeCodeImpl tc = null;
 
         if (!id.isEmpty()) {
-            tc = cache_.get(id);
+            tc = cache.get(id);
             if (tc != null) {
                 _OB_skip(length + startPos - readBuffer.getPosition());
             }
@@ -250,22 +250,22 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                     // read.
                     checkChunk();
                     int typePos = readBuffer.getPosition();
-                    boolean swap = swap_;
+                    boolean swap = this.swapBytes;
                     _OB_readEndian();
 
                     String id = read_string();
 
-                    if (isTopLevel && cache_ != null)
+                    if (isTopLevel && cache != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
                         tc = (TypeCodeImpl) createInterfaceTC(id, read_string());
 
-                        if (!id.isEmpty() && cache_ != null)
-                            cache_.put(id, tc);
+                        if (!id.isEmpty() && cache != null)
+                            cache.put(id, tc);
                     }
 
                     history.put(oldPos, tc);
-                    swap_ = swap;
+                    this.swapBytes = swap;
                     break;
                 }
 
@@ -277,12 +277,12 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                     // read.
                     checkChunk();
                     int typePos = readBuffer.getPosition();
-                    boolean swap = swap_;
+                    boolean swap = this.swapBytes;
                     _OB_readEndian();
 
                     String id = read_string();
 
-                    if (isTopLevel && cache_ != null)
+                    if (isTopLevel && cache != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
                         //
@@ -305,11 +305,11 @@ final public class YokoInputStream extends InputStreamWithOffsets {
 
                         tc = p;
 
-                        if (!id.isEmpty() && cache_ != null)
-                            cache_.put(id, tc);
+                        if (!id.isEmpty() && cache != null)
+                            cache.put(id, tc);
                     }
 
-                    swap_ = swap;
+                    this.swapBytes = swap;
                     break;
                 }
 
@@ -320,12 +320,12 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                     // read.
                     checkChunk();
                     int typePos = readBuffer.getPosition();
-                    boolean swap = swap_;
+                    boolean swap = this.swapBytes;
                     _OB_readEndian();
 
                     String id = read_string();
 
-                    if (isTopLevel && cache_ != null)
+                    if (isTopLevel && cache != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
                         //
@@ -392,11 +392,11 @@ final public class YokoInputStream extends InputStreamWithOffsets {
 
                         tc = p;
 
-                        if (!id.isEmpty() && cache_ != null)
-                            cache_.put(id, tc);
+                        if (!id.isEmpty() && cache != null)
+                            cache.put(id, tc);
                     }
 
-                    swap_ = swap;
+                    this.swapBytes = swap;
                     break;
                 }
 
@@ -407,12 +407,12 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                     // read.
                     checkChunk();
                     int typePos = readBuffer.getPosition();
-                    boolean swap = swap_;
+                    boolean swap = this.swapBytes;
                     _OB_readEndian();
 
                     String id = read_string();
 
-                    if (isTopLevel && cache_ != null)
+                    if (isTopLevel && cache != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
                         String name = read_string();
@@ -423,11 +423,11 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                         tc = (TypeCodeImpl) createEnumTC(id, name, members);
                         history.put(oldPos, tc);
 
-                        if (!id.isEmpty() && cache_ != null)
-                            cache_.put(id, tc);
+                        if (!id.isEmpty() && cache != null)
+                            cache.put(id, tc);
                     }
 
-                    swap_ = swap;
+                    this.swapBytes = swap;
                     break;
                 }
 
@@ -446,7 +446,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                 case _tk_sequence :
                 case _tk_array : {
                     read_ulong(); // encapsulation length
-                    boolean swap = swap_;
+                    boolean swap = this.swapBytes;
                     _OB_readEndian();
 
                     //
@@ -462,7 +462,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
 
                     tc = p;
 
-                    swap_ = swap;
+                    this.swapBytes = swap;
                     break;
                 }
 
@@ -473,23 +473,23 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                     // read.
                     checkChunk();
                     int typePos = readBuffer.getPosition();
-                    boolean swap = swap_;
+                    boolean swap = this.swapBytes;
                     _OB_readEndian();
 
                     String id = read_string();
 
-                    if (isTopLevel && cache_ != null)
+                    if (isTopLevel && cache != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
                         tc = (TypeCodeImpl) createAliasTC(id, read_string(), readTypeCodeImpl(history, false));
 
                         history.put(oldPos, tc);
 
-                        if (!id.isEmpty() && cache_ != null)
-                            cache_.put(id, tc);
+                        if (!id.isEmpty() && cache != null)
+                            cache.put(id, tc);
                     }
 
-                    swap_ = swap;
+                    this.swapBytes = swap;
                     break;
                 }
 
@@ -500,12 +500,12 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                     // read.
                     checkChunk();
                     int typePos = readBuffer.getPosition();
-                    boolean swap = swap_;
+                    boolean swap = this.swapBytes;
                     _OB_readEndian();
 
                     String id = read_string();
 
-                    if (isTopLevel && cache_ != null)
+                    if (isTopLevel && cache != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
                         //
@@ -534,11 +534,11 @@ final public class YokoInputStream extends InputStreamWithOffsets {
 
                         tc = p;
 
-                        if (!id.isEmpty() && cache_ != null)
-                            cache_.put(id, tc);
+                        if (!id.isEmpty() && cache != null)
+                            cache.put(id, tc);
                     }
 
-                    swap_ = swap;
+                    this.swapBytes = swap;
                     break;
                 }
 
@@ -549,22 +549,22 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                     // read.
                     checkChunk();
                     int typePos = readBuffer.getPosition();
-                    boolean swap = swap_;
+                    boolean swap = this.swapBytes;
                     _OB_readEndian();
 
                     String id = read_string();
 
-                    if (isTopLevel && cache_ != null)
+                    if (isTopLevel && cache != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
                         tc = (TypeCodeImpl) createValueBoxTC(id, read_string(), readTypeCodeImpl(history, false));
                         history.put(oldPos, tc);
 
-                        if (!id.isEmpty() && cache_ != null)
-                            cache_.put(id, tc);
+                        if (!id.isEmpty() && cache != null)
+                            cache.put(id, tc);
                     }
 
-                    swap_ = swap;
+                    this.swapBytes = swap;
                     break;
                 }
 
@@ -575,7 +575,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                     // read.
                     checkChunk();
                     int typePos = readBuffer.getPosition();
-                    boolean swap = swap_;
+                    boolean swap = this.swapBytes;
                     _OB_readEndian();
 
                     String id = read_string();
@@ -583,17 +583,17 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                     if (logger.isLoggable(Level.FINE))
                         logger.fine(String.format("Abstract interface typecode encapsulation length=0x%x id=%s", length, id));
 
-                    if (isTopLevel && cache_ != null)
+                    if (isTopLevel && cache != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
                         tc = (TypeCodeImpl) createAbstractInterfaceTC(id, read_string());
                         history.put(oldPos, tc);
 
-                        if (!id.isEmpty() && cache_ != null)
-                            cache_.put(id, tc);
+                        if (!id.isEmpty() && cache != null)
+                            cache.put(id, tc);
                     }
 
-                    swap_ = swap;
+                    this.swapBytes = swap;
                     break;
                 }
 
@@ -604,22 +604,22 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                     // read.
                     checkChunk();
                     int typePos = readBuffer.getPosition();
-                    boolean swap = swap_;
+                    boolean swap = this.swapBytes;
                     _OB_readEndian();
 
                     String id = read_string();
 
-                    if (isTopLevel && cache_ != null)
+                    if (isTopLevel && cache != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
                         tc = (TypeCodeImpl) createNativeTC(id, read_string());
 
-                        if (!id.isEmpty() && cache_ != null)
-                            cache_.put(id, tc);
+                        if (!id.isEmpty() && cache != null)
+                            cache.put(id, tc);
                     }
 
                     history.put(oldPos, tc);
-                    swap_ = swap;
+                    this.swapBytes = swap;
                     break;
                 }
 
@@ -630,22 +630,22 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                     // read.
                     checkChunk();
                     int typePos = readBuffer.getPosition();
-                    boolean swap = swap_;
+                    boolean swap = this.swapBytes;
                     _OB_readEndian();
 
                     String id = read_string();
 
-                    if (isTopLevel && cache_ != null)
+                    if (isTopLevel && cache != null)
                         tc = checkCache(id, typePos, length); // may advance pos
                     if (tc == null) {
                         tc = (TypeCodeImpl) createLocalInterfaceTC(id, read_string());
                         history.put(oldPos, tc);
 
-                        if (!id.isEmpty() && cache_ != null)
-                            cache_.put(id, tc);
+                        if (!id.isEmpty() && cache != null)
+                            cache.put(id, tc);
                     }
 
-                    swap_ = swap;
+                    this.swapBytes = swap;
                     break;
                 }
 
@@ -657,7 +657,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         return tc;
     }
 
-    private ValueReader valueReader() { return valueReader_ == null ? (valueReader_ = new ValueReader(this)) : valueReader_; }
+    private ValueReader valueReader() { return valueReader == null ? (valueReader = new ValueReader(this)) : valueReader; }
 
     public int available() {
         int available =  readBuffer.available();
@@ -671,7 +671,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     }
 
     public org.omg.CORBA.ORB orb() {
-        return orbInstance_ == null ? null : orbInstance_.getORB();
+        return orbInstance == null ? null : orbInstance.getORB();
     }
 
     public boolean read_boolean() {
@@ -694,7 +694,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     public char read_char() {
         checkChunk();
         try {
-            return codeConverters_.charCodec.readChar(readBuffer);
+            return codecs.charCodec.readChar(readBuffer);
         } catch (IndexOutOfBoundsException e) {
             throw newMarshalError(MinorReadCharOverflow, e);
         }
@@ -703,13 +703,13 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     public char read_wchar() {
         checkChunk();
         try {
-            switch (giopVersion_) {
+            switch (giopVersion) {
                 case GIOP1_0:
                 case GIOP1_1:
                     readBuffer.align(TWO_BYTE_BOUNDARY);
-                    return codeConverters_.wcharCodec.readCharWithEndianFlag(readBuffer, swap_);
+                    return codecs.wcharCodec.readCharWithEndianFlag(readBuffer, swapBytes);
                 default:
-                    return codeConverters_.wcharCodec.readLengthAndChar(readBuffer);
+                    return codecs.wcharCodec.readLengthAndChar(readBuffer);
             }
         } catch (IndexOutOfBoundsException e) {
             throw newMarshalError(MinorReadWCharOverflow, e);
@@ -729,7 +729,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         checkChunk();
         readBuffer.align(TWO_BYTE_BOUNDARY);
         try {
-            return swap_ ? readBuffer.readShort_LE() : readBuffer.readShort();
+            return swapBytes ? readBuffer.readShort_LE() : readBuffer.readShort();
         } catch (IndexOutOfBoundsException e) {
             throw newMarshalError((MinorReadShortOverflow), e);
         }
@@ -759,7 +759,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         checkChunk();
         readBuffer.align(EIGHT_BYTE_BOUNDARY);
         try {
-            return swap_ ? readBuffer.readLong_LE() : readBuffer.readLong();
+            return swapBytes ? readBuffer.readLong_LE() : readBuffer.readLong();
         } catch (IndexOutOfBoundsException e) {
             throw newMarshalError((MinorReadLongLongOverflow), e);
         }
@@ -777,7 +777,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         checkChunk();
         readBuffer.align(FOUR_BYTE_BOUNDARY);
         try {
-            return swap_ ? readBuffer.readFloat_LE() : readBuffer.readFloat();
+            return swapBytes ? readBuffer.readFloat_LE() : readBuffer.readFloat();
         } catch (IndexOutOfBoundsException e) {
             throw newMarshalError((MinorReadFloatOverflow), e);
         }
@@ -787,7 +787,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         checkChunk();
         readBuffer.align(EIGHT_BYTE_BOUNDARY);
         try {
-            return swap_ ? readBuffer.readDouble_LE() : readBuffer.readDouble();
+            return swapBytes ? readBuffer.readDouble_LE() : readBuffer.readDouble();
         } catch (IndexOutOfBoundsException e) {
             throw newMarshalError((MinorReadDoubleOverflow), e);
         }
@@ -812,7 +812,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         // Java strings don't need null terminators, so our string length will be at most one less than the byte count
         StringBuilder sb = new StringBuilder(byteCount - 1);
 
-        final CharCodec codec = codeConverters_.charCodec;
+        final CharCodec codec = codecs.charCodec;
         final int endPosition = readBuffer.getPosition() + byteCount - 1;
 
         try {
@@ -838,7 +838,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     public String read_wstring() {
         checkChunk();
         try {
-            switch (giopVersion_) {
+            switch (giopVersion) {
                 case GIOP1_0:
                 case GIOP1_1:
                     return read_wstring_pre_1_2();
@@ -862,8 +862,8 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         // in GIOP 1.0/1.1, there is no BOM - use the endianness from context
         char[] tmp = new char[numChars];
 
-        final WcharCodec wcharCodec = codeConverters_.wcharCodec;
-        for (int i = 0; i < numChars; i++) tmp[i] = wcharCodec.readCharWithEndianFlag(readBuffer, swap_);
+        final WcharCodec wcharCodec = codecs.wcharCodec;
+        for (int i = 0; i < numChars; i++) tmp[i] = wcharCodec.readCharWithEndianFlag(readBuffer, swapBytes);
 
         // Check for terminating null wchar
         if (0 != tmp[numChars - 1]) throw newMarshalError(MinorReadWStringNoTerminator);
@@ -882,7 +882,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
 
         final int endPosition = readBuffer.getPosition() + numOctets;
         // this method checks for and consumes a BOM if present, returning the appropriately endian char reader
-        CharReader reader = codeConverters_.wcharCodec.beginToReadString(readBuffer);
+        CharReader reader = codecs.wcharCodec.beginToReadString(readBuffer);
 
         while (readBuffer.getPosition() < endPosition) builder.append(reader.readChar(readBuffer));
 
@@ -920,7 +920,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         readBuffer.align(TWO_BYTE_BOUNDARY);
 
         if (readBuffer.available() < length * 2) throw newMarshalError(MinorReadShortArrayOverflow);
-        range(offset, offset + length).forEach(swap_ ?
+        range(offset, offset + length).forEach(swapBytes ?
                 i -> value[i] = readBuffer.readShort_LE() :
                 i -> value[i] = readBuffer.readShort());
     }
@@ -941,7 +941,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         if (readBuffer.available() < length * 4)
             throw newMarshalError(MinorReadLongArrayOverflow);
 
-        range(offset, offset + length).forEach( swap_ ?
+        range(offset, offset + length).forEach( swapBytes ?
                 i -> value[i] = readBuffer.readInt_LE() :
                 i -> value[i] = readBuffer.readInt());
     }
@@ -967,7 +967,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         checkChunk();
         readBuffer.align(EIGHT_BYTE_BOUNDARY);
         if (readBuffer.available() < length * 8) throw newMarshalError(MinorReadLongLongArrayOverflow);
-        range(offset, offset + length).forEach( swap_ ?
+        range(offset, offset + length).forEach( swapBytes ?
                 i -> value[i] = readBuffer.readLong_LE() :
                 i -> value[i] = readBuffer.readLong());
     }
@@ -985,7 +985,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         checkChunk();
         readBuffer.align(FOUR_BYTE_BOUNDARY);
         if (readBuffer.available() < length * 4) throw newMarshalError(MinorReadFloatArrayOverflow);
-        range(offset, offset + length).forEach( swap_ ?
+        range(offset, offset + length).forEach( swapBytes ?
                 i -> value[i] = readBuffer.readFloat_LE() :
                 i -> value[i] = readBuffer.readFloat());
     }
@@ -995,7 +995,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         checkChunk();
         readBuffer.align(EIGHT_BYTE_BOUNDARY);
         if (readBuffer.available() < length * 8) throw newMarshalError(MinorReadDoubleArrayOverflow);
-        range(offset, offset + length).forEach( swap_ ?
+        range(offset, offset + length).forEach( swapBytes ?
                 i -> value[i] = readBuffer.readDouble_LE() :
                 i -> value[i] = readBuffer.readDouble());
     }
@@ -1004,8 +1004,8 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         checkChunk();
         IOR ior = IORHelper.read(this);
         if ((ior.type_id.isEmpty()) && (ior.profiles.length == 0)) return null;
-        if (orbInstance_ == null) throw new INITIALIZE("InputStream must be created " + "by a full ORB");
-        ObjectFactory objectFactory = orbInstance_.getObjectFactory();
+        if (orbInstance == null) throw new INITIALIZE("InputStream must be created by a full ORB");
+        ObjectFactory objectFactory = orbInstance.getObjectFactory();
         return objectFactory.createObject(ior);
     }
 
@@ -1099,8 +1099,8 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         return readTypeCodeImpl(new Hashtable<>(), true);
     }
 
-    public org.omg.CORBA.Any read_any() {
-        org.omg.CORBA.Any any = new AnyImpl(orbInstance_);
+    public Any read_any() {
+        Any any = new AnyImpl(orbInstance);
         any.read_value(this, read_TypeCode());
         return any;
     }
@@ -1109,7 +1109,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         final int len = read_ulong();
         String[] values = new String[len];
         for (int i = 0; i < len; i++) values[i] = read_string();
-        return new Context(orbInstance_.getORB(), "", values);
+        return new Context(orbInstance.getORB(), "", values);
     }
 
     public Principal read_Principal() {
@@ -1190,16 +1190,16 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         return valueReader().readAbstractInterface(clz);
     }
 
-    public void read_value(org.omg.CORBA.Any any, TypeCode tc) {
+    public void read_value(Any any, TypeCode tc) {
         valueReader().readValueAny(any, tc);
     }
 
-    private YokoInputStream(ReadBuffer readBuffer, int offs, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
+    private YokoInputStream(ReadBuffer readBuffer, int offs, boolean swapBytes, CodecPair codecs, GiopVersion giopVersion) {
         this.readBuffer = readBuffer.setPosition(offs);
-        this.swap_ = swap;
-        this.origPos_ = offs;
-        this.origSwap_ = swap;
-        _OB_codeConverters(codeConverters, giopVersion);
+        this.swapBytes = swapBytes;
+        this.origPos = offs;
+        this.origSwap = swapBytes;
+        setCodecsAndGiopVersion(codecs, giopVersion);
     }
 
     /**
@@ -1207,24 +1207,24 @@ final public class YokoInputStream extends InputStreamWithOffsets {
      */
     @SuppressWarnings("CopyConstructorMissesField")
     public YokoInputStream(YokoInputStream that) {
-        this(that.readBuffer.clone(), that.origPos_, that.origSwap_, that.codeConverters_, that.giopVersion_);
-        this.orbInstance_ = that.orbInstance_;
+        this(that.readBuffer.clone(), that.origPos, that.origSwap, that.codecs, that.giopVersion);
+        this.orbInstance = that.orbInstance;
     }
 
-    public YokoInputStream(ReadBuffer readBuffer, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
-        this(readBuffer, 0, swap, codeConverters, giopVersion);
+    public YokoInputStream(ReadBuffer readBuffer, boolean swapBytes, CodecPair codecs, GiopVersion giopVersion) {
+        this(readBuffer, 0, swapBytes, codecs, giopVersion);
     }
 
-    public YokoInputStream(byte[] data, boolean swap, CodeConverters codeConverters, GiopVersion giopVersion) {
-        this(Buffer.createReadBuffer(data), swap, codeConverters, giopVersion);
+    public YokoInputStream(byte[] data, boolean swapBytes, CodecPair codecs, GiopVersion giopVersion) {
+        this(Buffer.createReadBuffer(data), swapBytes, codecs, giopVersion);
     }
 
-    public YokoInputStream(ReadBuffer readBuffer, int offs, boolean swap) {
-        this(readBuffer, offs, swap, null, null);
+    public YokoInputStream(ReadBuffer readBuffer, int offs, boolean swapBytes) {
+        this(readBuffer, offs, swapBytes, null, null);
     }
 
-    public YokoInputStream(ReadBuffer readBuffer, boolean swap) {
-        this(readBuffer, swap, null, null);
+    public YokoInputStream(ReadBuffer readBuffer, boolean swapBytes) {
+        this(readBuffer, swapBytes, null, null);
     }
 
     public YokoInputStream(ReadBuffer readBuffer) {
@@ -1235,13 +1235,13 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         this(Buffer.createReadBuffer(data));
     }
 
-    public void _OB_codeConverters(CodeConverters converters, GiopVersion giopVersion) {
-        if (giopVersion != null) giopVersion_ = giopVersion;
-        codeConverters_ = CodeConverters.createCopy(converters);
+    public void setCodecsAndGiopVersion(CodecPair codecs, GiopVersion giopVersion) {
+        if (giopVersion != null) this.giopVersion = giopVersion;
+        this.codecs = CodecPair.createCopy(codecs);
     }
 
-    public CodeConverters _OB_codeConverters() {
-        return codeConverters_;
+    public CodecPair getCodecs() {
+        return codecs;
     }
 
     public ReadBuffer getBuffer() {
@@ -1257,12 +1257,12 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     }
 
     public void _OB_swap(boolean swap) {
-        swap_ = swap;
+        this.swapBytes = swap;
     }
 
     public void _OB_reset() {
-        swap_ = origSwap_;
-        readBuffer.setPosition(origPos_);
+        swapBytes = origSwap;
+        readBuffer.setPosition(origPos);
     }
 
     public void _OB_skip(int n) {
@@ -1278,24 +1278,24 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     }
 
     public void _OB_readEndian() {
-        swap_ = read_boolean(); // false means big endian
+        swapBytes = read_boolean(); // false means big endian
     }
 
     public void _OB_ORBInstance(ORBInstance orbInstance) {
-        orbInstance_ = orbInstance;
+        this.orbInstance = orbInstance;
 
-        if (orbInstance_ != null && orbInstance_.useTypeCodeCache()) {
-            cache_ = TypeCodeCache.instance();
+        if (this.orbInstance != null && this.orbInstance.useTypeCodeCache()) {
+            cache = TypeCodeCache.instance();
         }
     }
 
-    public ORBInstance _OB_ORBInstance() { return orbInstance_; }
+    public ORBInstance _OB_ORBInstance() { return orbInstance; }
 
     public int _OB_readLongUnchecked() {
         // The chunking code needs to read a long value without entering an infinite loop
         readBuffer.align(FOUR_BYTE_BOUNDARY);
         try {
-            return swap_ ? readBuffer.readInt_LE() : readBuffer.readInt();
+            return swapBytes ? readBuffer.readInt_LE() : readBuffer.readInt();
         } catch (IndexOutOfBoundsException e) {
             throw newMarshalError((MinorReadLongOverflow), e);
         }
@@ -1315,19 +1315,19 @@ final public class YokoInputStream extends InputStreamWithOffsets {
          * to a com.sun.org.omg.SendingContext.CodeBase. Narrowing CodeBaseProxy
          * is not possible, we need a stub.
          */
-        sendingContextRuntime_ = (runtime instanceof CodeBaseProxy) ? ((CodeBaseProxy) runtime).getCodeBase() : runtime;
+        sendingContextRuntime = (runtime instanceof CodeBaseProxy) ? ((CodeBaseProxy) runtime).getCodeBase() : runtime;
     }
 
     public CodeBase __getSendingContextRuntime() {
-        return sendingContextRuntime_;
+        return sendingContextRuntime;
     }
 
     public void __setCodeBase(String codebase) {
-        this.codebase_ = codebase;
+        this.codebase = codebase;
     }
 
     public String __getCodeBase() {
-        return codebase_;
+        return codebase;
     }
 
     /**
@@ -1359,8 +1359,8 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     public StringBuilder dumpAllDataWithPosition(StringBuilder sb, String label) { return readBuffer.dumpAllDataWithPosition(sb, label); }
 
     private void checkChunk() {
-        if (valueReader_ != null) {
-            valueReader_.checkChunk();
+        if (valueReader != null) {
+            valueReader.checkChunk();
         }
     }
 
