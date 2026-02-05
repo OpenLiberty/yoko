@@ -498,7 +498,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
 
     public void write_string(String value) {
         final CharCodec codec = codecs.charCodec;
-        DATA_OUT_LOG.finest(() -> String.format("Writing string value %s using codec %s", value, codec));
+        DATA_OUT_LOG.finest(() -> String.format("Using codec %s to write string: \"%s\"", codec, value));
         final char[] arr = value.toCharArray();
 
         if (codec.isFixedWidth()) {
@@ -539,7 +539,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
 
     private void write_wstring_pre_1_2(String value) {
         final WcharCodec codec = codecs.wcharCodec;
-        DATA_OUT_LOG.finest(() -> String.format("Writing GIOP 1.0 wstring value %s using codec %s", value, codec));
+        DATA_OUT_LOG.finest(() -> String.format("Codec %s will use %d octets to write a GIOP 1.0 wstring: \"%s\"", codec, value.length() + 1, value));
         // write the length of the string in chars
         write_ulong(value.length() + 1);
         // already 4-byte aligned, so just add the needed capacity for len 2-byte chars
@@ -561,7 +561,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         // now we know there is a first character
         final WcharCodec codec = codecs.wcharCodec;
         int numOctets = codec.octetCount(value);
-        DATA_OUT_LOG.finest(() -> String.format("Writing GIOP 1.2 wstring value %s using codec %s using %d byte(s)", value, codec, numOctets));
+        DATA_OUT_LOG.finest(() -> String.format("Codec %s will use %d octets to write a GIOP 1.2 wstring: \"%s\"", codec, numOctets, value));
         // write the length of the string in octets
         write_ulong(numOctets);
         // add unaligned capacity
