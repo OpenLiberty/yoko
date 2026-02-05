@@ -81,8 +81,9 @@ import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
  */
 public interface CharCodec {
     @FunctionalInterface interface CharReader { char readChar(ReadBuffer in); }
-    CharCodec NULL_CHAR_CODEC = SimpleWcharCodec.NULL;
-    CharCodec DEFAULT_CHAR_CODEC = SimpleCharCodec.ISO_LATIN_1;
+    static CharCodec getCollocatedCharCodec() { return SimpleWcharCodec.COLLOCATED; }
+    static CharCodec getDefaultCharCodec() { return SimpleCharCodec.ISO_LATIN_1; }
+    static CharCodec getUnspecifiedCharCodec() { return SimpleWcharCodec.UNSPECIFIED; }
 
     /**
      * Get a char codec instance for the named Java charset.
@@ -117,7 +118,7 @@ public interface CharCodec {
     }
 
     String name();
-
+    default boolean isStateless() { return true; }
     CodeSetInfo getCodeSetInfo();
 
     /**

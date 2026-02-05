@@ -17,8 +17,6 @@
  */
 package org.apache.yoko.orb.OB;
 
-import static org.apache.yoko.orb.OB.CodecPair.COLLOCATED;
-
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
 import org.apache.yoko.orb.IOP.ServiceContexts;
@@ -27,6 +25,8 @@ import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.orb.OCI.TransportInfo;
 import org.omg.CORBA.Policy;
 import org.omg.IOP.IOR;
+
+import static org.apache.yoko.orb.OB.CodecPair.getCollocatedCodecs;
 
 public final class CollocatedClient extends Client implements DowncallEmitter {
     //
@@ -39,7 +39,7 @@ public final class CollocatedClient extends Client implements DowncallEmitter {
     // ----------------------------------------------------------------------
 
     public CollocatedClient(CollocatedServer server, int concModel) {
-        super(concModel, COLLOCATED);
+        super(concModel, getCollocatedCodecs());
         server_ = server;
     }
 

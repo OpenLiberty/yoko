@@ -22,9 +22,11 @@ import org.apache.yoko.codecs.WcharCodec;
 
 import java.util.Objects;
 
-import static org.apache.yoko.codecs.CharCodec.DEFAULT_CHAR_CODEC;
-import static org.apache.yoko.codecs.CharCodec.NULL_CHAR_CODEC;
-import static org.apache.yoko.codecs.WcharCodec.NULL_WCHAR_CODEC;
+import static org.apache.yoko.codecs.CharCodec.getCollocatedCharCodec;
+import static org.apache.yoko.codecs.CharCodec.getDefaultCharCodec;
+import static org.apache.yoko.codecs.CharCodec.getUnspecifiedCharCodec;
+import static org.apache.yoko.codecs.WcharCodec.getCollocatedWcharCodec;
+import static org.apache.yoko.codecs.WcharCodec.getDefaultWcharCodec;
 
 // This class may look immutable, but charCodec can contain state (while reading/writing a surrogate pair from/to UTF-8)
 public final class CodecPair {
@@ -32,8 +34,15 @@ public final class CodecPair {
      * The default codecs for GIOP 1.0.
      * TODO: consider whether we need an UNSUPPORTED wchar codec that throws exceptions for wchars
      */
-    static final CodecPair DEFAULT = new CodecPair(DEFAULT_CHAR_CODEC, WcharCodec.DEFAULT_WCHAR_CODEC);
-    static final CodecPair COLLOCATED = new CodecPair(NULL_CHAR_CODEC, NULL_WCHAR_CODEC);
+    private static final CodecPair DEFAULT = new CodecPair(getDefaultCharCodec(), getDefaultWcharCodec());
+    /**
+     * Codecs to use for collocated invocations
+     */
+    static final CodecPair COLLOCATED = new CodecPair(getCollocatedCharCodec(), getCollocatedWcharCodec());
+
+    static CodecPair getCollocatedCodecs() {
+        return createCopy(COLLOCATED);
+    }
 
     public final CharCodec charCodec;
     public final WcharCodec wcharCodec;
@@ -47,21 +56,8 @@ public final class CodecPair {
         this(that.charCodec.getInstanceOrCopy(), that.wcharCodec.getInstanceOrCopy());
     }
 
-    public static CodecPair createCopy(CodecPair template) {
-        if (template == null) return DEFAULT;
-        if (template == DEFAULT) return DEFAULT;
-        if (template == COLLOCATED) return COLLOCATED;
-        return new CodecPair(template);
-    }
-
-    public static CodecPair create(int tcs, int twcs) {
-        CharCodec cc = CharCodec.forRegistryId(tcs);
-        WcharCodec wc = WcharCodec.forRegistryId(twcs);
-        return new CodecPair(cc, wc);
-    }
-
-    public static CodecPair createForWcharWriteOnly() {
-        return new CodecPair(null, WcharCodec.getDefault());
+    private boolean isStateless() {
+        return charCodec.isStateless() && wcharCodec.isStateless();
     }
 
     @Override
@@ -78,5 +74,20 @@ public final class CodecPair {
 
     public String toString() {
         return String.format("CodeConverters{%ncharCodec=%s%nwcharCodec=%s%n}", charCodec, wcharCodec);
+    }
+
+    public static CodecPair createCopy(CodecPair template) {
+        if (template == null) return createCopy(DEFAULT);
+        return template.isStateless() ? template : new CodecPair(template);
+    }
+
+    public static CodecPair create(int tcs, int twcs) {
+        CharCodec cc = CharCodec.forRegistryId(tcs);
+        WcharCodec wc = WcharCodec.forRegistryId(twcs);
+        return new CodecPair(cc, wc);
+    }
+
+    public static CodecPair createForWcharWriteOnly() {
+        return new CodecPair(getUnspecifiedCharCodec(), getDefaultWcharCodec());
     }
 }

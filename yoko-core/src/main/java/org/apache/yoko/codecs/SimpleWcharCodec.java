@@ -95,8 +95,8 @@ enum SimpleWcharCodec implements WcharCodec {
      * It takes shortcuts because it exchanges data with another instance of the very same class.
      * e.g. it never writes any lengths or BOMs, so it never reads any lengths or BOMs.
      */
-    NULL {
-        public CodeSetInfo getCodeSetInfo() { return CodeSetInfo.NONE; }
+    COLLOCATED {
+        public CodeSetInfo getCodeSetInfo() { return CodeSetInfo.COLLOCATED; }
 
         public int octetCount(String s) { return 2 * s.length(); }
 
@@ -111,5 +111,57 @@ enum SimpleWcharCodec implements WcharCodec {
         public void beginToWriteString(char c, WriteBuffer out) { out.writeChar(c); }
 
         public void writeLengthAndChar(char c, WriteBuffer out) { out.writeChar(c);}
+    },
+    /**
+     * This codec is for use when no encoding is permitted.
+     */
+    UNSPECIFIED {
+        @Override
+        public CodeSetInfo getCodeSetInfo() { return CodeSetInfo.NONE; }
+
+        @Override
+        public boolean isFixedWidth() { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public int charSize() { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public char readChar(ReadBuffer in) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public int octetCount(char c) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public int octetCount(String s) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public int octetCountLengthsAndWchars(int numChars) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public void writeChar(char c, WriteBuffer out) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public void assertNoBufferedCharData() { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public boolean readFinished() {  throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public boolean writeFinished() { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public char readCharWithEndianFlag(ReadBuffer in, boolean swapBytes) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public char readLengthAndChar(ReadBuffer in) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public void writeLengthAndChar(char c, WriteBuffer out) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public CharReader beginToReadString(ReadBuffer in) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+
+        @Override
+        public void beginToWriteString(char firstChar, WriteBuffer out) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
     };
 }

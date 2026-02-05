@@ -55,13 +55,13 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
-import java.util.logging.Logger;
 
 import static java.util.logging.Level.FINEST;
 import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.FOUR_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.NO_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.TWO_BYTE_BOUNDARY;
+import static org.apache.yoko.logging.VerboseLogging.DATA_OUT_LOG;
 import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_0;
 import static org.apache.yoko.util.MinorCodes.MinorIncompleteTypeCode;
 import static org.apache.yoko.util.MinorCodes.MinorLocalObject;
@@ -108,8 +108,6 @@ import static org.omg.CORBA.TCKind.tk_null;
 import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
 public final class YokoOutputStream extends OutputStream implements ValueOutputStream {
-    private static final Logger LOGGER = Logger.getLogger(YokoOutputStream.class.getName());
-
     private ORBInstance orbInstance;
     private final WriteBuffer writeBuffer;
     private final GiopVersion giopVersion;
@@ -129,7 +127,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
 
     private SimplyCloseable recordLength() {
         addCapacity(4, FOUR_BYTE_BOUNDARY);
-        return writeBuffer.recordLength(LOGGER);
+        return writeBuffer.recordLength();
     }
 
     private void writeTypeCodeImpl(TypeCode tc, Map<TypeCode, Integer> history) {
@@ -150,7 +148,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
             }
         }
 
-        if (LOGGER.isLoggable(FINEST)) LOGGER.finest("Writing a type code of type " + (tc == null ? null : tc.kind()));
+        if (DATA_OUT_LOG.isLoggable(FINEST)) DATA_OUT_LOG.finest("Writing a type code of type " + (tc == null ? null : tc.kind()));
 
         // For performance reasons, handle the primitive TypeCodes first
         switch (tc.kind().value()) {
@@ -180,7 +178,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         if (indirectionPos != null) {
             write_long(-1);
             int offs = indirectionPos - writeBuffer.getPosition();
-            LOGGER.finest("Writing an indirect type code for offset " + offs);
+            DATA_OUT_LOG.finest("Writing an indirect type code for offset " + offs);
             write_long(offs);
         } else {
             write_ulong(tc.kind().value());
@@ -499,8 +497,8 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     }
 
     public void write_string(String value) {
-        LOGGER.finest("Writing string value " + value);
         final CharCodec codec = codecs.charCodec;
+        DATA_OUT_LOG.finest(() -> String.format("Writing string value %s using codec %s", value, codec));
         final char[] arr = value.toCharArray();
 
         if (codec.isFixedWidth()) {
@@ -529,7 +527,6 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     }
 
     public void write_wstring(String value) {
-        if (LOGGER.isLoggable(FINEST)) LOGGER.finest("Writing wstring value " + value);
         switch (giopVersion) {
             case GIOP1_0:
             case GIOP1_1:
@@ -541,11 +538,12 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     }
 
     private void write_wstring_pre_1_2(String value) {
+        final WcharCodec codec = codecs.wcharCodec;
+        DATA_OUT_LOG.finest(() -> String.format("Writing GIOP 1.0 wstring value %s using codec %s", value, codec));
         // write the length of the string in chars
         write_ulong(value.length() + 1);
         // already 4-byte aligned, so just add the needed capacity for len 2-byte chars
         addCapacity(2*(value.length() + 1));
-        final WcharCodec codec = codecs.wcharCodec;
         // now write all the characters
         for (int i = 0; i < value.length(); i++) codec.writeChar(value.charAt(i), writeBuffer);
         // and the null terminator
@@ -556,12 +554,14 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         // GIOP 1.2 encodes the length of the string in octets and does not require a null terminator
         // first deal with the empty string case
         if (value.isEmpty()) {
+            DATA_OUT_LOG.finest(() -> "Writing GIOP 1.2 empty string");
             write_ulong(0);
             return;
         }
         // now we know there is a first character
         final WcharCodec codec = codecs.wcharCodec;
         int numOctets = codec.octetCount(value);
+        DATA_OUT_LOG.finest(() -> String.format("Writing GIOP 1.2 wstring value %s using codec %s using %d byte(s)", value, codec, numOctets));
         // write the length of the string in octets
         write_ulong(numOctets);
         // add unaligned capacity
@@ -663,7 +663,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
 
     public void write_Object(org.omg.CORBA.Object value) {
         if (value == null) {
-            LOGGER.finest("Writing a null CORBA object value");
+            DATA_OUT_LOG.finest("Writing a null CORBA object value");
             IOR ior = new IOR();
             ior.type_id = "";
             ior.profiles = new TaggedProfile[0];
@@ -690,7 +690,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     }
 
     public void write_any(Any value) {
-        LOGGER.finest("Writing an ANY value of type " + value.type().kind());
+        DATA_OUT_LOG.finest("Writing an ANY value of type " + value.type().kind());
         write_TypeCode(value.type());
         value.write_value(this);
     }
@@ -784,7 +784,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
 
     public void write_InputStream(final org.omg.CORBA.portable.InputStream in, TypeCode tc) {
         try {
-            LOGGER.fine("writing a value of type " + tc.kind().value());
+            DATA_OUT_LOG.fine("writing a value of type " + tc.kind().value());
 
             switch (tc.kind().value()) {
                 case _tk_null:

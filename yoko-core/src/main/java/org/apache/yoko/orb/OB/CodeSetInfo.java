@@ -50,6 +50,7 @@ import static org.apache.yoko.orb.OB.CodeSetInfo.Charset.x1000;
 
 public enum CodeSetInfo {
     NONE("none", 0x00000000),
+    COLLOCATED("collocated codeset for collocated invocations", 0xEEEEEEEE),
     ISO_LATIN_1("ISO 8859-1:1987; Latin Alphabet No. 1", 0x00010001, x0011),
     ISO_LATIN_2("ISO 8859-2:1987; Latin Alphabet No. 2", 0x00010002, x0012),
     ISO_LATIN_3("ISO 8859-3:1988; Latin Alphabet No. 3", 0x00010003, x0013),

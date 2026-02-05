@@ -176,7 +176,6 @@ final class Utf8Codec implements CharCodec {
         final int MASK_LAST_4_BITS = 0b0000_1111;
         final int MASK_LAST_5_BITS = 0b0001_1111;
         final int MASK_LAST_6_BITS = 0b0011_1111;
-        DATA_OUT_LOG.fine(() -> String.format("Encoding codepoint 0x%06X as %d bytes", codepoint, numBytes));
         switch (numBytes) {
         case 1:
             // write out the byte as-is
@@ -218,6 +217,9 @@ final class Utf8Codec implements CharCodec {
     public String name() { return "UTF-8"; }
 
     @Override
+    public boolean isStateless() { return false; }
+
+    @Override
     public CodeSetInfo getCodeSetInfo() { return CodeSetInfo.UTF_8; }
 
     @Override
@@ -228,6 +230,6 @@ final class Utf8Codec implements CharCodec {
 
     @Override
     public String toString() {
-        return String.format("%s{h=0x%08x, l=0x%08x}", super.toString(), highSurrogate, lowSurrogate);
+        return String.format("%s{h=0x%04x, l=0x%04x}", super.toString(), (int)highSurrogate, (int)lowSurrogate);
     }
 }
