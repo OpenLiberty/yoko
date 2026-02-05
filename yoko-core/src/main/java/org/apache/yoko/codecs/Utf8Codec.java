@@ -225,4 +225,9 @@ final class Utf8Codec implements CharCodec {
 
     @Override
     public int hashCode() { return name().hashCode(); }
+
+    @Override
+    public String toString() {
+        return String.format("%s{h=0x%08x, l=0x%08x}", super.toString(), highSurrogate, lowSurrogate);
+    }
 }
