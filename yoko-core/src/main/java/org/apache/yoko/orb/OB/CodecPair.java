@@ -38,7 +38,7 @@ public final class CodecPair {
     /**
      * Codecs to use for collocated invocations
      */
-    static final CodecPair COLLOCATED = new CodecPair(getCollocatedCharCodec(), getCollocatedWcharCodec());
+    private static final CodecPair COLLOCATED = new CodecPair(getCollocatedCharCodec(), getCollocatedWcharCodec());
 
     static CodecPair getCollocatedCodecs() {
         return createCopy(COLLOCATED);

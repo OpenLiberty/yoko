@@ -200,9 +200,7 @@ public final class ClientManager {
                 // we can get into hang situations if we return a collocated server for an
                 // inactive POA.  This can happen with the RootPOA, which is generally not activated.
                 if (local && mgr.get_state() == State.ACTIVE) {
-                    //
                     // Retrieve the CollocatedServer from the POAManager
-                    //
                     POAManager_impl manager = (POAManager_impl) mgr;
                     CollocatedServer collocatedServer = manager._OB_getCollocatedServer();
 
