@@ -211,13 +211,10 @@ final class Utf8Codec implements CharCodec {
     public boolean writeFinished() { return 0 == highSurrogate; }
 
     @Override
-    public CharCodec getInstanceOrCopy() { return new Utf8Codec(); }
+    public CharCodec duplicate() { return new Utf8Codec(); }
 
     @Override
     public String name() { return "UTF-8"; }
-
-    @Override
-    public boolean isStateless() { return false; }
 
     @Override
     public CodeSetInfo getCodeSetInfo() { return CodeSetInfo.UTF_8; }

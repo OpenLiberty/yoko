@@ -25,7 +25,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import static org.apache.yoko.codecs.Util.ASCII_REPLACEMENT_CHAR;
 
 class UsAsciiTest extends AbstractSimpleCodecTest<CharCodec> implements TestData {
-    UsAsciiTest() { super("US-ASCII", WriteBuffer::writeByte, ReadBuffer::readByteAsChar); }
+    UsAsciiTest() { super(SimpleCharCodec.US_ASCII, WriteBuffer::writeByte, ReadBuffer::readByteAsChar); }
     boolean isDoubleByte() { return false; }
 
     @ParameterizedTest(name = "US-ASCII decode/encode ASCII char: {0} ({2})")

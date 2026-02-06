@@ -447,15 +447,15 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         case GIOP1_0:
         case GIOP1_1:
             // add aligned space for 1 character
-            addCapacity(codec.charSize(), TWO_BYTE_BOUNDARY);
+            addCapacity(2, TWO_BYTE_BOUNDARY);
             // write 2-byte character in big endian
-            codec.writeChar(value, writeBuffer);
+            codec.writeWchar_1_0(value, writeBuffer);
             break;
 
         default:
             // add unaligned space for 1 length-and-character
-            addCapacity(codec.octetCountLengthsAndWchars(1));
-            codec.writeLengthAndChar(value, writeBuffer);
+            addCapacity(codec.octetCountWchars_1_2(1));
+            codec.writeWchar_1_2(value, writeBuffer);
             break;
         }
     }
@@ -545,9 +545,9 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         // already 4-byte aligned, so just add the needed capacity for len 2-byte chars
         addCapacity(2*(value.length() + 1));
         // now write all the characters
-        for (int i = 0; i < value.length(); i++) codec.writeChar(value.charAt(i), writeBuffer);
+        for (int i = 0; i < value.length(); i++) codec.writeWchar_1_0(value.charAt(i), writeBuffer);
         // and the null terminator
-        codec.writeChar((char) 0, writeBuffer);
+        codec.writeWchar_1_0((char) 0, writeBuffer);
     }
 
     private void write_wstring_1_2(String value) {
@@ -560,16 +560,16 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         }
         // now we know there is a first character
         final WcharCodec codec = codecs.wcharCodec;
-        int numOctets = codec.octetCount(value);
+        int numOctets = codec.octetCountWstring_1_2(value);
         DATA_OUT_LOG.finest(() -> String.format("Codec %s will use %d octets to write a GIOP 1.2 wstring: \"%s\"", codec, numOctets, value));
         // write the length of the string in octets
         write_ulong(numOctets);
         // add unaligned capacity
         addCapacity(numOctets);
         // write the first character, including optional BOM
-        codec.beginToWriteString(value.charAt(0), writeBuffer);
+        codec.beginToWriteWstring_1_2(value.charAt(0), writeBuffer);
         // write the rest of the characters
-        for (int i = 1; i < value.length(); i++) codec.writeChar(value.charAt(i), writeBuffer);
+        for (int i = 1; i < value.length(); i++) codec.writeWchar_1_0(value.charAt(i), writeBuffer);
     }
 
     public void write_boolean_array(boolean[] value, int offset, int length) {

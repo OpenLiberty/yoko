@@ -27,22 +27,22 @@ import static org.apache.yoko.codecs.Util.BYTE_SWAPD_MARKER;
 import static org.apache.yoko.codecs.Util.UNICODE_REPLACEMENT_CHAR;
 import static org.apache.yoko.codecs.Util.ZERO_WIDTH_NO_BREAK_SPACE;
 
-enum SimpleWcharCodec implements WcharCodec {
+enum SimpleWcharCodec implements WcharCodec, CharCodec {
     UTF_16 {
         public CodeSetInfo getCodeSetInfo() { return CodeSetInfo.UTF_16; }
 
-        public int octetCount(String s) {
-            if (s.startsWith(""+ZERO_WIDTH_NO_BREAK_SPACE)) return 2 * (s.length() + 1);
-            return 2 * s.length();
+        public int octetCountWstring_1_2(String s) {
+            boolean noBom = s.isEmpty() || s.charAt(0) != ZERO_WIDTH_NO_BREAK_SPACE;
+            return noBom ? 2 * s.length() : 2 * (s.length() + 1);
         }
 
-        public int octetCountLengthsAndWchars(int numChars) { return 3 * numChars; }
+        public int octetCountWchars_1_2(int numChars) { return 3 * numChars; }
 
-        public char readCharWithEndianFlag(ReadBuffer in, boolean swapBytes) {
+        public char readWchar_1_0(ReadBuffer in, boolean swapBytes) {
             return swapBytes ? in.readChar_LE() : in.readChar();
         }
 
-        public char readLengthAndChar(ReadBuffer in) {
+        public char readWchar_1_2(ReadBuffer in) {
             byte len = in.readByte();
             switch (len) {
                 case 2:
@@ -64,7 +64,7 @@ enum SimpleWcharCodec implements WcharCodec {
             }
         }
 
-        public CharReader beginToReadString(ReadBuffer in) {
+        public WcharReader beginToReadWstring_1_2(ReadBuffer in) {
             if (in.isComplete()) return ReadBuffer::readChar;
             switch (in.readChar()) {
                 case BYTE_ORDER_MARKER: return ReadBuffer::readChar;
@@ -74,14 +74,14 @@ enum SimpleWcharCodec implements WcharCodec {
             }
         }
 
-        public void beginToWriteString(char c, WriteBuffer out) {
+        public void beginToWriteWstring_1_2(char c, WriteBuffer out) {
             // if the first (or a single) character is a ZERO WIDTH NO-BREAK SPACE, write a BOM first
             // (this is because they are the same bytes and the first pair will be read as a BOM)
             if (ZERO_WIDTH_NO_BREAK_SPACE == c) out.writeChar(BYTE_ORDER_MARKER);
             out.writeChar(c);
         }
 
-        public void writeLengthAndChar(char c, WriteBuffer out) {
+        public void writeWchar_1_2(char c, WriteBuffer out) {
             // Older versions of Yoko ignore the encoded length and just read two bytes anyway.
             // So, never write a BOM, and stick to two bytes.
             out.writeByte(2);
@@ -98,19 +98,19 @@ enum SimpleWcharCodec implements WcharCodec {
     COLLOCATED {
         public CodeSetInfo getCodeSetInfo() { return CodeSetInfo.COLLOCATED; }
 
-        public int octetCount(String s) { return 2 * s.length(); }
+        public int octetCountWstring_1_2(String s) { return 2 * s.length(); }
 
-        public int octetCountLengthsAndWchars(int numChars) { return 2 * numChars; }
+        public int octetCountWchars_1_2(int numChars) { return 2 * numChars; }
 
-        public char readCharWithEndianFlag(ReadBuffer in, boolean swapBytes) { return in.readChar(); }
+        public char readWchar_1_0(ReadBuffer in, boolean swapBytes) { return in.readChar(); }
 
-        public char readLengthAndChar(ReadBuffer in) { return in.readChar(); }
+        public char readWchar_1_2(ReadBuffer in) { return in.readChar(); }
 
-        public CharReader beginToReadString(ReadBuffer in) { return this::readChar; }
+        public WcharReader beginToReadWstring_1_2(ReadBuffer in) { return ReadBuffer::readChar; }
 
-        public void beginToWriteString(char c, WriteBuffer out) { out.writeChar(c); }
+        public void beginToWriteWstring_1_2(char c, WriteBuffer out) { out.writeChar(c); }
 
-        public void writeLengthAndChar(char c, WriteBuffer out) { out.writeChar(c);}
+        public void writeWchar_1_2(char c, WriteBuffer out) { out.writeChar(c);}
     },
     /**
      * This codec is for use when no encoding is permitted.
@@ -126,42 +126,45 @@ enum SimpleWcharCodec implements WcharCodec {
         public int charSize() { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
 
         @Override
-        public char readChar(ReadBuffer in) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
-
-        @Override
         public int octetCount(char c) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
 
         @Override
-        public int octetCount(String s) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+        public int octetCountWstring_1_2(String s) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
 
         @Override
-        public int octetCountLengthsAndWchars(int numChars) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+        public int octetCountWchars_1_2(int numChars) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
 
         @Override
-        public void writeChar(char c, WriteBuffer out) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+        public char readWchar_1_0(ReadBuffer in, boolean swapBytes) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
 
         @Override
-        public void assertNoBufferedCharData() { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+        public char readWchar_1_2(ReadBuffer in) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
 
         @Override
-        public boolean readFinished() {  throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+        public void writeWchar_1_0(char c, WriteBuffer out) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
 
         @Override
-        public boolean writeFinished() { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+        public void writeWchar_1_2(char c, WriteBuffer out) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
 
         @Override
-        public char readCharWithEndianFlag(ReadBuffer in, boolean swapBytes) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+        public WcharReader beginToReadWstring_1_2(ReadBuffer in) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
 
         @Override
-        public char readLengthAndChar(ReadBuffer in) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
-
-        @Override
-        public void writeLengthAndChar(char c, WriteBuffer out) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
-
-        @Override
-        public CharReader beginToReadString(ReadBuffer in) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
-
-        @Override
-        public void beginToWriteString(char firstChar, WriteBuffer out) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
+        public void beginToWriteWstring_1_2(char firstChar, WriteBuffer out) { throw new UnsupportedOperationException("attempt to use unspecified codec"); }
     };
+
+    @Override
+    public int charSize() { return 2; }
+
+    @Override
+    public int octetCount(char c) { return charSize(); }
+
+    @Override
+    public char readChar(ReadBuffer in) { return readWchar_1_0(in, false); } // only used for test
+
+    @Override
+    public void writeChar(char c, WriteBuffer out) { writeWchar_1_0(c, out); } // only used for test
+
+    @Override
+    public SimpleWcharCodec duplicate() { return this; }
 }

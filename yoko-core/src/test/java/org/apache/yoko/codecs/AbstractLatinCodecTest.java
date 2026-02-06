@@ -50,7 +50,7 @@ abstract class AbstractLatinCodecTest {
     final ReadBuffer readBuffer = writeBuffer.readFromStart();
 
     AbstractLatinCodecTest(String name) {
-        this.codec = CharCodec.forName(name);
+        this.codec = Codex.getCharCodec(name);
         this.charset = Charset.forName(name);
         expectedChars = Charset.forName(name).decode(inputBytes).asReadOnlyBuffer();
         expectedBytes = Charset.forName(name).encode(expectedChars);

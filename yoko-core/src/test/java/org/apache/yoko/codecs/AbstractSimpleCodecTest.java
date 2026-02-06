@@ -39,8 +39,8 @@ public abstract class AbstractSimpleCodecTest<CODEC extends CharCodec> {
     final ExpectedCharWriter expectedCharWriter;
     final ExpectedCharReader expectedCharReader;
 
-    AbstractSimpleCodecTest(String name, ExpectedCharWriter expectedCharWriter, ExpectedCharReader expectedCharReader) {
-        this.codec = (CODEC)CharCodec.forName(name);
+    AbstractSimpleCodecTest(CODEC codec, ExpectedCharWriter expectedCharWriter, ExpectedCharReader expectedCharReader) {
+        this.codec = codec;
         this.expectedCharWriter = expectedCharWriter;
         this.expectedCharReader = expectedCharReader;
     }
@@ -79,7 +79,7 @@ public abstract class AbstractSimpleCodecTest<CODEC extends CharCodec> {
         // For WcharCodecs, check beginToWriteString() too
         if (!(codec instanceof WcharCodec)) return;
         newWriteBuffer();
-        ((WcharCodec)codec).beginToWriteString(c, out);
+        ((WcharCodec)codec).beginToWriteWstring_1_2(c, out);
         in = getReadBuffer();
         assertEquals(expected, expectedCharReader.readFrom(in));
     }

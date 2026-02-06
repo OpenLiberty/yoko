@@ -23,12 +23,7 @@ import org.apache.yoko.io.WriteBuffer;
 import org.apache.yoko.orb.OB.CodeSetInfo;
 import org.omg.CORBA.DATA_CONVERSION;
 
-import java.nio.charset.Charset;
-import java.nio.charset.IllegalCharsetNameException;
-import java.nio.charset.UnsupportedCharsetException;
-
 import static org.apache.yoko.codecs.LatinCodec.getLatinCodec;
-import static org.apache.yoko.codecs.Util.getUnicodeCodec;
 import static org.apache.yoko.util.MinorCodes.MinorUTF8Encoding;
 import static org.apache.yoko.util.MinorCodes.MinorUTF8Overflow;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
@@ -80,45 +75,9 @@ import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
  * </p>
  */
 public interface CharCodec {
-    @FunctionalInterface interface CharReader { char readChar(ReadBuffer in); }
-    static CharCodec getCollocatedCharCodec() { return SimpleWcharCodec.COLLOCATED; }
-    static CharCodec getDefaultCharCodec() { return SimpleCharCodec.ISO_LATIN_1; }
-    static CharCodec getUnspecifiedCharCodec() { return SimpleWcharCodec.UNSPECIFIED; }
-
-    /**
-     * Get a char codec instance for the named Java charset.
-     *
-     * @param name the name of the Java charset for which a codec is required
-     * @return an instance of the appropriate char codec
-     * @throws IllegalCharsetNameException if the provided name is not a valid charset name
-     * @throws IllegalArgumentException if the provided name is null
-     * @throws UnsupportedCharsetException if the named charset is not supported
-     */
-    static CharCodec forName(String name) throws IllegalCharsetNameException, IllegalArgumentException, UnsupportedCharsetException {
-        // fastest result: directly named unicode codec
-        CharCodec result = getUnicodeCodec(name);
-        if (null != result) return result;
-        // next see if it is an alias for a unicode codec
-        Charset charset = Charset.forName(name);
-        result = getUnicodeCodec(charset.name());
-        if (null != result) return result;
-        // the only other codecs currently supported are the Latin ones
-        return getLatinCodec(charset);
-    }
-
-    static CharCodec forRegistryId(int id) throws UnsupportedCharsetException {
-        CodeSetInfo csi = CodeSetInfo.forRegistryId(id);
-        if (null == csi) throw new UnsupportedCharsetException(String.format("Unknown registry id: 0x%08x", id));
-        switch (csi) {
-            case UTF_16: return SimpleWcharCodec.UTF_16;
-            case UTF_8: return new Utf8Codec();
-            case ISO_LATIN_1: return SimpleCharCodec.ISO_LATIN_1;
-            default: return LatinCodec.getLatinCodec(csi); // throws if unknown
-        }
-    }
 
     String name();
-    default boolean isStateless() { return true; }
+
     CodeSetInfo getCodeSetInfo();
 
     /**
@@ -178,6 +137,8 @@ public interface CharCodec {
     /** Check whether the last character was not a high surrogate. */
     default boolean writeFinished() { return true; }
 
-    /** Provides an identical object that can be used concurrently with this one */
-    default CharCodec getInstanceOrCopy() { return this; }
+    /**
+     * Provides an identical object that can be used concurrently with this one
+     */
+    default CharCodec duplicate() { return this; }
 }

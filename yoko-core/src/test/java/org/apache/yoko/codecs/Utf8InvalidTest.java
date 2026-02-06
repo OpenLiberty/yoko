@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class Utf8InvalidTest implements TestData {
     static final int MIN_1_BYTE = 0, MIN_2_BYTE = 1<<7, MIN_3_BYTE = 1 << 5+6, MIN_4_BYTE = 1 << 4+6+6;
-    final CharCodec codec = CharCodec.forName("UTF-8");
+    final CharCodec codec = Codex.getCharCodec("UTF-8");
     final WriteBuffer out = Buffer.createWriteBuffer(4);
     ReadBuffer in;
 

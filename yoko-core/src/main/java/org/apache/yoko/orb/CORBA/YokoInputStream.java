@@ -18,7 +18,7 @@
 package org.apache.yoko.orb.CORBA;
 
 import org.apache.yoko.codecs.CharCodec;
-import org.apache.yoko.codecs.CharCodec.CharReader;
+import org.apache.yoko.codecs.WcharCodec.WcharReader;
 import org.apache.yoko.codecs.WcharCodec;
 import org.apache.yoko.io.AlignmentBoundary;
 import org.apache.yoko.io.Buffer;
@@ -704,9 +704,9 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                 case GIOP1_0:
                 case GIOP1_1:
                     readBuffer.align(TWO_BYTE_BOUNDARY);
-                    return codecs.wcharCodec.readCharWithEndianFlag(readBuffer, swapBytes);
+                    return codecs.wcharCodec.readWchar_1_0(readBuffer, swapBytes);
                 default:
-                    return codecs.wcharCodec.readLengthAndChar(readBuffer);
+                    return codecs.wcharCodec.readWchar_1_2(readBuffer);
             }
         } catch (IndexOutOfBoundsException e) {
             throw newMarshalError(MinorReadWCharOverflow, e);
@@ -824,7 +824,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         // as long as this is written explicitly in write_string() as well as here.
         // (i.e. do NOT use the codec to write the null terminator)
         if (readBuffer.readByte() != 0) throw newMarshalError(MinorReadStringNoTerminator);
-
+        DATA_IN_LOG.fine(() -> String.format("Read string \"%s\", using %s codec end pos=0x%x", sb, codec, readBuffer.getPosition()));
         return sb.toString();
     }
 
@@ -865,10 +865,12 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         char[] tmp = new char[numChars];
 
         try {
-            for (int i = 0; i < numChars; i++) tmp[i] = codec.readCharWithEndianFlag(readBuffer, swapBytes);
+            for (int i = 0; i < numChars; i++) tmp[i] = codec.readWchar_1_0(readBuffer, swapBytes);
             // Check for terminating null wchar
             if (0 != tmp[numChars - 1]) throw stringMarshallingError("GIOP 1.0 wstring", numChars, MinorReadWStringNoTerminator);
-            return new String(tmp, 0, numChars - 1);
+            String result = new String(tmp, 0, numChars - 1);
+            DATA_IN_LOG.fine(() -> String.format("Read GIOP 1.0 wstring \"%s\", using %s codec end pos=0x%x", result, codec, readBuffer.getPosition()));
+            return result;
         } catch (IndexOutOfBoundsException e) {
             throw stringMarshallingError("GIOP 1.0 wstring", numChars, MinorReadWStringOverflow, e);
         }
@@ -884,14 +886,15 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         DATA_IN_LOG.fine(() -> String.format("Reading GIOP 1.2 wstring of length %d octets using codec %s", numOctets, codec));
 
         // In GIOP 1.2 there is no terminating null char, but there might be a BOM
-        StringBuilder builder = new StringBuilder(numOctets / 2);
+        StringBuilder sb = new StringBuilder(numOctets / 2);
 
         final int endPosition = readBuffer.getPosition() + numOctets;
         // this method checks for and consumes a BOM if present, returning the appropriately endian char reader
-        CharReader reader = codecs.wcharCodec.beginToReadString(readBuffer);
+        WcharReader reader = codecs.wcharCodec.beginToReadWstring_1_2(readBuffer);
         try {
-            while (readBuffer.getPosition() < endPosition) builder.append(reader.readChar(readBuffer));
-            return builder.toString();
+            while (readBuffer.getPosition() < endPosition) sb.append(reader.readWchar(readBuffer));
+            DATA_IN_LOG.fine(() -> String.format("Read GIOP 1.2 wstring \"%s\", using %s codec end pos=0x%x", sb, codec, readBuffer.getPosition()));
+            return sb.toString();
         } catch (IndexOutOfBoundsException e) {
             throw stringMarshallingError("GIOP 1.2 wstring", numOctets, MinorReadWStringOverflow, e);
         }

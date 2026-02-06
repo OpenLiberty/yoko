@@ -53,10 +53,9 @@ enum Util {
     static char require8bit(char c) { return c < (1<<8) ? c : ASCII_REPLACEMENT_CHAR; }
 
     /** Find a codec by name that encodes the Unicode codepoint for a char directly */
-    static CharCodec getUnicodeCodec(String name) {
+    static CharCodec getUnicodeCharCodec(String name) {
         switch (name.toUpperCase()) {
         case "UTF-8": return new Utf8Codec();
-        case "UTF-16": return SimpleWcharCodec.UTF_16;
         case "US-ASCII": return SimpleCharCodec.US_ASCII;
         case "ISO-8859-1": return SimpleCharCodec.ISO_LATIN_1;
         default: return null;

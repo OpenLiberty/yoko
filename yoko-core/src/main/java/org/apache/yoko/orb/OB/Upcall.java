@@ -278,7 +278,7 @@ public class Upcall {
     private static void createUnknownExceptionServiceContexts(UnknownException ex, ServiceContexts replyContexts) {
         final Throwable t = ex.originalEx;
         try (CmsfOverride o = CmsfThreadLocal.override()) {
-            CodecPair codecs = CodecPair.createForWcharWriteOnly();
+            CodecPair codecs = CodecPair.getDefaultCodecs(GIOP1_2);
             try (YokoOutputStream os = new YokoOutputStream(codecs, GIOP1_2)) {
                 os._OB_writeEndian();
                 os.write_value(t, Throwable.class);
