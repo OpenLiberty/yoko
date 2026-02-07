@@ -312,7 +312,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
 
         YokoInputStream in = msg.input();
 
-        // We have some decision making to do here if BiDir is
+        // We have some decision-making to do here if BiDir is
         // enabled:
         // - If this is a client then make sure to properly
         // evaluate the message and obtain the correct OAInterface

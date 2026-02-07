@@ -17,9 +17,20 @@
  */
 package org.apache.yoko.orb.OBPortableServer;
 
+import org.apache.yoko.orb.CORBA.ServerRequest;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
+import org.apache.yoko.orb.OB.LocationForward;
+import org.apache.yoko.orb.OB.RuntimeLocationForward;
+import org.apache.yoko.orb.OB.Upcall;
 import org.apache.yoko.util.Assert;
+import org.omg.CORBA.InterfaceDef;
+import org.omg.CORBA.SystemException;
+import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.portable.InvokeHandler;
+import org.omg.CORBA.portable.OutputStream;
+import org.omg.PortableServer.DynamicImplementation;
+import org.omg.PortableServer.Servant;
 
 //
 // There are several ways a request can be dispatched in Java:
@@ -35,130 +46,93 @@ import org.apache.yoko.util.Assert;
 // standard ResponseHandler interface.
 //
 final class ServantDispatcher implements org.omg.CORBA.portable.ResponseHandler {
-    //
-    // The Upcall
-    //
-    protected org.apache.yoko.orb.OB.Upcall upcall_;
+    private Upcall upcall;
 
-    //
-    // The servant
-    //
-    protected org.omg.PortableServer.Servant servant_;
+    private Servant servant;
 
-    //
     // Used to bypass a portable skeleton
-    //
-    private class Abort extends RuntimeException {
+    private static class Abort extends RuntimeException {}
+
+    ServantDispatcher(Upcall upcall, Servant servant) {
+        this.upcall = upcall;
+        this.servant = servant;
     }
 
-    ServantDispatcher(org.apache.yoko.orb.OB.Upcall upcall,
-            org.omg.PortableServer.Servant servant) {
-        upcall_ = upcall;
-        servant_ = servant;
-    }
+    private boolean dispatchBase() throws LocationForward {
+        String opName = upcall.operation();
 
-    private boolean dispatchBase()
-            throws org.apache.yoko.orb.OB.LocationForward {
-        String _ob_op = upcall_.operation();
-
-        //
-        // Optimization. All operations that we dispatch start with an '_'
-        // character.
-        //
-        if (_ob_op.charAt(0) != '_')
-            return false;
-
-        final String[] _ob_names = { "_interface", "_is_a", "_non_existent" };
-
-        int _ob_left = 0;
-        int _ob_right = _ob_names.length;
-        int _ob_index = -1;
-
-        while (_ob_left < _ob_right) {
-            int _ob_m = (_ob_left + _ob_right) / 2;
-            int _ob_res = _ob_names[_ob_m].compareTo(_ob_op);
-            if (_ob_res == 0) {
-                _ob_index = _ob_m;
-                break;
-            } else if (_ob_res > 0)
-                _ob_right = _ob_m;
-            else
-                _ob_left = _ob_m + 1;
-        }
-
-        switch (_ob_index) {
-        case 0: // _interface
+        switch (opName) {
+        case "_interface":
         {
-            upcall_.preUnmarshal();
-            upcall_.postUnmarshal();
-            org.omg.CORBA.InterfaceDef def = servant_._get_interface();
-            upcall_.postinvoke();
-            YokoOutputStream out = upcall_.preMarshal();
+            upcall.preUnmarshal();
+            upcall.postUnmarshal();
+            InterfaceDef def = servant._get_interface();
+            upcall.postinvoke();
+            final YokoOutputStream out = upcall.preMarshal();
             try {
                 out.write_Object(def);
-            } catch (org.omg.CORBA.SystemException ex) {
-                upcall_.marshalEx(ex);
+            } catch (SystemException ex) {
+                upcall.marshalEx(ex);
             }
-            upcall_.postMarshal();
+            upcall.postMarshal();
             return true;
         }
 
-        case 1: // _is_a
+        case "_is_a": // _is_a
         {
-            YokoInputStream in = upcall_.preUnmarshal();
+            final YokoInputStream in = upcall.preUnmarshal();
             String id = null;
             try {
                 id = in.read_string();
-            } catch (org.omg.CORBA.SystemException ex) {
-                upcall_.unmarshalEx(ex);
+            } catch (SystemException ex) {
+                upcall.unmarshalEx(ex);
             }
-            upcall_.postUnmarshal();
-            boolean b = servant_._is_a(id);
-            upcall_.postinvoke();
-            YokoOutputStream out = upcall_.preMarshal();
+            upcall.postUnmarshal();
+            boolean b = servant._is_a(id);
+            upcall.postinvoke();
+            final YokoOutputStream out = upcall.preMarshal();
             try {
                 out.write_boolean(b);
-            } catch (org.omg.CORBA.SystemException ex) {
-                upcall_.marshalEx(ex);
+            } catch (SystemException ex) {
+                upcall.marshalEx(ex);
             }
-            upcall_.postMarshal();
+            upcall.postMarshal();
             return true;
         }
 
-        case 2: // _non_existent
+        case "_non_existent": // _non_existent
         {
-            upcall_.preUnmarshal();
-            upcall_.postUnmarshal();
-            boolean b = servant_._non_existent();
-            upcall_.postinvoke();
-            YokoOutputStream out = upcall_.preMarshal();
+            upcall.preUnmarshal();
+            upcall.postUnmarshal();
+            boolean b = servant._non_existent();
+            upcall.postinvoke();
+            final YokoOutputStream out  = upcall.preMarshal();
             try {
                 out.write_boolean(b);
-            } catch (org.omg.CORBA.SystemException ex) {
-                upcall_.marshalEx(ex);
+            } catch (SystemException ex) {
+                upcall.marshalEx(ex);
             }
-            upcall_.postMarshal();
+            upcall.postMarshal();
             return true;
         }
+        default:
+            return false;
         }
-
-        return false;
     }
 
-    void dispatch() throws org.apache.yoko.orb.OB.LocationForward {
+    void dispatch() throws LocationForward {
         //
         // Handle common operations
         //
-        if (dispatchBase())
-            return;
+        if (dispatchBase()) return;
 
         //
         // Case 1: Servant is org.apache.yoko.orb.PortableServer.Servant, i.e.,
         // a proprietary skeleton with full interceptor support
         //
-        if (servant_ instanceof org.apache.yoko.orb.PortableServer.Servant) {
-            org.apache.yoko.orb.PortableServer.Servant s = (org.apache.yoko.orb.PortableServer.Servant) servant_;
-            s._OB_dispatch(upcall_);
+        if (servant instanceof org.apache.yoko.orb.PortableServer.Servant) {
+            org.apache.yoko.orb.PortableServer.Servant s = (org.apache.yoko.orb.PortableServer.Servant) servant;
+            s._OB_dispatch(upcall);
         }
         //
         // Case 2: Servant is a org.omg.CORBA.portable.InvokeHandler,
@@ -168,14 +142,14 @@ final class ServantDispatcher implements org.omg.CORBA.portable.ResponseHandler 
         // createExceptionReply(). SystemExceptions are raised
         // directly.
         //
-        else if (servant_ instanceof org.omg.CORBA.portable.InvokeHandler) {
+        else if (servant instanceof InvokeHandler) {
             try {
-                org.omg.CORBA.portable.InvokeHandler inv = (org.omg.CORBA.portable.InvokeHandler) servant_;
+                InvokeHandler inv = (InvokeHandler) servant;
 
                 //
                 // Prepare to unmarshal
                 //
-                org.omg.CORBA.portable.InputStream in = upcall_.preUnmarshal();
+                InputStream in = upcall.preUnmarshal();
 
                 //
                 // Call postUnmarshal now. There may be interceptors that
@@ -183,54 +157,49 @@ final class ServantDispatcher implements org.omg.CORBA.portable.ResponseHandler 
                 // When using a portable skeleton, the interceptors cannot
                 // obtain parameter information.
                 //
-                upcall_.postUnmarshal();
+                upcall.postUnmarshal();
 
                 //
                 // Invoke the portable skeleton
                 //
-                org.omg.CORBA.portable.OutputStream out = inv._invoke(upcall_
-                        .operation(), in, this);
+                OutputStream out = inv._invoke(upcall.operation(), in, this);
 
                 //
                 // The OutputStream returned by _invoke() should be
                 // the Upcall's OutputStream
                 //
-                Assert.ensure(out == upcall_
-                        .output());
+                Assert.ensure(out == upcall.output());
 
                 //
                 // Finish up
                 //
-                if (!upcall_.userException())
-                    upcall_.postMarshal();
+                if (!upcall.userException()) upcall.postMarshal();
             } catch (Abort ex) {
                 //
                 // Abort is raised by createExceptionReply()
                 //
-            } catch (org.apache.yoko.orb.OB.RuntimeLocationForward ex) {
+            } catch (RuntimeLocationForward ex) {
                 //
                 // RuntimeLocationForward is raised by createReply() and
                 // createExceptionReply() to bypass the portable
                 // skeleton and report a location-forward
                 //
-                throw new org.apache.yoko.orb.OB.LocationForward(ex.ior,
-                        ex.perm);
+                throw new LocationForward(ex.ior, ex.perm);
             }
         }
         //
         // Case 3: DSI
         //
-        else if (servant_ instanceof org.omg.PortableServer.DynamicImplementation) {
-            org.omg.PortableServer.DynamicImplementation impl = (org.omg.PortableServer.DynamicImplementation) servant_;
-            org.apache.yoko.orb.CORBA.ServerRequest request = new org.apache.yoko.orb.CORBA.ServerRequest(
-                    impl, upcall_);
+        else if (servant instanceof DynamicImplementation) {
+            DynamicImplementation impl = (DynamicImplementation) servant;
+            ServerRequest request = new ServerRequest(impl, upcall);
 
             try {
                 impl.invoke(request);
                 request._OB_finishUnmarshal();
                 request._OB_postinvoke();
                 request._OB_doMarshal();
-            } catch (org.omg.CORBA.SystemException ex) {
+            } catch (SystemException ex) {
                 request._OB_finishUnmarshal();
                 throw ex;
             }
@@ -245,11 +214,11 @@ final class ServantDispatcher implements org.omg.CORBA.portable.ResponseHandler 
     //
     // Called by a portable skeleton for a normal reply
     //
-    public org.omg.CORBA.portable.OutputStream createReply() {
+    public OutputStream createReply() {
         try {
-            upcall_.postinvoke();
-            return upcall_.preMarshal();
-        } catch (org.apache.yoko.orb.OB.LocationForward ex) {
+            upcall.postinvoke();
+            return upcall.preMarshal();
+        } catch (LocationForward ex) {
             //
             // We need to raise an exception in order to abort the
             // current execution context and return control to
@@ -260,17 +229,15 @@ final class ServantDispatcher implements org.omg.CORBA.portable.ResponseHandler 
             // Note that the user can interfere with this process
             // if they trap RuntimeException.
             //
-            throw new org.apache.yoko.orb.OB.RuntimeLocationForward(ex.ior,
-                    ex.perm);
+            throw new RuntimeLocationForward(ex.ior, ex.perm);
         }
     }
 
     //
     // Called by a portable skeleton for a user exception
     //
-    public org.omg.CORBA.portable.OutputStream createExceptionReply() {
-        org.omg.CORBA.portable.OutputStream out = upcall_
-                .beginUserException(null);
+    public OutputStream createExceptionReply() {
+        OutputStream out = upcall.beginUserException(null);
 
         //
         // If the return value of beginUserException is null, then
@@ -280,9 +247,7 @@ final class ServantDispatcher implements org.omg.CORBA.portable.ResponseHandler 
         // Note that the user can interfere with this process
         // if they trap RuntimeException.
         //
-        if (out == null)
-            throw new Abort();
-        else
-            return out;
+        if (out == null) throw new Abort();
+        return out;
     }
 }
