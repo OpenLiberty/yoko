@@ -54,6 +54,12 @@ public enum VerboseLogging {
      </pre>*/
     public static final Logger ROOT_LOG = Logger.getLogger("yoko.verbose");
 
+    /** Log ORB initialization */
+    public static final Logger INIT_LOG = Logger.getLogger("yoko.verbose.init");
+    public static final Logger ORB_INIT_LOG = Logger.getLogger("yoko.verbose.init.orb");
+    public static final Logger POA_INIT_LOG = Logger.getLogger("yoko.verbose.init.poa");
+
+
     /** Connection logging: <pre>
      * CONFIG: timeout settings etc.
      * FINE:   open/accept/close connection to/from endpoint
@@ -74,7 +80,6 @@ public enum VerboseLogging {
     public static final Logger DATA_IN_LOG = Logger.getLogger("yoko.verbose.data.in");
     /** Log data sent */
     public static final Logger DATA_OUT_LOG = Logger.getLogger("yoko.verbose.data.out");
-
 
     public static final Logger RETRY_LOG = Logger.getLogger("yoko.verbose.retry");
 

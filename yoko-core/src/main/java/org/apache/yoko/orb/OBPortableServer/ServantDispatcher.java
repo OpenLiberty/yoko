@@ -46,9 +46,8 @@ import org.omg.PortableServer.Servant;
 // standard ResponseHandler interface.
 //
 final class ServantDispatcher implements org.omg.CORBA.portable.ResponseHandler {
-    private Upcall upcall;
-
-    private Servant servant;
+    private final Upcall upcall;
+    private final Servant servant;
 
     // Used to bypass a portable skeleton
     private static class Abort extends RuntimeException {}

@@ -171,7 +171,7 @@ final public class POA_impl extends LocalObject implements POA {
     private final POAPolicies policies_;
     private final IdGenerationStrategy idGenerationStrategy_;
     private final int poaCreateTime_;
-    /** If this POA has the single thread policy set then this mutex is used ensure this policy is met */
+    /** If this POA has the single thread policy set then this mutex is used to ensure this policy is met */
     private final RecursiveMutex poaSyncMutex_ = new RecursiveMutex();
     private final DispatchStrategy dispatchStrategy_;
     private final PoaCurrentImpl poaCurrent_;
@@ -963,7 +963,10 @@ final public class POA_impl extends LocalObject implements POA {
         poaCurrent_._OB_preinvoke(this, servant, op, oid, cookie);
 
         // Depending on the synchronization policy we have to lock a variety of mutexes.
-        // TODO: DUMP THIS IF POSSIBLE
+        getLock();
+    }
+
+    private void getLock() {
         switch (policies_.synchronizationPolicy().value()) {
         case _NO_SYNCHRONIZATION:
             break;
@@ -977,40 +980,46 @@ final public class POA_impl extends LocalObject implements POA {
     }
 
     public void _OB_postinvoke() {
-        byte[] oid = poaCurrent_._OB_getObjectId();
-        String op = poaCurrent_._OB_getOp();
-        Servant servant = poaCurrent_._OB_getServant();
-        Object cookie = poaCurrent_._OB_getCookie();
 
+        byte[] oid;
+        String op;
+        Servant servant;
+        Object cookie;
+
+        // use a try-finally to ensure unlocking happens even if these getters throw
+        try {
+            oid = poaCurrent_._OB_getObjectId();
+            op = poaCurrent_._OB_getOp();
+            servant = poaCurrent_._OB_getServant();
+            cookie = poaCurrent_._OB_getCookie();
+        } finally {
+            releaseLock();
+        }
+        // Clean up the PortableServant::Current
+        poaCurrent_._OB_postinvoke();
+
+        // Clean up the OCI:Current
+        ociCurrent_._OB_postinvoke();
+
+        // postinvoke the servant location strategy
+        servantLocationStrategy_.postinvoke(oid, this, op, cookie, servant);
+    }
+
+    private void releaseLock() {
         // Depending on the synchronization policy we have to unlock a
         // variety of mutexes. Note that we have to do this before
         // calling postinvoke else we might operate on a destroyed
         // servant.
         switch (policies_.synchronizationPolicy().value()) {
-        case _NO_SYNCHRONIZATION:
-            break;
-        case _SYNCHRONIZE_ON_POA:
-            poaSyncMutex_.unlock();
-            break;
-        case _SYNCHRONIZE_ON_ORB:
-            orbInstance_.getORBSyncMutex().unlock();
-            break;
+            case _NO_SYNCHRONIZATION:
+                break;
+            case _SYNCHRONIZE_ON_POA:
+                poaSyncMutex_.unlock();
+                break;
+            case _SYNCHRONIZE_ON_ORB:
+                orbInstance_.getORBSyncMutex().unlock();
+                break;
         }
-
-        //
-        // Clean up the PortableServant::Current
-        //
-        poaCurrent_._OB_postinvoke();
-
-        //
-        // Clean up the OCI:Current
-        //
-        ociCurrent_._OB_postinvoke();
-
-        //
-        // postinvoke the servant location strategy
-        //
-        servantLocationStrategy_.postinvoke(oid, this, op, cookie, servant);
     }
 
     void _OB_locateServant(byte[] oid) throws LocationForward {
