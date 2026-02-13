@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,12 @@
  */
 package test.codesets;
 
-class TestCodeSets_impl extends TestCodeSetsPOA {
-    private org.omg.CORBA.ORB orb_;
+import org.omg.CORBA.ORB;
 
-    TestCodeSets_impl(org.omg.CORBA.ORB orb) {
+public class TestCodeSets_impl extends TestCodeSetsPOA {
+    private ORB orb_;
+
+    public TestCodeSets_impl(ORB orb) {
         orb_ = orb;
     }
 
@@ -41,6 +43,6 @@ class TestCodeSets_impl extends TestCodeSetsPOA {
     }
 
     public void deactivate() {
-        orb_.shutdown(false);
+        if (null != orb_) orb_.shutdown(false);
     }
 }
