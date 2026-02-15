@@ -20,6 +20,7 @@ package org.apache.yoko.codecs;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.apache.yoko.orb.OB.CodeSetInfo;
+import org.apache.yoko.util.yasf.Yasf;
 import org.omg.CORBA.DATA_CONVERSION;
 
 import static java.lang.Character.highSurrogate;
@@ -33,6 +34,7 @@ import static org.apache.yoko.logging.VerboseLogging.DATA_OUT_LOG;
 import static org.apache.yoko.codecs.Util.ASCII_REPLACEMENT_BYTE;
 import static org.apache.yoko.codecs.Util.UNICODE_REPLACEMENT_CHAR;
 import static org.apache.yoko.util.MinorCodes.MinorUTF8Encoding;
+import static org.apache.yoko.util.yasf.Yasf.WRITE_UTF8_AS_UTF8;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
 
 final class Utf8Codec implements CharCodec {
@@ -135,30 +137,31 @@ final class Utf8Codec implements CharCodec {
     public void writeChar(char c, WriteBuffer out) {
         try {
             final int codepoint;
-            if (0 != highSurrogate) {
-                try {
-                    if (isHighSurrogate(c)) throw new InternalException(String.format("Received two high surrogates in a row: 0x%04X 0x%04X", highSurrogate, c));
-                    if (!isLowSurrogate(c)) throw new InternalException(String.format("Expected low surrogate but received: 0x%04X", (int) c));
-                    codepoint = toCodePoint(highSurrogate, c);
-                    // undo the replacement byte written out when the high surrogate was received
-                    out.rewind(1);
-                } finally {
-                    highSurrogate = 0;
-                }
-            } else {
-                if (isHighSurrogate(c)) {
+            // if writing CESU-8 (i.e. talking to an older Yoko)
+            // then simply marshal surrogate codepoints as 3-byte UTF-8 sequences
+            // and therefore pass them straight through without any checking
+            if (WRITE_UTF8_AS_UTF8.isSupported()) {
+                if (0 != highSurrogate) {
+                    try {
+                        if (isHighSurrogate(c)) throw new InternalException(String.format("Received two high surrogates in a row: 0x%04X 0x%04X", (int) highSurrogate, (int) c));
+                        if (!isLowSurrogate(c)) throw new InternalException(String.format("Expected low surrogate but received: 0x%04X", (int) c));
+                        codepoint = toCodePoint(highSurrogate, c);
+                        // undo the replacement byte written out when the high surrogate was received
+                        out.rewind(1);
+                    } finally {
+                        highSurrogate = 0;
+                    }
+                } else if (isHighSurrogate(c)) {
                     highSurrogate = c;
                     // write a '?' in case we never get the low surrogate
                     out.writeByte(ASCII_REPLACEMENT_BYTE);
                     return;
-                }
-                if (isLowSurrogate(c)) {
+                } else if (isLowSurrogate(c)) {
                     DATA_OUT_LOG.warning(String.format("Received unexpected low surrogate: 0x%04X", (int) c));
                     out.writeByte(ASCII_REPLACEMENT_BYTE);
                     return;
-                }
-                codepoint = c;
-            }
+                } else codepoint = c;
+            } else codepoint = c;
             writeBytes(codepoint, out);
         } catch (InternalException x) {
             DATA_OUT_LOG.warning(x.getMessage());
