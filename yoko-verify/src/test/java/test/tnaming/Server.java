@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
  */
 package test.tnaming;
 
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -100,7 +101,7 @@ final class Server implements AutoCloseable {
 
         // use a temporary file to avoid the client picking up an empty file when debugging the server
         Path tmp = Files.createTempFile(refFile, "");
-        try (PrintWriter out = new PrintWriter(new FileWriter(tmp.toFile()))) {
+        try (FileOutputStream file = new FileOutputStream(tmp.toFile()); PrintWriter out = new PrintWriter(file)) {
             System.out.println("server opened file for writing");
             try {
                 NamingContext nc1 = rootNamingContext.new_context();
@@ -113,7 +114,6 @@ final class Server implements AutoCloseable {
                 NamingContext nc2 = rootNamingContext.bind_new_context(new NameComponent[]{LEVEL1, LEVEL2});
 
                 Util.assertNameNotBound(rootNamingContext, TEST1);
-
                 Util.assertNameNotBound(rootNamingContext, TEST1);
 
                 rootNamingContext.bind(new NameComponent[]{TEST1}, test1);
@@ -156,6 +156,7 @@ final class Server implements AutoCloseable {
             RefFiles.writeRef(orb, out, test2, rootNamingContext, new NameComponent[]{LEVEL1, TEST2});
             RefFiles.writeRef(orb, out, test3, rootNamingContext, new NameComponent[]{LEVEL1, LEVEL2, TEST3});
             out.flush();
+            file.getFD().sync();
             System.out.println("IORs written to file");
         } catch (java.io.IOException ex) {
             System.err.println("Can't write to `" + ex.getMessage() + "'");

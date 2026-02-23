@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import java.io.*;
 final public class TestMultipleOrbsServer {
 
     public static void main(String[] args) {
-        java.util.Properties props = new Properties();
+        Properties props = new Properties();
         props.putAll(System.getProperties());
         props.put("org.omg.CORBA.ORBClass", "org.apache.yoko.orb.CORBA.ORB");
         props.put("org.omg.CORBA.ORBSingletonClass",
@@ -42,28 +42,21 @@ final public class TestMultipleOrbsServer {
             //
             // Resolve Root POA and POA Manager
             //
-            org.omg.CORBA.Object poaObj = orb1
-                    .resolve_initial_references("RootPOA");
-            org.omg.PortableServer.POA rootPOA1 = org.omg.PortableServer.POAHelper
-                    .narrow(poaObj);
-            org.omg.PortableServer.POAManager manager1 = rootPOA1
-                    .the_POAManager();
+            org.omg.CORBA.Object poaObj = orb1.resolve_initial_references("RootPOA");
+            org.omg.PortableServer.POA rootPOA1 = org.omg.PortableServer.POAHelper.narrow(poaObj);
+            org.omg.PortableServer.POAManager manager1 = rootPOA1.the_POAManager();
 
             poaObj = orb2.resolve_initial_references("RootPOA");
-            org.omg.PortableServer.POA rootPOA2 = org.omg.PortableServer.POAHelper
-                    .narrow(poaObj);
-            org.omg.PortableServer.POAManager manager2 = rootPOA2
-                    .the_POAManager();
+            org.omg.PortableServer.POA rootPOA2 = org.omg.PortableServer.POAHelper.narrow(poaObj);
+            org.omg.PortableServer.POAManager manager2 = rootPOA2.the_POAManager();
 
             //
             // Create test implementation object in each ORB
             //
             Test_impl testImpl1 = new Test_impl(orb1, rootPOA1);
-            ;
             Test test1 = testImpl1._this(orb1);
 
             Test_impl testImpl2 = new Test_impl(orb2, rootPOA2);
-            ;
             Test test2 = testImpl2._this(orb2);
 
             //
@@ -91,6 +84,7 @@ final public class TestMultipleOrbsServer {
                 out.println(orb1.object_to_string(server1));
                 out.println(orb2.object_to_string(server2));
                 out.flush();
+                file.getFD().sync();
                 file.close();
             } catch (IOException ex) {
                 System.err.println("Can't write to `" + ex.getMessage() + "'");

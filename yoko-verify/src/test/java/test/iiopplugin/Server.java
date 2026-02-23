@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,11 +49,11 @@ public class Server {
         String refFile = "Test.ref";
         try {
             String ref = orb.object_to_string(test);
-            FileOutputStream file = new FileOutputStream(
-                    refFile);
+            FileOutputStream file = new FileOutputStream(refFile);
             PrintWriter out = new PrintWriter(file);
             out.println(ref);
             out.flush();
+            file.getFD().sync();
             file.close();
         } catch (IOException ex) {
             System.err.println("Can't write to `" + ex.getMessage() + "'");

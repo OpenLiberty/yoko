@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ package test.poa;
 
 import java.io.*;
 import java.util.Properties;
+
+import static org.apache.yoko.orb.OBCORBA.ORB_impl.ParseArgs;
 
 final public class TestMultipleOrbsThreadedServer {
     //
@@ -65,18 +67,15 @@ final public class TestMultipleOrbsThreadedServer {
             props
                     .put("org.omg.CORBA.ORBClass",
                             "org.apache.yoko.orb.CORBA.ORB");
-            props.put("org.omg.CORBA.ORBSingletonClass",
-                    "org.apache.yoko.orb.CORBA.ORBSingleton");
+            props.put("org.omg.CORBA.ORBSingletonClass", "org.apache.yoko.orb.CORBA.ORBSingleton");
             props.put("yoko.orb.id", orb_id); // Use ORB ID passed
 
             try {
                 String[] args = new String[0];
                 orb_ = org.omg.CORBA.ORB.init(args, props);
 
-                org.omg.CORBA.Object obj = orb_
-                        .resolve_initial_references("RootPOA");
-                org.omg.PortableServer.POA rootPOA = org.omg.PortableServer.POAHelper
-                        .narrow(obj);
+                org.omg.CORBA.Object obj = orb_.resolve_initial_references("RootPOA");
+                org.omg.PortableServer.POA rootPOA = org.omg.PortableServer.POAHelper.narrow(obj);
                 manager_ = rootPOA.the_POAManager();
 
                 test_ = new TestOrb_impl(orb_);
@@ -122,31 +121,21 @@ final public class TestMultipleOrbsThreadedServer {
         java.util.Properties props = new Properties();
         props.putAll(System.getProperties());
         props.put("org.omg.CORBA.ORBClass", "org.apache.yoko.orb.CORBA.ORB");
-        props.put("org.omg.CORBA.ORBSingletonClass",
-                "org.apache.yoko.orb.CORBA.ORBSingleton");
+        props.put("org.omg.CORBA.ORBSingletonClass", "org.apache.yoko.orb.CORBA.ORBSingleton");
         props.put("yoko.orb.id", ""); // Use default ORB
 
         org.omg.CORBA.ORB orb = null;
 
         try {
-            args = org.apache.yoko.orb.CORBA.ORB.ParseArgs(args, props, null);
+            args = ParseArgs(args, props, null);
             props.put("yoko.orb.conc_model", "threaded");
             props.put("yoko.orb.oa.conc_model", "threaded");
 
-            //
-            // Create ORB
-            //
             orb = org.omg.CORBA.ORB.init(args, props);
 
-            //
-            // Resolve Root POA and POA Manager
-            //
-            org.omg.CORBA.Object poaObj = orb
-                    .resolve_initial_references("RootPOA");
-            org.omg.PortableServer.POA rootPOA = org.omg.PortableServer.POAHelper
-                    .narrow(poaObj);
-            org.omg.PortableServer.POAManager manager = rootPOA
-                    .the_POAManager();
+            org.omg.CORBA.Object poaObj = orb.resolve_initial_references("RootPOA");
+            org.omg.PortableServer.POA rootPOA = org.omg.PortableServer.POAHelper.narrow(poaObj);
+            org.omg.PortableServer.POAManager manager = rootPOA.the_POAManager();
 
             //
             // Create threads to run other orb instances
@@ -182,6 +171,7 @@ final public class TestMultipleOrbsThreadedServer {
                 PrintWriter out = new PrintWriter(file);
                 out.println(orb.object_to_string(server));
                 out.flush();
+                file.getFD().sync();
                 file.close();
             } catch (IOException ex) {
                 System.err.println("Can't write to `" + ex.getMessage() + "'");
