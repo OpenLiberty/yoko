@@ -34,6 +34,11 @@ import org.omg.GIOP.TargetAddress;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.TaggedProfile;
 import org.omg.IOP.TaggedProfileHelper;
+import sun.nio.cs.ISO_8859_1;
+
+import java.nio.charset.StandardCharsets;
+
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
 public final class GIOPOutgoingMessage {
     private static int maxMessageSize_ = 0; // TODO: pick a default
@@ -171,7 +176,7 @@ public final class GIOPOutgoingMessage {
             //
             int opLen = op.length();
             out_.write_ulong(opLen + 1);
-            out_.write_octet_array(op.getBytes(), 0, opLen);
+            out_.write_octet_array(op.getBytes(ISO_8859_1), 0, opLen);
             out_.write_octet((byte) 0); // nul terminator
 
             out_.write_ulong(0); // requesting_principal
@@ -209,7 +214,7 @@ public final class GIOPOutgoingMessage {
             //
             int opLen = op.length();
             out_.write_ulong(opLen + 1);
-            out_.write_octet_array(op.getBytes(), 0, opLen);
+            out_.write_octet_array(op.getBytes(ISO_8859_1), 0, opLen);
             out_.write_octet((byte) 0); // nul terminator
 
             writeServiceContextList(contexts); // service_context

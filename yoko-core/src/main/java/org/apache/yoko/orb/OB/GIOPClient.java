@@ -18,8 +18,8 @@
 package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.io.Buffer;
-import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OBPortableServer.POAManager_impl;
 import org.apache.yoko.orb.OCI.Connector;
@@ -49,7 +49,6 @@ import java.util.List;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINEST;
 import static org.apache.yoko.logging.VerboseLogging.CONN_OUT_LOG;
-import static org.apache.yoko.orb.OB.CodeSetInfo.ISO_LATIN_1;
 import static org.apache.yoko.orb.OB.CodeSetUtil.getNegotiatedCodecs;
 import static org.apache.yoko.orb.OB.SendingContextRuntimes.SENDING_CONTEXT_RUNTIME;
 import static org.apache.yoko.orb.exceptions.Transients.ACTIVE_CONNECTION_MANAGEMENT;
