@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,19 @@
  */
 package test.retry;
 
+import org.omg.CORBA.UserException;
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.POAHelper;
+import org.omg.PortableServer.POAManager;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Properties;
+
+import static org.omg.PortableServer.ImplicitActivationPolicyValue.NO_IMPLICIT_ACTIVATION;
+import static org.omg.PortableServer.RequestProcessingPolicyValue.USE_SERVANT_MANAGER;
+import static org.omg.PortableServer.ServantRetentionPolicyValue.NON_RETAIN;
 
 class FwdLocator_impl extends org.omg.CORBA.LocalObject implements
         org.omg.PortableServer.ServantLocator {
@@ -28,59 +40,42 @@ class FwdLocator_impl extends org.omg.CORBA.LocalObject implements
     }
 
     public org.omg.PortableServer.Servant preinvoke(byte[] oid,
-            org.omg.PortableServer.POA poa, String operation,
+            POA poa, String operation,
             org.omg.PortableServer.ServantLocatorPackage.CookieHolder cookie)
             throws org.omg.PortableServer.ForwardRequest {
         throw new org.omg.PortableServer.ForwardRequest(obj_);
     }
 
-    public void postinvoke(byte[] oid, org.omg.PortableServer.POA poa,
+    public void postinvoke(byte[] oid, POA poa,
             String operation, java.lang.Object cookie,
             org.omg.PortableServer.Servant servant) {
     }
 }
 
 public class Server {
-    public static int run(org.omg.CORBA.ORB orb, String[] args)
-            throws org.omg.CORBA.UserException {
-        //
-        // Resolve Root POA
-        //
-        org.omg.PortableServer.POA rootPOA = org.omg.PortableServer.POAHelper
-                .narrow(orb.resolve_initial_references("RootPOA"));
+    public static int run(org.omg.CORBA.ORB orb, String[] args) throws UserException {
+        POA rootPOA = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
 
-        //
-        // Get a reference to the POA manager and activate it
-        //
-        org.omg.PortableServer.POAManager manager = rootPOA.the_POAManager();
-        manager.activate();
+        rootPOA.the_POAManager().activate();
 
-        org.omg.CORBA.Policy[] policies = new org.omg.CORBA.Policy[3];
-        policies[0] = rootPOA
-                .create_request_processing_policy(org.omg.PortableServer.RequestProcessingPolicyValue.USE_SERVANT_MANAGER);
-        policies[1] = rootPOA
-                .create_servant_retention_policy(org.omg.PortableServer.ServantRetentionPolicyValue.NON_RETAIN);
-        policies[2] = rootPOA
-                .create_implicit_activation_policy(org.omg.PortableServer.ImplicitActivationPolicyValue.NO_IMPLICIT_ACTIVATION);
+        org.omg.CORBA.Policy[] policies = {
+                rootPOA.create_request_processing_policy(USE_SERVANT_MANAGER),
+                rootPOA.create_servant_retention_policy(NON_RETAIN),
+                rootPOA.create_implicit_activation_policy(NO_IMPLICIT_ACTIVATION),
+        };
 
-        //
         // Create two POAs with servant locators, each with its own
         // POAManager (and therefore, each with unique endpoints).
         // The locators will simply raise ForwardRequest for the
         // given object, thus creating an infinite loop.
-        //
-        org.omg.PortableServer.POA poa1 = rootPOA.create_POA("poa1", null,
-                policies);
-        org.omg.PortableServer.POA poa2 = rootPOA.create_POA("poa2", null,
-                policies);
+        POA poa1 = rootPOA.create_POA("poa1", null, policies);
+        POA poa2 = rootPOA.create_POA("poa2", null, policies);
 
         org.omg.CORBA.Object obj1 = poa1.create_reference("IDL:Test:1.0");
         org.omg.CORBA.Object obj2 = poa2.create_reference("IDL:Test:1.0");
 
-        org.omg.PortableServer.ServantLocator locator1 = new FwdLocator_impl(
-                obj2);
-        org.omg.PortableServer.ServantLocator locator2 = new FwdLocator_impl(
-                obj1);
+        org.omg.PortableServer.ServantLocator locator1 = new FwdLocator_impl(obj2);
+        org.omg.PortableServer.ServantLocator locator2 = new FwdLocator_impl(obj1);
 
         poa1.set_servant_manager(locator1);
         poa2.set_servant_manager(locator2);
@@ -93,30 +88,26 @@ public class Server {
         RetryServer_impl serverImpl = new RetryServer_impl(rootPOA, test, retry);
         RetryServer server = serverImpl._this(orb);
 
-        //
         // Save reference. This must be done after POA manager
         // activation, otherwise there is a potential for a race
         // condition between the client sending a request and the
         // server not being ready yet.
-        //
         String refFile = "Test.ref";
         try {
             String ref = orb.object_to_string(server);
-            java.io.FileOutputStream file = new java.io.FileOutputStream(
-                    refFile);
-            java.io.PrintWriter out = new java.io.PrintWriter(file);
+            FileOutputStream file = new FileOutputStream(refFile);
+            PrintWriter out = new PrintWriter(file);
             out.println(ref);
             out.flush();
+            file.getFD().sync();
             file.close();
-        } catch (java.io.IOException ex) {
+        } catch (IOException ex) {
             System.err.println("Can't write to `" + ex.getMessage() + "'");
             return 1;
         }
 
-        //
         // Run implementation
-        //
-        org.omg.PortableServer.POAManager mgr = poa1.the_POAManager();
+        POAManager mgr = poa1.the_POAManager();
         mgr.activate();
         mgr = poa2.the_POAManager();
         mgr.activate();

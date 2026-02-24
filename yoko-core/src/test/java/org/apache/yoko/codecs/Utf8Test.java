@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
@@ -31,7 +31,7 @@ import static java.lang.Character.MAX_LOW_SURROGATE;
 import static java.lang.Character.MIN_HIGH_SURROGATE;
 import static java.lang.Character.isSupplementaryCodePoint;
 import static java.util.stream.IntStream.concat;
-import static org.apache.yoko.orb.codecs.TestData.testRange;
+import static org.apache.yoko.codecs.TestData.testRange;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class Utf8Test implements TestData {
     static final int MIN_1_BYTE = 0, MIN_2_BYTE = 1<<7, MIN_3_BYTE = 1 << 5+6, MIN_4_BYTE = 1 << 4+6+6;
     static final Charset UTF_8 = Charset.forName("UTF-8");
-    final CharCodec codec = CharCodec.forName("UTF-8");
+    final CharCodec codec = Codex.getCharCodec("UTF-8");
     final WriteBuffer out = Buffer.createWriteBuffer(4);
 
     static Stream<Object[]> _1_ByteChars() { return testRange(MIN_1_BYTE, MIN_2_BYTE).mapToObj(TestData::toHexIntAndString); }
@@ -76,8 +76,6 @@ class Utf8Test implements TestData {
 
     @ParameterizedTest(name = "Encode 4-byte UTF-8 char: {0} ({2})") @MethodSource("_4_ByteChars")
     void testEncode4ByteChar(String hex, int codepoint, String c) { checkEncoding(codepoint, c); }
-
-    // Invalid UTF-8 tests moved to Utf8InvalidTest.java
 
     private void checkDecoding(int codepoint, String expected) {
         ByteBuffer bb = UTF_8.encode(expected);

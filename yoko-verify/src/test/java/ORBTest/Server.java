@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
  */
 package ORBTest;
 
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
 import java.util.Properties;
 import org.omg.CORBA.*;
 import org.omg.PortableServer.*;
@@ -24,8 +26,7 @@ import org.omg.PortableServer.*;
 public class Server {
     private static final String refFile = "TestIntf.ref";
 
-    public static int run(ORB orb, boolean nonBlocking, String[] args)
-            throws org.omg.CORBA.UserException {
+    public static int run(ORB orb, boolean nonBlocking, String[] args) throws UserException {
         //
         // Resolve Root POA
         //
@@ -51,11 +52,11 @@ public class Server {
         // not being ready yet.
         //
         try {
-            java.io.FileOutputStream file = new java.io.FileOutputStream(
-                    refFile);
-            java.io.PrintWriter out = new java.io.PrintWriter(file);
+            FileOutputStream file = new FileOutputStream(refFile);
+            PrintWriter out = new PrintWriter(file);
             out.println(impl);
             out.flush();
+            file.getFD().sync();
             file.close();
         } catch (java.io.IOException ex) {
             System.err.println("Can't write to `" + ex.getMessage() + "'");

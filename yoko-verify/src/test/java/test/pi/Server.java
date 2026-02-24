@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,11 +44,11 @@ import org.omg.PortableServer.ServantRetentionPolicyValue;
 import org.omg.PortableServer.ServantRetentionPolicyValueHelper;
 
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.Properties;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 public final class Server {
     private static String refFile = "TestInterface.ref";
@@ -60,7 +60,7 @@ public final class Server {
     }
 
     static void ServerRun(ORB orb, boolean nonBlocking, String[] args) throws Exception {
-        try (PrintWriter out = new PrintWriter(new FileWriter(refFile))) {
+        try (FileOutputStream file = new FileOutputStream(refFile); PrintWriter out = new PrintWriter(file)) {
             try {
                 Object c = Class.forName("test.pi.ServerORBInitializer_impl");
                 System.out.println("Got class " + c);
@@ -132,6 +132,7 @@ public final class Server {
                 writeRef(orb, out, objImpl);
                 writeRef(orb, out, objDSIImpl);
                 out.flush();
+                file.getFD().sync();
                 System.out.println("Wrote refs");
 
                 

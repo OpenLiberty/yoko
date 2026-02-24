@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -236,7 +236,6 @@ final public class POAManager_impl extends LocalObject implements POAManager {
     // Yoko internal functions
     // Application programs must not use these functions directly
     // ------------------------------------------------------------------
-
     POAManager_impl(ORBInstance orbInstance,
                     POALocator poaLocator, String id, String adapterManagerId,
                     Acceptor[] acceptors,

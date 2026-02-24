@@ -858,7 +858,7 @@ public class ORB_impl extends ORBSingleton {
         int concModel = Client.Blocking;
         int nativeCs = UTF_8.id;
         int nativeWcs = UTF_16.id;
-        int defaultWcs = 0;
+        int defaultWcs = UTF_16.id;
 
         for (String key: properties.stringPropertyNames()) {
             if (!key.startsWith("yoko.orb.")) continue;
@@ -896,7 +896,7 @@ public class ORB_impl extends ORBSingleton {
             } else if (key.equals("yoko.orb.native_cs")) {
                 int csid = CodeSetInfo
                         .getRegistryIdForName(value);
-                if (csid != 0 && csid != UTF_8.id)
+                if (csid != 0)
                     nativeCs = csid;
                 else {
                     logger.severe("ORB.init: unknown value for yoko.orb.native_cs: " + value);

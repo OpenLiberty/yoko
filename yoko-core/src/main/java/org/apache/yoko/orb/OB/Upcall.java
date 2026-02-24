@@ -17,14 +17,6 @@
  */
 package org.apache.yoko.orb.OB;
 
-import static java.util.logging.Logger.getLogger;
-import static org.apache.yoko.io.Buffer.createWriteBuffer;
-import static org.apache.yoko.orb.OB.SendingContextRuntimes.SENDING_CONTEXT_RUNTIME;
-import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
@@ -42,10 +34,20 @@ import org.omg.CORBA.PolicyManager;
 import org.omg.CORBA.SystemException;
 import org.omg.CORBA.UserException;
 import org.omg.CORBA.portable.UnknownException;
+import org.omg.IOP.CodeSets;
 import org.omg.IOP.IOR;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.UnknownExceptionInfo;
 import org.omg.PortableServer.Servant;
+
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static java.util.logging.Logger.getLogger;
+import static org.apache.yoko.io.Buffer.createWriteBuffer;
+import static org.apache.yoko.orb.OB.SendingContextRuntimes.SENDING_CONTEXT_RUNTIME;
+import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
 
 public class Upcall {
     private static final Logger logger = getLogger(Upcall.class.getName());
@@ -155,10 +157,22 @@ public class Upcall {
 
     public void createOutputStream(int offset) {
         final GiopVersion giopVersion = GiopVersion.get(profileInfo_.major, profileInfo_.minor);
-        out_ = new YokoOutputStream(createWriteBuffer(offset).padAll(), in_._OB_codeConverters(), giopVersion);
+        out_ = new YokoOutputStream(createWriteBuffer(offset).padAll(), in_.getCodecs(), giopVersion);
     }
 
     public YokoInputStream preUnmarshal() {
+        boolean collocated = null == transportInfo_;
+        final GiopVersion giopVersion = GiopVersion.get(profileInfo_.major, profileInfo_.minor);
+        final CodecPair codecs;
+        if (collocated) {
+            codecs = CodecPair.getCollocatedCodecs();
+        } else {
+            codecs = Optional.ofNullable(requestContexts.get(CodeSets.value))
+                    .map(CodeSetUtil::extractCodeSetContext)
+                    .map(cssc -> CodecPair.create(cssc.char_data, cssc.wchar_data))
+                    .orElseGet(() -> CodecPair.getDefaultCodecs(giopVersion));
+        }
+        in_.setCodecsAndGiopVersion(codecs, giopVersion);
         return in_;
     }
 
@@ -198,7 +212,7 @@ public class Upcall {
             addUnsentConnectionServiceContexts();
             upcallReturn_.upcallBeginReply(this, replyContexts);
         } else {
-            out_ = new YokoOutputStream(in_._OB_codeConverters(), GiopVersion.get(profileInfo_.major, profileInfo_.minor));
+            out_ = new YokoOutputStream(in_.getCodecs(), GiopVersion.get(profileInfo_.major, profileInfo_.minor));
         }
         out_._OB_ORBInstance(this.orbInstance());
         if (out_ != null) out_.setTimeout(timeout);
@@ -278,8 +292,8 @@ public class Upcall {
     private static void createUnknownExceptionServiceContexts(UnknownException ex, ServiceContexts replyContexts) {
         final Throwable t = ex.originalEx;
         try (CmsfOverride o = CmsfThreadLocal.override()) {
-            CodeConverters codeConverters = CodeConverters.createForWcharWriteOnly();
-            try (YokoOutputStream os = new YokoOutputStream(codeConverters, GIOP1_2)) {
+            CodecPair codecs = CodecPair.getDefaultCodecs(GIOP1_2);
+            try (YokoOutputStream os = new YokoOutputStream(codecs, GIOP1_2)) {
                 os._OB_writeEndian();
                 os.write_value(t, Throwable.class);
                 ServiceContext sc = new ServiceContext(UnknownExceptionInfo.value, os.copyWrittenBytes());

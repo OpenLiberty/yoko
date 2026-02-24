@@ -15,7 +15,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
@@ -50,7 +50,7 @@ abstract class AbstractLatinCodecTest {
     final ReadBuffer readBuffer = writeBuffer.readFromStart();
 
     AbstractLatinCodecTest(String name) {
-        this.codec = CharCodec.forName(name);
+        this.codec = Codex.getCharCodec(name);
         this.charset = Charset.forName(name);
         expectedChars = Charset.forName(name).decode(inputBytes).asReadOnlyBuffer();
         expectedBytes = Charset.forName(name).encode(expectedChars);
@@ -72,6 +72,7 @@ abstract class AbstractLatinCodecTest {
         writeBuffer.writeByte(b);
         char actual = codec.readChar(readBuffer);
         assertEquals(expected, actual);
+        assertEquals(1, codec.octetCount(expected));
     }
 
     @Test

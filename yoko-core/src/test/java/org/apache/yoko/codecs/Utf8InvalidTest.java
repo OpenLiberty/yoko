@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class Utf8InvalidTest implements TestData {
     static final int MIN_1_BYTE = 0, MIN_2_BYTE = 1<<7, MIN_3_BYTE = 1 << 5+6, MIN_4_BYTE = 1 << 4+6+6;
-    final CharCodec codec = CharCodec.forName("UTF-8");
+    final CharCodec codec = Codex.getCharCodec("UTF-8");
     final WriteBuffer out = Buffer.createWriteBuffer(4);
     ReadBuffer in;
 

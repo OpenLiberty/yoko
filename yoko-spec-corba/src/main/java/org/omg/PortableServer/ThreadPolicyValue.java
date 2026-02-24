@@ -1,4 +1,6 @@
 /*
+ * Copyright 2026 IBM Corporation and others.
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,47 +17,34 @@
  */
 package org.omg.PortableServer;
 
-//
 // IDL:omg.org/PortableServer/ThreadPolicyValue:1.0
-//
-/***/
 
-public class ThreadPolicyValue implements org.omg.CORBA.portable.IDLEntity
-{
-    private static ThreadPolicyValue [] values_ = new ThreadPolicyValue[2];
-    private int value_;
+import org.omg.CORBA.BAD_PARAM;
 
+import java.io.ObjectStreamException;
+
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+
+public class ThreadPolicyValue implements org.omg.CORBA.portable.IDLEntity {
     public final static int _ORB_CTRL_MODEL = 0;
     public final static ThreadPolicyValue ORB_CTRL_MODEL = new ThreadPolicyValue(_ORB_CTRL_MODEL);
     public final static int _SINGLE_THREAD_MODEL = 1;
     public final static ThreadPolicyValue SINGLE_THREAD_MODEL = new ThreadPolicyValue(_SINGLE_THREAD_MODEL);
 
-    protected
-    ThreadPolicyValue(int value)
-    {
-        values_[value] = this;
-        value_ = value;
+    private static final ThreadPolicyValue [] values = {ORB_CTRL_MODEL, SINGLE_THREAD_MODEL};
+    private final int value;
+
+    protected ThreadPolicyValue(int value) { this.value = value; }
+
+    public int value() { return value; }
+
+    public static ThreadPolicyValue from_int(int value) {
+        try {
+            return values[value];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            throw new BAD_PARAM("Value (" + value  + ") out of range", 25, COMPLETED_NO);
+        }
     }
 
-    public int
-    value()
-    {
-        return value_;
-    }
-
-    public static ThreadPolicyValue
-    from_int(int value)
-    {
-        if(value < values_.length)
-            return values_[value];
-        else
-            throw new org.omg.CORBA.BAD_PARAM("Value (" + value  + ") out of range", 25, org.omg.CORBA.CompletionStatus.COMPLETED_NO);
-    }
-
-    private java.lang.Object
-    readResolve()
-        throws java.io.ObjectStreamException
-    {
-        return from_int(value());
-    }
+    private Object readResolve() throws ObjectStreamException { return from_int(value()); }
 }

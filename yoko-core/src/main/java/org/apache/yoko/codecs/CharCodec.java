@@ -16,19 +16,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.apache.yoko.orb.OB.CodeSetInfo;
 import org.omg.CORBA.DATA_CONVERSION;
 
-import java.nio.charset.Charset;
-import java.nio.charset.IllegalCharsetNameException;
-import java.nio.charset.UnsupportedCharsetException;
-
-import static org.apache.yoko.orb.codecs.LatinCodec.getLatinCodec;
-import static org.apache.yoko.orb.codecs.Util.getUnicodeCodec;
+import static org.apache.yoko.codecs.LatinCodec.getLatinCodec;
 import static org.apache.yoko.util.MinorCodes.MinorUTF8Encoding;
 import static org.apache.yoko.util.MinorCodes.MinorUTF8Overflow;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
@@ -80,40 +75,31 @@ import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
  * </p>
  */
 public interface CharCodec {
-    @FunctionalInterface interface CharReader { char readChar(ReadBuffer in); }
-
-    /**
-     * Get a char codec instance for the named Java charset.
-     *
-     * @param name the name of the Java charset for which a codec is required
-     * @return an instance of the appropriate char codec
-     * @throws IllegalCharsetNameException if the provided name is not a valid charset name
-     * @throws IllegalArgumentException if the provided name is null
-     * @throws UnsupportedCharsetException if the named charset is not supported
-     */
-    static CharCodec forName(String name) throws IllegalCharsetNameException, IllegalArgumentException, UnsupportedCharsetException {
-        // fastest result: directly named unicode codec
-        CharCodec result = getUnicodeCodec(name);
-        if (null != result) return result;
-        // next see if it is an alias for a unicode codec
-        Charset charset = Charset.forName(name);
-        result = getUnicodeCodec(charset.name());
-        if (null != result) return result;
-        // the only other codecs currently supported are the Latin ones
-        return getLatinCodec(charset);
-    }
-
-    static CharCodec forRegistryId(int id) throws UnsupportedCharsetException {
-        CodeSetInfo csi = CodeSetInfo.forRegistryId(id);
-        switch (csi) {
-            case UTF_16: return SimpleWcharCodec.UTF_16;
-            case UTF_8: return new Utf8Codec();
-
-        }
-        throw new UnsupportedCharsetException("Charset registry id = " + id);
-    }
 
     String name();
+
+    CodeSetInfo getCodeSetInfo();
+
+    /**
+     * Returns true iff the encoding always uses the same number of octets per char
+     */
+    default boolean isFixedWidth() { return true; }
+
+    /**
+     * Returns the number of octets per char iff {@link #isFixedWidth()} returns <code>true</code>
+     * @throws UnsupportedOperationException for non-fixed-width encodings
+     */
+    default int charSize() { return 1; }
+    /**
+     * Read the next char.
+     * @throws IndexOutOfBoundsException if the buffer does not contain enough bytes to read a single char
+     */
+    char readChar(ReadBuffer in);
+
+    /**
+     * Gives the number of octets needed to encode the specified char.
+     */
+    default int octetCount(char c) { return 1; }
 
     /**
      * Encodes a character to a buffer.
@@ -133,10 +119,6 @@ public interface CharCodec {
      */
     void writeChar(char c, WriteBuffer out);
 
-    /** Read the next char */
-    char readChar(ReadBuffer in);
-
-
     /**
      * Check there is no unfinished character data.
      * This is only relevant for encodings that encode
@@ -155,6 +137,8 @@ public interface CharCodec {
     /** Check whether the last character was not a high surrogate. */
     default boolean writeFinished() { return true; }
 
-    /** Provides an identical object that can be used concurrently with this one */
-    default CharCodec getInstanceOrCopy() { return this; }
+    /**
+     * Provides an identical object that can be used concurrently with this one
+     */
+    default CharCodec duplicate() { return this; }
 }

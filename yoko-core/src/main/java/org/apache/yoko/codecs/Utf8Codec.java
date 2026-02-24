@@ -15,10 +15,12 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
+import org.apache.yoko.orb.OB.CodeSetInfo;
+import org.apache.yoko.util.yasf.Yasf;
 import org.omg.CORBA.DATA_CONVERSION;
 
 import static java.lang.Character.highSurrogate;
@@ -29,15 +31,15 @@ import static java.lang.Character.toCodePoint;
 import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.logging.VerboseLogging.DATA_IN_LOG;
 import static org.apache.yoko.logging.VerboseLogging.DATA_OUT_LOG;
-import static org.apache.yoko.orb.codecs.Util.ASCII_REPLACEMENT_BYTE;
-import static org.apache.yoko.orb.codecs.Util.UNICODE_REPLACEMENT_CHAR;
+import static org.apache.yoko.codecs.Util.ASCII_REPLACEMENT_BYTE;
+import static org.apache.yoko.codecs.Util.UNICODE_REPLACEMENT_CHAR;
 import static org.apache.yoko.util.MinorCodes.MinorUTF8Encoding;
+import static org.apache.yoko.util.yasf.Yasf.WRITE_UTF8_AS_UTF8;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
 
 final class Utf8Codec implements CharCodec {
     static class InternalException extends Exception {
         InternalException(String message) { super(message); }
-        InternalException(String message, Throwable cause) { super(message, cause); }
     }
 
     // These are the minimum acceptable values for the encoding length, indexed by the number of bytes.
@@ -45,6 +47,12 @@ final class Utf8Codec implements CharCodec {
 
     private char highSurrogate = 0;
     private char lowSurrogate = 0;
+
+    @Override
+    public boolean isFixedWidth() { return false; }
+
+    @Override
+    public int charSize() { throw new UnsupportedOperationException(); }
 
     public char readChar(ReadBuffer in) {
         // return unread low surrogate char if there is one
@@ -84,7 +92,7 @@ final class Utf8Codec implements CharCodec {
             // return the high surrogate FIRST
             return highSurrogate(codepoint);
         } catch (Exception e) {
-            // something went wrong while reading a multi-byte encoding
+            // something went wrong while reading a multibyte encoding
             DATA_IN_LOG.log(WARNING, e, () -> String.format("Bad input while reading multi-byte encoding beginning at position 0x%d: 0x%s", pos, in.asHex(pos, in.getPosition()).toUpperCase()));
             DATA_IN_LOG.fine(in::dumpAllDataWithPosition);
             // so return a replacement character and set the pointer just past this lead byte
@@ -114,33 +122,46 @@ final class Utf8Codec implements CharCodec {
         return i & 0x3F;
     }
 
+    @Override
+    public int octetCount(char c) {
+        // Surrogate pairs in UTF-16 need 4 bytes in UTF-8.
+        // When we receive the high surrogate, we write a single char '?', so return 1
+        if (isHighSurrogate(c)) return 1;
+        // Unless received out of order, the low surrogate will need a further 3 bytes.
+        // The out-of-order case will only need 1 byte for '?'.
+        if (isLowSurrogate(c)) return highSurrogate == 0 ? 1 : 3;
+        // if it isn't a surrogate pair, compute the length by bounds-checking.
+        return getUtf8Len(c);
+    }
+
     public void writeChar(char c, WriteBuffer out) {
         try {
             final int codepoint;
-            if (0 != highSurrogate) {
-                try {
-                    if (isHighSurrogate(c)) throw new InternalException(String.format("Received two high surrogates in a row: 0x%04X 0x%04X", highSurrogate, c));
-                    if (!isLowSurrogate(c)) throw new InternalException(String.format("Expected low surrogate but received: 0x%04X", (int) c));
-                    codepoint = toCodePoint(highSurrogate, c);
-                    // undo the replacement byte written out when the high surrogate was received
-                    out.rewind(1);
-                } finally {
-                    highSurrogate = 0;
-                }
-            } else {
-                if (isHighSurrogate(c)) {
+            // if writing CESU-8 (i.e. talking to an older Yoko)
+            // then simply marshal surrogate codepoints as 3-byte UTF-8 sequences
+            // and therefore pass them straight through without any checking
+            if (WRITE_UTF8_AS_UTF8.isSupported()) {
+                if (0 != highSurrogate) {
+                    try {
+                        if (isHighSurrogate(c)) throw new InternalException(String.format("Received two high surrogates in a row: 0x%04X 0x%04X", (int) highSurrogate, (int) c));
+                        if (!isLowSurrogate(c)) throw new InternalException(String.format("Expected low surrogate but received: 0x%04X", (int) c));
+                        codepoint = toCodePoint(highSurrogate, c);
+                        // undo the replacement byte written out when the high surrogate was received
+                        out.rewind(1);
+                    } finally {
+                        highSurrogate = 0;
+                    }
+                } else if (isHighSurrogate(c)) {
                     highSurrogate = c;
                     // write a '?' in case we never get the low surrogate
                     out.writeByte(ASCII_REPLACEMENT_BYTE);
                     return;
-                }
-                if (isLowSurrogate(c)) {
+                } else if (isLowSurrogate(c)) {
                     DATA_OUT_LOG.warning(String.format("Received unexpected low surrogate: 0x%04X", (int) c));
                     out.writeByte(ASCII_REPLACEMENT_BYTE);
                     return;
-                }
-                codepoint = c;
-            }
+                } else codepoint = c;
+            } else codepoint = c;
             writeBytes(codepoint, out);
         } catch (InternalException x) {
             DATA_OUT_LOG.warning(x.getMessage());
@@ -158,7 +179,6 @@ final class Utf8Codec implements CharCodec {
         final int MASK_LAST_4_BITS = 0b0000_1111;
         final int MASK_LAST_5_BITS = 0b0001_1111;
         final int MASK_LAST_6_BITS = 0b0011_1111;
-        DATA_OUT_LOG.fine(() -> String.format("Encoding codepoint 0x%06X as %d bytes", codepoint, numBytes));
         switch (numBytes) {
         case 1:
             // write out the byte as-is
@@ -194,14 +214,22 @@ final class Utf8Codec implements CharCodec {
     public boolean writeFinished() { return 0 == highSurrogate; }
 
     @Override
-    public CharCodec getInstanceOrCopy() { return new Utf8Codec(); }
+    public CharCodec duplicate() { return new Utf8Codec(); }
 
     @Override
     public String name() { return "UTF-8"; }
+
+    @Override
+    public CodeSetInfo getCodeSetInfo() { return CodeSetInfo.UTF_8; }
 
     @Override
     public boolean equals(Object o) { return o instanceof Utf8Codec; }
 
     @Override
     public int hashCode() { return name().hashCode(); }
+
+    @Override
+    public String toString() {
+        return String.format("%s{h=0x%04x, l=0x%04x}", super.toString(), (int)highSurrogate, (int)lowSurrogate);
+    }
 }

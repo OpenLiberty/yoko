@@ -132,7 +132,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
     int upcallsInProgress_ = 0;
 
     /** code converters used by the connection */
-    private CodeConverters codeConverters_ = null;
+    private CodecPair codecs_ = null;
 
     /** maximum GIOP version encountered during message transactions */
     final Version giopVersion_ = new Version((byte) 0, (byte) 0);
@@ -164,12 +164,12 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
 
     /** read the codeset information from the service contexts */
     private void readCodeConverters(ServiceContexts contexts) {
-        if (codeConverters_ != null) return;
+        if (codecs_ != null) return;
         ServiceContext csSC = contexts.get(CodeSets.value);
         if (csSC == null) return;
         CodeSetContext csCtx = CodeSetUtil.extractCodeSetContext(csSC);
 
-        this.codeConverters_ = CodeConverters.create(orbInstance_, csCtx.char_data, csCtx.wchar_data);
+        this.codecs_ = CodecPair.create(csCtx.char_data, csCtx.wchar_data);
 
         if (CONN_IN_LOG.isLoggable(Level.FINEST)) {
             String msg = String.format("receiving transmission code sets%nchar code set: %s%nwchar code set: %s",
@@ -312,7 +312,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
 
         YokoInputStream in = msg.input();
 
-        // We have some decision making to do here if BiDir is
+        // We have some decision-making to do here if BiDir is
         // enabled:
         // - If this is a client then make sure to properly
         // evaluate the message and obtain the correct OAInterface
@@ -331,7 +331,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
 
         // Parse the service contexts for various codeset info
         readCodeConverters(contexts);
-        in._OB_codeConverters(codeConverters_, GiopVersion.get(version.major, version.minor));
+        in.setCodecsAndGiopVersion(codecs_, GiopVersion.get(version.major, version.minor));
 
         // read in the peer's sending context runtime object
         assignSendingContextRuntime(in, contexts);

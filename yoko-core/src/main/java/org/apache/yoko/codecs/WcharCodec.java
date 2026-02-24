@@ -16,47 +16,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
+import org.apache.yoko.orb.OB.CodeSetInfo;
 
-import java.nio.charset.UnsupportedCharsetException;
-import java.util.Optional;
+public interface WcharCodec {
+    @FunctionalInterface interface WcharReader { char readWchar(ReadBuffer in); }
 
-public interface WcharCodec extends CharCodec {
-    static WcharCodec getDefault() { return SimpleWcharCodec.UTF_16; }
+    CodeSetInfo getCodeSetInfo();
 
-    static WcharCodec forName(String name) {
-        return Optional.of(name)
-                .map(CharCodec::forName)
-                .filter(WcharCodec.class::isInstance)
-                .map(WcharCodec.class::cast)
-                .orElseThrow(() -> new UnsupportedCharsetException(name + " not supported for wchar"));
-    }
+    int octetCountWstring_1_2(String s);
 
-    static WcharCodec forRegistryId(int id) {
-        return Optional.of(id)
-                .map(CharCodec::forRegistryId)
-                .filter(WcharCodec.class::isInstance)
-                .map(WcharCodec.class::cast)
-                .orElseThrow(() -> new UnsupportedCharsetException("Charset with registry id " + id + " not supported for wchar"));
-    }
-
-    @Override
-    default char readChar(ReadBuffer in) { return in.readChar(); } // UTF-16 chars are already in Java format
-
-    @Override
-    default void writeChar(char c, WriteBuffer out) { out.writeChar(c); } // Java chars are already in UTF-16 format
+    int octetCountWchars_1_2(int numChars);
 
     /**
      * In GIOP 1.0 and GIOP 1.1, wchars are encoded as EXACTLY 2 bytes,
      * aligned on a 2-byte boundary, and in the message/encapsulation byte ordering.
      * The alignment must be ensured by the caller.
      */
-    char readCharWithEndianFlag(ReadBuffer in, boolean swapBytes);
-
-    // We only ever write big-endian, so no writeWithEndianFlag() method is needed
+    char readWchar_1_0(ReadBuffer in, boolean swapBytes);
 
     /**
      * In GIOP 1.2, the wchar encoding requires a length byte before each wchar.
@@ -64,14 +44,19 @@ public interface WcharCodec extends CharCodec {
      * However, it can be 4, if the wchar is preceded by a BOM.
      * This method should be used to read a BOM and then a wchar, i.e. if the length byte was 4.
      */
-    char readCharWithLength(ReadBuffer in);
+    char readWchar_1_2(ReadBuffer in);
+
+    /**
+     * Since we only ever write big-endian, no endianness parameter is required.
+     */
+    default void writeWchar_1_0(char c, WriteBuffer out) { out.writeChar(c); }
 
     /**
      * In GIOP 1.2, wchars are preceded by a single octet.
      * This contains the number of octets in the char is encoding,
      * including any necessary BOM.
      */
-    void writeCharWithLength(char c, WriteBuffer out);
+    void writeWchar_1_2(char c, WriteBuffer out);
 
     /**
      * In GIOP 1.2, for UTF-16, there may be a byte-order marker to indicate the endianness of the encoded bytes.
@@ -80,14 +65,14 @@ public interface WcharCodec extends CharCodec {
      *
      * @return the endian-informed reader with which to read in the rest of the string.
      */
-    CharReader beginToReadString(ReadBuffer in);
+    WcharReader beginToReadWstring_1_2(ReadBuffer in);
 
     /**
      * Under certain circumstances, it may be necessary to write a BOM at the start of a string.
      * To support this, this method will be called to write the first character of a wstring.
      */
-    void beginToWriteString(char firstChar, WriteBuffer out);
+    void beginToWriteWstring_1_2(char firstChar, WriteBuffer out);
 
     /** Provides an identical object that can be used concurrently with this one */
-    default WcharCodec getInstanceOrCopy() { return this; }
+    default WcharCodec duplicate() { return this; }
 }

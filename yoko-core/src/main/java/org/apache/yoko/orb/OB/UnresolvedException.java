@@ -38,7 +38,7 @@ public class UnresolvedException extends UnknownException {
     private static final Logger LOGGER = Logger.getLogger(UnresolvedException.class.getName());
     private final UNKNOWN ex;
     private final byte[] data;
-    private final CodeConverters converters;
+    private final CodecPair converters;
     private final CodeBase sendingContextRuntime;
     private final String codebase;
 
@@ -48,7 +48,7 @@ public class UnresolvedException extends UnknownException {
         super.minor = ex.minor;
         this.ex = ex;
         this.data = data;
-        this.converters = is._OB_codeConverters();
+        this.converters = is.getCodecs();
         this.sendingContextRuntime = is.__getSendingContextRuntime();
         this.codebase = is.__getCodeBase();
     }

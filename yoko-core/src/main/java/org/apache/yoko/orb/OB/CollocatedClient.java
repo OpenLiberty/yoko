@@ -17,16 +17,17 @@
  */
 package org.apache.yoko.orb.OB;
 
-import static org.apache.yoko.orb.OB.CodeConverters.NULL_CONVERTER;
-
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OCI.ConnectorInfo;
+import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.orb.OCI.TransportInfo;
 import org.omg.CORBA.Policy;
 import org.omg.IOP.IOR;
+
+import static org.apache.yoko.orb.OB.CodecPair.getCollocatedCodecs;
 
 public final class CollocatedClient extends Client implements DowncallEmitter {
     //
@@ -39,7 +40,7 @@ public final class CollocatedClient extends Client implements DowncallEmitter {
     // ----------------------------------------------------------------------
 
     public CollocatedClient(CollocatedServer server, int concModel) {
-        super(concModel, NULL_CONVERTER);
+        super(concModel, getCollocatedCodecs());
         server_ = server;
     }
 
@@ -89,7 +90,8 @@ public final class CollocatedClient extends Client implements DowncallEmitter {
     // OutputStream for marshalling a request
     //
     public DowncallEmitter startDowncall(Downcall down, OutputStreamHolder out) {
-        out.value = new YokoOutputStream();
+        GiopVersion gv = GiopVersion.get(down.profileInfo_.major, down.profileInfo_.minor);
+        out.value = new YokoOutputStream(CodecPair.getCollocatedCodecs(), gv);
         return this;
     }
 

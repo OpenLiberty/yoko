@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,11 +34,11 @@ public abstract class Client {
     public static final int Threaded = 2;
     private final String label = ObjectUtil.getNextObjectLabel(this.getClass());
     private final AtomicInteger users = new AtomicInteger(0);
-    private final CodeConverters codeConverters;
+    private final CodecPair codecs;
     final int concurrencyModel;
 
-    Client(int concModel, CodeConverters conv) {
-        codeConverters = conv;
+    Client(int concModel, CodecPair codecs) {
+        this.codecs = codecs;
         concurrencyModel = concModel;
     }
 
@@ -61,8 +61,8 @@ public abstract class Client {
         return count == 0;
     }
 
-    final CodeConverters codeConverters() {
-        return codeConverters;
+    final CodecPair codecs() {
+        return codecs;
     }
 
     public abstract int getNewRequestID();

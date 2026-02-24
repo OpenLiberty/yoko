@@ -15,15 +15,15 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.junit.jupiter.api.BeforeEach;
 
-import static org.apache.yoko.orb.codecs.Util.ASCII_REPLACEMENT_CHAR;
-import static org.apache.yoko.orb.codecs.Util.UNICODE_REPLACEMENT_CHAR;
+import static org.apache.yoko.codecs.Util.ASCII_REPLACEMENT_CHAR;
+import static org.apache.yoko.codecs.Util.UNICODE_REPLACEMENT_CHAR;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -32,15 +32,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @param <CODEC> the type of Codec to test: CharCodec or WcharCodec
  */
 public abstract class AbstractSimpleCodecTest<CODEC extends CharCodec> {
-    @FunctionalInterface  interface ExpectedCharWriter { void writeTo(WriteBuffer w, char c); }
-    @FunctionalInterface  interface ExpectedCharReader { char readFrom(ReadBuffer w); }
+    @FunctionalInterface interface ExpectedCharWriter { void writeTo(WriteBuffer w, char c); }
+    @FunctionalInterface interface ExpectedCharReader { char readFrom(ReadBuffer w); }
     private WriteBuffer out;
     final CODEC codec;
     final ExpectedCharWriter expectedCharWriter;
     final ExpectedCharReader expectedCharReader;
 
-    AbstractSimpleCodecTest(String name, ExpectedCharWriter expectedCharWriter, ExpectedCharReader expectedCharReader) {
-        this.codec = (CODEC)CharCodec.forName(name);
+    AbstractSimpleCodecTest(CODEC codec, ExpectedCharWriter expectedCharWriter, ExpectedCharReader expectedCharReader) {
+        this.codec = codec;
         this.expectedCharWriter = expectedCharWriter;
         this.expectedCharReader = expectedCharReader;
     }
@@ -68,7 +68,10 @@ public abstract class AbstractSimpleCodecTest<CODEC extends CharCodec> {
     }
 
     void assertEncoding(char c, char expected) {
+        int origPosition = out.getPosition();
         codec.writeChar(c, out);
+        // check the octetCount() matches what was written
+        assertEquals(out.getPosition() - origPosition, codec.octetCount(c), "bytes written should match octet count");
         ReadBuffer in = getReadBuffer();
         assertEquals(expected, expectedCharReader.readFrom(in));
         codec.assertNoBufferedCharData();
@@ -76,7 +79,7 @@ public abstract class AbstractSimpleCodecTest<CODEC extends CharCodec> {
         // For WcharCodecs, check beginToWriteString() too
         if (!(codec instanceof WcharCodec)) return;
         newWriteBuffer();
-        ((WcharCodec)codec).beginToWriteString(c, out);
+        ((WcharCodec)codec).beginToWriteWstring_1_2(c, out);
         in = getReadBuffer();
         assertEquals(expected, expectedCharReader.readFrom(in));
     }
@@ -84,7 +87,10 @@ public abstract class AbstractSimpleCodecTest<CODEC extends CharCodec> {
     void assertEncodingFails(char c) {
         assertDecoding(c, UNICODE_REPLACEMENT_CHAR);
         newWriteBuffer();
+        int origPosition = out.getPosition();
         assertEncoding(c, isDoubleByte() ? UNICODE_REPLACEMENT_CHAR : ASCII_REPLACEMENT_CHAR);
+        // check the octetCount() matches what was written
+        assertEquals(out.getPosition() - origPosition, codec.octetCount(c), "bytes written should match octet count");
     }
 
     abstract boolean isDoubleByte();

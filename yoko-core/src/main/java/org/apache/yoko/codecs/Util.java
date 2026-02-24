@@ -15,13 +15,13 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 enum Util {
     ;
     /**
      * If any character cannot be read by a codec, the codec will return this character instead.
-     * Where something has gone wrong with a multi-byte encoding sequence in UTF8,
+     * Where something has gone wrong with a multibyte encoding sequence in UTF8,
      * multiple instances of this char may be returned.
      */
     static final char UNICODE_REPLACEMENT_CHAR = '\uFFFD';
@@ -35,22 +35,27 @@ enum Util {
     static final char BYTE_SWAPD_MARKER = 0xFFFE;
 
     /**
-     * Check whether the character is US-ASCII.
-     * @return the character, or REPLACEMENT_CHAR if it is not US-ASCII
+     * Check whether the character being decoded is 7-bit.
+     * @return the character, or {@link #UNICODE_REPLACEMENT_CHAR} if it is not 7-bit.
      */
-    static char expect7bit(char c) { return c <= '\u007F' ? c : Util.UNICODE_REPLACEMENT_CHAR; }
+    static char expect7bit(char c) { return c < (1<<7) ? c : UNICODE_REPLACEMENT_CHAR; }
 
-    /** If the character fits in 7 bits, return it, otherwise return '?' */
-    static char require8bit(char c) { return c <= '\u00FF' ? c : ASCII_REPLACEMENT_CHAR; }
+    /**
+     * Check whether the character being encoded is 7-bit.
+     * @return the character or {@link #ASCII_REPLACEMENT_CHAR} if it is not 7-bit.
+     */
+    static char require7bit(char c) { return c < (1<<7) ? c : ASCII_REPLACEMENT_CHAR; }
 
-    /** If the character fits in 8 bits, return it, otherwise return '?' */
-    static char require7bit(char c) { return c <= '\u007F' ? c : ASCII_REPLACEMENT_CHAR; }
+    /**
+     * Check whether the character being encoded is 8-bit.
+     * @return the character or {@link #ASCII_REPLACEMENT_CHAR} if it is not 8-bit.
+     */
+    static char require8bit(char c) { return c < (1<<8) ? c : ASCII_REPLACEMENT_CHAR; }
 
-    /** Find a codec by name that encodes the unicode codepoint for a char directly */
-    static CharCodec getUnicodeCodec(String name) {
+    /** Find a codec by name that encodes the Unicode codepoint for a char directly */
+    static CharCodec getUnicodeCharCodec(String name) {
         switch (name.toUpperCase()) {
         case "UTF-8": return new Utf8Codec();
-        case "UTF-16": return SimpleWcharCodec.UTF_16;
         case "US-ASCII": return SimpleCharCodec.US_ASCII;
         case "ISO-8859-1": return SimpleCharCodec.ISO_LATIN_1;
         default: return null;

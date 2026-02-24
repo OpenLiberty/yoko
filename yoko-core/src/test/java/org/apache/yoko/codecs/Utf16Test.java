@@ -15,12 +15,12 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.orb.codecs;
+package org.apache.yoko.codecs;
 
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
-import org.apache.yoko.orb.codecs.CharCodec.CharReader;
+import org.apache.yoko.codecs.WcharCodec.WcharReader;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -31,14 +31,14 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class Utf16Test extends AbstractSimpleCodecTest<WcharCodec> implements TestData {
+class Utf16Test extends AbstractSimpleCodecTest<SimpleWcharCodec> implements TestData {
     static final char BOM = '\uFEFF';
     static final char ANTI_BOM = '\uFFFE';
 
     private static final ExpectedCharReader READ_CHAR = ReadBuffer::readChar;
     private static final ExpectedCharWriter WRITE_CHAR = WriteBuffer::writeChar;
 
-    Utf16Test() { super("UTF-16", WriteBuffer::writeChar, ReadBuffer::readChar); }
+    Utf16Test() { super(SimpleWcharCodec.UTF_16, WriteBuffer::writeChar, ReadBuffer::readChar); }
 
     boolean isDoubleByte() { return true; }
 
@@ -114,12 +114,12 @@ class Utf16Test extends AbstractSimpleCodecTest<WcharCodec> implements TestData 
 
     private void assertEndianCharIs(char expectedChar) {
         ReadBuffer bomA = getReadBuffer();
-        assertEquals(expectedChar, codec.readCharWithLength(bomA));
+        assertEquals(expectedChar, codec.readWchar_1_2(bomA));
         codec.assertNoBufferedCharData();
         assertTrue(bomA.isComplete());
         // now skip back 4 bytes and try to read it as the first char of a string
         bomA.skipBytes(-4);
-        assertEquals(expectedChar, codec.beginToReadString(bomA).readChar(bomA));
+        assertEquals(expectedChar, codec.beginToReadWstring_1_2(bomA).readWchar(bomA));
         codec.assertNoBufferedCharData();
         assertTrue(bomA.isComplete());
     }
@@ -132,7 +132,7 @@ class Utf16Test extends AbstractSimpleCodecTest<WcharCodec> implements TestData 
         // then either this was an empty string, or if we are expecting a char
         // it genuinely is a single ZERO WIDTH NO BREAK SPACE character (also 0xFEFF)
         ReadBuffer singleBom = getReadBuffer();
-        assertEquals(BOM, codec.readCharWithLength(singleBom));
+        assertEquals(BOM, codec.readWchar_1_2(singleBom));
         assertTrue(singleBom.isComplete());
     }
 
@@ -141,7 +141,7 @@ class Utf16Test extends AbstractSimpleCodecTest<WcharCodec> implements TestData 
         writeExpectedChar(ANTI_BOM);
         // If the only character available is a byte-swapped BOM (0xFFFE),
         // then either this was an empty string, or if we are expecting a char
-        // it genuinely is a single reserved unicode character (also 0xFFFE)
+        // it genuinely is a single reserved Unicode character (also 0xFFFE)
         ReadBuffer singleBom = getReadBuffer();
         assertEquals(ANTI_BOM, codec.readChar(singleBom));
         assertTrue(singleBom.isComplete());
@@ -170,10 +170,10 @@ class Utf16Test extends AbstractSimpleCodecTest<WcharCodec> implements TestData 
     private void testStringOfChars(String expected, boolean swap) {
         for (char c: expected.toCharArray()) writeExpectedChar(c);
         ReadBuffer in = swap ? getByteSwappedReadBuffer() : getReadBuffer();
-        CharReader rdr = codec.beginToReadString(in);
+        WcharReader rdr = codec.beginToReadWstring_1_2(in);
         StringBuilder sb = new StringBuilder();
         while (!in.isComplete()) {
-            sb.append(rdr.readChar(in));
+            sb.append(rdr.readWchar(in));
         }
         assertEquals(expected, sb.toString());
     }
