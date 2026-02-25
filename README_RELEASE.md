@@ -27,7 +27,20 @@ The Yoko project now has a comprehensive, automated release process similar to G
 
 ## 🚀 Quick Start
 
-### Create a Release (4 Simple Steps)
+### Create a Release via GitHub (Recommended)
+   - Go to Actions → Release workflow
+   - Click "Run workflow"
+   - Enter version: e.g. `1.5.3` (without v prefix)
+
+   This will automatically:
+   - Create a release branch
+   - Update CHANGELOG.md (if needed)
+   - Build and test
+   - Create an annotated tag `v1.5.3`
+   - Create the GitHub release with all artifacts
+   - Merge to main and cleanup
+
+### Create a Release Locally (4 Simple Steps)
 
 1. **Bump the version (if needed)**
    ```bash
@@ -44,34 +57,16 @@ The Yoko project now has a comprehensive, automated release process similar to G
    ```bash
    # Update for all commits since last tag
    ./gradlew updateChangelog
-   
-   # Or update for specific tag
-   ./gradlew updateChangelogForTag -PreleaseTag=v1.5.3
    ```
 
 3. **Commit and Push**
    ```bash
-   git add CHANGELOG.md
+   git add -p CHANGELOG.md
    git commit -m "chore: prepare release v1.5.3"
    git push origin main
    ```
 
 4. **Create Release** (choose one method):
-
-   **Method A: Automated via GitHub UI (Recommended)**
-   - Go to Actions → Release workflow
-   - Click "Run workflow"
-   - Enter version: `1.5.3` (without v prefix)
-   
-   This will automatically:
-   - Create a release branch
-   - Update CHANGELOG.md (if needed)
-   - Build and test
-   - Create an annotated tag `v1.5.3`
-   - Create the GitHub release with all artifacts
-   - Merge to main and cleanup
-   
-   **Method B: Manual via Gradle**
    ```bash
    ./gradlew release
    ```
@@ -96,7 +91,6 @@ All release tasks are accessible from Gradle:
 
 # Update CHANGELOG with git-cliff (manual)
 ./gradlew updateChangelog
-./gradlew updateChangelogForTag -PreleaseTag=v1.5.3
 
 # Verify prerequisites
 ./gradlew verifyReleasePrerequisites
@@ -119,7 +113,7 @@ All release tasks are accessible from Gradle:
 The project version is managed in `gradle.properties`:
 
 ```properties
-version=1.5.2
+version=1.5.3
 ```
 
 ### Bumping the Version
@@ -306,25 +300,6 @@ This dry-run:
 - ✅ Previews CHANGELOG generation
 - ✅ Tests the build
 - ✅ **Makes NO changes** to git or remote repositories
-
-### Local Testing
-
-Test locally without pushing to origin:
-
-```bash
-# Create test branch locally
-git checkout -b release/1.5.3-test
-
-# Test CHANGELOG generation
-./gradlew updateChangelogForTag -PreleaseTag=v1.5.3-test
-
-# Test build
-./gradlew clean build test
-
-# Clean up
-git checkout main
-git branch -D release/1.5.3-test
-```
 
 ## 🔄 Rolling Back Releases
 

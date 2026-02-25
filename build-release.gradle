@@ -106,48 +106,6 @@ task updateChangelog {
     }
 }
 
-// Task to update CHANGELOG for a specific version tag
-task updateChangelogForTag {
-    group = 'release'
-    description = 'Updates CHANGELOG.md for a specific version tag using git-cliff'
-    
-    def changelogFile = file('CHANGELOG.md')
-    def cliffConfig = file('cliff.toml')
-    
-    inputs.file cliffConfig
-    outputs.file changelogFile
-    
-    doLast {
-        // Check if git-cliff is available
-        try {
-            exec {
-                commandLine 'git-cliff', '--version'
-                standardOutput = new ByteArrayOutputStream()
-            }
-        } catch (Exception e) {
-            throw new GradleException("git-cliff not found. Install from: https://git-cliff.org/docs/installation")
-        }
-        
-        // Get the version tag from project or system property
-        def versionTag = project.hasProperty('releaseTag') ?
-            project.property('releaseTag') :
-            "v${version}"
-        
-        println "Updating CHANGELOG.md for tag: ${versionTag}"
-        
-        // Run git-cliff with tag, using --unreleased and --prepend to preserve existing entries
-        exec {
-            commandLine 'git-cliff',
-                '--config', cliffConfig.absolutePath,
-                '--tag', versionTag,
-                '--unreleased',
-                '--prepend', changelogFile.absolutePath
-        }
-        
-        println "✅ CHANGELOG.md updated for ${versionTag}"
-    }
-}
-
 // Task to interactively bump the semantic version
 task bumpVersion {
     group = 'release'
