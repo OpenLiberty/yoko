@@ -1,3 +1,16 @@
+## [v1.6.0] - 2026-02-25
+
+### 🚀 Features
+
+- Use new UTF8-compatible (w)char codecs
+- Use UTF-8 and UTF-16 codeset defaults
+
+### 🐛 Bug Fixes
+
+- Set input stream codecs in preUnmarshal()
+- Use CESU-8 encoding with older Yoko
+- Use Latin-1 charset to encode op name
+
 ## [v1.5.3] - 2026-01-09
 
 ### 🚀 Features
