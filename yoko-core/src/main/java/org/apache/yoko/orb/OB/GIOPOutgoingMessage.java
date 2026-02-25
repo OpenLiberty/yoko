@@ -34,9 +34,6 @@ import org.omg.GIOP.TargetAddress;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.TaggedProfile;
 import org.omg.IOP.TaggedProfileHelper;
-import sun.nio.cs.ISO_8859_1;
-
-import java.nio.charset.StandardCharsets;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
