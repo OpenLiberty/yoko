@@ -11,11 +11,13 @@
 - Garbled GIOP message logging
 - Skip bounds check for UTF-8/UTF-16/UCS-2
 - Correctly identify UTF-8 2-byte and 3-byte sequences
+
 ## [v1.5.2] - 2025-11-18
 
 ### 🐛 Bug Fixes
 
 - Handle SystemException from createLocateRequestDowncall
+
 ## [v1.5.1]
 
 ### Bug Fixes

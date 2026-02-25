@@ -93,13 +93,13 @@ task updateChangelog {
         } catch (Exception e) {
             throw new GradleException("git-cliff not found. Install from: https://git-cliff.org/docs/installation")
         }
-        
-        println "Updating CHANGELOG.md using git-cliff..."
+
+        println "Updating CHANGELOG.md using git-cliff for v${version}..."
         
         // Run git-cliff to update only unreleased changes, preserving existing entries
         // Use --unreleased to only add new changes since the last tag
         exec {
-            commandLine 'git-cliff', '--config', cliffConfig.absolutePath, '--unreleased', '--prepend', changelogFile.absolutePath
+            commandLine 'git-cliff', '--config', cliffConfig.absolutePath, '--tag', "v${version}", '--unreleased', '--prepend', changelogFile.absolutePath
         }
         
         println "✅ CHANGELOG.md updated successfully"
