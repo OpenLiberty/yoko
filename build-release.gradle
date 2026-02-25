@@ -37,11 +37,90 @@ def releaseProjects = [
     ':yoko-core'
 ]
 
+// Task to verify release prerequisites
+task verifyReleasePrerequisites {
+    group = 'release'
+    description = 'Verifies all prerequisites for creating a release'
+
+    doLast {
+        def errors = []
+        def warnings = []
+
+        // Check CHANGELOG.md exists and has version
+        def changelogFile = file('CHANGELOG.md')
+        if (!changelogFile.exists()) {
+            errors.add("CHANGELOG.md not found")
+        } else {
+            def changelog = changelogFile.text
+            if (!(changelog =~ /## \[v?\d+\.\d+\.\d+/)) {
+                errors.add("No version found in CHANGELOG.md")
+            }
+        }
+
+        // Check for git-cliff
+        try {
+            exec {
+                commandLine 'git-cliff', '--version'
+                standardOutput = new ByteArrayOutputStream()
+            }
+        } catch (Exception e) {
+            warnings.add("git-cliff not found. Install from: https://git-cliff.org/docs/installation (optional for manual releases)")
+        }
+
+        // Check for clean git state
+        try {
+            def gitStatus = 'git status --porcelain'.execute().text.trim()
+            if (gitStatus) {
+                errors.add("Git working directory is not clean. Commit or stash changes first.")
+            }
+        } catch (Exception e) {
+            errors.add("Unable to check git status: ${e.message}")
+        }
+
+        // Check for GitHub CLI
+        try {
+            exec {
+                commandLine 'gh', '--version'
+                standardOutput = new ByteArrayOutputStream()
+            }
+        } catch (Exception e) {
+            errors.add("GitHub CLI (gh) not found. Install from: https://cli.github.com/")
+        }
+
+        // Check for GH_TOKEN or gh auth
+        def hasToken = System.getenv('GH_TOKEN') != null
+        def hasAuth = false
+        try {
+            def authStatus = 'gh auth status'.execute()
+            authStatus.waitFor()
+            hasAuth = authStatus.exitValue() == 0
+        } catch (Exception e) {
+            // Ignore
+        }
+
+        if (!hasToken && !hasAuth) {
+            errors.add("GitHub authentication not configured. Run 'gh auth login' or set GH_TOKEN environment variable")
+        }
+
+        if (warnings) {
+            println "⚠️  Warnings:"
+            warnings.each { println "  - ${it}" }
+        }
+
+        if (errors) {
+            throw new GradleException("Release prerequisites not met:\n  - " + errors.join('\n  - '))
+        }
+
+        println "✅ All release prerequisites verified"
+    }
+}
+
 // Task to assemble all release artifacts
 task assembleRelease {
     group = 'release'
     description = 'Assembles all release artifacts (JARs)'
     
+    dependsOn verifyReleasePrerequisites
     dependsOn releaseProjects.collect { "${it}:jar" }
     dependsOn releaseProjects.collect { "${it}:sourcesJar" }
     dependsOn releaseProjects.collect { "${it}:javadocJar" }
@@ -203,159 +282,14 @@ Next steps:
     }
 }
 
-// Task to test release preparation without making changes
-task testRelease {
-    group = 'release'
-    description = 'Dry-run test of release process without making any changes'
-    
-    doLast {
-        def releaseVersion = project.hasProperty('releaseVersion') ?
-            project.property('releaseVersion') :
-            version.toString().replaceAll(/\..*$/, '')
-        
-        def versionTag = "v${releaseVersion}"
-        def releaseBranch = "release/${releaseVersion}"
-        
-        println """
-╔════════════════════════════════════════════════════════════════╗
-║                    DRY-RUN: Release Test                       ║
-╚════════════════════════════════════════════════════════════════╝
-
-Testing release preparation for version: ${releaseVersion}
-
-"""
-        
-        // Check git status
-        println "✓ Checking git status..."
-        def gitStatus = 'git status --porcelain'.execute().text.trim()
-        if (gitStatus) {
-            println "  ⚠️  WARNING: Working directory has uncommitted changes:"
-            println "  ${gitStatus}"
-        } else {
-            println "  ✓ Working directory is clean"
-        }
-        
-        // Check current branch
-        def currentBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
-        println "  ✓ Current branch: ${currentBranch}"
-        
-        // Check if release branch already exists
-        def branchExists = false
-        try {
-            def checkBranch = "git rev-parse --verify ${releaseBranch}".execute()
-            checkBranch.waitFor()
-            branchExists = checkBranch.exitValue() == 0
-        } catch (Exception e) {
-            branchExists = false
-        }
-        
-        if (branchExists) {
-            println "  ⚠️  WARNING: Branch ${releaseBranch} already exists"
-        } else {
-            println "  ✓ Branch ${releaseBranch} does not exist (good)"
-        }
-        
-        // Check if tag already exists
-        def tagExists = false
-        try {
-            def checkTag = "git rev-parse --verify ${versionTag}".execute()
-            checkTag.waitFor()
-            tagExists = checkTag.exitValue() == 0
-        } catch (Exception e) {
-            tagExists = false
-        }
-        
-        if (tagExists) {
-            println "  ⚠️  WARNING: Tag ${versionTag} already exists"
-        } else {
-            println "  ✓ Tag ${versionTag} does not exist (good)"
-        }
-        
-        // Check for git-cliff
-        println "\n✓ Checking prerequisites..."
-        try {
-            def gitCliffVersion = 'git-cliff --version'.execute().text.trim()
-            println "  ✓ git-cliff: ${gitCliffVersion}"
-        } catch (Exception e) {
-            println "  ⚠️  WARNING: git-cliff not found"
-        }
-        
-        // Check for gh CLI
-        try {
-            def ghVersion = 'gh --version'.execute().text.split('\n')[0]
-            println "  ✓ GitHub CLI: ${ghVersion}"
-        } catch (Exception e) {
-            println "  ⚠️  WARNING: gh CLI not found"
-        }
-        
-        // Test CHANGELOG generation (preview only)
-        println "\n✓ Testing CHANGELOG generation (preview)..."
-        try {
-            def changelogPreview = new ByteArrayOutputStream()
-            exec {
-                commandLine 'git-cliff', '--config', 'cliff.toml', '--tag', versionTag, '--unreleased'
-                standardOutput = changelogPreview
-            }
-            def preview = changelogPreview.toString().trim()
-            if (preview) {
-                println "  ✓ CHANGELOG preview generated (${preview.split('\n').size()} lines)"
-                println "\n--- CHANGELOG Preview ---"
-                println preview.split('\n').take(20).join('\n')
-                if (preview.split('\n').size() > 20) {
-                    println "... (truncated)"
-                }
-                println "--- End Preview ---"
-            } else {
-                println "  ⚠️  No unreleased changes found"
-            }
-        } catch (Exception e) {
-            println "  ⚠️  Could not generate CHANGELOG preview: ${e.message}"
-        }
-        
-        // Test build
-        println "\n✓ Testing build..."
-        try {
-            exec {
-                commandLine './gradlew', 'clean', 'build', '-x', 'test'
-                standardOutput = new ByteArrayOutputStream()
-            }
-            println "  ✓ Build successful"
-        } catch (Exception e) {
-            println "  ✗ Build failed: ${e.message}"
-        }
-        
-        println """
-
-╔════════════════════════════════════════════════════════════════╗
-║                    Dry-Run Test Complete                       ║
-╚════════════════════════════════════════════════════════════════╝
-
-This was a DRY-RUN. No changes were made to:
-  - Git branches
-  - Git tags
-  - CHANGELOG.md
-  - Remote repositories
-
-To proceed with the actual release:
-  ./gradlew prepareReleaseBranch -PreleaseVersion=${releaseVersion}
-
-"""
-    }
-}
-
 // Task to create release branch and prepare release
 task prepareReleaseBranch {
     group = 'release'
     description = 'Creates a release branch, updates CHANGELOG, and pushes to origin'
     
     doLast {
-        // Get version from gradle.properties or parameter
-        def releaseVersion = project.hasProperty('releaseVersion') ?
-            project.property('releaseVersion') :
-            version.toString().replaceAll(/\..*$/, '')  // Remove build metadata
-        
-        def versionTag = "v${releaseVersion}"
-        def releaseBranch = "release/${releaseVersion}"
+        def versionTag = "v${version}"
+        def releaseBranch = "release/${version}"
         
         println "Preparing release branch: ${releaseBranch}"
         println "Version tag: ${versionTag}"
@@ -392,7 +326,7 @@ task prepareReleaseBranch {
                 commandLine 'git', 'add', 'CHANGELOG.md'
             }
             exec {
-                commandLine 'git', 'commit', '-m', "chore(release): update CHANGELOG for ${releaseVersion}"
+                commandLine 'git', 'commit', '-m', "chore: update CHANGELOG for ${version}"
             }
             exec {
                 commandLine 'git', 'push', 'origin', releaseBranch
@@ -414,7 +348,7 @@ Next steps:
   1. Review the CHANGELOG.md changes
   2. Run: ./gradlew finalizeRelease -PreleaseVersion=${releaseVersion}
   3. Or manually:
-     - Create annotated tag: git tag -a ${versionTag} -m "Release ${releaseVersion}"
+     - Create annotated tag: git tag -a ${versionTag} -m "Release ${version}"
      - Push tag: git push origin ${versionTag}
      - Merge to main: git checkout main && git merge --ff-only ${releaseBranch}
      - Push main: git push origin main
@@ -430,12 +364,8 @@ task finalizeRelease {
     description = 'Creates annotated tag, merges release branch to main, and cleans up'
     
     doLast {
-        // Get version from parameter
-        if (!project.hasProperty('releaseVersion')) {
-            throw new GradleException("releaseVersion property is required. Use: -PreleaseVersion=1.5.3")
-        }
-        
-        def releaseVersion = project.property('releaseVersion')
+        // Get version from parameter        
+        def releaseVersion = "${version}"
         def versionTag = "v${releaseVersion}"
         def releaseBranch = "release/${releaseVersion}"
         
@@ -514,137 +444,12 @@ Next steps:
     }
 }
 
-// Task to rollback a release
-task rollbackRelease {
-    group = 'release'
-    description = 'Rolls back a release by deleting tag, release, and optionally the release branch'
-    
-    doLast {
-        if (!project.hasProperty('releaseVersion')) {
-            throw new GradleException("releaseVersion property is required. Use: -PreleaseVersion=1.5.3")
-        }
-        
-        def releaseVersion = project.property('releaseVersion')
-        def versionTag = "v${releaseVersion}"
-        def releaseBranch = "release/${releaseVersion}"
-        def keepBranch = project.hasProperty('keepBranch') && project.property('keepBranch') == 'true'
-        
-        println """
-╔════════════════════════════════════════════════════════════════╗
-║                    Rolling Back Release                        ║
-╚════════════════════════════════════════════════════════════════╝
-
-Version: ${releaseVersion}
-Tag: ${versionTag}
-Branch: ${releaseBranch}
-Keep Branch: ${keepBranch}
-
-"""
-        
-        // Check if tag exists
-        def tagExists = false
-        try {
-            def checkTag = "git rev-parse --verify ${versionTag}".execute()
-            checkTag.waitFor()
-            tagExists = checkTag.exitValue() == 0
-        } catch (Exception e) {
-            tagExists = false
-        }
-        
-        if (tagExists) {
-            println "Deleting local tag ${versionTag}..."
-            exec {
-                commandLine 'git', 'tag', '-d', versionTag
-            }
-            
-            println "Deleting remote tag ${versionTag}..."
-            try {
-                exec {
-                    commandLine 'git', 'push', 'origin', ":refs/tags/${versionTag}"
-                }
-            } catch (Exception e) {
-                println "  ⚠️  Could not delete remote tag (may not exist): ${e.message}"
-            }
-        } else {
-            println "  ℹ️  Tag ${versionTag} does not exist locally"
-        }
-        
-        // Delete GitHub release if it exists
-        println "\nDeleting GitHub release (if exists)..."
-        try {
-            exec {
-                commandLine 'gh', 'release', 'delete', versionTag, '--yes'
-                standardOutput = new ByteArrayOutputStream()
-            }
-            println "  ✓ GitHub release deleted"
-        } catch (Exception e) {
-            println "  ℹ️  GitHub release does not exist or could not be deleted"
-        }
-        
-        // Handle release branch
-        if (!keepBranch) {
-            def branchExists = false
-            try {
-                def checkBranch = "git rev-parse --verify ${releaseBranch}".execute()
-                checkBranch.waitFor()
-                branchExists = checkBranch.exitValue() == 0
-            } catch (Exception e) {
-                branchExists = false
-            }
-            
-            if (branchExists) {
-                def currentBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
-                
-                if (currentBranch == releaseBranch) {
-                    println "\nSwitching to main branch..."
-                    exec {
-                        commandLine 'git', 'checkout', 'main'
-                    }
-                }
-                
-                println "Deleting local branch ${releaseBranch}..."
-                exec {
-                    commandLine 'git', 'branch', '-D', releaseBranch
-                }
-                
-                println "Deleting remote branch ${releaseBranch}..."
-                try {
-                    exec {
-                        commandLine 'git', 'push', 'origin', '--delete', releaseBranch
-                    }
-                } catch (Exception e) {
-                    println "  ⚠️  Could not delete remote branch (may not exist): ${e.message}"
-                }
-            } else {
-                println "  ℹ️  Branch ${releaseBranch} does not exist locally"
-            }
-        } else {
-            println "\n  ℹ️  Keeping release branch ${releaseBranch} (--keepBranch=true)"
-        }
-        
-        println """
-
-╔════════════════════════════════════════════════════════════════╗
-║                    Rollback Complete                           ║
-╚════════════════════════════════════════════════════════════════╝
-
-Rolled back release ${releaseVersion}:
-  ✓ Deleted tag ${versionTag} (local and remote)
-  ✓ Deleted GitHub release
-  ${keepBranch ? '  ℹ️  Kept release branch' : '  ✓ Deleted release branch'}
-
-Note: If the release was already merged to main, you may need to:
-  1. Revert the merge commit on main
-  2. Force push to main (use with caution!)
-
-"""
-    }
-}
-
 // Task to generate release notes from CHANGELOG
 task generateReleaseNotes {
     group = 'release'
     description = 'Generates release notes from CHANGELOG.md'
+
+    dependsOn assembleRelease
     
     def changelogFile = file('CHANGELOG.md')
     def releaseNotesFile = file("${buildDir}/release/RELEASE_NOTES.md")
@@ -711,7 +516,6 @@ task createDistribution(type: Zip) {
     group = 'release'
     description = 'Creates a distribution archive with all artifacts'
     
-    dependsOn assembleRelease
     dependsOn generateReleaseNotes
     
     archiveBaseName = 'yoko'
@@ -743,8 +547,6 @@ task createGitHubRelease {
     group = 'release'
     description = 'Creates a GitHub release with artifacts (requires gh CLI and GH_TOKEN)'
     
-    dependsOn assembleRelease
-    dependsOn generateReleaseNotes
     dependsOn createDistribution
     
     doLast {
@@ -778,7 +580,7 @@ task createGitHubRelease {
             def checkTag = "git rev-parse --verify ${releaseVersion}".execute()
             checkTag.waitFor()
             if (checkTag.exitValue() == 0) {
-                throw new GradleException("Git tag ${releaseVersion} already exists. Use './gradlew rollbackRelease -PreleaseVersion=${releaseVersion.substring(1)}' to remove it, or bump the version in gradle.properties")
+                throw new GradleException("Git tag ${releaseVersion} already exists. Roll it back manually to re-release or bump the version using 'gradle bumpVersion'")
             }
         } catch (IOException e) {
             // Tag doesn't exist, which is good
@@ -791,7 +593,7 @@ task createGitHubRelease {
             checkRelease.consumeProcessOutput(output, output)
             checkRelease.waitFor()
             if (checkRelease.exitValue() == 0) {
-                throw new GradleException("GitHub release ${releaseVersion} already exists. Use './gradlew rollbackRelease -PreleaseVersion=${releaseVersion.substring(1)}' to remove it, or bump the version in gradle.properties")
+                throw new GradleException("GitHub release ${releaseVersion} already exists. Remove it, or bump the version in gradle.properties")
             }
         } catch (IOException e) {
             // Release doesn't exist, which is good
@@ -827,100 +629,12 @@ task createGitHubRelease {
     }
 }
 
-// Task to verify release prerequisites
-task verifyReleasePrerequisites {
-    group = 'release'
-    description = 'Verifies all prerequisites for creating a release'
-    
-    doLast {
-        def errors = []
-        def warnings = []
-        
-        // Check CHANGELOG.md exists and has version
-        def changelogFile = file('CHANGELOG.md')
-        if (!changelogFile.exists()) {
-            errors.add("CHANGELOG.md not found")
-        } else {
-            def changelog = changelogFile.text
-            if (!(changelog =~ /## \[v?\d+\.\d+\.\d+/)) {
-                errors.add("No version found in CHANGELOG.md")
-            }
-        }
-        
-        // Check for git-cliff
-        try {
-            exec {
-                commandLine 'git-cliff', '--version'
-                standardOutput = new ByteArrayOutputStream()
-            }
-        } catch (Exception e) {
-            warnings.add("git-cliff not found. Install from: https://git-cliff.org/docs/installation (optional for manual releases)")
-        }
-        
-        // Check for clean git state
-        try {
-            def gitStatus = 'git status --porcelain'.execute().text.trim()
-            if (gitStatus) {
-                errors.add("Git working directory is not clean. Commit or stash changes first.")
-            }
-        } catch (Exception e) {
-            errors.add("Unable to check git status: ${e.message}")
-        }
-        
-        // Check for GitHub CLI
-        try {
-            exec {
-                commandLine 'gh', '--version'
-                standardOutput = new ByteArrayOutputStream()
-            }
-        } catch (Exception e) {
-            errors.add("GitHub CLI (gh) not found. Install from: https://cli.github.com/")
-        }
-        
-        // Check for GH_TOKEN or gh auth
-        def hasToken = System.getenv('GH_TOKEN') != null
-        def hasAuth = false
-        try {
-            def authStatus = 'gh auth status'.execute()
-            authStatus.waitFor()
-            hasAuth = authStatus.exitValue() == 0
-        } catch (Exception e) {
-            // Ignore
-        }
-        
-        if (!hasToken && !hasAuth) {
-            errors.add("GitHub authentication not configured. Run 'gh auth login' or set GH_TOKEN environment variable")
-        }
-        
-        if (warnings) {
-            println "⚠️  Warnings:"
-            warnings.each { println "  - ${it}" }
-        }
-        
-        if (errors) {
-            throw new GradleException("Release prerequisites not met:\n  - " + errors.join('\n  - '))
-        }
-        
-        println "✅ All release prerequisites verified"
-    }
-}
-
 // Main release task
 task release {
     group = 'release'
     description = 'Complete release process: build, test, and create GitHub release'
-    
-    dependsOn verifyReleasePrerequisites
-    dependsOn assembleRelease
-    dependsOn generateReleaseNotes
-    dependsOn createDistribution
-    dependsOn createGitHubRelease
-    
-    // Ensure proper task ordering
-    assembleRelease.mustRunAfter verifyReleasePrerequisites
-    generateReleaseNotes.mustRunAfter assembleRelease
-    createDistribution.mustRunAfter generateReleaseNotes
-    createGitHubRelease.mustRunAfter createDistribution
+
+    dependsOn 'createGitHubRelease'
     
     doFirst {
         println """
@@ -930,9 +644,6 @@ task release {
 
 Note: To update CHANGELOG.md before release, run:
   ./gradlew updateChangelog
-
-Or to update for a specific tag:
-  ./gradlew updateChangelogForTag -PreleaseTag=v1.5.3
 
 """
     }
