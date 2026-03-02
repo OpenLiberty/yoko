@@ -20,23 +20,24 @@ package org.omg.PortableServer;
 // IDL:omg.org/PortableServer/ThreadPolicyValue:1.0
 
 import org.omg.CORBA.BAD_PARAM;
+import org.omg.CORBA.portable.IDLEntity;
 
 import java.io.ObjectStreamException;
 
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
-public class ThreadPolicyValue implements org.omg.CORBA.portable.IDLEntity {
+public class ThreadPolicyValue implements IDLEntity {
     public final static int _ORB_CTRL_MODEL = 0;
     public final static ThreadPolicyValue ORB_CTRL_MODEL = new ThreadPolicyValue(_ORB_CTRL_MODEL);
     public final static int _SINGLE_THREAD_MODEL = 1;
     public final static ThreadPolicyValue SINGLE_THREAD_MODEL = new ThreadPolicyValue(_SINGLE_THREAD_MODEL);
 
     private static final ThreadPolicyValue [] values = {ORB_CTRL_MODEL, SINGLE_THREAD_MODEL};
-    private final int value;
+    private int value_;
 
-    protected ThreadPolicyValue(int value) { this.value = value; }
+    protected ThreadPolicyValue(int value) { this.value_ = value; }
 
-    public int value() { return value; }
+    public int value() { return value_; }
 
     public static ThreadPolicyValue from_int(int value) {
         try {
