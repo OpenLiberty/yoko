@@ -75,11 +75,11 @@ public enum VerboseLogging {
     public static final Logger CONN_OUT_LOG = Logger.getLogger("yoko.verbose.connection.out");
 
     /** Log data transmissions */
-    public static final Logger DATA_LOG = Logger.getLogger("yoko.verbose.data");
+    public static final Logger GIOP_LOG = Logger.getLogger("yoko.verbose.giop");
     /** Log data received */
-    public static final Logger DATA_IN_LOG = Logger.getLogger("yoko.verbose.data.in");
+    public static final Logger GIOP_IN_LOG = Logger.getLogger("yoko.verbose.giop.in");
     /** Log data sent */
-    public static final Logger DATA_OUT_LOG = Logger.getLogger("yoko.verbose.data.out");
+    public static final Logger GIOP_OUT_LOG = Logger.getLogger("yoko.verbose.giop.out");
 
     public static final Logger RETRY_LOG = Logger.getLogger("yoko.verbose.retry");
 
@@ -113,6 +113,10 @@ public enum VerboseLogging {
      * </pre>
      */
     public static final Logger MARSHAL_LOG = Logger.getLogger("yoko.verbose.marshal");
+    /** Log unmarshalling (wire format IN to Java) */
+    public static final Logger MARSHAL_IN_LOG = Logger.getLogger("yoko.verbose.marshal.in");
+    /** Log marshalling (Java OUT to wire format) */
+    public static final Logger MARSHAL_OUT_LOG = Logger.getLogger("yoko.verbose.marshal.out");
 
     /** Class loading logging: <pre>
      * CONFIG:

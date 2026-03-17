@@ -61,7 +61,7 @@ import static java.util.stream.IntStream.range;
 import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.FOUR_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.TWO_BYTE_BOUNDARY;
-import static org.apache.yoko.logging.VerboseLogging.DATA_IN_LOG;
+import static org.apache.yoko.logging.VerboseLogging.GIOP_IN_LOG;
 import static org.apache.yoko.orb.OB.TypeCodeFactory.createAbstractInterfaceTC;
 import static org.apache.yoko.orb.OB.TypeCodeFactory.createAliasTC;
 import static org.apache.yoko.orb.OB.TypeCodeFactory.createEnumTC;
@@ -194,8 +194,8 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     private TypeCode readTypeCodeImpl(Hashtable<Integer, TypeCodeImpl> history, boolean isTopLevel) {
         int kind = read_ulong();
         int oldPos = readBuffer.getPosition() - 4;
-        if (DATA_IN_LOG.isLoggable(Level.FINEST))
-            DATA_IN_LOG.finest(String.format("Reading a TypeCode of kind %d from position 0x%x", kind, oldPos));
+        if (GIOP_IN_LOG.isLoggable(Level.FINEST))
+            GIOP_IN_LOG.finest(String.format("Reading a TypeCode of kind %d from position 0x%x", kind, oldPos));
 
         TypeCodeImpl tc = null;
         if (kind == -1) {
@@ -577,8 +577,8 @@ final public class YokoInputStream extends InputStreamWithOffsets {
 
                     String id = read_string();
 
-                    if (DATA_IN_LOG.isLoggable(Level.FINE))
-                        DATA_IN_LOG.fine(String.format("Abstract interface typecode encapsulation length=0x%x id=%s", length, id));
+                    if (GIOP_IN_LOG.isLoggable(Level.FINE))
+                        GIOP_IN_LOG.fine(String.format("Abstract interface typecode encapsulation length=0x%x id=%s", length, id));
 
                     if (isTopLevel && cache != null)
                         tc = checkCache(id, typePos, length); // may advance pos
@@ -677,7 +677,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         try {
             int pos = readBuffer.getPosition();
             byte b = readBuffer.readByte();
-            DATA_IN_LOG.finest(() -> String.format("Boolean value is 0x%02x from position 0x%x", b, pos));
+            GIOP_IN_LOG.finest(() -> String.format("Boolean value is 0x%02x from position 0x%x", b, pos));
             return toBoolean(b);
         } catch (IndexOutOfBoundsException e) {
             throw newMarshalError((MinorReadBooleanOverflow), e);
@@ -804,7 +804,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         StringBuilder sb = new StringBuilder(byteCount - 1);
 
         final CharCodec codec = codecs.charCodec;
-        DATA_IN_LOG.finest(() -> String.format("Reading string value of length=0x%x using codec %s", byteCount, codec));
+        GIOP_IN_LOG.finest(() -> String.format("Reading string value of length=0x%x using codec %s", byteCount, codec));
 
         final int endPosition = readBuffer.getPosition() + byteCount - 1;
 
@@ -824,7 +824,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         // as long as this is written explicitly in write_string() as well as here.
         // (i.e. do NOT use the codec to write the null terminator)
         if (readBuffer.readByte() != 0) throw newMarshalError(MinorReadStringNoTerminator);
-        DATA_IN_LOG.fine(() -> String.format("Read string \"%s\", using %s codec end pos=0x%x", sb, codec, readBuffer.getPosition()));
+        GIOP_IN_LOG.fine(() -> String.format("Read string \"%s\", using %s codec end pos=0x%x", sb, codec, readBuffer.getPosition()));
         return sb.toString();
     }
 
@@ -833,7 +833,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     }
     private MARSHAL stringMarshallingError(String stringDesc, int length, int minor, Exception e) {
         MARSHAL marshal = null == e ? newMarshalError(minor): newMarshalError(minor, e);
-        DATA_IN_LOG.severe(String.format("Error reading %s of length %d: %s%n%s",
+        GIOP_IN_LOG.severe(String.format("Error reading %s of length %d: %s%n%s",
                 stringDesc, length, marshal.getMessage(), readBuffer.dumpAllDataWithPosition()));
         return marshal;
     }
@@ -859,7 +859,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         if (readBuffer.available() < numChars * 2) throw stringMarshallingError("GIOP 1.0 wstring", numChars, MinorReadStringOverflow);
 
         final WcharCodec codec = codecs.wcharCodec;
-        DATA_IN_LOG.fine(() -> String.format("Reading GIOP 1.0 wstring of length %d chars using codec %s", numChars, codec));
+        GIOP_IN_LOG.fine(() -> String.format("Reading GIOP 1.0 wstring of length %d chars using codec %s", numChars, codec));
 
         // in GIOP 1.0/1.1, there is no BOM - use the endianness from context
         char[] tmp = new char[numChars];
@@ -869,7 +869,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
             // Check for terminating null wchar
             if (0 != tmp[numChars - 1]) throw stringMarshallingError("GIOP 1.0 wstring", numChars, MinorReadWStringNoTerminator);
             String result = new String(tmp, 0, numChars - 1);
-            DATA_IN_LOG.fine(() -> String.format("Read GIOP 1.0 wstring \"%s\", using %s codec end pos=0x%x", result, codec, readBuffer.getPosition()));
+            GIOP_IN_LOG.fine(() -> String.format("Read GIOP 1.0 wstring \"%s\", using %s codec end pos=0x%x", result, codec, readBuffer.getPosition()));
             return result;
         } catch (IndexOutOfBoundsException e) {
             throw stringMarshallingError("GIOP 1.0 wstring", numChars, MinorReadWStringOverflow, e);
@@ -883,7 +883,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         if (readBuffer.available() < numOctets) throw stringMarshallingError("GIOP 1.2 wstring", numOctets, MinorReadWStringOverflow);
 
         WcharCodec codec = codecs.wcharCodec;
-        DATA_IN_LOG.fine(() -> String.format("Reading GIOP 1.2 wstring of length %d octets using codec %s", numOctets, codec));
+        GIOP_IN_LOG.fine(() -> String.format("Reading GIOP 1.2 wstring of length %d octets using codec %s", numOctets, codec));
 
         // In GIOP 1.2 there is no terminating null char, but there might be a BOM
         StringBuilder sb = new StringBuilder(numOctets / 2);
@@ -893,7 +893,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         WcharReader reader = codecs.wcharCodec.beginToReadWstring_1_2(readBuffer);
         try {
             while (readBuffer.getPosition() < endPosition) sb.append(reader.readWchar(readBuffer));
-            DATA_IN_LOG.fine(() -> String.format("Read GIOP 1.2 wstring \"%s\", using %s codec end pos=0x%x", sb, codec, readBuffer.getPosition()));
+            GIOP_IN_LOG.fine(() -> String.format("Read GIOP 1.2 wstring \"%s\", using %s codec end pos=0x%x", sb, codec, readBuffer.getPosition()));
             return sb.toString();
         } catch (IndexOutOfBoundsException e) {
             throw stringMarshallingError("GIOP 1.2 wstring", numOctets, MinorReadWStringOverflow, e);
@@ -1048,7 +1048,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
             }
             return createStub(getRMIStubClass(codebase, expectedType), impl._get_delegate());
         } catch (IllegalAccessException | ClassNotFoundException | ClassCastException | PrivilegedActionException | InvocationTargetException ex) {
-            DATA_IN_LOG.log(Level.FINE, "Exception creating object stub", ex);
+            GIOP_IN_LOG.log(Level.FINE, "Exception creating object stub", ex);
             throw newMarshalError(MinorLoadStub, ex);
         }
     }
@@ -1062,7 +1062,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
             stub._set_delegate(delegate);
             return stub;
         } catch (InvocationTargetException | InstantiationException | IllegalAccessException | PrivilegedActionException ex) {
-            DATA_IN_LOG.log(Level.FINE, "Exception creating object stub", ex);
+            GIOP_IN_LOG.log(Level.FINE, "Exception creating object stub", ex);
             throw newMarshalError(MinorLoadStub, ex);
         }
     }
