@@ -42,6 +42,7 @@ import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
+import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.logging.VerboseLogging.CONN_IN_LOG;
 import static org.apache.yoko.logging.VerboseLogging.CONN_LOG;
 import static org.apache.yoko.logging.VerboseLogging.REQ_OUT_LOG;
@@ -210,7 +211,7 @@ final class GIOPConnectionThreaded extends GIOPConnection {
             try {
                 getExecutor().submit(new Shutdown());
             } catch (RejectedExecutionException ree) {
-                CONN_IN_LOG.log(Level.WARNING, "Could not submit shutdown task", ree);
+                CONN_IN_LOG.log(WARNING, ree, () -> "Could not submit shutdown task");
             }
         } catch (OutOfMemoryError ex) {
             processException(CLOSED, new IMP_LIMIT(describeImpLimit(MinorThreadLimit), MinorThreadLimit, COMPLETED_NO), false);

@@ -36,6 +36,10 @@ import org.omg.IOP.TaggedProfile;
 import org.omg.IOP.TaggedProfileHelper;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
+import static org.apache.yoko.logging.VerboseLogging.INIT_LOG;
+import static org.apache.yoko.util.MinorCodes.MinorMessageSizeLimit;
+import static org.apache.yoko.util.MinorCodes.describeImpLimit;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 public final class GIOPOutgoingMessage {
     private static int maxMessageSize_ = 0; // TODO: pick a default
@@ -119,14 +123,8 @@ public final class GIOPOutgoingMessage {
                         && profileInfo_.minor == (byte) 0 && (type.value() > MsgType_1_1._MessageError || fragment)));
 
         if (maxMessageSize_ > 0 && size > maxMessageSize_) {
-            String msg = "outgoing message size (" + size
-                    + ") exceeds maximum (" + maxMessageSize_ + ")";
-            orbInstance_.getLogger().warning(msg);
-
-            throw new IMP_LIMIT(MinorCodes
-                    .describeImpLimit(MinorCodes.MinorMessageSizeLimit),
-                    MinorCodes.MinorMessageSizeLimit,
-                    CompletionStatus.COMPLETED_NO);
+            INIT_LOG.warning(() -> "outgoing message size (" + size + ") exceeds maximum (" + maxMessageSize_ + ")");
+            throw new IMP_LIMIT(describeImpLimit(MinorMessageSizeLimit), MinorMessageSizeLimit, COMPLETED_NO);
         }
 
         byte flags = 0;

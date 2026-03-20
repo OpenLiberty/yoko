@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.InvokeHandler;
 import org.omg.CORBA.portable.OutputStream;
 import org.omg.CORBA.portable.ResponseHandler;
+import org.omg.CORBA.portable.UnknownException;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
@@ -38,7 +39,9 @@ import static java.security.AccessController.doPrivileged;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.FINEST;
+import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.logging.VerboseLogging.REQ_IN_LOG;
+import static org.apache.yoko.rmi.impl.UtilImpl.mapRemoteException;
 import static org.apache.yoko.util.PrivilegedActions.getClassLoader;
 
 public class RMIServant extends org.omg.PortableServer.Servant implements javax.rmi.CORBA.Tie, InvocationHandler {
@@ -104,23 +107,22 @@ public class RMIServant extends org.omg.PortableServer.Servant implements javax.
 
             return _out;
         } catch (SystemException ex) {
-            REQ_IN_LOG.throwing(RMIServant.class.getName(), "_invoke", ex);
+            REQ_IN_LOG.log(FINER, ex, () -> "THROW");
             REQ_IN_LOG.warning(ex.getMessage());
             throw ex;
 
         } catch (java.lang.reflect.UndeclaredThrowableException ex) {
-            REQ_IN_LOG.throwing(RMIServant.class.getName(), "_invoke", ex.getUndeclaredThrowable());
-            throw new org.omg.CORBA.portable.UnknownException(ex
-                    .getUndeclaredThrowable());
+            REQ_IN_LOG.log(FINER, ex.getUndeclaredThrowable(), () -> "THROW");
+            throw new UnknownException(ex.getUndeclaredThrowable());
         } catch (RuntimeException ex) {
-            if (REQ_IN_LOG.isLoggable(FINER)) REQ_IN_LOG.log(FINER, debug_name(m) + ": RuntimeException " + ex.getMessage(), ex);
+            REQ_IN_LOG.log(FINER, ex, () -> debug_name(m) + ": RuntimeException " + ex.getMessage());
             return method.writeException(response, ex);
         } catch (java.rmi.RemoteException ex) {
-            if (REQ_IN_LOG.isLoggable(FINER)) REQ_IN_LOG.log(FINER, debug_name(m) + ": RemoteException " + ex.getMessage(), ex);
+            REQ_IN_LOG.log(FINER, ex, () -> debug_name(m) + ": RemoteException " + ex.getMessage());
             // return method.writeException (response, ex);
-            throw UtilImpl.mapRemoteException(ex);
+            throw mapRemoteException(ex);
         } catch (Throwable ex) {
-            if (REQ_IN_LOG.isLoggable(FINER)) REQ_IN_LOG.log(FINER, debug_name(m) + ": Throwable " + ex.getMessage(), ex);
+            REQ_IN_LOG.log(FINER, ex, () -> debug_name(m) + ": Throwable " + ex.getMessage());
             return method.writeException(response, ex);
         } finally {
             // PortableRemoteObjectExt.popState();
@@ -138,7 +140,7 @@ public class RMIServant extends org.omg.PortableServer.Servant implements javax.
                 if (REQ_IN_LOG.isLoggable(FINEST)) REQ_IN_LOG.finest(" of arg types: " + Stream.of(args).map(o -> o == null ? null : o.getClass()).collect(Collectors.toList()));
                 return m.invoke(_target, args);
             } catch (java.lang.reflect.InvocationTargetException ex) {
-                REQ_IN_LOG.log(FINER, "Error invoking local method", ex.getCause());
+                REQ_IN_LOG.log(FINER, ex.getCause(), () -> "Error invoking local method");
                 throw ex.getTargetException();
             }
         } else {
@@ -175,7 +177,7 @@ public class RMIServant extends org.omg.PortableServer.Servant implements javax.
             poa.deactivate_object(id);
             _set_delegate(null);
         } catch (Throwable ex) {
-            REQ_IN_LOG.throwing("", "deactivate", ex);
+            REQ_IN_LOG.log(WARNING, ex, () -> "failed to deactivate");
             throw new RuntimeException("cannot deactivate: " + ex.getMessage(), ex);
         }
     }

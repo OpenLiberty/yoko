@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ import java.util.logging.Logger;
 
 import sun.misc.Unsafe;
 
+import static java.util.logging.Level.FINE;
+
 public class Field {
     final long fieldID;
 
@@ -46,7 +48,7 @@ public class Field {
                 }
             }
         } catch (Exception ignore) {
-            logger.log(Level.FINE, "exception getting unsafe", ignore); 
+            logger.log(FINE, ignore, () -> "exception getting unsafe");
         }
         return unsafe;
     }

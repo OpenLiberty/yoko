@@ -25,6 +25,7 @@ import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.util.Assert;
+import org.apache.yoko.util.ObjectFormatter;
 import org.apache.yoko.util.concurrent.AutoLock;
 import org.apache.yoko.util.concurrent.AutoReadWriteLock;
 import org.omg.CORBA.NO_RESPONSE;
@@ -36,20 +37,24 @@ import org.omg.IOP.ServiceContext;
 import org.omg.Messaging.SYNC_WITH_TRANSPORT;
 
 import java.util.concurrent.locks.Condition;
-import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.logging.Level.FINE;
+import static java.util.stream.StreamSupport.stream;
+import static org.apache.yoko.logging.VerboseLogging.REQ_OUT_LOG;
+import static org.apache.yoko.orb.OB.Downcall.State.FAILURE_EXCEPTION;
+import static org.apache.yoko.orb.OB.Downcall.State.STALE_CONNECTION;
+import static org.apache.yoko.orb.OB.Downcall.State.SYSTEM_EXCEPTION;
+import static org.apache.yoko.util.Assert.ensure;
 import static org.apache.yoko.util.MinorCodes.MinorUnknownUserException;
 import static org.apache.yoko.util.MinorCodes.describeUnknown;
-import static org.apache.yoko.util.ObjectFormatter.format;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_YES;
 
 public class Downcall {
     /** The ORBInstance object */
     protected final ORBInstance orbInstance_;
-
-    private final Logger logger_;   // the orbInstance_ logger object
 
     /** The client */
     private final Client client_;
@@ -171,7 +176,6 @@ public class Downcall {
             ProfileInfo profileInfo,
             RefCountPolicyList policies, String op, boolean resp) {
         orbInstance_ = orbInstance;
-        logger_ = orbInstance_.getLogger(); 
         client_ = client;
         profileInfo_ = profileInfo;
         policies_ = policies;
@@ -189,7 +193,7 @@ public class Downcall {
         client.prepareForDowncall(policies);
         reqId_ = client_.getNewRequestID();
         
-        logger_.fine("Downcall created for operation " + op + " with id " + reqId_);
+        REQ_OUT_LOG.fine(() -> "Downcall created for operation " + op + " with id " + reqId_);
     }
 
     public final ORBInstance orbInstance() {
@@ -241,9 +245,9 @@ public class Downcall {
     }
 
     public final void setReplyContexts(ServiceContexts contexts) {
-        if (!replyContexts.isEmpty() && logger_.isDebugEnabled()) {
-            logger_.fine("Expected empty reply contexts, but found " + replyContexts.size());
-            for (ServiceContext sc : contexts) logger_.fine("\t" + format(sc));
+        if (!replyContexts.isEmpty()) {
+            REQ_OUT_LOG.fine(() -> "Expected empty reply contexts, but found " + replyContexts.size() + ":\n\t"
+                    + stream(contexts.spliterator(), false).map(ObjectFormatter::format).collect(Collectors.joining("\n\t")));
         }
         final MutableServiceContexts mutable = replyContexts.mutable();
         for (ServiceContext sc: contexts) mutable.add(sc, true);
@@ -347,8 +351,7 @@ public class Downcall {
             return false;
     }
 
-    public final YokoInputStream preUnmarshal()
-            throws LocationForward, FailureException {
+    public final YokoInputStream preUnmarshal() throws FailureException {
         return in_;
     }
 
@@ -397,12 +400,6 @@ public class Downcall {
     public final boolean pending() {
         try (AutoLock lock = stateLock.getReadLock()) {
             return state == State.PENDING;
-        }
-    }
-
-    public final boolean noException() {
-        try (AutoLock lock = stateLock.getReadLock()) {
-            return state == State.NO_EXCEPTION;
         }
     }
 
@@ -475,18 +472,18 @@ public class Downcall {
             Assert.ensure(ex_ == null);
             state = State.USER_EXCEPTION;
             exId_ = exId;
-            logger_.fine("Received user exception " + exId);
+            REQ_OUT_LOG.fine(() -> "Received user exception " + exId);
             if (null != stateWaitCondition) stateWaitCondition.signalAll();
         }
     }
 
     public final void setSystemException(SystemException ex) {
         try (AutoLock lock = stateLock.getWriteLock()) {
-            Assert.ensure(responseExpected_);
-            Assert.ensure(ex_ == null);
-            state = State.SYSTEM_EXCEPTION;
+            ensure(responseExpected_);
+            ensure(ex_ == null);
+            state = SYSTEM_EXCEPTION;
             ex_ = ex;
-            logger_.log(Level.FINE, "Received system exception", ex);
+            REQ_OUT_LOG.log(FINE, ex, () -> "Received system exception");
             if (null != stateWaitCondition) stateWaitCondition.signalAll();
         }
     }
@@ -499,10 +496,10 @@ public class Downcall {
 
     public final void setFailureException(SystemException ex) {
         try (AutoLock lock = stateLock.getWriteLock()) {
-            Assert.ensure(ex_ == null);
-            if (state != State.STALE_CONNECTION) state = State.FAILURE_EXCEPTION;
+            ensure(ex_ == null);
+            if (state != STALE_CONNECTION) state = FAILURE_EXCEPTION;
             ex_ = ex;
-            logger_.log(Level.FINE, "Received failure exception", ex);
+            REQ_OUT_LOG.log(FINE, ex, () -> "Received failure exception");
             if (null != stateWaitCondition) stateWaitCondition.signalAll();
         }
     }

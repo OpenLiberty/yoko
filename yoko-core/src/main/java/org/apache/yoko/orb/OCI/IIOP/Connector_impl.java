@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -134,7 +134,7 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
             if (keepAlive_)
                 socket_.setKeepAlive(true);
         } catch (java.net.SocketException ex) {
-            logger.log(FINE, "Socket setup error", ex);
+            logger.log(FINE, ex, () -> "Socket setup error");
             try {
                 socket_.close();
             } catch (IOException ignored) {
@@ -150,7 +150,7 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
             tr = new Transport_impl(socket_, listenMap_);
             socket_ = null;
         } catch (SystemException ex) {
-            logger.log(FINE, "Transport creation error", ex);
+            logger.log(FINE, ex, () -> "Transport creation error");
             try {
                 socket_.close();
             } catch (IOException ignored) {
@@ -165,7 +165,7 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
         try {
             info_._OB_callConnectCB(trInfo);
         } catch (SystemException ex) {
-            logger.log(FINE, "Connection callback error", ex);
+            logger.log(FINE, ex, () -> "Connection callback error");
             tr.close();
             throw ex;
         }
@@ -223,7 +223,7 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
         } catch (ConnectException ex) {
             throw wrapped(CONN_OUT_LOG, ex, "Socket connection error", CONNECT_FAILED);
         } catch (IOException ex) {
-            logger.log(FINE, "Socket I/O error", ex);
+            logger.log(FINE, ex, () -> "Socket I/O error");
             throw asCommFailure(ex, MinorSocket);
         }
 
@@ -236,7 +236,7 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
             if (keepAlive_)
                 socket_.setKeepAlive(true);
         } catch (java.net.SocketException ex) {
-            logger.log(FINE, "Socket setup error", ex);
+            logger.log(FINE, ex, () -> "Socket setup error");
             try {
                 socket_.close();
             } catch (IOException ignored) {
@@ -252,7 +252,7 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
             tr = new Transport_impl(socket_, listenMap_);
             socket_ = null;
         } catch (SystemException ex) {
-            logger.log(FINE, "Transport setup error", ex);
+            logger.log(FINE, ex, () -> "Transport setup error");
             try {
                 socket_.close();
             } catch (IOException ignored) {
@@ -267,7 +267,7 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
         try {
             info_._OB_callConnectCB(trInfo);
         } catch (SystemException ex) {
-            logger.log(FINE, "Callback setup error", ex);
+            logger.log(FINE, ex, () -> "Callback setup error");
             tr.close();
             throw ex;
         }

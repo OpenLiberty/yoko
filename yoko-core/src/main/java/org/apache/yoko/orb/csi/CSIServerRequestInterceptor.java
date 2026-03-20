@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import javax.security.auth.x500.X500Principal;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.MARSHAL;
+import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.OctetSeqHelper;
 import org.omg.CORBA.UserException;
 import org.omg.CSI.*;
@@ -43,6 +44,9 @@ import org.omg.SecurityLevel2.DelegationDirectivePolicy;
 
 import org.apache.yoko.orb.csi.gssup.GSSUPPolicy;
 import org.apache.yoko.orb.csi.gssup.SecGSSUPPolicy;
+
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.SEVERE;
 
 
 public class CSIServerRequestInterceptor extends CSIInterceptorBase
@@ -99,7 +103,7 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
 
         }
         catch (org.omg.CORBA.INV_POLICY ex) {
-            log.log(java.util.logging.Level.FINE, "no GSSUPPolicy", ex);
+            log.log(FINE, ex, () -> "no GSSUPPolicy");
         }
 
         boolean support_gssup_principal_identity = false;
@@ -265,14 +269,14 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
             }
             catch (LoginException ex) {
                 // Login failed
-                log.log(Level.SEVERE, "Login failed", ex);
+                log.log(SEVERE, ex, () -> "Login failed");
 
                 returnContextError(ri, 1, 1);
-                throw new org.omg.CORBA.NO_PERMISSION("login failed");
+                throw new NO_PERMISSION("login failed");
 
             }
             catch (Exception ex) {
-                log.log(Level.SEVERE, "Exception occured: ", ex);
+                log.log(SEVERE, ex, () -> "Exception occured: ");
             }
 
         } else if (require_gssup_authorization) {
@@ -375,9 +379,9 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
             }
             catch (IllegalArgumentException ex) {
 
-                log.log(Level.FINE, "cannot decode X500 name", ex);
+                log.log(FINE, ex, () -> "cannot decode X500 name");
                 returnContextError(ri, 1, 1);
-                throw new org.omg.CORBA.NO_PERMISSION("cannot decode X500 name");
+                throw new NO_PERMISSION("cannot decode X500 name");
             }
 
             returnCompleteEstablishContext(ri);

@@ -71,6 +71,7 @@ import static org.apache.yoko.orb.OB.Connection.State.ERROR;
 import static org.apache.yoko.orb.OB.Connection.State.HOLDING;
 import static org.apache.yoko.orb.OB.OAInterface.OBJECT_HERE;
 import static org.apache.yoko.orb.OB.Util.getSendingContextRuntime;
+import static org.apache.yoko.orb.OB.Util.marshalSystemException;
 import static org.apache.yoko.orb.exceptions.Transients.CLOSE_CONNECTION;
 import static org.apache.yoko.util.Assert.ensure;
 import static org.apache.yoko.util.MinorCodes.MinorMessageError;
@@ -108,6 +109,7 @@ import static org.omg.GIOP.MsgType_1_1._LocateRequest;
 import static org.omg.GIOP.MsgType_1_1._MessageError;
 import static org.omg.GIOP.MsgType_1_1._Reply;
 import static org.omg.GIOP.MsgType_1_1._Request;
+import static org.omg.GIOP.ReplyStatusType_1_2.SYSTEM_EXCEPTION;
 
 abstract class GIOPConnection extends Connection implements DowncallEmitter, UpcallReturn {
     /** the next request id */
@@ -339,7 +341,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
         // New upcall will be started
         if (response.value) upcallsInProgress_++;
 
-        orbInstance_.getLogger().fine("Processing request reqId=" + reqId + " op=" + op.value);
+        REQ_IN_LOG.fine(() -> "Processing request reqId=" + reqId + " op=" + op.value);
 
         return oaInterface_.createUpcall(
                 response.value ? upcallReturnInterface() : null, profileInfo,
@@ -377,7 +379,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
         // read in the peer's sending context runtime object
         assignSendingContextRuntime(in, contexts);
 
-        orbInstance_.getLogger().fine("Processing reply for reqId=" + reqId + " status=" + status.value.value());
+        REQ_IN_LOG.fine(() -> "Processing reply for reqId=" + reqId + " status=" + status.value.value());
 
         switch (status.value.value()) {
             case ReplyStatusType_1_2._NO_EXCEPTION:
@@ -598,7 +600,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
 
     /** process a CloseConnection message */
     private void processCloseConnection(GIOPIncomingMessage msg) {
-        orbInstance_.getLogger().fine("Close connection request received from peer");
+        CONN_LOG.fine(() -> "Close connection request received from peer");
         if (isClientEnabled()) {
             // If the peer closes the connection, all outstanding
             // requests can safely be reissued. Thus we send all
@@ -864,9 +866,9 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
             // print this exception out here so applications have at stack trace to work
             // with for problem determination.
 
-            orbInstance_.getLogger().log(FINE, "upcall exception", ex);
-            outgoing.writeReplyHeader(reqId, ReplyStatusType_1_2.SYSTEM_EXCEPTION, contexts);
-            Util.marshalSystemException(out, ex);
+            REQ_IN_LOG.log(FINE, ex, () -> "upcall exception");
+            outgoing.writeReplyHeader(reqId, SYSTEM_EXCEPTION, contexts);
+            marshalSystemException(out, ex);
         } catch (SystemException e) {
             // Nothing may go wrong here, otherwise we might have a
             // recursion

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +51,8 @@ import java.util.logging.Logger;
 
 import static java.security.AccessController.doPrivileged;
 import static java.util.Collections.synchronizedMap;
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
 import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
@@ -80,13 +82,13 @@ public class RMIState implements PortableRemoteObjectState {
             poa = rootPoa.create_POA(name, null, new Policy[0]);
             poa.the_POAManager().activate();
         } catch (AdapterAlreadyExists e) {
-            logger.log(Level.WARNING, "Adapter already exists", e);
+            logger.log(WARNING, e, () -> "Adapter already exists");
         } catch (InvalidPolicy e) {
-            logger.log(Level.WARNING, "Invalid policy", e);
+            logger.log(WARNING, e, () -> "Invalid policy");
         } catch (InvalidName e) {
-            logger.log(Level.WARNING, "Invalid name", e);
+            logger.log(WARNING, e, () -> "Invalid name");
         } catch (AdapterInactive e) {
-            logger.log(Level.WARNING, "Adapter inactive", e);
+            logger.log(WARNING, e, () -> "Adapter inactive");
         }
 
         _orb = orb;
@@ -170,9 +172,9 @@ public class RMIState implements PortableRemoteObjectState {
         try {
             return constructor.newInstance();
         } catch (ClassCastException ex) {
-            logger.log(Level.FINE, "loaded class " + constructor.getDeclaringClass() + " is not a proper stub", ex);
+            logger.log(FINE, ex, () -> "loaded class " + constructor.getDeclaringClass() + " is not a proper stub");
         } catch (IllegalAccessException | InstantiationException | InvocationTargetException ex) {
-            logger.log(Level.FINE, "cannot instantiate stub class for " + constructor.getDeclaringClass() + " :: " + ex.getMessage(), ex);
+            logger.log(FINE, ex, () -> "cannot instantiate stub class for " + constructor.getDeclaringClass() + " :: " + ex.getMessage());
         }
         return null;
     }
@@ -189,9 +191,9 @@ public class RMIState implements PortableRemoteObjectState {
             @SuppressWarnings("unchecked") Class<? extends Stub> stubClass = (Class<? extends Stub>) Util.loadClass(stubName, codebase, doPrivileged(GET_CONTEXT_CLASS_LOADER));
             return doPrivileged(getNoArgConstructor(stubClass));
         } catch (ClassNotFoundException ex) {
-            logger.log(Level.FINE, "failed to load remote class " + stubName + " from " + codebase, ex);
+            logger.log(FINE, ex, () -> "failed to load remote class " + stubName + " from " + codebase);
         } catch (PrivilegedActionException e) {
-            logger.log(Level.WARNING, "stub class " + stubName + " has no default constructor", e);
+            logger.log(WARNING, e, () -> "stub class " + stubName + " has no default constructor");
         }
         return null;
     }

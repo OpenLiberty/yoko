@@ -30,6 +30,7 @@ import java.util.logging.Logger;
 
 import static java.util.Arrays.copyOf;
 import static java.util.logging.Level.WARNING;
+import static java.util.logging.Logger.getLogger;
 import static org.apache.yoko.util.Collectors.toUnmodifiableMap;
 import static org.apache.yoko.util.HexConverter.toHex;
 import static org.apache.yoko.util.rofl.Rofl.RemoteOrb.BAD;
@@ -83,7 +84,7 @@ public interface Rofl extends Serializable {
             try {
                 return tcCtor.apply(tc);
             } catch (Throwable t) {
-                Logger.getLogger(Rofl.class.getName() + "." + name()).log(WARNING, "Failed to create ROFL for remote ORB of type " + this, t);
+                getLogger(Rofl.class.getName() + "." + name()).log(WARNING, t, () -> "Failed to create ROFL for remote ORB of type " + this);
                 return new Bad(tc, t);
             }
 
@@ -93,7 +94,7 @@ public interface Rofl extends Serializable {
             try {
                 return scCtor.apply(sc);
             } catch (Throwable t) {
-                Logger.getLogger(Rofl.class.getName() + "." + name()).log(WARNING, "Failed to create ROFL for remote ORB of type " + this, t);
+                getLogger(Rofl.class.getName() + "." + name()).log(WARNING, t, () -> "Failed to create ROFL for remote ORB of type " + this);
                 return new Bad(sc, t);
             }
         }

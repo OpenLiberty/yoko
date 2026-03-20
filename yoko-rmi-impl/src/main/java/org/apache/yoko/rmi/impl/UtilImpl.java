@@ -605,7 +605,7 @@ public class UtilImpl implements UtilDelegate {
         try {
             targetClass = Util.loadClass(desc.type.getName(), stub._get_codebase(), loader);
         } catch (ClassNotFoundException ex) {
-            logger.log(FINER, "copyRMIStub exception (current loader is: " + loader + ") " + ex.getMessage(), ex);
+            logger.log(FINER, ex, () -> "copyRMIStub exception (current loader is: " + loader + ") " + ex.getMessage());
             throw new RemoteException("Class not found", ex);
         }
 

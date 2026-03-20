@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ import org.apache.yoko.orb.OAD.ProcessEndpoint_impl;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.orb.OB.InitialServiceManager;
 import org.apache.yoko.orb.OB.LocationForward;
-import org.apache.yoko.orb.OB.Logger;
 import org.apache.yoko.orb.OB.ORBControl;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.orb.OB.PIManager;
@@ -66,8 +65,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
+import static java.util.logging.Level.SEVERE;
+import static java.util.logging.Level.WARNING;
+import static org.apache.yoko.logging.VerboseLogging.INIT_LOG;
+import static org.apache.yoko.logging.VerboseLogging.SHUTDOWN_LOG;
 import static org.apache.yoko.util.Assert.ensure;
 import static org.omg.PortableServer.POAManagerPackage.State.INACTIVE;
 
@@ -107,9 +109,7 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
     }
 
     private AcceptorConfig[] parseEndpointString(String endpoint) {
-        Logger logger = orbInstance_.getLogger();
-
-        java.util.List<AcceptorConfig> acceptorConfigs = new ArrayList<>();
+        List<AcceptorConfig> acceptorConfigs = new ArrayList<>();
 
         AccFactoryRegistry registry = orbInstance_.getAccFactoryRegistry();
         AccFactory[] factories = registry.get_factories();
@@ -128,12 +128,12 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
                 acceptorConfigs.add(config);
                 continue PROTOCOL_LOOP;
             }
-            logger.severe("unknown endpoint protocol `" + protocol + "'");
+            INIT_LOG.severe(() -> "unknown endpoint protocol `" + protocol + "'");
             throw new INITIALIZE("unknown endpoint protocol `" + protocol + "'");
         }
 
         if (acceptorConfigs.isEmpty()) {
-            logger.severe("no endpoints defined");
+            INIT_LOG.severe(() -> "no endpoints defined");
             throw new INITIALIZE("no endpoints defined");
         }
 
@@ -164,7 +164,6 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
             }
 
             Properties props = orbInstance_.getProperties();
-            Logger logger = orbInstance_.getLogger();
 
             // If no endpoint config policy is defined, this info will
             // have to be retrieved from the orb properties.
@@ -213,11 +212,11 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
                     acceptors.add(factory.create_acceptor(acceptorConfig.params));
                 } catch (NoSuchFactory ex) {
                     String err = "cannot find factory: " + ex;
-                    logger.log(Level.SEVERE, err, ex);
+                    INIT_LOG.log(SEVERE, ex, () -> err);
                     throw (INITIALIZE) new INITIALIZE(err).initCause(ex);
                 } catch (InvalidParam ex) {
                     String err = "unable to create acceptor: " + ex.reason;
-                    logger.log(Level.SEVERE, err, ex);
+                    INIT_LOG.log(SEVERE, ex, () -> err);
                     throw (INITIALIZE) new INITIALIZE(err).initCause(ex);
                 }
             }
@@ -273,12 +272,11 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
         // Tell the IMR that the ORB is STOPPING
         if (activeState_ == null) return;
 
-        Logger logger = orbInstance_.getLogger();
         String serverInstance = orbInstance_.getServerInstance();
         try {
             activeState_.set_status(serverInstance, ServerStatus.STOPPING);
         } catch (SystemException ex) {
-            logger.log(Level.WARNING, orbInstance_.getServerId() + ": Cannot contact IMR on shutdown", ex);
+            SHUTDOWN_LOG.log(WARNING, ex, () -> orbInstance_.getServerId() + ": Cannot contact IMR on shutdown");
         }
         activeState_ = null;
     }
@@ -324,12 +322,9 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
         } catch (InvalidName | BAD_PARAM ignored) {
         }
 
-
-        Logger logger = orbInstance_.getLogger();
-
         // IMR::IMRDomain not reachable?
         if (imrDomain == null) {
-            logger.severe(serverId + ": IMRDomain not reachable");
+            INIT_LOG.severe(() -> serverId + ": IMRDomain not reachable");
             throw new INITIALIZE(serverId + ": IMRDomain not reachable");
         }
 
@@ -337,7 +332,7 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
         String exec = properties.getProperty("yoko.orb.imr.register");
         if (exec != null) {
             // TODO: What do we do for Java?
-            logger.severe(serverId + ": Self registration not implemented for java servers");
+            INIT_LOG.severe(() -> serverId + ": Self registration not implemented for java servers");
             throw new INITIALIZE(serverId + ": Self registration not implemented for java servers");
         }
 
@@ -356,7 +351,7 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
             endpointManager_ = endpoint.value;
 
             // Create an register the IORInterceptor for the IMR
-            IORInterceptor i = new IMRIORInterceptor_impl(logger, activeState_, serverInstance);
+            IORInterceptor i = new IMRIORInterceptor_impl(activeState_, serverInstance);
             PIManager piManager = orbInstance_.getPIManager();
 
             try {
@@ -365,20 +360,20 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
                 throw Assert.fail(ex);
             }
         } catch (BAD_PARAM ex) {
-            logger.log(Level.SEVERE, serverId + ": (IMR) Server already running", ex);
-            throw (INITIALIZE)new INITIALIZE(serverId + ": (IMR) Server already running").initCause(ex);
+            INIT_LOG.log(SEVERE, ex, () -> serverId + ": (IMR) Server already running");
+            throw (INITIALIZE) new INITIALIZE(serverId + ": (IMR) Server already running").initCause(ex);
         } catch (NoSuchServer ex) {
-            logger.log(Level.SEVERE, serverId + ": (IMR) Not registered with IMR", ex);
-            throw (INITIALIZE)new INITIALIZE(serverId + ": (IMR) Not registered with IMR").initCause(ex);
+            INIT_LOG.log(SEVERE, ex, () -> serverId + ": (IMR) Not registered with IMR");
+            throw (INITIALIZE) new INITIALIZE(serverId + ": (IMR) Not registered with IMR").initCause(ex);
         } catch (NoSuchOAD ex) {
-            logger.log(Level.SEVERE, serverId + ": (IMR) No OAD for host", ex);
-            throw (INITIALIZE)new INITIALIZE(serverId + ": (IMR) No OAD for host").initCause(ex);
+            INIT_LOG.log(SEVERE, ex, () -> serverId + ": (IMR) No OAD for host");
+            throw (INITIALIZE) new INITIALIZE(serverId + ": (IMR) No OAD for host").initCause(ex);
         } catch (OADNotRunning ex) {
-            logger.log(Level.SEVERE, serverId + ": (IMR) OAD not running", ex);
-            throw (INITIALIZE)new INITIALIZE(serverId + ": (IMR) OAD not running").initCause(ex);
+            INIT_LOG.log(SEVERE, ex, () -> serverId + ": (IMR) OAD not running");
+            throw (INITIALIZE) new INITIALIZE(serverId + ": (IMR) OAD not running").initCause(ex);
         } catch (AlreadyLinked ex) {
-            logger.log(Level.SEVERE, serverId + ": (IMR) Process registered with OAD", ex);
-            throw (INITIALIZE)new INITIALIZE(serverId + ": (IMR) Process registered with OAD").initCause(ex);
+            INIT_LOG.log(SEVERE, ex, () -> serverId + ": (IMR) Process registered with OAD");
+            throw (INITIALIZE) new INITIALIZE(serverId + ": (IMR) Process registered with OAD").initCause(ex);
         }
     }
 }

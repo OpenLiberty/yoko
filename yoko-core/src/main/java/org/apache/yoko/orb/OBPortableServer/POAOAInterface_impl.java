@@ -47,6 +47,8 @@ import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.util.logging.Level.FINE;
+
 //
 // We don't need any sort of concurrency protection on this class
 // since its lifecycle is tightly coupled with the POAManager. Once
@@ -168,11 +170,11 @@ final class POAOAInterface_impl extends LocalObject implements OAInterface {
                 }
             }
         } catch (SystemException ex) {
-            logger.log(Level.FINE, "System exception creating upcall", ex); 
+            logger.log(FINE, ex, () -> "System exception creating upcall");
             upcall = new Upcall(orbInstance_, upcallReturn, profileInfo, transportInfo, requestId, op, in, requestContexts);
             upcall.setSystemException(ex);
         } catch (LocationForward ex) {
-            logger.log(Level.FINE, "Location forward request creating upcall.", ex); 
+            logger.log(FINE, ex, () -> "Location forward request creating upcall.");
             upcall = new Upcall(orbInstance_, upcallReturn, profileInfo, transportInfo, requestId, op, in, requestContexts);
             upcall.setLocationForward(ex.ior, ex.perm);
         }

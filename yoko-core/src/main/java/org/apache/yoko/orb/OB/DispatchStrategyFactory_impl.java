@@ -29,6 +29,7 @@ import java.util.Vector;
 import java.util.logging.Logger;
 
 import static java.util.logging.Logger.getLogger;
+import static org.apache.yoko.logging.VerboseLogging.INIT_LOG;
 import static org.apache.yoko.util.MinorCodes.*;
 import static org.omg.CORBA.CompletionStatus.*;
 
@@ -321,10 +322,8 @@ public final class DispatchStrategyFactory_impl extends LocalObject implements D
                         throw Assert.fail(ex);
                     }
                 default:
-                    String err = "yoko.orb.oa.conc_model: Unknown value `";
-                    err += value;
-                    err += "'";
-                    orbInstance_.getLogger().warning(err);
+                    String unknownValue = value;
+                    INIT_LOG.warning(() -> "yoko.orb.oa.conc_model: Unknown value `" + unknownValue + "'");
                     break;
             }
         }

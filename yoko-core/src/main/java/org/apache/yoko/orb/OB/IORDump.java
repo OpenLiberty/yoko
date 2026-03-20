@@ -224,7 +224,7 @@ public class IORDump {
         ORB orb = null;
 
         try {
-            args = org.apache.yoko.orb.CORBA.ORB.ParseArgs(args, props, null);
+            args = org.apache.yoko.orb.CORBA.ORB.ParseArgs(args, props);
             orb = ORB.init(args, props);
             status = run(orb, args);
         } catch (Exception ex) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 package org.apache.yoko.rmi.impl;
 
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.rmi.MarshalException;
 import java.rmi.RemoteException;
@@ -27,6 +28,12 @@ import java.util.logging.Level;
 import javax.rmi.CORBA.Util;
 
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA.portable.UnknownException;
+
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
+import static javax.rmi.CORBA.Util.mapSystemException;
 
 public final class MethodDescriptor extends ModelElement {
     static final Logger logger = Logger.getLogger(MethodDescriptor.class.getName());
@@ -114,8 +121,8 @@ public final class MethodDescriptor extends ModelElement {
                 }
 
             } catch (org.omg.CORBA.SystemException ex) {
-                logger.log(Level.FINE, "Exception occurred copying arguments", ex); 
-                throw Util.mapSystemException(ex);
+                logger.log(FINE, ex, () -> "Exception occurred copying arguments");
+                throw mapSystemException(ex);
             }
 
         } else if (copyWithinState) {
@@ -159,8 +166,8 @@ public final class MethodDescriptor extends ModelElement {
 
                     return return_type.read(in);
                 } catch (org.omg.CORBA.SystemException ex) {
-                    logger.log(Level.FINE, "Exception occurred copying result", ex); 
-                    throw Util.mapSystemException(ex);
+                    logger.log(FINE, ex, () -> "Exception occurred copying result");
+                    throw mapSystemException(ex);
                 }
             }
 
@@ -226,22 +233,21 @@ public final class MethodDescriptor extends ModelElement {
             org.omg.CORBA.portable.ResponseHandler response, Throwable ex) {
         for (int i = 0; i < exception_types.length; i++) {
             if (exception_types[i].type.isInstance(ex)) {
-                org.omg.CORBA.portable.OutputStream out = response
-                        .createExceptionReply();
+                OutputStream out = response.createExceptionReply();
                 org.omg.CORBA_2_3.portable.OutputStream out2 = (org.omg.CORBA_2_3.portable.OutputStream) out;
 
                 out2
                         .write_string(exception_types[i]
                                 .getExceptionRepositoryID());
 
-                out2.write_value((java.io.Serializable) ex);
+                out2.write_value((Serializable) ex);
                 return out;
             }
         }
 
-        logger.log(Level.WARNING, "unhandled exception: " + ex.getMessage(), ex);
+        logger.log(WARNING, ex, () -> "unhandled exception: " + ex.getMessage());
 
-        throw new org.omg.CORBA.portable.UnknownException(ex);
+        throw new UnknownException(ex);
     }
 
     public void readException(org.omg.CORBA.portable.InputStream in)

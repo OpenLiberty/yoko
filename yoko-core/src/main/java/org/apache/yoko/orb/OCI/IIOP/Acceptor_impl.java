@@ -108,8 +108,7 @@ final class Acceptor_impl extends LocalObject implements Acceptor {
                 CONN_IN_LOG.fine("Closed server socket with host=" + localAddress + ", port=" + port_);
         } catch (IOException ex) {
             // maybe this should be a warning?
-            if (CONN_IN_LOG.isLoggable(FINE))
-                CONN_IN_LOG.log(FINE, "Exception closing server socket with host=" + localAddress + ", port=" + port_, ex);
+            CONN_IN_LOG.log(FINE, ex, () -> "Exception closing server socket with host=" + localAddress + ", port=" + port_);
         }
     }
 

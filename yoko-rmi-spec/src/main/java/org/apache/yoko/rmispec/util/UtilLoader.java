@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 import static java.lang.Thread.currentThread;
 import static java.security.AccessController.doPrivileged;
 import static java.util.function.Predicate.isEqual;
+import static java.util.logging.Level.FINER;
 
 public class UtilLoader {
     static final Logger logger = Logger.getLogger(UtilLoader.class.getName());
@@ -82,7 +83,7 @@ public class UtilLoader {
                 //noinspection unchecked
                 return (Class<T>) ldr.loadClass(name);
             } catch (ClassNotFoundException e) {
-                logger.log(Level.FINER, "Loader says " + e.getMessage(), e);
+                logger.log(FINER, e, () -> "Loader says " + e.getMessage());
                 return null;
             }
         };

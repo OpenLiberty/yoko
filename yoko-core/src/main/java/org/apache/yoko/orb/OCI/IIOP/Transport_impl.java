@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ import java.net.SocketException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.util.logging.Level.FINE;
 import static org.apache.yoko.orb.OCI.IIOP.Exceptions.asCommFailure;
 import static org.apache.yoko.orb.OCI.SendReceiveMode.SendReceive;
 import static org.apache.yoko.util.MinorCodes.MinorRecv;
@@ -74,17 +75,17 @@ final public class Transport_impl extends LocalObject implements Transport {
             try {
                 socket_.setSoTimeout(soTimeout_);
             } catch (SocketException ex) {
-                logger.log(Level.FINE, "Socket setup error", ex);
+                logger.log(FINE, ex, () -> "Socket setup error");
 
-                throw (COMM_FAILURE)new COMM_FAILURE(
+                throw (COMM_FAILURE) new COMM_FAILURE(
                         describeCommFailure(MinorSetSoTimeout)
                                 + ": socket error during setSoTimeout: "
                                 + ex.getMessage(),
                         MinorSetSoTimeout,
                         COMPLETED_NO).initCause(ex);
             } catch (NullPointerException ex) {
-                logger.log(Level.FINE, "Socket setup error", ex);
-                throw (COMM_FAILURE)new COMM_FAILURE(
+                logger.log(FINE, ex, () -> "Socket setup error");
+                throw (COMM_FAILURE) new COMM_FAILURE(
                         describeCommFailure(MinorSetSoTimeout)
                                 + ": NullPointerException error during setSoTimeout: "
                                 + ex.getMessage(),
@@ -127,8 +128,8 @@ final public class Transport_impl extends LocalObject implements Transport {
             // This exception can be ignored.
             //
         } catch (IOException ex) {
-            logger.log(Level.FINE, "Socket shutdown error", ex);
-            throw (InternalError)new InternalError().initCause(ex);
+            logger.log(FINE, ex, () -> "Socket shutdown error");
+            throw (InternalError) new InternalError().initCause(ex);
         }
     }
 
@@ -177,17 +178,17 @@ final public class Transport_impl extends LocalObject implements Transport {
                 if (!writeBuffer.readFrom(in_))
                     throw new COMM_FAILURE(describeCommFailure(MinorRecvZero), MinorRecvZero, COMPLETED_NO);
             } catch (InterruptedIOException ex) {
-                logger.log(Level.FINE, "Received interrupted exception", ex);
+                logger.log(FINE, ex, () -> "Received interrupted exception");
 
                 if (!block)
                     return;
                 if (shutdown_)
                     throw asCommFailure(ex, MinorRecv, "Interrupted I/O exception during shutdown");
             } catch (IOException ex) {
-                logger.log(Level.FINE, "Socket read error", ex);
+                logger.log(FINE, ex, () -> "Socket read error");
                 throw asCommFailure(ex, MinorRecv, "I/O error during read");
             } catch (NullPointerException ex) {
-                logger.log(Level.FINE, "Socket read error", ex);
+                logger.log(FINE, ex, () -> "Socket read error");
                 throw asCommFailure(ex, MinorRecv, "NullPointerException during read");
             }
         }
@@ -206,10 +207,10 @@ final public class Transport_impl extends LocalObject implements Transport {
             } catch (InterruptedIOException ex) {
                 if (!block) return;
             } catch (IOException ex) {
-                logger.log(Level.FINE, "Socket write error", ex);
+                logger.log(FINE, ex, () -> "Socket write error");
                 throw asCommFailure(ex, MinorSend, "I/O error during write");
             } catch (NullPointerException ex) {
-                logger.log(Level.FINE, "Socket write error", ex);
+                logger.log(FINE, ex, () -> "Socket write error");
                 throw asCommFailure(ex, MinorSend, "NullPointerException during write");
             }
         }
@@ -251,10 +252,10 @@ final public class Transport_impl extends LocalObject implements Transport {
             } catch (InterruptedIOException ex) {
                 return;
             } catch (IOException ex) {
-                logger.log(Level.FINE,  "Socket write error", ex);
+                logger.log(FINE, ex, () -> "Socket write error");
                 throw asCommFailure(ex, MinorSend, "I/O error during write");
             } catch (NullPointerException ex) {
-                logger.log(Level.FINE, "Socket write error", ex);
+                logger.log(FINE, ex, () -> "Socket write error");
                 throw asCommFailure(ex, MinorSend, "NullPointerException during write");
             }
         }
@@ -281,7 +282,7 @@ final public class Transport_impl extends LocalObject implements Transport {
             in_ = socket_.getInputStream();
             out_ = socket_.getOutputStream();
         } catch (IOException ex) {
-            logger.log(Level.FINE, "Socket setup error", ex);
+            logger.log(FINE, ex, () -> "Socket setup error");
             throw asCommFailure(ex, MinorSocket, "unable to obtain socket InputStream");
         }
 
@@ -306,7 +307,7 @@ final public class Transport_impl extends LocalObject implements Transport {
             in_ = socket_.getInputStream();
             out_ = socket_.getOutputStream();
         } catch (IOException ex) {
-            logger.log(Level.FINE, "Socket setup error", ex);
+            logger.log(FINE, ex, () -> "Socket setup error");
             throw asCommFailure(ex, MinorSocket, "unable to obtain socket InputStream");
         }
 

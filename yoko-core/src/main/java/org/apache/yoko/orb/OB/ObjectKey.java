@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.util.logging.Level.FINE;
 import static java.util.logging.Logger.getLogger;
 import static org.apache.yoko.util.Hex.formatHexPara;
 
@@ -171,7 +172,7 @@ public final class ObjectKey {
                 try {
                     keyData.createTime = Integer.valueOf(t).intValue();
                 } catch (NumberFormatException ex) {
-                    logger.log(Level.FINE, "Invalid timestamp in key data", ex); 
+                    logger.log(FINE, ex, () -> "Invalid timestamp in key data");
                     return false;
                 }
                 //

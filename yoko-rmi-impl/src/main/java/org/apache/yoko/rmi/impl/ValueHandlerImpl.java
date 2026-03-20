@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,8 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import static java.security.AccessController.doPrivileged;
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
 
 public class ValueHandlerImpl implements ValueHandler {
@@ -102,7 +104,7 @@ public class ValueHandlerImpl implements ValueHandler {
             SerialFilterHelper.checkInput(clz, depthHolder.value, in);
             return readValue0(in, offset, clz, repid, codebase);
         } catch (Error | RuntimeException ex) {
-            logger.log(Level.FINE, "Exception reading value of type " + repid, ex); 
+            logger.log(FINE, ex, () -> "Exception reading value of type " + repid);
             throw ex;
         } finally {
             depthHolder.value--;
@@ -212,7 +214,7 @@ public class ValueHandlerImpl implements ValueHandler {
                 return null;
             }
         } catch (Throwable ex) {
-            logger.log(Level.FINE, "error resolving class from id", ex); 
+            logger.log(FINE, ex, () -> "error resolving class from id");
             return null;
         }
     }
@@ -233,7 +235,7 @@ public class ValueHandlerImpl implements ValueHandler {
             if (logger.isLoggable(Level.FINER)) logger.finer("getImplementation " + id + " => " + result);
             return result;
         } catch (RuntimeException ex) {
-            logger.log(Level.FINE, "error implementation class from id", ex); 
+            logger.log(FINE, ex, () -> "error implementation class from id");
             throw ex;
         }
     }
@@ -259,8 +261,8 @@ public class ValueHandlerImpl implements ValueHandler {
             }
             return desc.getFullValueDescription();
         } catch (Throwable ex) {
-            logger.log(Level.WARNING, "exception in meta", ex);
-            throw (OBJECT_NOT_EXIST)new OBJECT_NOT_EXIST().initCause(ex);
+            logger.log(WARNING, ex, () -> "exception in meta");
+            throw (OBJECT_NOT_EXIST) new OBJECT_NOT_EXIST().initCause(ex);
         }
     }
 
@@ -288,7 +290,7 @@ public class ValueHandlerImpl implements ValueHandler {
 
             return result;
         } catch (Throwable ex) {
-            logger.log(Level.WARNING, "exception in CodeBase::bases", ex);
+            logger.log(WARNING, ex, () -> "exception in CodeBase::bases");
             return new String[0];
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@ import org.omg.IOP.TaggedComponent;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 import org.omg.PortableInterceptor.IORInfo;
 import org.omg.PortableInterceptor.IORInterceptor;
+
+import static java.util.logging.Level.WARNING;
 
 public class RMIInterceptor extends LocalObject implements IORInterceptor {
 
@@ -72,7 +74,7 @@ public class RMIInterceptor extends LocalObject implements IORInterceptor {
 
                 info.add_ior_component(component);
             } catch (InvalidTypeForEncoding e) {
-                logger.log(Level.WARNING, "Failed to add java codebase to IOR" + e.getMessage(), e);
+                logger.log(WARNING, e, () -> "Failed to add java codebase to IOR" + e.getMessage());
             }
         }
     }

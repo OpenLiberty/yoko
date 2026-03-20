@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ public class CSIInterceptorLoader extends LocalObject implements
                                          (byte) 2));
         }
         catch (UnknownEncoding ex) {
-            log.log(SEVERE, "Could not get codec: ", ex);
+            log.log(SEVERE, ex, () -> "Could not get codec: ");
             return;
         }
 

@@ -17,17 +17,18 @@
  */
 package org.apache.yoko.orb.OB;
 
+import static java.util.logging.Level.FINE;
 import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
 import static org.apache.yoko.io.Buffer.createWriteBuffer;
 import static org.apache.yoko.logging.VerboseLogging.RETRY_LOG;
 import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
 import static org.apache.yoko.orb.exceptions.Transients.NO_USABLE_PROFILE_IN_IOR;
+import static org.apache.yoko.util.Assert.ensure;
 import static org.apache.yoko.util.MinorCodes.MinorShutdownCalled;
 import static org.apache.yoko.util.MinorCodes.describeBadInvOrder;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 import java.util.Vector;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.yoko.io.ReadBuffer;
@@ -327,7 +328,7 @@ public final class DowncallStub {
     }
 
     public synchronized void handleFailureException(ClientProfilePair cp, FailureException ex) throws FailureException {
-        Assert.ensure(ex.exception != null);
+        ensure(ex.exception != null);
         final Client client = cp.client;
         final ClientManager clientManager = orbInstance_.getClientManager();
         // Make sure the ORB has not been destroyed
@@ -345,7 +346,7 @@ public final class DowncallStub {
         // We only retry upon COMM_FAILURE, TRANSIENT, and NO_RESPONSE
         try {
             throw ex.exception;
-        } catch (COMM_FAILURE|TRANSIENT|NO_RESPONSE forceRetry) {
+        } catch (COMM_FAILURE | TRANSIENT | NO_RESPONSE forceRetry) {
             // These exceptions indicate the current connection is never going to work again,
             // so make sure the client is not re-used
             clientManager.besmirchClient(client);
@@ -361,12 +362,12 @@ public final class DowncallStub {
 
         // If no client/profile pairs are left, we cannot retry either
         if (clientProfilePairs_.isEmpty()) {
-            logger.log(Level.FINE, "no profiles left to try", ex.exception);
+            logger.log(FINE, ex.exception, () -> "no profiles left to try");
             throw ex;
         }
 
         // OK, let's continue with the next profile
-        logger.log(Level.FINE, "trying next profile", ex.exception);
+        logger.log(FINE, ex.exception, () -> "trying next profile");
     }
 
     // Handle a FailureException
@@ -404,7 +405,7 @@ public final class DowncallStub {
                         return true;
                     }
                 } catch (SystemException ex) {
-                    logger.log(Level.FINE, "Exception occurred during locate request", ex); 
+                    logger.log(FINE, ex, () -> "Exception occurred during locate request");
                     throw new FailureException(ex);
                 }
 
@@ -416,10 +417,10 @@ public final class DowncallStub {
                 logger.fine("Object located"); 
                 return true;
             } catch (OBJECT_NOT_EXIST ex) {
-                logger.log(Level.FINE, "Object does not exist", ex); 
+                logger.log(FINE, ex, () -> "Object does not exist");
                 return false;
             } catch (FailureException ex) {
-                logger.log(Level.FINE, "Object lookup failure", ex); 
+                logger.log(FINE, ex, () -> "Object lookup failure");
                 handleFailureException(cp, ex);
             }
         }
@@ -955,7 +956,7 @@ public final class DowncallStub {
                 //
                 delivered = true;
             } catch (SystemException ex) {
-                logger.log(Level.FINE, "Failed to contact router: " + ex.getMessage(), ex); 
+                logger.log(FINE, ex, () -> "Failed to contact router: " + ex.getMessage());
                 //
                 // Failure: try the next router in the list
                 //

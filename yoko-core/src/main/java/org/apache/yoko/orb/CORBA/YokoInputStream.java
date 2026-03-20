@@ -57,6 +57,7 @@ import java.util.Hashtable;
 import java.util.logging.Level;
 
 import static java.security.AccessController.doPrivileged;
+import static java.util.logging.Level.FINE;
 import static java.util.stream.IntStream.range;
 import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.FOUR_BYTE_BOUNDARY;
@@ -1048,7 +1049,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
             }
             return createStub(getRMIStubClass(codebase, expectedType), impl._get_delegate());
         } catch (IllegalAccessException | ClassNotFoundException | ClassCastException | PrivilegedActionException | InvocationTargetException ex) {
-            GIOP_IN_LOG.log(Level.FINE, "Exception creating object stub", ex);
+            GIOP_IN_LOG.log(FINE, ex, () -> "Exception creating object stub");
             throw newMarshalError(MinorLoadStub, ex);
         }
     }
@@ -1062,7 +1063,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
             stub._set_delegate(delegate);
             return stub;
         } catch (InvocationTargetException | InstantiationException | IllegalAccessException | PrivilegedActionException ex) {
-            GIOP_IN_LOG.log(Level.FINE, "Exception creating object stub", ex);
+            GIOP_IN_LOG.log(FINE, ex, () -> "Exception creating object stub");
             throw newMarshalError(MinorLoadStub, ex);
         }
     }

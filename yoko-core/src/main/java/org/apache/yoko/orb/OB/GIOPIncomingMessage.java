@@ -19,6 +19,7 @@ package org.apache.yoko.orb.OB;
 
 import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.FOUR_BYTE_BOUNDARY;
+import static org.apache.yoko.logging.VerboseLogging.GIOP_IN_LOG;
 import static org.apache.yoko.util.MinorCodes.MinorFragment;
 import static org.apache.yoko.util.MinorCodes.MinorMessageSizeLimit;
 import static org.apache.yoko.util.MinorCodes.MinorNoGIOP;
@@ -34,6 +35,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
+import org.apache.yoko.logging.VerboseLogging;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.util.Assert;
@@ -99,8 +101,7 @@ public final class GIOPIncomingMessage {
          */
         void addFragment(ORBInstance orbInstance, ReadBuffer readBuffer) {
             if (maxMessageSize_ > 0 && writeBuffer.length() + readBuffer.available() > maxMessageSize_) {
-                String msg = "incoming fragment exceeds maximum message size (" + maxMessageSize_ + ")";
-                orbInstance_.getLogger().warning(msg);
+                GIOP_IN_LOG.warning(() -> "incoming fragment exceeds maximum message size (" + maxMessageSize_ + ")");
                 throw new IMP_LIMIT(describeImpLimit(MinorMessageSizeLimit), MinorMessageSizeLimit, COMPLETED_NO);
             }
             writeBuffer.ensureAvailable(readBuffer.available());
@@ -243,9 +244,7 @@ public final class GIOPIncomingMessage {
         }
 
         if (maxMessageSize_ > 0 && size_ > maxMessageSize_) {
-            String msg = "incoming message size (" + size_ + ") exceeds maximum (" + maxMessageSize_ + ")";
-            orbInstance_.getLogger().warning(msg);
-
+            GIOP_IN_LOG.warning(() -> "incoming message size (" + size_ + ") exceeds maximum (" + maxMessageSize_ + ")");
             throw new IMP_LIMIT(describeImpLimit(MinorMessageSizeLimit), MinorMessageSizeLimit, COMPLETED_MAYBE);
         }
 

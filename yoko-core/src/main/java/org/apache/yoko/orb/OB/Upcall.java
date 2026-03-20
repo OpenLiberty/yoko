@@ -44,6 +44,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.util.logging.Level.FINE;
 import static java.util.logging.Logger.getLogger;
 import static org.apache.yoko.io.Buffer.createWriteBuffer;
 import static org.apache.yoko.orb.OB.SendingContextRuntimes.SENDING_CONTEXT_RUNTIME;
@@ -332,7 +333,7 @@ public class Upcall {
                 dispatchStrategy_.dispatch(dispatchRequest_);
             }
         } catch (SystemException ex) {
-            logger.log(Level.FINE, "Exception received dispatching request", ex);
+            logger.log(FINE, ex, () -> "Exception received dispatching request");
             setSystemException(ex);
         }
     }

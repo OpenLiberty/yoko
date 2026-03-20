@@ -20,10 +20,13 @@ package org.apache.yoko.orb.OB;
 import static java.lang.Boolean.getBoolean;
 import static java.security.AccessController.doPrivileged;
 import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.FINER;
 import static javax.rmi.CORBA.Util.createValueHandler;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_IN_LOG;
 import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_getOrigType;
 import static org.apache.yoko.orb.OB.ValueReader.SettingsHolder.IGNORE_INVALID_VALUE_TAG;
+import static org.apache.yoko.util.Assert.ensure;
+import static org.apache.yoko.util.Assert.fail;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.MinorCodes.MinorNoValueFactory;
 import static org.apache.yoko.util.MinorCodes.MinorReadInvalidIndirection;
@@ -868,8 +871,8 @@ public final class ValueReader {
                 throw Assert.fail();
             }
         } catch (BadKind | Bounds ex) {
-            MARSHAL_IN_LOG.log(Level.FINER, "Invalid type kind", ex);
-            throw Assert.fail(ex);
+            MARSHAL_IN_LOG.log(FINER, ex, () -> "Invalid type kind");
+            throw fail(ex);
         }
     }
 
@@ -947,7 +950,7 @@ public final class ValueReader {
         try {
             return valueHandler.readValue(in_, h.headerPos, repoClass, repid, remoteCodeBase);
         } catch (RuntimeException ex) {
-            if (MARSHAL_IN_LOG.isLoggable(FINE)) MARSHAL_IN_LOG.log(FINE, "Caught exception when reading GIOP stream: \n" + in_.dumpAllDataWithPosition(), ex);
+            MARSHAL_IN_LOG.log(FINE, ex, () -> "Caught exception when reading GIOP stream: \n" + in_.dumpAllDataWithPosition());
             throw ex;
         }
     }
@@ -1536,7 +1539,7 @@ public final class ValueReader {
                     return;
                 }
             } catch (MARSHAL ex) {
-                MARSHAL_IN_LOG.log(FINE, "Marshaling exception occurred, attempting to remarshal", ex);
+                MARSHAL_IN_LOG.log(FINE, ex, () -> "Marshaling exception occurred, attempting to remarshal");
                 //
                 // Creation failed - restore our state and try remarshalling
                 //
@@ -1548,7 +1551,7 @@ public final class ValueReader {
                     out._OB_ORBInstance(orbInstance_);
                     t = remarshalValue(origTC, out);
                     final YokoInputStream in = (YokoInputStream) out.create_input_stream();
-                    Assert.ensure(obAny != null);
+                    ensure(obAny != null);
                     obAny.replace(t, in);
                     return;
                 }

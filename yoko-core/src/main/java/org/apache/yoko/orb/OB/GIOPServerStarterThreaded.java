@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 
 import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.ACTIVE;
 import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.CLOSED;
 import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.HOLDING;
@@ -158,7 +159,7 @@ final class GIOPServerStarterThreaded extends GIOPServerStarter {
                 org.apache.yoko.orb.OCI.Transport tr = acceptor_.connect_self();
                 tr.close();
             } catch (org.omg.CORBA.SystemException ignored) {
-                CONN_IN_LOG.log(INFO, "Call to unblock accept() failed", ignored);
+                CONN_IN_LOG.log(INFO, ignored, () -> "Call to unblock accept() failed");
             }
 
             break;
@@ -240,7 +241,7 @@ final class GIOPServerStarterThreaded extends GIOPServerStarter {
                         }
                     } catch (SystemException ex) {
                         String msg = "can't accept connection\n" + ex.getMessage();
-                        logger.log(Level.WARNING, msg, ex);
+                        logger.log(WARNING, ex, () -> msg);
                     }
                 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static java.security.AccessController.doPrivileged;
+import static java.util.logging.Level.FINER;
 import static javax.rmi.CORBA.Util.getTie;
 import static javax.rmi.CORBA.Util.registerTarget;
 import static org.apache.yoko.logging.VerboseLogging.wrapped;
@@ -276,7 +277,7 @@ public class PortableRemoteObjectImpl implements PortableRemoteObjectDelegate {
                 cons = stubClass.getConstructor();
                 state.stub_map.put(type, cons);
             } catch (NoSuchMethodException e) {
-                LOGGER.log(Level.FINER, "constructed stub has no default constructor", e);
+                LOGGER.log(FINER, e, () -> "constructed stub has no default constructor");
             }
         }
 

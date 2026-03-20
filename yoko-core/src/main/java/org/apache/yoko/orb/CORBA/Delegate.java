@@ -125,7 +125,7 @@ public final class Delegate extends org.omg.CORBA_2_4.portable.Delegate {
             throw ex;
         } catch (COMM_FAILURE | TRANSIENT | NO_RESPONSE ignored) {
         } catch (SystemException e) {
-            logger.log(FINE, "System exception during operation", e);
+            logger.log(FINE, e, () -> "System exception during operation");
             throw logged(RETRY_LOG, e, "Caught a non-retryable exception");
         }
 
@@ -402,16 +402,16 @@ public final class Delegate extends org.omg.CORBA_2_4.portable.Delegate {
             DowncallStub downcallStub = _OB_getDowncallStub();
             return downcallStub.invoke(self, outImpl);
         } catch (ApplicationException ex) {
-            logger.log(FINE, "Received ApplicationException for request", ex);
+            logger.log(FINE, ex, () -> "Received ApplicationException for request");
             throw ex;
         } catch (RemarshalException ex) {
             throw ex;
         } catch (Exception ex) {
-            logger.log(FINE, "Received unexpected exception for request", ex);
+            logger.log(FINE, ex, () -> "Received unexpected exception for request");
             _OB_handleException(ex, info, false);
             threadSpecificRetryInfo.set(info);
             // If we reach this point, then we need to reinvoke
-            throw (RemarshalException)new RemarshalException().initCause(ex);
+            throw (RemarshalException) new RemarshalException().initCause(ex);
         }
     }
 
@@ -624,10 +624,10 @@ public final class Delegate extends org.omg.CORBA_2_4.portable.Delegate {
         } catch (TRANSIENT e) {
             handleTRANSIENT(e, info);
         } catch (SystemException e) {
-            logger.log(FINE, "Received SystemException", e);
+            logger.log(FINE, e, () -> "Received SystemException");
             throw e;
         } catch (RuntimeException e) {
-            logger.log(FINE, "Received RuntimeException", e);
+            logger.log(FINE, e, () -> "Received RuntimeException");
             throw e;
         } catch (Exception shouldNeverHappen) {
             throw Assert.fail(shouldNeverHappen);
