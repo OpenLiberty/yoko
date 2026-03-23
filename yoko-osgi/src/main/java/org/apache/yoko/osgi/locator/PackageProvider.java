@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,13 +36,13 @@ public class PackageProvider {
 
     public <T> Class<T> loadClass(String className) {
         if (fromUnregisteredPackage(className)) {
-            if (log.isLoggable(Level.FINEST)) log.finest("WILL NOT LOAD class " + className + " from unregistered package");
+            log.finest(() -> "WILL NOT LOAD class " + className + " from unregistered package");
             return null;
         }
         try {
             return generify(localFactory.forName(className));
         } catch (ClassNotFoundException e) {
-            if (log.isLoggable(Level.FINE)) log.fine("CAN NOT LOAD class " + className + " from registered package");
+            log.fine(() -> "CAN NOT LOAD class " + className + " from registered package");
         }
         return null;
     }

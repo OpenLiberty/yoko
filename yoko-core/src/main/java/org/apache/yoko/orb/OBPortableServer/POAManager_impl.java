@@ -20,7 +20,10 @@ package org.apache.yoko.orb.OBPortableServer;
 import static org.apache.yoko.orb.OB.ObjectKey.ParseObjectKey;
 import static org.apache.yoko.orb.OB.Server.Blocking;
 import static org.apache.yoko.orb.OB.Server.Threaded;
+import static org.apache.yoko.util.Assert.ensure;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+import static org.omg.PortableServer.POAManagerPackage.State._ACTIVE;
+import static org.omg.PortableServer.POAManagerPackage.State._INACTIVE;
 
 import java.util.Hashtable;
 import java.util.Optional;
@@ -60,6 +63,7 @@ import org.omg.PortableInterceptor.DISCARDING;
 import org.omg.PortableInterceptor.HOLDING;
 import org.omg.PortableInterceptor.INACTIVE;
 import org.omg.PortableServer.CurrentPackage.NoContext;
+import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 import org.omg.PortableServer.POAManagerPackage.State;
 
@@ -120,11 +124,14 @@ final public class POAManager_impl extends LocalObject implements POAManager {
     // ------------------------------------------------------------------
 
     public synchronized void activate() throws AdapterInactive {
-        logger.fine("Activating POAManager " + id + " current state is " + state);
+        logger.fine(() -> "Activating POAManager " + id + " current state is " + state);
         // If the POA manager is in inactive state then raise the AdapterInactive exception
         switch (state.value()) {
-            case State._INACTIVE: throw new AdapterInactive();
-            case State._ACTIVE: logger.fine("POAManager already active, returning"); return;
+            case _INACTIVE:
+                throw new AdapterInactive();
+            case _ACTIVE:
+                logger.fine(() -> "POAManager already active, returning");
+                return;
         }
         state = State.ACTIVE;
 
@@ -333,7 +340,8 @@ final public class POAManager_impl extends LocalObject implements POAManager {
             case "thread_pool":
                 return;
         }
-        logger.warning(fullKey + ": unknown value");
+        String finalFullKey = fullKey;
+        logger.warning(() -> finalFullKey + ": unknown value");
     }
 
     private static void extractGiopVersion(Properties properties, String rootKey, Version giopVersion) {
@@ -372,15 +380,15 @@ final public class POAManager_impl extends LocalObject implements POAManager {
             case "version": return;
         }
         String err = key + ": unknown property";
-        logger.warning(err);
+        logger.warning(() -> err);
     }
 
     // Register a POA with this POAManager
     synchronized void _OB_addPOA(org.omg.PortableServer.POA poa, String[] id) {
         POANameHasher idKey = new POANameHasher(id);
-        
-        logger.fine("Adding new poa with id " + idKey);
-        Assert.ensure(!poas.containsKey(idKey));
+
+        logger.fine(() -> "Adding new poa with id " + idKey);
+        ensure(!poas.containsKey(idKey));
         poas.put(idKey, poa);
 
         poaLocator.add(poa, id);
@@ -389,8 +397,8 @@ final public class POAManager_impl extends LocalObject implements POAManager {
     // Un-register a POA with this POAManager
     synchronized void _OB_removePOA(String[] id) {
         POANameHasher idKey = new POANameHasher(id);
-        logger.fine("Removing poa with id " + idKey);
-        Assert.ensure(poas.containsKey(idKey));
+        logger.fine(() -> "Removing poa with id " + idKey);
+        ensure(poas.containsKey(idKey));
         poas.remove(idKey);
         poaLocator.remove(id);
     }
@@ -415,20 +423,20 @@ final public class POAManager_impl extends LocalObject implements POAManager {
 
     org.omg.PortableServer.POA _OB_locatePOA(ObjectKeyData data) throws LocationForward {
         // If the GIOP engine sends a request while the POAManager is in INACTIVE state, then something is wrong.
-        Assert.ensure(get_state() != State.INACTIVE);
-        logger.fine("Searching for direct servant with key " + data);
+        ensure(get_state() != State.INACTIVE);
+        logger.fine(() -> "Searching for direct servant with key " + data);
 
         if (!data.serverId.equals(serverId)) return null;
         POANameHasher key = new POANameHasher(data.poaId);
-        logger.fine("Searching for direct servant with poa key " + key);
-        org.omg.PortableServer.POA poa = poas.get(key);
+        logger.fine(() -> "Searching for direct servant with poa key " + key);
+        POA poa = poas.get(key);
         if (poa == null) {
             // The POA isn't contained in our local POA table. Ask the POALocator to locate the POA.
             poa = poaLocator.locate(data);
 
             // If the POA is connected to some other POAManager (and hence some other end-point) then location forward
             if (poa != null) {
-                logger.fine("Attempting to obtain a local reference to an object activated on a different POA");
+                logger.fine(() -> "Attempting to obtain a local reference to an object activated on a different POA");
                 org.omg.PortableServer.POAManager manager = poa.the_POAManager();
                 if (manager != this) {
                     Object obj = poa.create_reference_with_id(data.oid, "");
@@ -443,7 +451,7 @@ final public class POAManager_impl extends LocalObject implements POAManager {
         if (poa != null) {
             POA_impl poaImpl = (POA_impl) poa;
             if (!poaImpl._OB_poaMatches(data, false)) {
-                logger.fine("POA located but object key data doesn't match");
+                logger.fine(() -> "POA located but object key data doesn't match");
                 poa = null;
             }
         }

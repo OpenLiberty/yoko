@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,12 +32,11 @@ import java.io.IOException;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static org.apache.yoko.util.MinorCodes.MinorInvalidServiceContextId;
 import static org.apache.yoko.orb.cmsf.CmsfVersion.CMSFv1;
 import static org.apache.yoko.util.Hex.formatHexPara;
+import static org.apache.yoko.util.MinorCodes.MinorInvalidServiceContextId;
 
 public final class CmsfServerInterceptor extends LocalObject implements ServerRequestInterceptor {
     private static final Logger LOGGER = Logger.getLogger(CmsfServerInterceptor.class.getName());
@@ -55,14 +54,11 @@ public final class CmsfServerInterceptor extends LocalObject implements ServerRe
         CmsfVersion cmsf = CMSFv1;
         try {
             ServiceContext sc = ri.get_request_service_context(RMICustomMaxStreamFormat.value);
-            cmsf = CmsfVersion.readData(sc.context_data);
-            if (LOGGER.isLoggable(Level.FINEST))
-                LOGGER.finest(String.format("Using custom marshal stream format version: %s, retrieved from bytes: %s",
-                    cmsf, formatHexPara(sc.context_data)));
+            CmsfVersion finalCmsf = CmsfVersion.readData(sc.context_data);
+            LOGGER.finest(() -> String.format("Using custom marshal stream format version: %s, retrieved from bytes: %s", finalCmsf, formatHexPara(sc.context_data)));
+            cmsf = finalCmsf;
         } catch (BAD_PARAM e) {
-            if (e.minor != MinorInvalidServiceContextId) {
-                throw e;
-            }
+            if (e.minor != MinorInvalidServiceContextId) throw e;
         }
         try {
             ri.set_slot(slotId, cmsf.getAny());

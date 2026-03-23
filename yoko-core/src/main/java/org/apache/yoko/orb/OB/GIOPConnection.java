@@ -17,16 +17,16 @@
  */
 package org.apache.yoko.orb.OB;
 
+import org.apache.yoko.io.Buffer;
+import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OBPortableServer.POAManagerFactory;
 import org.apache.yoko.orb.OBPortableServer.POAManager_impl;
-import org.apache.yoko.io.Buffer;
 import org.apache.yoko.orb.OCI.ConnectorInfo;
 import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.orb.OCI.ProfileInfo;
-import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.orb.OCI.SendReceiveMode;
 import org.apache.yoko.orb.OCI.Transport;
 import org.apache.yoko.util.Assert;
@@ -63,12 +63,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.lang.Integer.parseInt;
 import static java.util.logging.Level.FINE;
+import static org.apache.yoko.logging.VerboseLogging.CONN_IN_LOG;
+import static org.apache.yoko.logging.VerboseLogging.CONN_LOG;
+import static org.apache.yoko.logging.VerboseLogging.CONN_OUT_LOG;
+import static org.apache.yoko.logging.VerboseLogging.REQ_IN_LOG;
+import static org.apache.yoko.logging.VerboseLogging.REQ_OUT_LOG;
+import static org.apache.yoko.logging.VerboseLogging.logged;
+import static org.apache.yoko.logging.VerboseLogging.warned;
+import static org.apache.yoko.orb.OB.CodeSetInfo.describe;
 import static org.apache.yoko.orb.OB.Connection.State.ACTIVE;
 import static org.apache.yoko.orb.OB.Connection.State.CLOSED;
 import static org.apache.yoko.orb.OB.Connection.State.CLOSING;
 import static org.apache.yoko.orb.OB.Connection.State.ERROR;
 import static org.apache.yoko.orb.OB.Connection.State.HOLDING;
+import static org.apache.yoko.orb.OB.IORDump.describeIor;
 import static org.apache.yoko.orb.OB.OAInterface.OBJECT_HERE;
 import static org.apache.yoko.orb.OB.Util.getSendingContextRuntime;
 import static org.apache.yoko.orb.OB.Util.marshalSystemException;
@@ -82,13 +92,6 @@ import static org.apache.yoko.util.MinorCodes.MinorUnknownReqId;
 import static org.apache.yoko.util.MinorCodes.MinorWrongMessage;
 import static org.apache.yoko.util.MinorCodes.describeCommFailure;
 import static org.apache.yoko.util.MinorCodes.describeNoImplement;
-import static org.apache.yoko.logging.VerboseLogging.CONN_IN_LOG;
-import static org.apache.yoko.logging.VerboseLogging.CONN_LOG;
-import static org.apache.yoko.logging.VerboseLogging.CONN_OUT_LOG;
-import static org.apache.yoko.logging.VerboseLogging.REQ_IN_LOG;
-import static org.apache.yoko.logging.VerboseLogging.REQ_OUT_LOG;
-import static org.apache.yoko.logging.VerboseLogging.logged;
-import static org.apache.yoko.logging.VerboseLogging.warned;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.GIOP.LocateStatusType_1_2.OBJECT_FORWARD;
@@ -174,10 +177,9 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
         this.codecs_ = CodecPair.create(csCtx.char_data, csCtx.wchar_data);
 
         if (CONN_IN_LOG.isLoggable(Level.FINEST)) {
-            String msg = String.format("receiving transmission code sets%nchar code set: %s%nwchar code set: %s",
-                    CodeSetInfo.describe(csCtx.char_data),
-                    CodeSetInfo.describe(csCtx.wchar_data));
-            CONN_IN_LOG.finest(msg);
+            CONN_IN_LOG.finest(() -> String.format("receiving transmission code sets%nchar code set: %s%nwchar code set: %s",
+                    describe(csCtx.char_data),
+                    describe(csCtx.wchar_data)));
         }
     }
 
@@ -222,7 +224,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
     private void logClose(boolean initiatedClosure) {
         if (!!!markClosingLogged()) return;
         final Logger conn_log = initiatedClosure ? CONN_OUT_LOG : CONN_IN_LOG;
-        if (conn_log.isLoggable(FINE)) conn_log.fine("Closing connection: " + transport_);
+        conn_log.fine(() -> "Closing connection: " + transport_);
     }
 
     /** main entry point into message processing - delegate to a specific methods */
@@ -456,7 +458,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
 
         // Make sure the transport can send a reply
         if (transport_.mode() == SendReceiveMode.ReceiveOnly) {
-            REQ_IN_LOG.warning("Discarding locate request - transport does not support two-way invocations: " + transport_);
+            REQ_IN_LOG.warning(() -> "Discarding locate request - transport does not support two-way invocations: " + transport_);
             return;
         }
 
@@ -555,7 +557,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
                 try {
                     IOR ior = IORHelper.read(in);
                     down.setLocationForward(ior, false);
-                    if (REQ_OUT_LOG.isLoggable(FINE)) REQ_OUT_LOG.fine("Locate request forwarded to " + IORDump.describeIor(orbInstance_.getORB(), ior));
+                    REQ_OUT_LOG.fine(() -> "Locate request forwarded to " + describeIor(orbInstance_.getORB(), ior));
 
                 } catch (SystemException ex) {
                     warned(REQ_OUT_LOG, ex, "An error occurred while reading a locate reply, possibly indicating "
@@ -569,7 +571,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
                 try {
                     IOR ior = IORHelper.read(in);
                     down.setLocationForward(ior, true);
-                    if (REQ_OUT_LOG.isLoggable(FINE)) REQ_OUT_LOG.fine("Locate request forwarded to " + IORDump.describeIor(orbInstance_.getORB(), ior));
+                    REQ_OUT_LOG.fine(() -> "Locate request forwarded to " + describeIor(orbInstance_.getORB(), ior));
                 } catch (SystemException ex) {
                     warned(REQ_OUT_LOG, ex,"An error occurred while reading a locate reply, possibly indicating "
                                     + "an interoperability problem. You may need to set the LocateRequestPolicy to false.");
@@ -707,15 +709,15 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
         // the shutdown timeout for the client
         value = properties.getProperty("yoko.orb.client_shutdown_timeout");
         if (value != null)
-            shutdownTimeout_ = Integer.parseInt(value);
+            shutdownTimeout_ = parseInt(value);
 
         // the idle timeout for the client
         value = properties.getProperty("yoko.orb.client_timeout");
         if (value != null)
-            idleTimeout_ = Integer.parseInt(value);
+            idleTimeout_ = parseInt(value);
 
         // Trace new outgoing connection
-        if (CONN_OUT_LOG.isLoggable(FINE)) CONN_OUT_LOG.fine("new connection " + transport_);
+        CONN_OUT_LOG.fine(() -> "new connection " + transport_);
     }
 
     /** server-side constructor */
@@ -777,7 +779,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
     public void upcallEndReply(Upcall upcall) {
         // Make sure the transport can send a reply
         if (transport_.mode() == SendReceiveMode.ReceiveOnly) {
-            REQ_IN_LOG.warning("Discarding reply - transport does not support two-way invocations: "
+            REQ_IN_LOG.warning(() -> "Discarding reply - transport does not support two-way invocations: "
                     + "\noperation name: \"" + upcall.operation() + '"'
                     + "\n transport: " + transport_);
 
@@ -891,7 +893,7 @@ abstract class GIOPConnection extends Connection implements DowncallEmitter, Upc
         ReplyStatusType_1_2 status = perm ? ReplyStatusType_1_2.LOCATION_FORWARD_PERM : ReplyStatusType_1_2.LOCATION_FORWARD;
         try {
             outgoing.writeReplyHeader(reqId, status, contexts);
-            if (REQ_IN_LOG.isLoggable(FINE)) REQ_IN_LOG.fine("Sending forward reply to " + IORDump.describeIor(orbInstance_.getORB(), ior));
+            REQ_IN_LOG.fine(() -> "Sending forward reply to " + describeIor(orbInstance_.getORB(), ior));
             IORHelper.write(out, ior);
         } catch (SystemException ex) {
             // Nothing may go wrong here, otherwise we might have a

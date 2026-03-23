@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package org.apache.yoko.util.cmsf;
 
 import org.apache.yoko.io.SimplyCloseable;
 
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -90,8 +89,7 @@ public final class CmsfThreadLocal {
     public static SimplyCloseable push(byte cmsfv) {
         final CmsfInfo info = cmsfInfo.get();
         final Version version = Version.get(cmsfv);
-        if (LOGGER.isLoggable(Level.FINER))
-            LOGGER.finer(String.format("CMSF thread local version pushed onto stack: %s", version));
+        LOGGER.finer(() -> String.format("CMSF thread local version pushed onto stack: %s", version));
         info.head = new Frame(version, info.head);
         return CmsfThreadLocal::pop;
     }
@@ -100,23 +98,20 @@ public final class CmsfThreadLocal {
         final CmsfInfo info = cmsfInfo.get();
         final boolean override = info.override;
         final Version version = (override) ? Version.CMSFv1 : info.head.version;
-        if (LOGGER.isLoggable(Level.FINER))
-            LOGGER.finer(String.format("CMSF thread local version retrieved: %s, override is %b", version, override));
+        LOGGER.finer(() -> String.format("CMSF thread local version retrieved: %s, override is %b", version, override));
         return version.value;
     }
 
     public static byte pop() {
         final CmsfInfo info = cmsfInfo.get();
         final Version version = info.head.version;
-        if (LOGGER.isLoggable(Level.FINER))
-            LOGGER.finer(String.format("CMSF thread local version popped from stack: %s", version));
+        LOGGER.finer(() -> String.format("CMSF thread local version popped from stack: %s", version));
         info.head = info.head.prev;
         return version.value;
     }
 
     public static void reset() {
-        if (LOGGER.isLoggable(Level.FINER))
-            LOGGER.finer("CMSF thread local stack reset");
+        LOGGER.finer(() -> "CMSF thread local stack reset");
         cmsfInfo.remove();
     }
 }

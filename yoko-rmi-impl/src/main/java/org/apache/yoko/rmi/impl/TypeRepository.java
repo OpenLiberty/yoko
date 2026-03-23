@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,15 +37,14 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.util.Date;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class TypeRepository {
@@ -130,10 +129,10 @@ public class TypeRepository {
                     }
                 } else if (Object.class.isAssignableFrom(type)) {
                     if (isAbstractInterface(type)) {
-                        logger.finer("encoding " + type + " as abstract interface");
+                        logger.finer(() -> "encoding " + type + " as abstract interface");
                         return new AbstractObjectDescriptor(type, repo);
                     } else {
-                        logger.finer("encoding " + type + " as a abstract value");
+                        logger.finer(() -> "encoding " + type + " as a abstract value");
                         return new ValueDescriptor(type, repo);
                     }
                 } else {
@@ -269,20 +268,16 @@ public class TypeRepository {
     }
 
     public TypeDescriptor getDescriptor(Class<?> type) {
-        if (logger.isLoggable(Level.FINE))
-            logger.fine(String.format("Requesting type descriptor for class \"%s\"", type.getName()));
+        logger.fine(() -> String.format("Requesting type descriptor for class \"%s\"", type.getName()));
         final TypeDescriptor desc = localDescriptors.get(type);
-        if (logger.isLoggable(Level.FINE))
-            logger.fine(String.format("Class \"%s\" resolves to %s", type.getName(), desc));
+        logger.fine(() -> String.format("Class \"%s\" resolves to %s", type.getName(), desc));
         return desc;
     }
 
     public TypeDescriptor getDescriptor(String repId) {
-        if (logger.isLoggable(Level.FINE))
-            logger.fine(String.format("Requesting type descriptor for repId \"%s\"", repId));
+        logger.fine(() -> String.format("Requesting type descriptor for repId \"%s\"", repId));
         final TypeDescriptor desc = repIdDescriptors.get(repId);
-        if (logger.isLoggable(Level.FINE))
-            logger.fine(String.format("RepId \"%s\" resolves to %s", repId, desc));
+        logger.fine(() -> String.format("RepId \"%s\" resolves to %s", repId, desc));
         return desc;
     }
 
@@ -305,7 +300,7 @@ public class TypeRepository {
         }
 
         if (clz != null) {
-            logger.fine("Requesting type descriptor for class " + clz.getName() + " with repid " + repid);
+            logger.fine(() -> "Requesting type descriptor for class " + clz.getName() + " with repid " + repid);
             // special handling for array value types.
             if (clz.isArray()) {
                 //TODO don't we need to look up the FVD for the array element?
@@ -324,7 +319,7 @@ public class TypeRepository {
             // and padding and these can't be reliably identified without this remote info.  cf YOKO-434.
         }
 
-        logger.fine("Requesting type descriptor for repid " + repid);
+        logger.fine(() -> "Requesting type descriptor for repid " + repid);
         CodeBase codebase = CodeBaseHelper.narrow(runtime);
         if (codebase == null) {
             throw new MARSHAL("cannot locate RunTime CodeBase");
@@ -334,8 +329,7 @@ public class TypeRepository {
 
         ValueDescriptor super_desc = null;
         if (!"".equals(fvd.base_value)) {
-            super_desc = getDescriptor(clz == null? null: clz.getSuperclass(), fvd.base_value,
-                    codebase);
+            super_desc = getDescriptor(clz == null ? null : clz.getSuperclass(), fvd.base_value, codebase);
         }
 
         final ValueDescriptor newDesc;

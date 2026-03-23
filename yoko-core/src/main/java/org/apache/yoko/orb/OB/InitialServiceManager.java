@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,37 +18,37 @@
 package org.apache.yoko.orb.OB;
 
 import org.apache.yoko.util.Assert;
-import org.apache.yoko.util.MinorCodes;
 import org.omg.CORBA.INITIALIZE;
 import org.omg.CORBA.INV_POLICY;
 import org.omg.CORBA.LocalObject;
-import org.omg.CORBA.Policy;
 import org.omg.CORBA.ORBPackage.InvalidName;
+import org.omg.CORBA.Policy;
 
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Properties;
+import java.util.function.Function;
+import java.util.logging.Logger;
+import java.util.stream.Stream;
+
+import static org.apache.yoko.util.Assert.ensure;
 import static org.apache.yoko.util.MinorCodes.MinorORBDestroyed;
 import static org.apache.yoko.util.MinorCodes.describeInitialize;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.SetOverrideType.SET_OVERRIDE;
 
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Properties;
-import java.util.Vector;
-import java.util.logging.Logger;
-
 public final class InitialServiceManager {
     static final Logger logger = Logger.getLogger(InitialServiceManager.class.getName());
-    
+
     //
     // Set of available initial services
     //
-    private class Service {
+    private static class Service {
         String ref;
-
         org.omg.CORBA.Object obj;
     }
 
-    private Hashtable services_ = new Hashtable(37);
+    private Hashtable<String, Service> services_ = new Hashtable<>(37);
 
     private String defaultInitRef_;
 
@@ -62,7 +62,6 @@ public final class InitialServiceManager {
 
     protected void finalize() throws Throwable {
         Assert.ensure(destroy_);
-
         super.finalize();
     }
 
@@ -110,7 +109,7 @@ public final class InitialServiceManager {
         // Add those services configured in the "yoko.orb.service" property
         //
         String propRoot = "yoko.orb.service.";
-        Enumeration keys = properties.keys();
+        Enumeration<Object> keys = properties.keys();
         while (keys.hasMoreElements()) {
             String key = (String) keys.nextElement();
             if (!key.startsWith(propRoot))
@@ -141,15 +140,14 @@ public final class InitialServiceManager {
         String[] list = new String[services_.size()];
 
         int i = 0;
-        Enumeration e = services_.keys();
+        Enumeration<String> e = services_.keys();
         while (e.hasMoreElements())
-            list[i++] = (String) e.nextElement();
+            list[i++] = e.nextElement();
 
         return list;
     }
 
-    public synchronized org.omg.CORBA.Object resolveInitialReferences(
-            String identifier) throws InvalidName {
+    public synchronized org.omg.CORBA.Object resolveInitialReferences(String identifier) throws InvalidName {
         //
         // The ORB destroys this object, so it's an initialization error
         // if this operation is called after ORB destruction
@@ -160,9 +158,9 @@ public final class InitialServiceManager {
                     COMPLETED_NO);
         }
 
-        Assert.ensure(identifier != null);
-        
-        logger.fine("Resolving initial ORB reference for " + identifier); 
+        ensure(identifier != null);
+
+        logger.fine(() -> "Resolving initial ORB reference for " + identifier);
 
         ObjectFactory objectFactory = orbInstance_.getObjectFactory();
 
@@ -171,19 +169,18 @@ public final class InitialServiceManager {
         //
         // Search the list of initial references
         //
-        Service svc = (Service) services_.get(identifier);
+        Service svc = services_.get(identifier);
         if (svc != null) {
             if (svc.obj != null) {
                 obj = svc.obj;
-            }
-            else if (svc.ref.length() > 0) {
+            } else if (!svc.ref.isEmpty()) {
                 obj = objectFactory.stringToObject(svc.ref);
                 svc.obj = obj;
                 services_.put(identifier, svc);
             }
         }
-        
-        logger.fine("No match found for ORB intial reference " + identifier); 
+
+        logger.fine(() -> "No match found for ORB initial reference " + identifier);
 
         //
         // If no match was found, and there's a default initial
@@ -192,74 +189,63 @@ public final class InitialServiceManager {
         // this if the service really doesn't exist in our table,
         // since there could be a service with a nil value.
         //
-        if (obj == null && defaultInitRef_.length() > 0
-                && !services_.containsKey(identifier)) {
+        if (obj == null && !defaultInitRef_.isEmpty() && !services_.containsKey(identifier)) {
             String url = defaultInitRef_ + '/' + identifier;
             obj = objectFactory.stringToObject(url);
         }
 
         if (obj == null) {
-            logger.fine("No default initializer found for ORB intial reference " + identifier); 
+            logger.fine(() -> "No default initializer found for ORB initial reference " + identifier);
             throw new InvalidName();
         }
 
         //
-        // If the object is a l-c object, return the object now
+        // If the object is an l-c object, return the object now
         //
         if (obj instanceof LocalObject) {
             return obj;
         }
 
-        //
         // If the object is remote, return a new reference with the
         // current set of policies applied, but only set ORB policies
         // if they are not already set on the object
-        //
-        Policy[] orbPolicies = objectFactory.policies();
-        Vector vec = new java.util.Vector();
-        for (int i = 0; i < orbPolicies.length; i++) {
-            Policy policy = null;
-            try {
-                policy = obj._get_policy(orbPolicies[i].policy_type());
-            } catch (INV_POLICY ex) {
-            }
-
-            if (policy == null) {
-                policy = orbPolicies[i];
-            }
-
-            vec.addElement(policy);
-        }
-        Policy[] p = new Policy[vec.size()];
-        vec.copyInto(p);
-
-        return obj._set_policy_override(p, SET_OVERRIDE);
+        Policy[] policies = Stream.of(objectFactory.policies())
+                .map(getPolicyOverrider(obj))
+                .toArray(Policy[]::new);
+        return obj._set_policy_override(policies, SET_OVERRIDE);
     }
 
-    public void addInitialReference(String name, org.omg.CORBA.Object obj)
-            throws InvalidName {
+    /**
+     * For a given default policy, find the object-specific override or return the default
+     */
+    private static Function<Policy, Policy> getPolicyOverrider(org.omg.CORBA.Object o) {
+        return p -> {
+            try {
+                return o._get_policy(p.policy_type());
+            } catch (INV_POLICY ignored) {
+                return p;
+            }
+        };
+    }
+
+    public void addInitialReference(String name, org.omg.CORBA.Object obj) throws InvalidName {
         addInitialReference(name, obj, false);
     }
 
-    public synchronized void addInitialReference(String name, String iorString,
-            boolean override) throws InvalidName {
-        logger.fine("Adding initial reference name=" + name + ", ior=" + iorString); 
+    public synchronized void addInitialReference(String name, String iorString, boolean override) throws InvalidName {
+        logger.fine(() -> "Adding initial reference name=" + name + ", ior=" + iorString);
         //
         // The ORB destroys this object, so it's an initialization error
         // if this operation is called after ORB destruction
         //
-        if (destroy_)
-        {
-            throw new INITIALIZE(describeInitialize(MinorORBDestroyed),
-                                               MinorORBDestroyed,
-                                               COMPLETED_NO);
-        }
+        if (destroy_) throw new INITIALIZE(describeInitialize(MinorORBDestroyed),
+                    MinorORBDestroyed,
+                    COMPLETED_NO);
 
-        Assert.ensure(name != null && iorString != null);
+        ensure(name != null && iorString != null);
 
-        if (services_.containsKey(name) && !override)
-        {
-            logger.fine("Initial reference name=" + name + "already exists"); 
+        if (services_.containsKey(name) && !override) {
+            logger.fine(() -> "Initial reference name=" + name + "already exists");
             throw new InvalidName();
         }
 
@@ -272,10 +258,10 @@ public final class InitialServiceManager {
             org.omg.CORBA.Object p, boolean override)
             throws InvalidName {
         if (p != null) {
-            logger.fine("Adding initial reference name=" + name + " of type " + p.getClass().getName()); 
+            logger.fine(() -> "Adding initial reference name=" + name + " of type " + p.getClass().getName());
         }
         else {
-            logger.fine("Adding initial reference name=" + name + " with null implementation"); 
+            logger.fine(() -> "Adding initial reference name=" + name + " with null implementation");
         }
         //
         // The ORB destroys this object, so it's an initialization error

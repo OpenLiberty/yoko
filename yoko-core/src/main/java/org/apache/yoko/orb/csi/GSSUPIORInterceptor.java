@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -143,10 +143,13 @@ public class GSSUPIORInterceptor extends CSIInterceptorBase implements
         }
 
         if (log.isLoggable(Level.FINE)) {
-            log.fine("AS.target_requires=" + as_target_requires);
-            log.fine("AS.target_supports=" + as_target_supports);
-            log.fine("SAS.target_requires=" + sas_target_requires);
-            log.fine("SAS.target_supports=" + sas_target_supports);
+            short finalAs_target_requires = as_target_requires;
+            log.fine(() -> "AS.target_requires=" + finalAs_target_requires);
+            short finalAs_target_supports = as_target_supports;
+            log.fine(() -> "AS.target_supports=" + finalAs_target_supports);
+            log.fine(() -> "SAS.target_requires=" + sas_target_requires);
+            short finalSas_target_supports = sas_target_supports;
+            log.fine(() -> "SAS.target_supports=" + finalSas_target_supports);
         }
 
         SAS_ContextSec sas = new SAS_ContextSec();

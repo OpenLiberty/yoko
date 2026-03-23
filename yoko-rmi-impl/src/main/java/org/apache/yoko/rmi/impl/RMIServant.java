@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.rmi.impl;
 
+import org.omg.CORBA.BAD_OPERATION;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.CORBA.SystemException;
 import org.omg.CORBA.portable.Delegate;
@@ -30,16 +31,16 @@ import org.omg.PortableServer.POAHelper;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.stream.Collectors;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.rmi.RemoteException;
 import java.util.stream.Stream;
 
 import static java.lang.reflect.Proxy.newProxyInstance;
 import static java.security.AccessController.doPrivileged;
-import static java.util.logging.Level.FINE;
+import static java.util.Arrays.asList;
 import static java.util.logging.Level.FINER;
-import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.WARNING;
+import static java.util.stream.Collectors.toList;
 import static org.apache.yoko.logging.VerboseLogging.REQ_IN_LOG;
 import static org.apache.yoko.rmi.impl.UtilImpl.mapRemoteException;
 import static org.apache.yoko.util.PrivilegedActions.getClassLoader;
@@ -88,12 +89,12 @@ public class RMIServant extends org.omg.PortableServer.Servant implements javax.
 
         if (method == null) {
             _descriptor.debugMethodMap();
-            throw new org.omg.CORBA.BAD_OPERATION(opName);
+            throw new BAD_OPERATION(opName);
         }
 
-        java.lang.reflect.Method m = method.getReflectedMethod();
+        Method m = method.getReflectedMethod();
 
-        if (REQ_IN_LOG.isLoggable(FINEST)) REQ_IN_LOG.finest(debug_name(m) + ": invoking on " + _id);
+        REQ_IN_LOG.finest(() -> debug_name(m) + ": invoking on " + _id);
 
         try {
             Object[] args = method.readArguments(_input);
@@ -103,21 +104,21 @@ public class RMIServant extends org.omg.PortableServer.Servant implements javax.
             OutputStream _out = response.createReply();
 
             method.writeResult(_out, result);
-            if (REQ_IN_LOG.isLoggable(FINEST)) REQ_IN_LOG.finest(debug_name(m) + ": returning normally");
+            REQ_IN_LOG.finest(() -> debug_name(m) + ": returning normally");
 
             return _out;
         } catch (SystemException ex) {
             REQ_IN_LOG.log(FINER, ex, () -> "THROW");
-            REQ_IN_LOG.warning(ex.getMessage());
+            REQ_IN_LOG.warning(() -> ex.getMessage());
             throw ex;
 
-        } catch (java.lang.reflect.UndeclaredThrowableException ex) {
+        } catch (UndeclaredThrowableException ex) {
             REQ_IN_LOG.log(FINER, ex.getUndeclaredThrowable(), () -> "THROW");
             throw new UnknownException(ex.getUndeclaredThrowable());
         } catch (RuntimeException ex) {
             REQ_IN_LOG.log(FINER, ex, () -> debug_name(m) + ": RuntimeException " + ex.getMessage());
             return method.writeException(response, ex);
-        } catch (java.rmi.RemoteException ex) {
+        } catch (RemoteException ex) {
             REQ_IN_LOG.log(FINER, ex, () -> debug_name(m) + ": RemoteException " + ex.getMessage());
             // return method.writeException (response, ex);
             throw mapRemoteException(ex);
@@ -135,9 +136,9 @@ public class RMIServant extends org.omg.PortableServer.Servant implements javax.
 
         if (_target != null) {
             try {
-                if (REQ_IN_LOG.isLoggable(FINE)) REQ_IN_LOG.fine("invoking method " + m + " on target " + _target);
-                if (REQ_IN_LOG.isLoggable(FINER)) REQ_IN_LOG.finer(" with args: " + Arrays.asList(args));
-                if (REQ_IN_LOG.isLoggable(FINEST)) REQ_IN_LOG.finest(" of arg types: " + Stream.of(args).map(o -> o == null ? null : o.getClass()).collect(Collectors.toList()));
+                REQ_IN_LOG.fine(() -> "invoking method " + m + " on target " + _target);
+                REQ_IN_LOG.finer(() -> " with args: " + asList(args));
+                REQ_IN_LOG.finest(() -> " of arg types: " + Stream.of(args).map(o -> o == null ? null : o.getClass()).collect(toList()));
                 return m.invoke(_target, args);
             } catch (java.lang.reflect.InvocationTargetException ex) {
                 REQ_IN_LOG.log(FINER, ex.getCause(), () -> "Error invoking local method");

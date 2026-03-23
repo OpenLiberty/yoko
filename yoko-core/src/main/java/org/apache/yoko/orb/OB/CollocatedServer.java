@@ -40,6 +40,8 @@ import static org.apache.yoko.orb.OB.OAInterface.OBJECT_FORWARD_PERM;
 import static org.apache.yoko.orb.OB.OAInterface.OBJECT_HERE;
 import static org.apache.yoko.orb.OB.OAInterface.UNKNOWN_OBJECT;
 import static org.apache.yoko.orb.OB.SendingContextRuntimes.LOCAL_CODE_BASE;
+import static org.apache.yoko.util.Assert.ensure;
+import static org.apache.yoko.util.Assert.fail;
 import static org.apache.yoko.util.MinorCodes.MinorORBDestroyed;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
@@ -132,8 +134,8 @@ public final class CollocatedServer extends Server implements UpcallReturn {
     // Hold any new requests that arrive for the Server
     //
     public synchronized void hold() {
-        Assert.ensure(!destroy_);
-        logger.fine("Collocated server placed in hold state"); 
+        ensure(!destroy_);
+        logger.fine(() -> "Collocated server placed in hold state");
         hold_ = true;
 
         //
@@ -146,8 +148,8 @@ public final class CollocatedServer extends Server implements UpcallReturn {
     // Dispatch any requests that arrive for the Server
     //
     public synchronized void activate() {
-        Assert.ensure(!destroy_);
-        logger.fine("Collocated server activated"); 
+        ensure(!destroy_);
+        logger.fine(() -> "Collocated server activated");
         hold_ = false;
 
         //
@@ -160,7 +162,7 @@ public final class CollocatedServer extends Server implements UpcallReturn {
     // Called to emit downcalls
     //
     public boolean send(Downcall down, boolean b) {
-        logger.fine("Sending a request"); 
+        logger.fine(() -> "Sending a request");
         //
         // We need a state monitor if the request is dispatched in a
         // separate thread.
@@ -179,7 +181,7 @@ public final class CollocatedServer extends Server implements UpcallReturn {
             //
             while (hold_ && !destroy_) {
                 try {
-                    logger.fine("Waiting for hold to be released"); 
+                    logger.fine(() -> "Waiting for hold to be released");
                     wait();
                 } catch (InterruptedException ignored) {
                 }
@@ -270,7 +272,7 @@ public final class CollocatedServer extends Server implements UpcallReturn {
     }
 
     public boolean receive(Downcall down, boolean block) {
-        logger.fine("Receiving a request"); 
+        logger.fine(() -> "Receiving a request");
         //
         // Try to receive the reply
         //

@@ -28,10 +28,10 @@ import static java.lang.Character.isLowSurrogate;
 import static java.lang.Character.lowSurrogate;
 import static java.lang.Character.toCodePoint;
 import static java.util.logging.Level.WARNING;
-import static org.apache.yoko.logging.VerboseLogging.GIOP_IN_LOG;
-import static org.apache.yoko.logging.VerboseLogging.MARSHAL_OUT_LOG;
 import static org.apache.yoko.codecs.Util.ASCII_REPLACEMENT_BYTE;
 import static org.apache.yoko.codecs.Util.UNICODE_REPLACEMENT_CHAR;
+import static org.apache.yoko.logging.VerboseLogging.GIOP_IN_LOG;
+import static org.apache.yoko.logging.VerboseLogging.MARSHAL_OUT_LOG;
 import static org.apache.yoko.util.MinorCodes.MinorUTF8Encoding;
 import static org.apache.yoko.util.yasf.Yasf.WRITE_UTF8_AS_UTF8;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
@@ -156,14 +156,14 @@ final class Utf8Codec implements CharCodec {
                     out.writeByte(ASCII_REPLACEMENT_BYTE);
                     return;
                 } else if (isLowSurrogate(c)) {
-                    MARSHAL_OUT_LOG.warning(String.format("Received unexpected low surrogate: 0x%04X", (int) c));
+                    MARSHAL_OUT_LOG.warning(() -> String.format("Received unexpected low surrogate: 0x%04X", (int) c));
                     out.writeByte(ASCII_REPLACEMENT_BYTE);
                     return;
                 } else codepoint = c;
             } else codepoint = c;
             writeBytes(codepoint, out);
         } catch (InternalException x) {
-            MARSHAL_OUT_LOG.warning(x.getMessage());
+            MARSHAL_OUT_LOG.warning(x::getMessage);
             throw (DATA_CONVERSION) new DATA_CONVERSION(x.getMessage(), MinorUTF8Encoding, COMPLETED_MAYBE).initCause(x);
         }
     }

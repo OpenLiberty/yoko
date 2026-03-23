@@ -134,7 +134,7 @@ public final class DowncallStub {
         // If we can't get any client/profile pairs, set and raise the
         // failure exception, and let the stub handle this.
         if (clientProfilePairs_.isEmpty()) {
-            RETRY_LOG.fine("No profiles available");
+            RETRY_LOG.fine(() -> "No profiles available");
             throw new FailureException(NO_USABLE_PROFILE_IN_IOR.create());
         }
         // NB: see handleFailureException() for how clientProfilePairs_ is modified (pruned) in exception
@@ -376,7 +376,7 @@ public final class DowncallStub {
     }
 
     public boolean locate_request() throws LocationForward, FailureException {
-        logger.fine("performing a locate_request"); 
+        logger.fine(() -> "performing a locate_request");
         while (true) {
             // This throws a FailureException when there are no CP pairs left to try,
             // which breaks out of this loop and gets caught and handled elsewhere.
@@ -394,14 +394,14 @@ public final class DowncallStub {
 
                     // If the LocateRequest policy is false, then return now
                     if (!policies_.locateRequest) {
-                        logger.fine("LocateRequest policy is false, returning true"); 
+                        logger.fine(() -> "LocateRequest policy is false, returning true");
                         return true;
                     }
 
                     // If the client doesn't support two-way invocations,
                     // then silently pretend the locate request succeeded
                     if (!client.twoway()) {
-                        logger.fine("Two-way invocations not supported, returning true");
+                        logger.fine(() -> "Two-way invocations not supported, returning true");
                         return true;
                     }
                 } catch (SystemException ex) {
@@ -414,7 +414,7 @@ public final class DowncallStub {
                 locate(down);
                 preUnmarshal(down);
                 postUnmarshal(down);
-                logger.fine("Object located"); 
+                logger.fine(() -> "Object located");
                 return true;
             } catch (OBJECT_NOT_EXIST ex) {
                 logger.log(FINE, ex, () -> "Object does not exist");

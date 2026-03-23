@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,9 +39,7 @@ public class StreamUtil {
 
         byte[] buf = new byte[BUF_SIZE];
 
-        if (logger.isLoggable(Level.FINER)) {
-            logger.finer("copyStream(" + is + ", " + os);
-        }
+        logger.finer(() -> "copyStream(" + is + ", " + os);
 
         try {
             int count;
@@ -60,9 +58,7 @@ public class StreamUtil {
 
         char[] buf = new char[BUF_SIZE];
 
-        if (logger.isLoggable(Level.FINER)) {
-            logger.finer("copyStream(" + reader + ", " + writer);
-        }
+        logger.finer(() -> "copyStream(" + reader + ", " + writer);
 
         try {
             int count;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import org.omg.CORBA.ValueMember;
 
 import java.util.Optional;
 
-import static java.util.logging.Level.FINER;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
 
 final class FVDValueDescriptor extends ValueDescriptor {
@@ -52,14 +51,14 @@ final class FVDValueDescriptor extends ValueDescriptor {
 //            _is_externalizable = false;
 //        }
 
-        if (MARSHAL_LOG.isLoggable(FINER)) MARSHAL_LOG.finer("Computing field descriptors for " + fvd.name + " version " + fvd.version);
+        MARSHAL_LOG.finer(() -> "Computing field descriptors for " + fvd.name + " version " + fvd.version);
         ValueMember[] members = fvd.members;
         FieldDescriptor[] new_fields = new FieldDescriptor[members.length];
         for (int i = 0; i < members.length; i++) {
             ValueMember vm = members[i];
             FieldDescriptor fd = findField(vm);
             new_fields[i] = fd;
-            if (MARSHAL_LOG.isLoggable(FINER)) MARSHAL_LOG.finer(String.format("\t%s -> %s", describe(vm), describe(fd)));
+            MARSHAL_LOG.finer(() -> String.format("\t%s -> %s", describe(vm), describe(fd)));
         }
         _fields = new_fields;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,11 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import static java.util.stream.IntStream.range;
+import static javax.rmi.CORBA.Util.writeAny;
 
 abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor {
     final Class elementType;
@@ -46,7 +51,7 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
 
     protected ArrayDescriptor(Class<? extends ARR> type, Class elemType, TypeRepository rep) {
         super(type, rep);
-        logger.fine("Creating an array descriptor for type " + type.getName() + " holding elements of " + elemType.getName());
+        logger.fine(() -> "Creating an array descriptor for type " + type.getName() + " holding elements of " + elemType.getName());
         this.elementType = elemType;
 
         int order = 1;
@@ -131,7 +136,7 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
     }
 
     static ArrayDescriptor get(final Class type, TypeRepository rep) {
-        logger.fine("retrieving an array descriptor for class " + type.getName());
+        logger.fine(() -> "retrieving an array descriptor for class " + type.getName());
         if (!type.isArray()) {
             throw new IllegalArgumentException("type is not an array");
         }
@@ -178,7 +183,7 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
     @Override
     public Object read(InputStream in) {
         org.omg.CORBA_2_3.portable.InputStream _in = (org.omg.CORBA_2_3.portable.InputStream) in;
-        logger.fine("Reading an array value with repository id " + getRepositoryID() + " java class is " + type);
+        logger.fine(() -> "Reading an array value with repository id " + getRepositoryID() + " java class is " + type);
 
         // if we have a resolved class, read using that, otherwise fall back on the
         // repository id.
@@ -243,41 +248,31 @@ class ObjectArrayDescriptor extends ArrayDescriptor<Object[]> {
         Object[] arr = (Object[]) value;
         out.write_long(arr.length);
 
-        logger.finer("writing " + type.getName() + " size="
+        logger.finer(() -> "writing " + type.getName() + " size="
                 + arr.length);
 
         for (int i = 0; i < arr.length; i++) {
-            javax.rmi.CORBA.Util.writeAny(out, arr[i]);
+            writeAny(out, arr[i]);
         }
     }
 
     @Override
-    public Serializable readValue(
-            InputStream in, Map<Integer, Serializable> offsetMap,
-            Integer key) {
+    public Serializable readValue(InputStream in, Map<Integer, Serializable> offsetMap, Integer key) {
         try {
             Object[] arr = createArray(in, offsetMap, key);
-
             ObjectReader reader = makeCorbaObjectReader(in, offsetMap, null);
 
+            logger.fine(() -> "reading " + type.getName() + " size=" + arr.length);
 
-            logger.fine("reading " + type.getName() + " size="
-                    + arr.length);
-
-            for (int i = 0; i < arr.length; i++) {
+            range(0, arr.length).forEach(i -> {
                 try {
                     arr[i] = reader.readAny();
-                    if (arr[i] != null) {
-                        logger.finer("Array item " + i + " is of type " + arr[i].getClass().getName()); 
-                    }
-                    else {
-                        logger.finer("Array item " + i + " is null"); 
-                    }
+                    logger.finer(arr[i] != null ? (() -> "Array item " + i + " is of type " + arr[i].getClass().getName()) : (() -> "Array item " + i + " is null"));
                 } catch (IndirectionException ex) {
                     arr[i] = offsetMap.get(ex.offset);
                     // reader.addValueBox (ex.offset, new ArrayBox (i, arr));
                 }
-            }
+            });
             return arr;
 
         } catch (IOException ex) {

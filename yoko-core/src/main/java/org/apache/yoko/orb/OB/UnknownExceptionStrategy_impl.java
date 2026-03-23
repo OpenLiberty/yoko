@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,26 +17,23 @@
  */
 package org.apache.yoko.orb.OB;
 
-import static org.apache.yoko.logging.VerboseLogging.REQ_IN_LOG;
-
 import org.omg.CORBA.LocalObject;
+
+import static org.apache.yoko.logging.VerboseLogging.REQ_IN_LOG;
 
 /**
  * An UnknownExceptionStrategy will be called by the ORB when a servant raises an unexpected exception
  */
 public class UnknownExceptionStrategy_impl extends LocalObject implements UnknownExceptionStrategy {
-    //
-    // Handle an unknown exception. If this method doesn't throw
-    // a SystemException, the ORB will return CORBA::UNKNOWN to
-    // the client.
-    //
+    /**
+     * Handle an unknown exception. If this method doesn't throw a SystemException,
+     * the ORB will return CORBA::UNKNOWN to the client.
+    */
     public void unknown_exception(UnknownExceptionInfo info) {
-        String msg = "Servant method raised a non-CORBA exception";
-        if (info.response_expected()) msg += "\n\tClient receives this exception as CORBA::UNKNOWN";
-        msg += "\n\toperation name: \""+ info.operation() + '"';
-        msg += "\n\ttransport info: " + info.transport_info();
-        msg += "\n\texception: " + info.describe_exception();
-
-        REQ_IN_LOG.warning(msg);
+        REQ_IN_LOG.warning("Servant method raised a non-CORBA exception" +
+                (info.response_expected() ? "\n\tClient receives this exception as CORBA::UNKNOWN" : "") +
+                "\n\toperation name: \"" + info.operation() + '"' +
+                "\n\ttransport info: " + info.transport_info() +
+                "\n\texception: " + info.describe_exception());
     }
 }

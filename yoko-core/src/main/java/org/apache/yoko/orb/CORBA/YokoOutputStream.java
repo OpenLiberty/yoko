@@ -44,6 +44,7 @@ import org.omg.CORBA.TypeCodePackage.Bounds;
 import org.omg.CORBA.ValueBaseHelper;
 import org.omg.CORBA.portable.BoxedValueHelper;
 import org.omg.CORBA.portable.ValueOutputStream;
+import org.omg.CORBA_2_3.portable.InputStream;
 import org.omg.CORBA_2_3.portable.OutputStream;
 import org.omg.IOP.IOR;
 import org.omg.IOP.IORHelper;
@@ -56,7 +57,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
-import static java.util.logging.Level.FINEST;
 import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.FOUR_BYTE_BOUNDARY;
 import static org.apache.yoko.io.AlignmentBoundary.NO_BOUNDARY;
@@ -148,7 +148,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
             }
         }
 
-        if (MARSHAL_OUT_LOG.isLoggable(FINEST)) MARSHAL_OUT_LOG.finest("Writing a type code of type " + (tc == null ? null : tc.kind()));
+        MARSHAL_OUT_LOG.finest(() -> "Writing a type code of type " + (tc == null ? null : tc.kind()));
 
         // For performance reasons, handle the primitive TypeCodes first
         switch (tc.kind().value()) {
@@ -178,7 +178,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
         if (indirectionPos != null) {
             write_long(-1);
             int offs = indirectionPos - writeBuffer.getPosition();
-            MARSHAL_OUT_LOG.finest("Writing an indirect type code for offset " + offs);
+            MARSHAL_OUT_LOG.finest(() -> "Writing an indirect type code for offset " + offs);
             write_long(offs);
         } else {
             write_ulong(tc.kind().value());
@@ -663,7 +663,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
 
     public void write_Object(org.omg.CORBA.Object value) {
         if (value == null) {
-            MARSHAL_OUT_LOG.finest("Writing a null CORBA object value");
+            MARSHAL_OUT_LOG.finest(() -> "Writing a null CORBA object value");
             IOR ior = new IOR();
             ior.type_id = "";
             ior.profiles = new TaggedProfile[0];
@@ -690,7 +690,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
     }
 
     public void write_any(Any value) {
-        MARSHAL_OUT_LOG.finest("Writing an ANY value of type " + value.type().kind());
+        MARSHAL_OUT_LOG.finest(() -> "Writing an ANY value of type " + value.type().kind());
         write_TypeCode(value.type());
         value.write_value(this);
     }
@@ -784,7 +784,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
 
     public void write_InputStream(final org.omg.CORBA.portable.InputStream in, TypeCode tc) {
         try {
-            MARSHAL_OUT_LOG.fine("writing a value of type " + tc.kind().value());
+            MARSHAL_OUT_LOG.fine(() -> "writing a value of type " + tc.kind().value());
 
             switch (tc.kind().value()) {
                 case _tk_null:
@@ -876,7 +876,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
 
                 case _tk_value:
                 case _tk_value_box:
-                    copyValueFrom((org.omg.CORBA_2_3.portable.InputStream) in, tc);
+                    copyValueFrom((InputStream) in, tc);
                     break;
 
                 case _tk_abstract_interface:

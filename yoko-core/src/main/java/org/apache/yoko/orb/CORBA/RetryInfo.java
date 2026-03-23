@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@ package org.apache.yoko.orb.CORBA;
 
 import org.apache.yoko.rmi.util.ObjectUtil;
 
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.FINER;
 import static org.apache.yoko.logging.VerboseLogging.RETRY_LOG;
 
 /**
@@ -33,28 +31,28 @@ public final class RetryInfo {
     private int hop; // forward hop count
 
     public RetryInfo() {
-        if (RETRY_LOG.isLoggable(FINER)) RETRY_LOG.finer(label + ": created");
+        RETRY_LOG.finer(() -> label + ": created");
     }
 
     public int getRetry() {
-        if (RETRY_LOG.isLoggable(FINER)) RETRY_LOG.finer(label + ": retry count is " + retry);
+        RETRY_LOG.finer(() -> label + ": retry count is " + retry);
         return retry;
     }
 
     public int getHop() {
-        if (RETRY_LOG.isLoggable(FINER)) RETRY_LOG.finer(label + ": hop count is " + hop);
+        RETRY_LOG.finer(() -> label + ": hop count is " + hop);
         return hop;
     }
 
     public void incrementRetryCount() {
         retry++;
-        if (RETRY_LOG.isLoggable(FINE)) RETRY_LOG.fine(label + ": retry count incremented to " + retry);
+        RETRY_LOG.fine(() -> label + ": retry count incremented to " + retry);
     }
 
     public void incrementHopCount() {
         hop++;
         retry = 0;
-        if (RETRY_LOG.isLoggable(FINE)) RETRY_LOG.fine(label + ": hop count incremented to " + hop);
+        RETRY_LOG.fine(() -> label + ": hop count incremented to " + hop);
     }
 
     @Override

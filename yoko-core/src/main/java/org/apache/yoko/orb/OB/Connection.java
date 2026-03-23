@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -126,7 +126,7 @@ abstract class Connection {
     boolean setState(State newState) {
         synchronized (this) {
             if (state.cannotTransitionTo(newState)) {
-                logger.fine("No state change from " + state + " to "  + newState);
+                logger.fine(() -> "No state change from " + state + " to " + newState);
                 return false;
             }
             state = newState;

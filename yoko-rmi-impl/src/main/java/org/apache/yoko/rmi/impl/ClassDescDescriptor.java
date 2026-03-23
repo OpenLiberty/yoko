@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,15 @@
  */
 package org.apache.yoko.rmi.impl;
 
-import java.io.Serializable;
-import java.lang.reflect.Field;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.rmi.CORBA.ClassDesc;
-import javax.rmi.CORBA.Util;
-
 import org.apache.yoko.util.cmsf.RepIds;
 import org.omg.CORBA.MARSHAL;
+
+import javax.rmi.CORBA.ClassDesc;
+import java.io.Serializable;
+import java.security.PrivilegedAction;
+import java.util.logging.Logger;
+
+import static java.security.AccessController.doPrivileged;
 
 class ClassDescDescriptor extends ClassBaseDescriptor {
     private static final Logger logger = Logger.getLogger(ClassDescDescriptor.class.getName());
@@ -42,7 +39,7 @@ class ClassDescDescriptor extends ClassBaseDescriptor {
     public Serializable readResolve(final Serializable value) {
         final ClassDesc desc = (ClassDesc) value;
 
-        Class<?> result = AccessController.doPrivileged(new PrivilegedAction<Class<?>>() {
+        Class<?> result = doPrivileged(new PrivilegedAction<Class<?>>() {
             public Class<?> run() {
                 String className = "<unknown>";
                 try {
@@ -54,13 +51,12 @@ class ClassDescDescriptor extends ClassBaseDescriptor {
 
                     throw new MARSHAL(String.format("Cannot load class \"%s\"", className));
                 } catch (IllegalAccessException ex) {
-                    throw (MARSHAL)new MARSHAL("no such field: " + ex).initCause(ex);
+                    throw (MARSHAL) new MARSHAL("no such field: " + ex).initCause(ex);
                 }
             }
         });
 
-        if (logger.isLoggable(Level.FINE))
-            logger.fine(String.format("readResolve %s => %s", value, result));
+        logger.fine(() -> String.format("readResolve %s => %s", value, result));
 
         return result;
     }

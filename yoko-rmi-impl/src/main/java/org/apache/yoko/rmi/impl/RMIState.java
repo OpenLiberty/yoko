@@ -98,13 +98,13 @@ public class RMIState implements PortableRemoteObjectState {
     void checkShutDown() {
         if (isShutdown) {
             BAD_INV_ORDER ex = new BAD_INV_ORDER("RMIState has already been shut down");
-            logger.fine("RMIState has already been shut down " + ex);
+            logger.fine(() -> "RMIState has already been shut down " + ex);
             throw ex;
         }
     }
 
     public void shutdown() {
-        logger.finer("RMIState shutdown requested; name = " + _name);
+        logger.finer(() -> "RMIState shutdown requested; name = " + _name);
         checkShutDown();
         isShutdown = true;
     }
@@ -182,7 +182,7 @@ public class RMIState implements PortableRemoteObjectState {
     private Constructor<? extends Stub> getStubConstructor(String codebase, String stubClassName) {
         Constructor<? extends Stub> cons = findConstructor(codebase, stubClassName);
         if (cons == null || Stub.class.isAssignableFrom(cons.getDeclaringClass())) return cons;
-        logger.fine("class " + cons.getDeclaringClass() + " is not a javax.rmi.CORBA.Stub");
+        logger.fine(() -> "class " + cons.getDeclaringClass() + " is not a javax.rmi.CORBA.Stub");
         return null;
     }
 

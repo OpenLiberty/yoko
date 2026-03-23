@@ -17,60 +17,72 @@
  */
 package org.apache.yoko.orb.csi;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.security.auth.Subject;
-import javax.security.auth.login.LoginException;
-import javax.security.auth.x500.X500Principal;
-
+import org.apache.yoko.orb.csi.gssup.GSSUPPolicy;
+import org.apache.yoko.orb.csi.gssup.SecGSSUPPolicy;
 import org.omg.CORBA.Any;
-import org.omg.CORBA.CompletionStatus;
+import org.omg.CORBA.BAD_PARAM;
+import org.omg.CORBA.INV_POLICY;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.OctetSeqHelper;
 import org.omg.CORBA.UserException;
-import org.omg.CSI.*;
+import org.omg.CSI.CompleteEstablishContext;
+import org.omg.CSI.ContextError;
+import org.omg.CSI.EstablishContext;
+import org.omg.CSI.ITTAbsent;
+import org.omg.CSI.ITTAnonymous;
+import org.omg.CSI.ITTDistinguishedName;
+import org.omg.CSI.ITTPrincipalName;
+import org.omg.CSI.MTCompleteEstablishContext;
+import org.omg.CSI.MTContextError;
+import org.omg.CSI.MTEstablishContext;
+import org.omg.CSI.MTMessageInContext;
+import org.omg.CSI.SASContextBody;
 import org.omg.GSSUP.InitialContextToken;
 import org.omg.IOP.Codec;
 import org.omg.IOP.SecurityAttributeService;
 import org.omg.IOP.ServiceContext;
 import org.omg.PortableInterceptor.ForwardRequest;
 import org.omg.PortableInterceptor.ServerRequestInfo;
+import org.omg.PortableInterceptor.ServerRequestInterceptor;
 import org.omg.Security.DelegationDirective;
-import org.omg.Security.RequiresSupports;
 import org.omg.Security.SecDelegationDirectivePolicy;
 import org.omg.SecurityLevel2.DelegationDirectivePolicy;
 
-import org.apache.yoko.orb.csi.gssup.GSSUPPolicy;
-import org.apache.yoko.orb.csi.gssup.SecGSSUPPolicy;
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginException;
+import javax.security.auth.x500.X500Principal;
+import java.util.logging.Logger;
 
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.SEVERE;
+import static org.apache.yoko.logging.VerboseLogging.REQ_IN_LOG;
+import static org.apache.yoko.orb.csi.CSIInterceptorBase.CallStatus.peekIsLocal;
+import static org.apache.yoko.orb.csi.SecurityContext.anonymousLogin;
+import static org.apache.yoko.orb.csi.SecurityContext.delegate;
+import static org.apache.yoko.orb.csi.SecurityContext.login;
+import static org.apache.yoko.orb.csi.SecurityContext.setAuthenticatedSubject;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+import static org.omg.Security.DelegationDirective.Delegate;
+import static org.omg.Security.RequiresSupports.SecRequires;
 
-
-public class CSIServerRequestInterceptor extends CSIInterceptorBase
-        implements org.omg.PortableInterceptor.ServerRequestInterceptor
-{
+public class CSIServerRequestInterceptor extends CSIInterceptorBase implements ServerRequestInterceptor {
 
     CSIServerRequestInterceptor(Codec codec) {
         super(codec);
     }
 
-    private static final Logger log = Logger
-            .getLogger(CSIServerRequestInterceptor.class.getName());
+    private static final Logger log = REQ_IN_LOG;
 
     //
     // SERVER REQUEST API
     //
 
-    public void receive_request_service_contexts(ServerRequestInfo ri)
-            throws ForwardRequest
-    {
-        log.fine("receive_request_service_contexts " + ri.operation());
+    public void receive_request_service_contexts(ServerRequestInfo ri) throws ForwardRequest {
+        log.fine(() -> ri.operation());
 
-        if (CallStatus.peekIsLocal()) {
-            log.fine("local call");
+        if (peekIsLocal()) {
+            log.fine(() -> "local call");
             return;
         }
 
@@ -90,92 +102,78 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
                     .get_server_policy(SecGSSUPPolicy.value);
 
             if (gp == null) {
-                log.fine("null GSSUPPolicy");
+                log.fine(() -> "null GSSUPPolicy");
             } else {
                 support_gssup_authorization = true;
 
-                if (gp.mode() == RequiresSupports.SecRequires) {
+                if (gp.mode() == SecRequires) {
                     require_gssup_authorization = true;
                 }
 
                 gssup_domain = gp.domain();
             }
 
-        }
-        catch (org.omg.CORBA.INV_POLICY ex) {
+        } catch (INV_POLICY ex) {
             log.log(FINE, ex, () -> "no GSSUPPolicy");
         }
 
         boolean support_gssup_principal_identity = false;
-
         try {
-            DelegationDirectivePolicy delegate = (DelegationDirectivePolicy) ri
-                    .get_server_policy(SecDelegationDirectivePolicy.value);
+            DelegationDirectivePolicy delegate = (DelegationDirectivePolicy) ri.get_server_policy(SecDelegationDirectivePolicy.value);
             if (delegate != null) {
                 DelegationDirective dir = delegate.delegation_directive();
-                if (dir == DelegationDirective.Delegate) {
-                    support_gssup_principal_identity = true;
-                }
+                if (dir == Delegate) support_gssup_principal_identity = true;
             }
-        }
-        catch (org.omg.CORBA.INV_POLICY ex) {
+        } catch (INV_POLICY ex1) {
             // ignore //
         }
 
-        if (log.isLoggable(Level.FINE)) {
-            log.fine("support gssup authorization: "
-                      + support_gssup_authorization);
-            log.fine("require gssup authorization: "
-                      + require_gssup_authorization);
-            log.fine("support gssup identity: "
-                      + support_gssup_principal_identity);
+        if (log.isLoggable(FINE)) {
+            boolean finalSupport_gssup_authorization = support_gssup_authorization;
+            log.fine(() -> "support gssup authorization: " + finalSupport_gssup_authorization);
+            boolean finalRequire_gssup_authorization = require_gssup_authorization;
+            log.fine(() -> "require gssup authorization: " + finalRequire_gssup_authorization);
+            boolean finalSupport_gssup_principal_identity = support_gssup_principal_identity;
+            log.fine(() -> "support gssup identity: " + finalSupport_gssup_principal_identity);
         }
 
         ServiceContext serviceContext;
         try {
-            serviceContext = ri
-                    .get_request_service_context(SecurityAttributeService.value);
-        }
-        catch (org.omg.CORBA.BAD_PARAM ex) {
+            serviceContext = ri.get_request_service_context(SecurityAttributeService.value);
+        } catch (BAD_PARAM ex) {
             serviceContext = null;
         }
 
-        log.fine("Received request service context: " + serviceContext);
+        ServiceContext finalServiceContext = serviceContext;
+        log.fine(() -> "Received request service context: " + finalServiceContext);
 
-        if (require_gssup_authorization && serviceContext == null) {
-            throw new org.omg.CORBA.NO_PERMISSION(
-                    "GSSUP authorization required"
-                    + " (missing SAS EstablishContext message)");
-        }
+        if (require_gssup_authorization && serviceContext == null)
+            throw new NO_PERMISSION("GSSUP authorization required" + " (missing SAS EstablishContext message)");
 
-        SASContextBody sasBody = null;
+
 
         if (serviceContext != null) {
-            sasBody = decodeSASContextBody(serviceContext);
+            SASContextBody sasBody = decodeSASContextBody(serviceContext);
 
-            log.fine("received request of type "
-                + sasBody.discriminator());
+            log.fine(() -> "received request of type " + sasBody.discriminator());
 
             switch (sasBody.discriminator()) {
                 case MTCompleteEstablishContext.value:
                 case MTContextError.value:
                     // Unexpected
-                    log.severe("Unexpected message of type "
-                              + sasBody.discriminator());
-                    throw new org.omg.CORBA.NO_PERMISSION("unexpected SAS message");
+                    log.severe(() -> "Unexpected message of type " + sasBody.discriminator());
+                    throw new NO_PERMISSION("unexpected SAS message");
 
                 case MTMessageInContext.value:
-                    log.fine("MTMessageInContext");
-
-                    throw new org.omg.CORBA.NO_PERMISSION(
-                            "Stateful SAS not supported");
+                    log.fine(() -> "MTMessageInContext");
+                    throw new NO_PERMISSION("Stateful SAS not supported");
 
                 case MTEstablishContext.value:
-                    log.fine("MTEstablishContext");
+                    log.fine(() -> "MTEstablishContext");
                     acceptContext(ri, sasBody.establish_msg(),
-                                  support_gssup_authorization,
-                                  require_gssup_authorization,
-                                  support_gssup_principal_identity, gssup_domain);
+                            support_gssup_authorization,
+                            require_gssup_authorization,
+                            support_gssup_principal_identity, gssup_domain);
                     break;
             }
         }
@@ -206,17 +204,15 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
     void acceptContext(ServerRequestInfo ri, EstablishContext establishMsg,
                        boolean support_gssup_authorization,
                        boolean require_gssup_authorization,
-                       boolean support_gssup_principal_identity, String gssup_domain)
-    {
+                       boolean support_gssup_principal_identity, String gssup_domain) {
         if (establishMsg.client_context_id != 0) {
             // Error, we do not support stateful mode
             log.severe("Stateful security contexts not supported");
 
-            throw new org.omg.CORBA.NO_PERMISSION(
-                    "Stateful security contexts not supported");
+            throw new NO_PERMISSION("Stateful security contexts not supported");
         }
 
-        log.fine("accepting context...");
+        log.fine(() -> "accepting context...");
 
         // Ignore authorization token list (not supported)
         // establishMsg.authorization_token;
@@ -226,9 +222,8 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
 
         // Extract client authentication token
         if (support_gssup_authorization
-            && establishMsg.identity_token.discriminator() == ITTAbsent.value
-            && establishMsg.client_authentication_token.length > 0)
-        {
+                && establishMsg.identity_token.discriminator() == ITTAbsent.value
+                && establishMsg.client_authentication_token.length > 0) {
             InitialContextToken gssupToken = decodeGSSUPToken(establishMsg.client_authentication_token);
 
             String useratrealm = utf8decode(gssupToken.username);
@@ -247,58 +242,49 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
 
             if (!realm.equals(gssup_domain)) {
                 returnContextError(ri, 1, 1);
-                throw new org.omg.CORBA.NO_PERMISSION("bad domain: \"" + realm
-                                                      + "\"");
+                throw new NO_PERMISSION("bad domain: \"" + realm + "\"");
             }
 
             String password = utf8decode(gssupToken.password);
 
-            log.fine("GSSUP initial context token name=" + name
-                + "; realm=" + realm + "; password=" + password);
+            log.fine(() -> "GSSUP initial context token name=" + name + "; realm=" + realm + "; password=" + password);
 
             try {
 
-                Subject subject = SecurityContext.login(name, realm, password);
+                Subject subject = login(name, realm, password);
 
                 // Login succeeded
-                SecurityContext.setAuthenticatedSubject(subject);
+                setAuthenticatedSubject(subject);
 
-                log.fine("Login succeeded");
+                log.fine(() -> "Login succeeded");
                 returnCompleteEstablishContext(ri);
 
-            }
-            catch (LoginException ex) {
+            } catch (LoginException ex) {
                 // Login failed
                 log.log(SEVERE, ex, () -> "Login failed");
 
                 returnContextError(ri, 1, 1);
                 throw new NO_PERMISSION("login failed");
 
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 log.log(SEVERE, ex, () -> "Exception occured: ");
             }
 
         } else if (require_gssup_authorization) {
 
             returnContextError(ri, 1, 1);
-            throw new org.omg.CORBA.NO_PERMISSION(
-                    "GSSUP authorization required");
+            throw new NO_PERMISSION("GSSUP authorization required");
 
-        } else if (support_gssup_principal_identity
-                   && establishMsg.identity_token.discriminator() == ITTPrincipalName.value)
-        {
+        } else if (support_gssup_principal_identity && establishMsg.identity_token.discriminator() == ITTPrincipalName.value) {
 
-            log.fine("accepting ITTPrincipalName");
+            log.fine(() -> "accepting ITTPrincipalName");
 
             byte[] name = establishMsg.identity_token.principal_name();
             Any aa;
             try {
                 aa = codec.decode_value(name, OctetSeqHelper.type());
-            }
-            catch (UserException e) {
-                MARSHAL me = new MARSHAL("cannot decode security descriptor",
-                                         0, CompletionStatus.COMPLETED_NO);
+            } catch (UserException e) {
+                MARSHAL me = new MARSHAL("cannot decode security descriptor", 0, COMPLETED_NO);
                 me.initCause(e);
                 throw me;
             }
@@ -307,7 +293,7 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
             // byte[] exported_name = uncapsulateByteArray(name);
             String userAtDomain = decodeGSSExportedName(exported_name);
 
-            log.fine("establish ITTPrincipalName " + userAtDomain);
+            log.fine(() -> "establish ITTPrincipalName " + userAtDomain);
 
             int idx = userAtDomain.indexOf('@');
             String user = "";
@@ -324,27 +310,26 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
             if (gssup_domain != null && !domain.equals(gssup_domain)) {
                 returnContextError(ri, 1, 1);
 
-                log.warning("request designates wrong domain: " + userAtDomain);
-                throw new org.omg.CORBA.NO_PERMISSION("bad domain");
+                log.warning(() -> "request designates wrong domain: " + userAtDomain);
+                throw new NO_PERMISSION("bad domain");
             }
 
             // CSISubjectInfo.setPropagatedCaller (user, domain);
-            Subject subject = SecurityContext.delegate(user, domain);
-            SecurityContext.setAuthenticatedSubject(subject);
+            Subject subject = delegate(user, domain);
+            setAuthenticatedSubject(subject);
 
             returnCompleteEstablishContext(ri);
 
         } else if (establishMsg.identity_token.discriminator() == ITTAnonymous.value) {
             // establish anoynous identity
 
-            log.fine("accepting ITTAnonymous");
+            log.fine(() -> "accepting ITTAnonymous");
 
             // CSISubjectInfo.setAnonymousSubject ();
             try {
-                Subject subject = SecurityContext.anonymousLogin();
-                SecurityContext.setAuthenticatedSubject(subject);
-            }
-            catch (LoginException ex) {
+                Subject subject = anonymousLogin();
+                setAuthenticatedSubject(subject);
+            } catch (LoginException ex) {
                 // Won't happen
             }
 
@@ -352,17 +337,15 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
 
         } else if (establishMsg.identity_token.discriminator() == ITTDistinguishedName.value) {
 
-            log.fine("accepting ITTDistinguishedName");
+            log.fine(() -> "accepting ITTDistinguishedName");
 
             byte[] name_data = establishMsg.identity_token.dn();
 
             Any aa;
             try {
                 aa = codec.decode_value(name_data, OctetSeqHelper.type());
-            }
-            catch (UserException e) {
-                MARSHAL me = new MARSHAL("cannot encode security descriptor",
-                                         0, CompletionStatus.COMPLETED_NO);
+            } catch (UserException e) {
+                MARSHAL me = new MARSHAL("cannot encode security descriptor", 0, COMPLETED_NO);
                 me.initCause(e);
                 throw me;
             }
@@ -374,10 +357,8 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
 
                 Subject subject = new Subject();
                 subject.getPrincipals().add(new X500Principal(x500name_data));
-                SecurityContext.setAuthenticatedSubject(subject);
-
-            }
-            catch (IllegalArgumentException ex) {
+                setAuthenticatedSubject(subject);
+            } catch (IllegalArgumentException ex) {
 
                 log.log(FINE, ex, () -> "cannot decode X500 name");
                 returnContextError(ri, 1, 1);
@@ -387,10 +368,8 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
             returnCompleteEstablishContext(ri);
 
         } else {
-
             returnContextError(ri, 2, 1);
-            throw new org.omg.CORBA.NO_PERMISSION("Unsupported IdentityToken");
-
+            throw new NO_PERMISSION("Unsupported IdentityToken");
         }
     }
 
@@ -407,15 +386,13 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
 
         sasBody.complete_msg(completeMsg);
 
-        log.fine("Adding SASContextBody, discriminator = "
-            + sasBody.discriminator());
+        log.fine(() -> "Adding SASContextBody, discriminator = " + sasBody.discriminator());
         ri.add_reply_service_context(encodeSASContextBody(sasBody), true);
     }
 
     void returnContextError(ServerRequestInfo ri, int major, int minor) {
         // Create CompleteEstablishContext
         SASContextBody sasBody = new SASContextBody();
-
         ContextError errorMsg = new ContextError();
 
         errorMsg.client_context_id = 0;
@@ -425,8 +402,7 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
 
         sasBody.error_msg(errorMsg);
 
-        log.fine("Adding SASContextBody, discriminator = "
-            + sasBody.discriminator());
+        log.fine(() -> "Adding SASContextBody, discriminator = " + sasBody.discriminator());
 
         ri.add_reply_service_context(encodeSASContextBody(sasBody), true);
     }
@@ -435,15 +411,4 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase
 		// TODO Auto-generated method stub
 
 	}
-
-    // void login(Subject subject, String realm, String name,
-    // String password) throws LoginException {
-
-    // LoginContext lc = new LoginContext
-    // ("EASSERVER", subject, new LoginCallbackHandler(name, password));
-
-    // lc.login();
-    // }
-
-
 }

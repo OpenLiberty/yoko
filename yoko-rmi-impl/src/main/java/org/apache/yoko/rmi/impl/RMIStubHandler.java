@@ -64,7 +64,7 @@ public class RMIStubHandler implements StubHandler, Serializable {
 
         final String method_name = method.getIDLName();
 
-        logger.finer("invoking " + method_name);
+        logger.finer(() -> "invoking " + method_name);
 
         return stub._is_local() ? invokeLocal(stub, method, args, method_name) : invokeRemote(stub, method, args, method_name);
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,14 @@
 package org.apache.yoko.orb.OBPortableServer;
 
 import org.apache.yoko.util.Assert;
+import org.omg.PortableServer.POA;
+import org.omg.PortableServer.POAPackage.AdapterNonExistent;
 
+import java.util.Vector;
 import java.util.logging.Logger;
+
+import static java.lang.System.arraycopy;
+import static org.apache.yoko.util.Assert.ensure;
 
 final class POALocator {
     static final Logger logger = Logger.getLogger(POALocator.class.getName());
@@ -32,7 +38,7 @@ final class POALocator {
     synchronized org.omg.PortableServer.POA locate(
             org.apache.yoko.orb.OB.ObjectKeyData data)
             throws org.apache.yoko.orb.OB.LocationForward {
-        logger.fine("Searching for POA " + data); 
+        logger.fine(() -> "Searching for POA " + data);
         //
         // If length of poa name sequence is zero we are looking
         // for a root POA and are doomed to fail.
@@ -41,9 +47,9 @@ final class POALocator {
             return null;
         }
 
-        org.omg.PortableServer.POA poa = (org.omg.PortableServer.POA) poas_.get(new POANameHasher(data.poaId));
+        POA poa = (POA) poas_.get(new POANameHasher(data.poaId));
         if (poa == null) {
-            logger.fine("POA not found by direct lookup, searching the hierarchy"); 
+            logger.fine(() -> "POA not found by direct lookup, searching the hierarchy");
             //
             // Arrange for POA activation. The algorithm for this is
             // to find the first POA in the `path' that exists. We
@@ -51,18 +57,18 @@ final class POALocator {
             // cause the activation.
             //
             String[] poaId = new String[data.poaId.length];
-            System.arraycopy(data.poaId, 0, poaId, 0, data.poaId.length);
-            java.util.Vector remaining = new java.util.Vector();
+            arraycopy(data.poaId, 0, poaId, 0, data.poaId.length);
+            Vector remaining = new Vector();
             do {
                 remaining.addElement(poaId[poaId.length - 1]);
                 String[] newID = new String[poaId.length - 1];
-                System.arraycopy(poaId, 0, newID, 0, poaId.length - 1);
+                arraycopy(poaId, 0, newID, 0, poaId.length - 1);
                 poaId = newID;
-                POANameHasher key = new POANameHasher(poaId); 
-                logger.fine("Searching POA hierarchy for " + key); 
-                poa = (org.omg.PortableServer.POA) poas_.get(key);
+                POANameHasher key = new POANameHasher(poaId);
+                logger.fine(() -> "Searching POA hierarchy for " + key);
+                poa = (POA) poas_.get(key);
                 if (poa != null) {
-                    logger.fine("Located POA using " + key); 
+                    logger.fine(() -> "Located POA using " + key);
                     break;
                 }
             } while (poaId.length > 0);
@@ -72,12 +78,12 @@ final class POALocator {
             // the POA's or we're done.
             //
             for (int i = remaining.size(); i > 0 && poa != null; i--) {
-                String key = (String) remaining.elementAt(i - 1); 
+                String key = (String) remaining.elementAt(i - 1);
                 try {
-                    logger.fine("Searching up hierarchy using key " + key); 
+                    logger.fine(() -> "Searching up hierarchy using key " + key);
                     poa = poa.find_POA(key, true);
-                } catch (org.omg.PortableServer.POAPackage.AdapterNonExistent ex) {
-                    logger.fine("Failure locating POA using key " + key); 
+                } catch (AdapterNonExistent ex) {
+                    logger.fine(() -> "Failure locating POA using key " + key);
                     poa = null;
                 }
             }
@@ -90,8 +96,8 @@ final class POALocator {
     //
     synchronized void add(org.omg.PortableServer.POA poa, String[] id) {
         POANameHasher idkey = new POANameHasher(id);
-        logger.fine("Adding POA to locater using key " + idkey); 
-        Assert.ensure(!poas_.containsKey(idkey));
+        logger.fine(() -> "Adding POA to locater using key " + idkey);
+        ensure(!poas_.containsKey(idkey));
         poas_.put(idkey, poa);
     }
 
@@ -100,8 +106,8 @@ final class POALocator {
     //
     synchronized void remove(String[] id) {
         POANameHasher idkey = new POANameHasher(id);
-        logger.fine("Removing POA from locater using key " + idkey); 
-        Assert.ensure(poas_.containsKey(idkey));
+        logger.fine(() -> "Removing POA from locater using key " + idkey);
+        ensure(poas_.containsKey(idkey));
         poas_.remove(idkey);
     }
 }

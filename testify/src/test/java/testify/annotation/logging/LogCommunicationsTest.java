@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -105,11 +105,11 @@ public class LogCommunicationsTest {
 
     @Test
     void testRecorderSoloLogging() {
-        TEST_FOO_LOGGER.fine("should not appear");
+        TEST_FOO_LOGGER.fine(() -> "should not appear");
         LogRecorder.create((runner.bus("one")));
-        TEST_FOO_LOGGER.fine("also should not appear");
+        TEST_FOO_LOGGER.fine(() -> "also should not appear");
         publisher.pushSettings(LOG_SETTINGS_1);
-        TEST_FOO_LOGGER.fine("should appear");
+        TEST_FOO_LOGGER.fine(() -> "should appear");
         publisher.flushLogs("junit");
         String output = stringWriter.toString();
         System.out.println(output);
@@ -140,20 +140,20 @@ public class LogCommunicationsTest {
     @Test
     void testRecorderDuetLogging() {
         LogRecorder.create((runner.bus("one")));
-        TEST_FOO_LOGGER.fine("should not appear #1");
+        TEST_FOO_LOGGER.fine(() -> "should not appear #1");
         publisher.pushSettings(LOG_SETTINGS_1);
-        TEST_FOO_LOGGER.fine("should appear #1");
+        TEST_FOO_LOGGER.fine(() -> "should appear #1");
         LogRecorder.create((runner.bus("two")));
-        TEST_FOO_LOGGER.fine("should appear #2");
+        TEST_FOO_LOGGER.fine(() -> "should appear #2");
         publisher.pushSettings(LOG_SETTINGS_2);
-        TEST_FOO_LOGGER.fine("should appear #3");
-        BLOB_FOO_LOGGER.finer("should appear #4");
-        BLOB_LOGGER.finest("should not appear #2");
+        TEST_FOO_LOGGER.fine(() -> "should appear #3");
+        BLOB_FOO_LOGGER.finer(() -> "should appear #4");
+        BLOB_LOGGER.finest(() -> "should not appear #2");
         publisher.popSettings();
-        TEST_FOO_LOGGER.fine("should appear #5");
-        BLOB_FOO_LOGGER.finer("should not appear #3");
+        TEST_FOO_LOGGER.fine(() -> "should appear #5");
+        BLOB_FOO_LOGGER.finer(() -> "should not appear #3");
         publisher.popSettings();
-        TEST_FOO_LOGGER.fine("should not appear #4");
+        TEST_FOO_LOGGER.fine(() -> "should not appear #4");
         publisher.flushLogs("junit");
         String output = stringWriter.toString();
         System.out.println(output);
@@ -201,15 +201,15 @@ public class LogCommunicationsTest {
         publisher.pushSettings(LOG_SETTINGS_1);
         runner.useNewJVMWhenForking().fork("two", bus -> {
             LogRecorder.create(bus);
-            TEST_FOO_LOGGER.fine("should appear #1");
-            TEST_FOO_LOGGER.finer("should not appear #1");
+            TEST_FOO_LOGGER.fine(() -> "should appear #1");
+            TEST_FOO_LOGGER.finer(() -> "should not appear #1");
             bus.get(SYNC_POINT_1);
-            BLOB_FOO_LOGGER.fine("should appear #2");
+            BLOB_FOO_LOGGER.fine(() -> "should appear #2");
             bus.put(SYNC_POINT_2);
         });
-        TEST_FOO_LOGGER.fine("should appear #3");
+        TEST_FOO_LOGGER.fine(() -> "should appear #3");
         publisher.pushSettings(LOG_SETTINGS_2);
-        BLOB_FOO_LOGGER.fine("should appear #4");
+        BLOB_FOO_LOGGER.fine(() -> "should appear #4");
         runner.bus("two").put(SYNC_POINT_1).get(SYNC_POINT_2);
         publisher.flushLogs("junit");
         String output = stringWriter.toString();
@@ -223,7 +223,7 @@ public class LogCommunicationsTest {
         runner.useNewJVMWhenForking().fork("two", bus -> {
             LogRecorder.create(bus);
             bus.get(SYNC_POINT_1);
-            TEST_FOO_LOGGER.fine("message 2");
+            TEST_FOO_LOGGER.fine(() -> "message 2");
             bus.put(SYNC_POINT_2).get(SYNC_POINT_3);
             forkAndJoin(() -> TEST_FOO_LOGGER.fine("message 4"));
             bus.put(SYNC_POINT_4);
@@ -231,7 +231,7 @@ public class LogCommunicationsTest {
         // Log the messages in the right order from different threads on both JVMs.
         // Use a 20ms sleep to ensure the timestamp differs between log records
         Bus bus = runner.bus("two");
-        TEST_FOO_LOGGER.fine("message 1");
+        TEST_FOO_LOGGER.fine(() -> "message 1");
         Thread.sleep(20);
         bus.put(SYNC_POINT_1).get(SYNC_POINT_2);
         Thread.sleep(20);
@@ -253,13 +253,13 @@ public class LogCommunicationsTest {
                 .peek(System.out::println)
                 .map(Integer::valueOf)
                 .collect(toList());
-        assertThat("Log messages should appear in order", messageOrder, is(asList(1,2,3,4,5)));
+        assertThat("Log messages should appear in order", messageOrder, is(asList(1, 2, 3, 4, 5)));
 
         // THREAD KEY:     one
         System.out.println("### ANALYZING THREAD NAMES:");
         List<String> threadCodeNames = Stream.of(output.split("\r?\n"))
                 .filter(s -> s.startsWith("THREAD KEY:"))
-                .map(s -> s.substring(25,28)) // should isolate the three-letter thread code name
+                .map(s -> s.substring(25, 28)) // should isolate the three-letter thread code name
                 .peek(System.out::println)
                 .collect(toList());
         assertThat("Thread code names should be unique", threadCodeNames, is(asList("AAA BBB CCC DDD EEE".split(" "))));

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,11 @@ import org.apache.yoko.orb.OB.GIOPServerStarter.ServerState;
 import org.apache.yoko.orb.OCI.Acceptor;
 import org.apache.yoko.util.Assert;
 
+import static java.lang.System.identityHashCode;
 import static java.util.logging.Logger.getLogger;
+import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.ACTIVE;
+import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.CLOSED;
+import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.HOLDING;
 import static org.apache.yoko.util.Assert.ensure;
 
 import java.util.logging.Logger;
@@ -61,8 +65,8 @@ final class GIOPServer extends Server {
         destroy_ = false;
         acceptor_ = acceptor;
         oaInterface_ = oaInterface;
-        
-        logger.fine("GIOPServer " + System.identityHashCode(this) + " created for orb instance " + orbInstance_.getOrbId() + " and server " + orbInstance_.getServerId() + " identityHash=" + System.identityHashCode(orbInstance_)); 
+
+        logger.fine(() -> "GIOPServer " + identityHashCode(this) + " created for orb instance " + orbInstance_.getOrbId() + " and server " + orbInstance_.getServerId() + " identityHash=" + identityHashCode(orbInstance_));
 
         try {
             switch (concModel_) {
@@ -80,7 +84,7 @@ final class GIOPServer extends Server {
     // Destroy the server
     //
     public void destroy() {
-        logger.fine("Destroying GIOPServer " + System.identityHashCode(this) + " started for orb instance " + orbInstance_.getOrbId() + " and server " + orbInstance_.getServerId() + System.identityHashCode(orbInstance_)); 
+        logger.fine(() -> "Destroying GIOPServer " + identityHashCode(this) + " started for orb instance " + orbInstance_.getOrbId() + " and server " + orbInstance_.getServerId() + identityHashCode(orbInstance_));
         // Don't destroy twice
         if (destroy_)
             return;
@@ -89,25 +93,25 @@ final class GIOPServer extends Server {
         destroy_ = true;
 
         // Close and remove the starter
-        Assert.ensure(starter_ != null);
-        starter_.setState(ServerState.CLOSED);
+        ensure(starter_ != null);
+        starter_.setState(CLOSED);
         starter_ = null;
     }
 
     // Hold any new requests that arrive for the Server
     public void hold() {
-        logger.fine("Holding GIOPServer " + System.identityHashCode(this) + " started for orb instance " + orbInstance_.getOrbId() + " and server " + orbInstance_.getServerId() + System.identityHashCode(orbInstance_)); 
-        Assert.ensure(!destroy_);
-        Assert.ensure(starter_ != null);
-        starter_.setState(ServerState.HOLDING);
+        logger.fine(() -> "Holding GIOPServer " + identityHashCode(this) + " started for orb instance " + orbInstance_.getOrbId() + " and server " + orbInstance_.getServerId() + identityHashCode(orbInstance_));
+        ensure(!destroy_);
+        ensure(starter_ != null);
+        starter_.setState(HOLDING);
     }
 
     // Dispatch any requests that arrive for the Server
     public void activate() {
-        logger.fine("Activating GIOPServer " + System.identityHashCode(this) + " started for orb instance " + orbInstance_.getOrbId() + " and server " + orbInstance_.getServerId() + System.identityHashCode(orbInstance_)); 
-        Assert.ensure(!destroy_);
-        Assert.ensure(starter_ != null);
-        starter_.setState(ServerState.ACTIVE);
+        logger.fine(() -> "Activating GIOPServer " + identityHashCode(this) + " started for orb instance " + orbInstance_.getOrbId() + " and server " + orbInstance_.getServerId() + identityHashCode(orbInstance_));
+        ensure(!destroy_);
+        ensure(starter_ != null);
+        starter_.setState(ACTIVE);
     }
 
     // returns the GIOPServerStarter interface

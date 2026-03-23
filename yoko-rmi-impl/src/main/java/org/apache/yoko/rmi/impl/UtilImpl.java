@@ -66,8 +66,8 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static java.security.AccessController.doPrivileged;
+import static java.util.Arrays.stream;
 import static java.util.logging.Level.FINER;
-import static java.util.logging.Level.FINEST;
 import static org.apache.yoko.logging.VerboseLogging.CLASS_LOG;
 import static org.apache.yoko.util.Predicates.not;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
@@ -406,11 +406,11 @@ public class UtilImpl implements UtilDelegate {
     }
 
     public void writeAbstractObject(OutputStream out, Object obj) {
-        logger.finer("writeAbstractObject.1 " + " out=" + out);
+        logger.finer(() -> "writeAbstractObject.1 " + " out=" + out);
 
         org.omg.CORBA_2_3.portable.OutputStream out_ = (org.omg.CORBA_2_3.portable.OutputStream) out;
 
-        logger.finer("writeAbstractObject.2 " + " out=" + out);
+        logger.finer(() -> "writeAbstractObject.2 " + " out=" + out);
 
         out_.write_abstract_interface(convertObject(obj));
     }
@@ -476,8 +476,8 @@ public class UtilImpl implements UtilDelegate {
 
     @SuppressWarnings("rawtypes")
     public Class loadClass(String name, String codebase, ClassLoader loader) throws ClassNotFoundException {
-        if (CLASS_LOG.isLoggable(FINEST)) CLASS_LOG.finer(String.format("loadClass(\"%s\", \"%s\", %s)", name, codebase, loader));
-        return Arrays.stream(ClassLoadStrategy.values())
+        CLASS_LOG.finer(() -> String.format("loadClass(\"%s\", \"%s\", %s)", name, codebase, loader));
+        return stream(ClassLoadStrategy.values())
                 .sequential()
                 .map(strategy -> strategy.getAction(loader))
                 .filter(Optional::isPresent)
@@ -737,12 +737,12 @@ public class UtilImpl implements UtilDelegate {
         Tie tie = tie_map.remove(obj);
 
         if (tie == null) {
-            logger.fine("unexporting unknown instance of "
+            logger.fine(() -> "unexporting unknown instance of "
                     + obj.getClass().getName() + " from "
                     + RMIState.current().getName());
             return;
         } else {
-            logger.finer("unexporting instance of " + obj.getClass().getName()
+            logger.finer(() -> "unexporting instance of " + obj.getClass().getName()
                     + " from " + RMIState.current().getName());
         }
 

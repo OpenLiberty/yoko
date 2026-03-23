@@ -34,7 +34,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
 
-import static java.lang.String.format;
 import static org.apache.yoko.util.Assert.ensure;
 import static org.apache.yoko.util.MinorCodes.MinorIncompleteTypeCode;
 import static org.apache.yoko.util.MinorCodes.MinorIncompleteTypeCodeParameter;
@@ -176,7 +175,7 @@ public final class TypeCodeImpl extends TypeCode {
                 sb.append(indent).append("members: ").append(Arrays.toString(memberNames_)).append(NL);
             } else for (int i = 0; i < memberNames_.length; i++) {
                 TypeCodeImpl tc = i < memberTypes_.length ? memberTypes_[i] : null;
-                String prefix = format("%s%s: ", memberNames_[i],
+                String prefix = String.format("%s%s: ", memberNames_[i],
                         (i < visCount) ? ((PRIVATE_MEMBER.value == memberVisibility_[i]) ? "[private]" : "[public]"): "");
                 appendTC(sb, prefix, tc, indent, describedIds).append(NL);
             }

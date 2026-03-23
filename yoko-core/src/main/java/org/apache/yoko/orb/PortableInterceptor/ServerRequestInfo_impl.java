@@ -211,7 +211,7 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
     // send_reply: yes send_exception: yes send_other: yes
     public void set_slot(int id, Any data) throws InvalidSlot {
         if (id >= requestSlotData.length || id < 0) throw new InvalidSlot("No slot for id " + id);
-        logger.fine("setting slot " + id + " for operation " + operationName);
+        logger.fine(() -> "setting slot " + id + " for operation " + operationName);
         requestSlotData[id] = new AnyImpl(data);
     }
 
@@ -349,7 +349,7 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
                     // correct completion status
                     CompletionStatus expected = oldE instanceof SystemException ? ((SystemException)oldE).completed : COMPLETED_YES;
                     if (expected != newE.completed) {
-                        REQ_OUT_LOG.warning("Correcting completion status on new exception from interceptor " + i.getClass() + ": was " + newE.completed + " and is: " + expected);
+                        REQ_OUT_LOG.warning(() -> "Correcting completion status on new exception from interceptor " + i.getClass() + ": was " + newE.completed + " and is: " + expected);
                         newE.completed = expected;
                     }
                     throw newE;
@@ -382,7 +382,7 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
                 } catch (SystemException newE) {
                     // correct completion status
                     if (COMPLETED_NO != newE.completed) {
-                        REQ_OUT_LOG.warning("Correcting completion status on new exception from interceptor " + i.getClass() + ": was " + newE.completed + " and is: " + COMPLETED_NO);
+                        REQ_OUT_LOG.warning(() -> "Correcting completion status on new exception from interceptor " + i.getClass() + ": was " + newE.completed + " and is: " + COMPLETED_NO);
                         newE.completed = COMPLETED_NO;
                     }
                     throw newE;
@@ -404,11 +404,11 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
     // Called when we are entering or leaving a thread, to allow the Current to be managed properly
     public void _OB_contextSwitch() {
         if (currentNeedsPopping) {
-            logger.fine("Popping the PICurrent because of a context switch"); 
+            logger.fine(() -> "Popping the PICurrent because of a context switch");
             currentNeedsPopping = false;
             piCurrent._OB_popSlotData();
         } else {
-            logger.fine("Pushing the PICurrent because of a context switch"); 
+            logger.fine(() -> "Pushing the PICurrent because of a context switch");
             currentNeedsPopping = true;
             piCurrent._OB_pushSlotData(requestSlotData);
         }

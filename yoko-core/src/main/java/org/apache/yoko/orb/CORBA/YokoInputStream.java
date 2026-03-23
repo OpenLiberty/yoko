@@ -18,8 +18,8 @@
 package org.apache.yoko.orb.CORBA;
 
 import org.apache.yoko.codecs.CharCodec;
-import org.apache.yoko.codecs.WcharCodec.WcharReader;
 import org.apache.yoko.codecs.WcharCodec;
+import org.apache.yoko.codecs.WcharCodec.WcharReader;
 import org.apache.yoko.io.AlignmentBoundary;
 import org.apache.yoko.io.Buffer;
 import org.apache.yoko.io.ReadBuffer;
@@ -54,7 +54,6 @@ import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.security.PrivilegedActionException;
 import java.util.Hashtable;
-import java.util.logging.Level;
 
 import static java.security.AccessController.doPrivileged;
 import static java.util.logging.Level.FINE;
@@ -148,6 +147,7 @@ import static org.omg.CORBA.TCKind._tk_void;
 import static org.omg.CORBA.TCKind._tk_wchar;
 import static org.omg.CORBA.TCKind._tk_wstring;
 import static org.omg.CORBA.TCKind.tk_union;
+import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
 final public class YokoInputStream extends InputStreamWithOffsets {
     private ORBInstance orbInstance;
@@ -195,8 +195,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
     private TypeCode readTypeCodeImpl(Hashtable<Integer, TypeCodeImpl> history, boolean isTopLevel) {
         int kind = read_ulong();
         int oldPos = readBuffer.getPosition() - 4;
-        if (GIOP_IN_LOG.isLoggable(Level.FINEST))
-            GIOP_IN_LOG.finest(String.format("Reading a TypeCode of kind %d from position 0x%x", kind, oldPos));
+        GIOP_IN_LOG.finest(() -> String.format("Reading a TypeCode of kind %d from position 0x%x", kind, oldPos));
 
         TypeCodeImpl tc = null;
         if (kind == -1) {
@@ -578,8 +577,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
 
                     String id = read_string();
 
-                    if (GIOP_IN_LOG.isLoggable(Level.FINE))
-                        GIOP_IN_LOG.fine(String.format("Abstract interface typecode encapsulation length=0x%x id=%s", length, id));
+                    GIOP_IN_LOG.fine(() -> String.format("Abstract interface typecode encapsulation length=0x%x id=%s", length, id));
 
                     if (isTopLevel && cache != null)
                         tc = checkCache(id, typePos, length); // may advance pos

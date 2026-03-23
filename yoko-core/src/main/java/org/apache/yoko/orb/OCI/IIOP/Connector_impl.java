@@ -42,6 +42,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -85,7 +86,7 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
     // ------------------------------------------------------------------
 
     private void close() {
-        logger.fine("Closing connection to host=" + this.info_.getHost() + ", port=" + this.info_.getPort());
+        logger.fine(() -> "Closing connection to host=" + this.info_.getHost() + ", port=" + this.info_.getPort());
 
         //
         // Close the socket
@@ -116,9 +117,9 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
 
         final String targetDesc = ("host=" + info_.getHost() + ", port=" + info_.getPort());
         try {
-            if (logger.isLoggable(FINE)) logger.fine("Connecting to " + targetDesc);
+            logger.fine(() -> "Connecting to " + targetDesc);
             socket_ = connectionHelper.createSocket(info_.getHost(), info_.getPort(), ior_, policies_);
-            if (logger.isLoggable(FINE)) logger.fine("Connection created with socket " + socket_);
+            logger.fine(() -> "Connection created with socket " + socket_);
         } catch (ConnectException ex) {
             throw wrapped(CONN_LOG, ex, "Error connecting to " + targetDesc, CONNECT_FAILED);
         } catch (IOException ex) {
@@ -286,7 +287,7 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
             if (policy.policy_type() == PROTOCOL_POLICY_ID.value) {
                 ProtocolPolicy protocolPolicy = ProtocolPolicyHelper.narrow(policy);
                 if (!protocolPolicy.contains(PLUGIN_ID.value)) {
-                    if (logger.isLoggable(FINE)) logger.fine("Protocol policy exists but does not allow expected transport. policy = " + Arrays.toString(protocolPolicy.value()) + "\t expected transport = " + PLUGIN_ID.value);
+                    logger.fine(() -> "Protocol policy exists but does not allow expected transport. policy = " + Arrays.toString(protocolPolicy.value()) + "\t expected transport = " + PLUGIN_ID.value);
                     return new ProfileInfo[0];
                 }
             }
@@ -301,18 +302,14 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
         //check that the transport info matches ours.
         //we could return just the profiles that match rather than bailing if one doesn't match.
         for (ProfileInfo profileInfo : profileInfoSeq.value) {
-            byte[] otherTransportInfo = new byte[0];
-            for (TaggedComponent component : profileInfo.components) {
-                if (component.tag == TAG_CSI_SEC_MECH_LIST.value) {
-                    otherTransportInfo = component.component_data;
-                    if (logger.isLoggable(FINE))
-                        logger.fine("Found CSI_SEC_MECH_LIST: " + toHex(otherTransportInfo));
-                    break;
-                }
-            }
+            byte[] otherTransportInfo = Stream.of(profileInfo.components)
+                    .filter(c -> TAG_CSI_SEC_MECH_LIST.value == c.tag)
+                    .map(c -> c.component_data)
+                    .peek(data -> logger.fine(() -> "Found CSI_SEC_MECH_LIST: " + toHex(data)))
+                    .findFirst()
+                    .orElse(new byte[0]);
             if (!Arrays.equals(transportInfo, otherTransportInfo)) {
-                if (logger.isLoggable(FINE))
-                    logger.fine("Transport info does not match CSI_SEC_MECH_LIST: " + toHex(otherTransportInfo));
+                logger.fine(() -> "Transport info does not match CSI_SEC_MECH_LIST: " + toHex(otherTransportInfo));
                 return new ProfileInfo[0];
             }
         }

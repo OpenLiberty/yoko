@@ -28,6 +28,7 @@ import org.omg.PortableInterceptor.InvalidSlot;
 import java.util.logging.Logger;
 
 import static java.util.logging.Logger.getLogger;
+import static org.apache.yoko.util.Assert.ensure;
 
 final public class Current_impl extends LocalObject implements Current {
     // the real logger backing instance.  We use the interface class as the locator
@@ -78,8 +79,8 @@ final public class Current_impl extends LocalObject implements Current {
     public Any get_slot(int id) throws InvalidSlot {
         if (id >= maxSlots_ || id < 0) throw new InvalidSlot("No slot for id " + id);
 
-        logger.fine("getting slot " + id); 
-        
+        logger.fine(() -> "getting slot " + id);
+
         SlotDataHolder holder = establishTSD();
 
         Any slot = holder.head.slots[id];
@@ -90,7 +91,7 @@ final public class Current_impl extends LocalObject implements Current {
     public void set_slot(int id, Any any) throws InvalidSlot {
         if (id >= maxSlots_ || id < 0) throw new InvalidSlot("No slot for id " + id);
 
-        logger.fine("setting slot " + id); 
+        logger.fine(() -> "setting slot " + id);
 
         SlotDataHolder holder = establishTSD();
 
@@ -126,7 +127,7 @@ final public class Current_impl extends LocalObject implements Current {
     // interceptor and the server side PICurrent
     //
     void _OB_pushSlotData(Any[] slots) {
-        logger.fine("pushing slot data"); 
+        logger.fine(() -> "pushing slot data");
         SlotDataHolder holder = establishTSD();
 
         SlotData newSlots = new SlotData(slots);
@@ -135,11 +136,11 @@ final public class Current_impl extends LocalObject implements Current {
     }
 
     void _OB_popSlotData() {
-        logger.fine("popping slot data"); 
+        logger.fine(() -> "popping slot data");
         SlotDataHolder holder = establishTSD();
 
         holder.head = holder.head.next;
-        Assert.ensure(holder.head != null);
+        ensure(holder.head != null);
     }
 
     Any[] _OB_newSlotTable() {

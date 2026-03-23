@@ -18,9 +18,9 @@
 package org.apache.yoko.orb.OB;
 
 import java.util.Vector;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.lang.System.arraycopy;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Logger.getLogger;
 import static org.apache.yoko.util.Hex.formatHexPara;
@@ -109,12 +109,10 @@ public final class ObjectKey {
         //
         data++;
 
-        System.arraycopy(id.oid, 0, key, data, id.oid.length);
+        arraycopy(id.oid, 0, key, data, id.oid.length);
 
-        
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.finest("Created object key\n" + formatHexPara(key));
-        }
+
+        logger.finest(() -> "Created object key\n" + formatHexPara(key));
         return key;
     }
 
@@ -129,10 +127,8 @@ public final class ObjectKey {
         //
         int data = 0;
         int end = key.length;
-        
-        if (logger.isLoggable(Level.FINE)) {
-            logger.fine("Parsing object key\n" + formatHexPara(key));
-        }
+
+        logger.fine(() -> "Parsing object key\n" + formatHexPara(key));
 
         //
         // First try to figure out whether the object-key is OB 4.x
@@ -145,13 +141,14 @@ public final class ObjectKey {
             data += 3;
             if (key[data] == '0') // persistent
             {
-                logger.fine("Parsing persistent object key"); 
+                logger.fine(() -> "Parsing persistent object key");
                 keyData.persistent = true;
                 keyData.createTime = 0;
                 ++data;
             } else {
                 if (key[data] != '1') {
-                    logger.fine("Characters '1' expected at position " + data); 
+                    int finalData = data;
+                    logger.fine(() -> "Characters '1' expected at position " + finalData);
                     return false;
                 }
                 keyData.persistent = false;
@@ -164,7 +161,7 @@ public final class ObjectKey {
                     data++;
                 }
                 if (data >= end) {
-                    logger.fine("Missing '\0' in key data"); 
+                    logger.fine(() -> "Missing '\0' in key data");
                     return false;
                 }
 
@@ -196,7 +193,7 @@ public final class ObjectKey {
                 // Ensure that we haven't gone too far...
                 //
                 if (data >= end) {
-                    logger.fine("Missing '\0' in key data"); 
+                    logger.fine(() -> "Missing '\0' in key data");
                     return false;
                 }
 
@@ -205,11 +202,11 @@ public final class ObjectKey {
                 //
                 if (first) {
                     keyData.serverId = new String(key, start, data - start);
-                    logger.fine("Parsed serverId=" + keyData.serverId); 
+                    logger.fine(() -> "Parsed serverId=" + keyData.serverId);
                     first = false;
                 } else {
-                    String element = new String(key, start, data - start); 
-                    logger.fine("Parsed POA name=" + element); 
+                    String element = new String(key, start, data - start);
+                    logger.fine(() -> "Parsed POA name=" + element);
                     poaId.addElement(element);
                 }
 
@@ -231,7 +228,7 @@ public final class ObjectKey {
             // Verify that we haven't gone too far.
             //
             if (data >= end) {
-                logger.fine("Missing object id in key data"); 
+                logger.fine(() -> "Missing object id in key data");
                 return false;
             }
 
@@ -240,15 +237,13 @@ public final class ObjectKey {
             //
             int len = end - data;
             keyData.oid = new byte[len];
-            System.arraycopy(key, data, keyData.oid, 0, len);
+            arraycopy(key, data, keyData.oid, 0, len);
 
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest("Parsed object id is\n" + formatHexPara(keyData.oid));
-            }
+            logger.finest(() -> "Parsed object id is\n" + formatHexPara(keyData.oid));
 
             return true;
         } else {
-            logger.fine("Invalid magic number in object key"); 
+            logger.fine(() -> "Invalid magic number in object key");
             return false;
         }
     }

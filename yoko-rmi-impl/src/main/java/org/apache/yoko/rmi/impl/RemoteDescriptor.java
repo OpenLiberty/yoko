@@ -97,13 +97,13 @@ abstract class RemoteDescriptor extends TypeDescriptor {
 
     void debugMethodMap() {
         if (logger.isLoggable(Level.FINER)) {
-            logger.finer("METHOD MAP FOR " + type.getName());
+            logger.finer(() -> "METHOD MAP FOR " + type.getName());
 
             Iterator it = method_map.keySet().iterator();
             while (it.hasNext()) {
                 String idl_name = (String) it.next();
                 MethodDescriptor desc = (MethodDescriptor) method_map.get(idl_name);
-                logger.finer("IDL " + idl_name + " -> "+ desc.reflected_method);
+                logger.finer(() -> "IDL " + idl_name + " -> " + desc.reflected_method);
             }
         }
     }
@@ -224,7 +224,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
         method_map = new HashMap();
         for (int i = 0; i < method_list.size(); i++) {
             MethodDescriptor desc = (MethodDescriptor) method_list.get(i);
-            logger.finer("Adding method " + desc.java_name + " to method map under " + desc.getIDLName());
+            logger.finer(() -> "Adding method " + desc.java_name + " to method map under " + desc.getIDLName());
             method_map.put(desc.getIDLName(), desc);
         }
 

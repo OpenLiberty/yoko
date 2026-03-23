@@ -53,6 +53,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static java.net.InetAddress.getLoopbackAddress;
 import static java.util.Objects.requireNonNull;
 import static java.util.logging.Level.FINE;
 import static org.apache.yoko.logging.VerboseLogging.CONN_IN_LOG;
@@ -64,6 +65,7 @@ import static org.apache.yoko.orb.OCI.IIOP.CommFailures.BIND;
 import static org.apache.yoko.orb.OCI.IIOP.CommFailures.GET_HOST_BY_NAME;
 import static org.apache.yoko.orb.OCI.IIOP.CommFailures.SET_SOCK_OPT;
 import static org.apache.yoko.orb.OCI.IIOP.CommFailures.SOCKET;
+import static org.apache.yoko.orb.OCI.IIOP.Util.getInetAddress;
 
 final class Acceptor_impl extends LocalObject implements Acceptor {
     enum ProfileCardinality { ZERO, ONE, MANY }
@@ -98,14 +100,12 @@ final class Acceptor_impl extends LocalObject implements Acceptor {
     }
 
     public void close() {
-        if (CONN_IN_LOG.isLoggable(FINE))
-            CONN_IN_LOG.fine("Closing server socket with host=" + localAddress + ", port=" + port_);
+        CONN_IN_LOG.fine(() -> "Closing server socket with host=" + localAddress + ", port=" + port_);
         info_._OB_destroy();
 
         try {
             socket_.close();
-            if (CONN_IN_LOG.isLoggable(FINE))
-                CONN_IN_LOG.fine("Closed server socket with host=" + localAddress + ", port=" + port_);
+            CONN_IN_LOG.fine(() -> "Closed server socket with host=" + localAddress + ", port=" + port_);
         } catch (IOException ex) {
             // maybe this should be a warning?
             CONN_IN_LOG.log(FINE, ex, () -> "Exception closing server socket with host=" + localAddress + ", port=" + port_);
@@ -122,11 +122,9 @@ final class Acceptor_impl extends LocalObject implements Acceptor {
             if (!block) socket_.setSoTimeout(1);
             else socket_.setSoTimeout(0);
 
-            if (CONN_IN_LOG.isLoggable(FINE))
-                CONN_IN_LOG.fine("Accepting connection for host=" + localAddress + ", port=" + port_);
+            CONN_IN_LOG.fine(() -> "Accepting connection for host=" + localAddress + ", port=" + port_);
             socket = socket_.accept();
-            if (CONN_IN_LOG.isLoggable(FINE))
-                CONN_IN_LOG.fine("Received inbound connection on socket " + socket);
+            CONN_IN_LOG.fine(() -> "Received inbound connection on socket " + socket);
         } catch (IOException ex) {
             if (!block && ex instanceof InterruptedIOException) return null; // Timeout
             throw wrapped(CONN_IN_LOG, ex, "Failure accepting connection for host=" + localAddress + ", port=" + port_, ACCEPT);
@@ -142,8 +140,7 @@ final class Acceptor_impl extends LocalObject implements Acceptor {
 
         try {
             Transport tr = new Transport_impl(this, socket, listenMap_);
-            if (CONN_IN_LOG.isLoggable(FINE))
-                CONN_IN_LOG.fine("Inbound connection received from " + socket.getInetAddress());
+            CONN_IN_LOG.fine(() -> "Inbound connection received from " + socket.getInetAddress());
             return tr;
         } catch (SystemException ex) {
             try {
@@ -288,17 +285,16 @@ final class Acceptor_impl extends LocalObject implements Acceptor {
         try {
             // Create socket and bind to requested network interface
             if (address == null) {
-                this.localAddress = InetAddress.getLoopbackAddress(); // use loopback address for connection to self
+                this.localAddress = getLoopbackAddress(); // use loopback address for connection to self
                 this.socket_ = connectionHelper.createServerSocket(port, backlog, params);
             } else {
-                this.localAddress = Util.getInetAddress(address);    // use the explicit bind address for connection to self
+                this.localAddress = getInetAddress(address);    // use the explicit bind address for connection to self
                 this.socket_ = connectionHelper.createServerSocket(port, backlog, localAddress, params);
             }
 
             // Read back the port. This is needed if the port was selected by the operating system.
             port_ = socket_.getLocalPort();
-            if (CONN_IN_LOG.isLoggable(FINE))
-                CONN_IN_LOG.fine("Acceptor created using socket " + socket_);
+            CONN_IN_LOG.fine(() -> "Acceptor created using socket " + socket_);
 
         } catch (UnknownHostException ex) {
             throw wrapped(CONN_IN_LOG, ex, "Could not resolve bind address", GET_HOST_BY_NAME);

@@ -128,7 +128,7 @@ public final class WriteBuffer extends Buffer<WriteBuffer> {
      */
     public SimplyCloseable recordLength() {
         final int lengthPosition = position;
-        MARSHAL_OUT_LOG.finest("Writing a gap value for a length at offset " + lengthPosition);
+        MARSHAL_OUT_LOG.finest(() -> "Writing a gap value for a length at offset " + lengthPosition);
 
         pad(4);
         return () -> {
@@ -138,7 +138,7 @@ public final class WriteBuffer extends Buffer<WriteBuffer> {
             data[lengthPosition + 1] = (byte) (length >> 020);
             data[lengthPosition + 2] = (byte) (length >> 010);
             data[lengthPosition + 3] = (byte) (length >> 000);
-            MARSHAL_OUT_LOG.finest("Wrote a length value of " + length + " at offset " + lengthPosition);
+            MARSHAL_OUT_LOG.finest(() -> "Wrote a length value of " + length + " at offset " + lengthPosition);
         };
     }
 

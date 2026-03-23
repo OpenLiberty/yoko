@@ -36,6 +36,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.FINE;
+import static org.apache.yoko.giop.MessageType.logOutgoingGiopMessage;
 import static org.apache.yoko.orb.OCI.IIOP.Exceptions.asCommFailure;
 import static org.apache.yoko.orb.OCI.SendReceiveMode.SendReceive;
 import static org.apache.yoko.util.MinorCodes.MinorRecv;
@@ -159,7 +160,7 @@ final public class Transport_impl extends LocalObject implements Transport {
     }
 
     public void shutdown() {
-        logger.fine("shutdown: " + this);
+        logger.fine(() -> "shutdown: " + this);
         shutdown_ = true;
         shutdownSocket(); // Shutdown send side only
         // blocking in recv()
@@ -172,7 +173,7 @@ final public class Transport_impl extends LocalObject implements Transport {
     public void receive(WriteBuffer writeBuffer, boolean block) {
         setBlock(block);
 
-        logger.fine("receiving a buffer of " + writeBuffer.available() + " from " + socket_ + " using transport " + this);
+        logger.fine(() -> "receiving a buffer of " + writeBuffer.available() + " from " + socket_ + " using transport " + this);
         while (!writeBuffer.isComplete()) {
             try {
                 if (!writeBuffer.readFrom(in_))
@@ -197,9 +198,9 @@ final public class Transport_impl extends LocalObject implements Transport {
     public void send(ReadBuffer readBuffer, boolean block) {
         setBlock(block);
 
-        logger.fine("Sending buffer of size " + readBuffer.available() + " to " + socket_);
+        logger.fine(() -> "Sending buffer of size " + readBuffer.available() + " to " + socket_);
 
-        MessageType.logOutgoingGiopMessage(readBuffer);
+        logOutgoingGiopMessage(readBuffer);
 
         while (!readBuffer.isComplete()) {
             try {
@@ -297,7 +298,7 @@ final public class Transport_impl extends LocalObject implements Transport {
         socket_ = socket;
         shutdown_ = false;
 
-        logger.fine("Creating new transport for socket " + socket);
+        logger.fine(() -> "Creating new transport for socket " + socket);
 
         //
         // Cache the streams associated with the socket, for

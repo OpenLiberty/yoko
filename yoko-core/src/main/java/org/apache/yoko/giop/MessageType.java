@@ -170,15 +170,15 @@ public enum MessageType {
     MessageType() { this(-1); }
 
     public static void logIncomingGiopMessage(WriteBuffer buffer) {
-        logGiopMessage(buffer, GIOP_IN_LOG, "\nIN COMING ");
+        logGiopMessage(buffer, GIOP_IN_LOG);
     }
 
     public static void logOutgoingGiopMessage(ReadBuffer buffer) {
-        logGiopMessage(buffer, GIOP_OUT_LOG, "\nOUT GOING ");
+        logGiopMessage(buffer, GIOP_OUT_LOG);
     }
 
-    private static void logGiopMessage(Buffer<?> buffer, Logger logger, String direction) {
-        if (! logger.isLoggable(FINE)) return;
+    private static void logGiopMessage(Buffer<?> buffer, Logger logger) {
+        if (!logger.isLoggable(FINE)) return;
         final boolean includeMessageHeader;
         final boolean includeMessageOctets;
         final Level level;
@@ -195,7 +195,7 @@ public enum MessageType {
             includeMessageOctets = false;
             level = FINE;
         }
-        logger.log(level, describeGiopMessage(buffer, includeMessageHeader, includeMessageOctets));
+        logger.log(level, () -> describeGiopMessage(buffer, includeMessageHeader, includeMessageOctets));
     }
 
     private static String describeGiopMessage(Buffer<?> buffer, boolean includeMessageHeader, boolean includeMessageOctets) {

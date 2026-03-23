@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,8 +63,8 @@ public final class ObjectFactory {
         // Check for nil object reference
         if (ior.type_id.isEmpty() && ior.profiles.length == 0) return null;
 
-        logger.fine("Creating an object of type " + ior.type_id); 
-        
+        logger.fine(() -> "Creating an object of type " + ior.type_id);
+
         // Create new delegate, set policies and change delegate
         Delegate p = new Delegate(orbInstance_, ior, ior, policies());
 
@@ -75,7 +75,7 @@ public final class ObjectFactory {
     }
 
     public org.omg.CORBA.Object stringToObject(String ior) {
-        logger.fine("Creating an object from " + ior); 
+        logger.fine(() -> "Creating an object from " + ior);
         return orbInstance_.getURLRegistry().parse_url(ior);
     }
 

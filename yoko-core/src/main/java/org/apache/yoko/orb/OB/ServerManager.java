@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ public final class ServerManager {
     }
 
     public synchronized void hold() {
-        logger.fine("Holding all servers"); 
+        logger.fine(() -> "Holding all servers");
         Enumeration e = allServers_.elements();
         while (e.hasMoreElements()) {
             ((Server) e.nextElement()).hold();
@@ -101,7 +101,7 @@ public final class ServerManager {
     }
 
     public synchronized void activate() {
-        logger.fine("Activating all servers"); 
+        logger.fine(() -> "Activating all servers");
         Enumeration e = allServers_.elements();
         while (e.hasMoreElements()) {
             ((Server) e.nextElement()).activate();

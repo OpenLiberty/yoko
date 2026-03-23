@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,8 +28,8 @@ import testify.parts.PartRunner;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.logging.Logger;
 
+import static java.util.logging.Logger.getLogger;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -62,7 +62,7 @@ public class LoggingTest {
 
     private static void log(String logger, String msg) {
         System.out.printf("### about to log \"%s\" to \"%s\"%n", msg, logger);
-        Logger.getLogger(logger).finest(msg);
+        getLogger(logger).finest(() -> msg);
     }
 
     enum SyncPoint implements VoidKey {SYNC_POINT, JOIN}

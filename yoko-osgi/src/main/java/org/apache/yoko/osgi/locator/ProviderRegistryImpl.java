@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.security.AccessController.doPrivileged;
@@ -69,38 +68,33 @@ public class ProviderRegistryImpl implements ProviderRegistry, Register {
      * @param provider The loader used to resolve the provider class.
      */
     public void registerProvider(ServiceProvider provider) {
-        if (log.isLoggable(Level.FINE))
-            log.log(Level.FINE, "registering provider " + provider);
+        log.fine(() -> "registering provider " + provider);
         providers.register(provider);
     }
 
     public void unregisterProvider(ServiceProvider provider) {
-        if (log.isLoggable(Level.FINE))
-            log.log(Level.FINE, "unregistering provider " + provider);
+        log.fine(() -> "unregistering provider " + provider);
         providers.unregister(provider);
     }
 
     public void registerService(ServiceProvider provider) {
-        if (log.isLoggable(Level.FINE))
-            log.log(Level.FINE, "registering service " + provider);
+        log.fine(() -> "registering service " + provider);
         serviceProviders.register(provider);
     }
 
     public void unregisterService(ServiceProvider provider) {
-        if (log.isLoggable(Level.FINE))
-            log.log(Level.FINE, "unregistering service " + provider);
+        log.fine(() -> "unregistering service " + provider);
         serviceProviders.unregister(provider);
     }
 
     @Override
     public void registerPackages(PackageProvider provider) {
-        if (log.isLoggable(Level.FINEST))
-            log.finest("registering package provider: " + provider);
+        log.finest(() -> "registering package provider: " + provider);
         for (String name : provider.getRegisteredPackageNames()) {
             PackageProvider oldProvider = this.packageProviders.put(name, provider);
             // we should never be asked to overwrite another provider for any given package
             if (oldProvider != null)
-                log.warning(String.format("Replaced provider for package %s: was %s, but now %s", name, oldProvider, provider));
+                log.warning(() -> String.format("Replaced provider for package %s: was %s, but now %s", name, oldProvider, provider));
         }
     }
 
@@ -263,8 +257,7 @@ public class ProviderRegistryImpl implements ProviderRegistry, Register {
         }
 
         private synchronized ServiceProvider getProvider(String id) {
-            if (log.isLoggable(Level.FINE))
-                log.fine("registry: " + registry);
+            log.fine(() -> "registry: " + registry);
             // return the first match, if any
             Queue<ServiceProvider> q = registry.get(id);
 

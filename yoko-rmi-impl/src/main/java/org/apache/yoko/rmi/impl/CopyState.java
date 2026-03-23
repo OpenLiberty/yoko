@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,15 @@ package org.apache.yoko.rmi.impl;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.logging.Logger;
 
 import org.omg.CORBA.MARSHAL;
+
+import static java.lang.System.identityHashCode;
 
 public final class CopyState {
 
@@ -51,8 +54,8 @@ public final class CopyState {
         resolver.next = orig;
         recursionResolverMap.put(key, resolver);
 
-        logger.fine("registering recursion resolver " + resolver + " for "
-                + key.getClass() + "@" + System.identityHashCode(key));
+        logger.fine(() -> "registering recursion resolver " + resolver + " for "
+                + key.getClass() + "@" + identityHashCode(key));
 
     }
 
@@ -62,12 +65,12 @@ public final class CopyState {
             for (CopyRecursionResolver resolver = (CopyRecursionResolver) recursionResolverMap
                     .get(orig); resolver != null; resolver = resolver.next) {
 
-                logger
-                        .fine("invoking " + resolver + " for "
-                                + orig.getClass() + "@"
-                                + System.identityHashCode(orig) + " ===> "
-                                + copy.getClass() + "@"
-                                + System.identityHashCode(copy));
+                CopyRecursionResolver finalResolver = resolver;
+                logger.fine(() -> "invoking " + finalResolver + " for "
+                        + orig.getClass() + "@"
+                        + identityHashCode(orig) + " ===> "
+                        + copy.getClass() + "@"
+                        + identityHashCode(copy));
 
                 resolver.resolve(copy);
             }
@@ -85,44 +88,43 @@ public final class CopyState {
     private int idx;
 
     public Object copy(Object orig) throws CopyRecursionException {
-        if (orig == null)
-            return orig;
+        if (orig == null) return orig;
 
-        Object copy = copied.get(orig);
-        if (copy != null) {
-            if (copy == recursionCheck) {
-                logger.fine("throwign CopyRecursion for " + orig.getClass()
-                        + "@" + System.identityHashCode(orig));
+        {
+            Object copy = copied.get(orig);
+            if (copy != null) {
+                if (copy == recursionCheck) {
+                    logger.fine(() -> "throwing CopyRecursion for " + orig.getClass()
+                            + "@" + identityHashCode(orig));
 
-                throw new CopyRecursionException(this, orig);
+                    throw new CopyRecursionException(this, orig);
+                }
+                return copy;
             }
-            return copy;
         }
 
-        Class origClass = orig.getClass();
+        {
+            Class origClass = orig.getClass();
 
-        logger.fine("[" + hashCode() + "]" + spaces(idx++)
-                + "copying instance of " + origClass);
+            logger.fine(() -> "[" + hashCode() + "]" + spaces(idx++)
+                    + "copying instance of " + origClass);
 
-        TypeDescriptor desc = rep.getDescriptor(origClass);
+            TypeDescriptor desc = rep.getDescriptor(origClass);
 
-        copied.put(orig, recursionCheck);
-        copy = desc.copyObject(orig, this);
-        copied.put(orig, copy);
+            copied.put(orig, recursionCheck);
+            Object copy = desc.copyObject(orig, this);
+            copied.put(orig, copy);
 
-        logger.fine(spaces(--idx) + "=> " + copy);
+            logger.fine(() -> spaces(--idx) + "=> " + copy);
 
-        return copy;
+            return copy;
+        }
     }
 
     public ObjectWriter createObjectWriter(final java.io.Serializable obj) {
         try {
             return (ObjectWriter) java.security.AccessController
-                    .doPrivileged(new java.security.PrivilegedExceptionAction() {
-                        public Object run() throws IOException {
-                            return new Writer(obj);
-                        }
-                    });
+                    .doPrivileged((PrivilegedExceptionAction) () -> new Writer(obj));
 
         } catch (java.security.PrivilegedActionException e) {
             throw (InternalError)new InternalError(e.getMessage()).initCause(e);

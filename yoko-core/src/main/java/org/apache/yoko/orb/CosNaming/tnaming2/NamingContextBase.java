@@ -17,19 +17,8 @@
  */
 package org.apache.yoko.orb.CosNaming.tnaming2;
 
-import static org.apache.yoko.util.MinorCodes.MinorObjectIsNull;
-import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import org.apache.yoko.orb.spi.naming.Resolvable;
-import org.apache.yoko.util.MinorCodes;
 import org.omg.CORBA.BAD_PARAM;
-import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.SystemException;
 import org.omg.CosNaming.BindingIteratorHolder;
 import org.omg.CosNaming.BindingListHolder;
@@ -38,8 +27,8 @@ import org.omg.CosNaming.BindingTypeHolder;
 import org.omg.CosNaming.NameComponent;
 import org.omg.CosNaming.NamingContext;
 import org.omg.CosNaming.NamingContextExtPOA;
-import org.omg.CosNaming.NamingContextHelper;
 import org.omg.CosNaming.NamingContextExtPackage.InvalidAddress;
+import org.omg.CosNaming.NamingContextHelper;
 import org.omg.CosNaming.NamingContextPackage.AlreadyBound;
 import org.omg.CosNaming.NamingContextPackage.CannotProceed;
 import org.omg.CosNaming.NamingContextPackage.InvalidName;
@@ -47,9 +36,21 @@ import org.omg.CosNaming.NamingContextPackage.NotEmpty;
 import org.omg.CosNaming.NamingContextPackage.NotFound;
 import org.omg.CosNaming.NamingContextPackage.NotFoundReason;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+import java.util.stream.Stream;
+
+import static java.lang.Integer.toHexString;
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.joining;
+import static org.apache.yoko.logging.VerboseLogging.NAMING_LOG;
+import static org.apache.yoko.util.MinorCodes.MinorObjectIsNull;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+
 public abstract class NamingContextBase extends NamingContextExtPOA {
     // the real logger backing instance. We use the interface class as the locator
-    protected static final Logger logger = Logger.getLogger(NamingContext.class.getName());
+    protected static final Logger logger = NAMING_LOG;
 
     // set of URL characters that don't require escaping when encoded.
     protected final String nonEscaped = ";/?:@&=+$;-_.!~* ()";
@@ -71,12 +72,11 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
      *            must already be bound in the context tree.
      * @param obj The object to be bound.
      */
-    public void bind(NameComponent[] n, org.omg.CORBA.Object obj)
-            throws NotFound, CannotProceed, InvalidName, AlreadyBound {
+    public void bind(NameComponent[] n, org.omg.CORBA.Object obj) throws NotFound, CannotProceed, InvalidName, AlreadyBound {
         // perform various name validations
         validateName(n);
 
-        logNameComponent("bind() name", n);
+        logger.fine(() -> formatNameComponents(n));
 
         // do we need to push through to a deeper naming context first?
         if (n.length > 1) {
@@ -119,7 +119,7 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
         // perform various name validations
         validateName(n);
 
-        logNameComponent("rebind() name", n);
+        logger.fine(() -> formatNameComponents(n));
 
         // do we need to push through to a deeper naming context first?
         if (n.length > 1) {
@@ -167,7 +167,7 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
         // perform various name validations
         validateName(n);
 
-        logNameComponent("bind_context() name", n);
+        logger.fine(() -> formatNameComponents(n));
 
         // do we need to push through to a deeper naming context first?
         if (n.length > 1) {
@@ -210,7 +210,7 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
         // perform various name validations
         validateName(n);
 
-        logNameComponent("rebind_context() name", n);
+        logger.fine(() -> formatNameComponents(n));
 
         // do we need to push through to a deeper naming context first?
         if (n.length > 1) {
@@ -246,7 +246,7 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
     }
 
     /**
-     * Resolve an an entry in the context tree. The resolved object may be a
+     * Resolve an entry in the context tree. The resolved object may be a
      * bound object or another NamingContext. If the named entry is not found, a
      * NotFound exception is thrown.
      * @param n An array of NameComponents that are the target name. The last
@@ -260,7 +260,7 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
         // perform various name validations
         validateName(n);
 
-        logNameComponent("resolve() name", n);
+        logger.fine(() -> formatNameComponents(n));
 
         // do we need to push through to a deeper naming context first?
         if (n.length > 1) {
@@ -275,15 +275,8 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
             NameComponent name = n[0];
             BindingTypeHolder type = new BindingTypeHolder();
             org.omg.CORBA.Object obj = resolveObject(name, type);
-            if (obj == null) {
-                // Object was not found
-                throw new NotFound(NotFoundReason.missing_node, n);
-            }
-            if (obj instanceof Resolvable) {
-            	return ((Resolvable)obj).resolve();
-            } else {
-            	return obj;
-            }
+            if (obj == null) throw new NotFound(NotFoundReason.missing_node, n);
+            return obj instanceof Resolvable ? ((Resolvable) obj).resolve() : obj;
         }
     }
 
@@ -296,15 +289,12 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
      *            remainder of the array is the path for resolving the naming
      *            context, relative to the current context. All path contexts
      *            must already be bound in the context tree.
-     * @exception NotFound
-     * @exception CannotProceed
-     * @exception InvalidName
      */
     public void unbind(NameComponent[] n) throws NotFound, CannotProceed, InvalidName {
         // perform various name validations
         validateName(n);
 
-        logNameComponent("unbind() name", n);
+        logger.fine(() -> formatNameComponents(n));
 
         // do we need to push through to a deeper naming context first?
         if (n.length > 1) {
@@ -318,12 +308,8 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
         } else {
             NameComponent name = n[0];
             synchronized (this) {
-                // see if we have this bound already...can't replace these.
                 org.omg.CORBA.Object obj = unbindObject(name);
-                if (obj == null) {
-                    // Object was not found
-                    throw new NotFound(NotFoundReason.missing_node, n);
-                }
+                if (obj == null) throw new NotFound(NotFoundReason.missing_node, n);
             }
         }
     }
@@ -337,9 +323,8 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
      *            must already be bound in the context tree.
      * @return The newly created context.
      */
-    public synchronized NamingContext bind_new_context(NameComponent[] n)
-            throws NotFound, AlreadyBound, CannotProceed, InvalidName {
-        logNameComponent("bind_new_context() name", n);
+    public synchronized NamingContext bind_new_context(NameComponent[] n) throws NotFound, AlreadyBound, CannotProceed, InvalidName {
+        logger.fine(() -> formatNameComponents(n));
 
         NamingContext context = new_context();
         try {
@@ -369,11 +354,10 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
      */
     public String to_string(NameComponent[] n) throws InvalidName {
         validateName(n);
-
-        logNameComponent("to_string() name", n);
+        logger.fine(() -> formatNameComponents(n));
 
         // convert the first part of the name
-        StringBuffer value = new StringBuffer();;
+        StringBuffer value = new StringBuffer();
         // convert the first component, then build up from there.
         nameToString(n[0], value);
 
@@ -392,18 +376,17 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
      * @return An array of NameComponents parsed from the String name.
      */
     public NameComponent[] to_name(String sn) throws InvalidName {
-        // must have a argument to parse
-        if (sn == null || sn.length() == 0) {
-            throw new InvalidName();
-        }
+        // must have an argument to parse
+        if (sn == null || sn.isEmpty()) throw new InvalidName();
 
-        List<NameComponent> components = new ArrayList<NameComponent>();
 
-        StringBuffer component = new StringBuffer();
+        List<NameComponent> components = new ArrayList<>();
+
+        StringBuilder component = new StringBuilder();
 
         int index = 0;
         String id = null;
-        String kind = null;
+        String kind;
         while (index < sn.length()) {
             char ch = sn.charAt(index++);
 
@@ -443,14 +426,13 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
                 // make sure these are all reset after pulling off a component
                 component.setLength(0);
                 id = null;
-                kind = null;
             } else {
                 component.append(ch);
             }
         }
 
         // parse the last section
-        // not seen a id/kind separator yet? This is an id with no kind
+        // not seen an id or kind separator yet?  This is an id with no kind
         if (id == null) {
             id = component.toString();
             kind = "";
@@ -462,30 +444,25 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
         components.add(new NameComponent(id, kind));
 
         // and turn this into a component array
-        return (NameComponent[]) components.toArray(new NameComponent[components.size()]);
+        return components.toArray(new NameComponent[0]);
     }
 
     /**
      * Create a URL name for accessing a component by name. The URL will have a
      * corbaname: protocol.
-     * @param addr The address location for the naming service used to resolve
+     * @param address The address location for the naming service used to resolve
      *            the object. This is in "host:port" form, just line a corbaloc:
      *            URL.
      * @param sn The string mae of the target object.
      * @return A URL for accessing this object, in String form.
      */
-    public String to_url(String addr, String sn) throws InvalidAddress, InvalidName {
+    public String to_url(String address, String sn) throws InvalidAddress, InvalidName {
         // basic validation
-        if (addr == null || addr.length() == 0) {
-            throw new InvalidAddress();
-        }
-
-        if (sn == null || sn.length() == 0) {
-            throw new InvalidName();
-        }
+        if (address == null || address.isEmpty()) throw new InvalidAddress();
+        if (sn == null || sn.isEmpty()) throw new InvalidName();
 
         // TODO: What validation, if any, needs to be done here?
-        return "corbaname:" + addr + "#" + encodeRFC2396Name(sn);
+        return "corbaname:" + address + "#" + encodeRFC2396Name(sn);
     }
 
     /**
@@ -522,10 +499,9 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
      *            not returned in the BindingList are returned in the
      *            BindingIterator.
      */
-    public abstract void list(int how_many, BindingListHolder bl,
-            BindingIteratorHolder bi) throws SystemException;
+    public abstract void list(int how_many, BindingListHolder bl, BindingIteratorHolder bi) throws SystemException ;
 
-    // abstract methods for the sub class to implement
+    // abstract methods for the subclass to implement
 
     /**
      * Resolve an object in this context (single level resolution).
@@ -542,7 +518,6 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
      * a naming context.
      * @param n The single-level name of the target object.
      * @param obj The object or context to be bound.
-     * @param type
      */
     protected abstract void bindObject(NameComponent n, org.omg.CORBA.Object obj, BindingTypeHolder type) throws SystemException, CannotProceed;
 
@@ -567,21 +542,17 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
         BindingTypeHolder type = new BindingTypeHolder();
         // Resolve this to an object. We must be able to resolve this.
         org.omg.CORBA.Object resolvedReference = resolveObject(name, type);
-        if (resolvedReference == null) {
-            throw new NotFound(NotFoundReason.missing_node, new NameComponent[]{name});
-        }
+        if (resolvedReference == null) throw new NotFound(NotFoundReason.missing_node, new NameComponent[]{name});
 
         // it has to resolve to a naming context
-        if (type.value.value() != BindingType._ncontext) {
-            throw new NotFound(NotFoundReason.not_context, new NameComponent[]{name});
-        }
+        if (type.value.value() != BindingType._ncontext) throw new NotFound(NotFoundReason.not_context, new NameComponent[]{name});
 
         // in theory, this is a naming context. Narrow it and return. Any
         // errors just become a NotFound exception
         try {
             return NamingContextHelper.narrow(resolvedReference);
-        } catch (org.omg.CORBA.BAD_PARAM ex) {
-            throw new NotFound(NotFoundReason.not_context, new NameComponent[]{name});
+        } catch (BAD_PARAM ex) {
+            throw new NotFound(NotFoundReason.not_context, new NameComponent[] { name });
         }
     }
 
@@ -605,22 +576,18 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
      */
     protected void validateName(NameComponent[] n) throws InvalidName {
         // perform various name validations
-        if (n == null) {
-            throw new BAD_PARAM(MinorObjectIsNull, COMPLETED_NO);
-        }
+        if (n == null) throw new BAD_PARAM(MinorObjectIsNull, COMPLETED_NO);
 
         // Valid name?
-        if (n.length < 1) {
-            throw new InvalidName();
-        }
+        if (n.length < 1) throw new InvalidName();
 
-        // we have at least one name, so validate the toplevel item
+        // we have at least one name, so validate the top level item
         NameComponent name = n[0];
 
         // for remote invocation, client would have received an NPE on marshalling a NameComponent with a null field
         // for local invocation, ok to propagate the NPE and not a CORBA BAD_PARAM
-        Objects.requireNonNull(name.id, "A NameComponent must not have a null id field");
-        Objects.requireNonNull(name.kind, "A NameComponent must not have a null kind field");
+        requireNonNull(name.id, "A NameComponent must not have a null id field");
+        requireNonNull(name.kind, "A NameComponent must not have a null kind field");
 
         // This ensures the name is not completely empty, but is this correct? CosNaming1.4 2.4.1 says:
         // > The single '.' character is the only representation of a name with empty id and kind fields.
@@ -638,17 +605,17 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
      */
     protected void nameToString(NameComponent name, StringBuffer out) {
         // if the id is null, then we base off of the kind.
-        if (name.id == null || name.id.length() == 0) {
+        if (name.id == null || name.id.isEmpty()) {
             out.append(".");
             // true null name element? That displays as a "."
-            if (name.kind != null && name.kind.length() != 0) {
+            if (name.kind != null && !name.kind.isEmpty()) {
                 escapeName(name.kind, out);
             }
         } else {
             // escape the name
             escapeName(name.id, out);
             // have a kind qualifier to add on?
-            if (name.kind != null && name.kind.length() != 0) {
+            if (name.kind != null && !name.kind.isEmpty()) {
                 out.append(".");
                 escapeName(name.kind, out);
             }
@@ -670,9 +637,7 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
             // scan the string adding the escapes
             for (int i = 0; i < name.length(); i++) {
                 char ch = name.charAt(i);
-                if (ch == '.' || ch == '/' || ch == '\\') {
-                    out.append('\\');
-                }
+                if (ch == '.' || ch == '/' || ch == '\\') out.append('\\');
                 out.append(ch);
             }
         }
@@ -685,7 +650,7 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
      *         encoded value.
      */
     protected String encodeRFC2396Name(String name) {
-        StringBuffer value = new StringBuffer();
+        StringBuilder value = new StringBuilder();
 
         for (int i = 0; i < name.length(); i++) {
             char ch = name.charAt(i);
@@ -697,40 +662,18 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
             } else {
                 // this gets converted into a hex value, marked by "%".
                 value.append('%');
-                value.append(Integer.toHexString((int) ch));
+                value.append(toHexString(ch));
             }
         }
         return value.toString();
     }
 
-    /**
-     * Test if debug logging is currently available.
-     * @return True if debug level (FINE) logging is currently turned on.
-     */
-    protected boolean isDebugEnabled() {
-        return logger.isLoggable(Level.FINE);
+    private String formatNameComponents(NameComponent[] names) {
+        return Stream.of(names).map(this::formatNameComponent).collect(joining("/"));
     }
 
-    /**
-     * Log a line of debug output
-     * @param message The message to log
-     */
-    protected void debug(String message) {
-        logger.fine(message);
+    private String formatNameComponent(NameComponent nc) {
+        if (null == nc.kind || nc.kind.isEmpty()) return nc.id;
+        return nc.id + "[." + nc.kind + "]";
     }
-
-    /**
-     * Log the name components passed in for a request.
-     * @param message A message describing the request context.
-     * @param n The array of name components.
-     */
-    protected void logNameComponent(String message, NameComponent[] n) {
-        if (isDebugEnabled()) {
-            debug(message);
-            for (int i = 0; i < n.length; i++) {
-                debug("   NameComponent " + i + " id=" + n[i].id + " kind=" + n[i].kind);
-            }
-        }
-    }
-
 }

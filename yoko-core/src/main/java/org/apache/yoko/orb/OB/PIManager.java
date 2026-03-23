@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -95,17 +95,17 @@ final public class PIManager {
     }
 
     public void addIORInterceptor(IORInterceptor interceptor, boolean insertAtHead) throws DuplicateName {
-        if (IOR_LOG.isLoggable(CONFIG)) IOR_LOG.config("Registering " + describe(interceptor));
+        IOR_LOG.config(() -> "Registering " + describe(interceptor));
         addInterceptorToList(interceptor, this.iorInterceptors, insertAtHead);
     }
 
     public void addClientRequestInterceptor(ClientRequestInterceptor interceptor) throws DuplicateName {
-        if (REQ_OUT_LOG.isLoggable(CONFIG)) REQ_OUT_LOG.config("Registering " + describe(interceptor));
+        REQ_OUT_LOG.config(() -> "Registering " + describe(interceptor));
         addInterceptorToList(interceptor, clientRequestInterceptors, false);
     }
 
     public void addServerRequestInterceptor(ServerRequestInterceptor interceptor) throws DuplicateName {
-        if (REQ_IN_LOG.isLoggable(CONFIG)) REQ_IN_LOG.config("Registering " + describe(interceptor));
+        REQ_IN_LOG.config(() -> "Registering " + describe(interceptor));
         addInterceptorToList(interceptor, serverRequestInterceptors, false);
     }
 

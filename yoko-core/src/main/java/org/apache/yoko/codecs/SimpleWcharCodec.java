@@ -21,11 +21,11 @@ import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.apache.yoko.orb.OB.CodeSetInfo;
 
-import static org.apache.yoko.logging.VerboseLogging.GIOP_IN_LOG;
 import static org.apache.yoko.codecs.Util.BYTE_ORDER_MARKER;
 import static org.apache.yoko.codecs.Util.BYTE_SWAPD_MARKER;
 import static org.apache.yoko.codecs.Util.UNICODE_REPLACEMENT_CHAR;
 import static org.apache.yoko.codecs.Util.ZERO_WIDTH_NO_BREAK_SPACE;
+import static org.apache.yoko.logging.VerboseLogging.GIOP_IN_LOG;
 
 enum SimpleWcharCodec implements WcharCodec, CharCodec {
     UTF_16 {
@@ -53,12 +53,12 @@ enum SimpleWcharCodec implements WcharCodec, CharCodec {
                         case BYTE_ORDER_MARKER: return in.readChar();
                         case BYTE_SWAPD_MARKER: return in.readChar_LE();
                         default:
-                            GIOP_IN_LOG.warning(String.format("Received 4-byte UTF-16 wchar but first 2 bytes did not correspond to a byte order marker: %04X", bom));
+                            GIOP_IN_LOG.warning(() -> String.format("Received 4-byte UTF-16 wchar but first 2 bytes did not correspond to a byte order marker: %04X", bom));
                             in.skipBytes(2);
                             return UNICODE_REPLACEMENT_CHAR;
                     }
                 default:
-                    GIOP_IN_LOG.warning("Unexpected length for UTF-16 wchar: " + len);
+                    GIOP_IN_LOG.warning(() -> "Unexpected length for UTF-16 wchar: " + len);
                     in.skipBytes(len);
                     return UNICODE_REPLACEMENT_CHAR;
             }

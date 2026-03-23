@@ -27,7 +27,6 @@ import org.omg.CORBA.SystemException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.lang.String.format;
 import static java.security.AccessController.doPrivileged;
 import static java.util.logging.Level.SEVERE;
 import static org.apache.yoko.logging.VerboseLogging.INIT_LOG;
@@ -62,7 +61,7 @@ public final class PluginManager {
         } catch (SystemException ex) {
             throw ex;
         } catch (Exception ex) {
-            INIT_LOG.log(SEVERE, ex, () -> format("unable to load OCI plug-in `%s':%n%s", name, ex.getMessage()));
+            INIT_LOG.log(SEVERE, ex, () -> String.format("unable to load OCI plug-in `%s':%n%s", name, ex.getMessage()));
             return null;
         }
     }

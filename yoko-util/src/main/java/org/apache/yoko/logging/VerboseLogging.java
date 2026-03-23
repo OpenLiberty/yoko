@@ -129,6 +129,8 @@ public enum VerboseLogging {
      */
     public static final Logger CLASS_LOG = Logger.getLogger("yoko.verbose.class");
 
+    public static final Logger NAMING_LOG = Logger.getLogger("yoko.verbose.naming");
+
     /**
      * Use this as a pass-through method for an exception when it is being processed without a new exception being created.
      * It will help to determine the code location where the processing happens by:&mdash;
@@ -141,7 +143,7 @@ public enum VerboseLogging {
     public static <L extends Throwable> L logged(Logger logger, L loggable, String reason) {
         loggable.addSuppressed(new StackTraceRecord(reason));
         if (logger.isLoggable(FINEST)) logger.log(FINEST, loggable, () -> reason);
-        else if (logger.isLoggable(FINE)) logger.fine(reason + ": " + loggable); // will only log exception.toString()
+        else logger.fine(() -> reason + ": " + loggable);
         return loggable;
     }
 
