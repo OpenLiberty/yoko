@@ -47,11 +47,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.FINEST;
 import static org.apache.yoko.logging.VerboseLogging.CONN_OUT_LOG;
 import static org.apache.yoko.orb.OB.CodeSetUtil.getNegotiatedCodecs;
 import static org.apache.yoko.orb.OB.SendingContextRuntimes.SENDING_CONTEXT_RUNTIME;
 import static org.apache.yoko.orb.exceptions.Transients.ACTIVE_CONNECTION_MANAGEMENT;
+import static org.apache.yoko.util.Assert.ensure;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 /**
@@ -162,7 +162,7 @@ final class GIOPClient extends Client {
         connection_.activateClientSide();
 
         // log the reusing of the connection
-        if (CONN_OUT_LOG.isLoggable(FINE)) CONN_OUT_LOG.fine("reusing established bidir connection\n" + connection_.transport());
+        CONN_OUT_LOG.fine(() -> "reusing established bidir connection\n" + connection_.transport());
     }
 
     private GIOPConnectionThreaded createOutboundConnection(int t) {
@@ -170,7 +170,7 @@ final class GIOPClient extends Client {
         if (CONN_OUT_LOG.isLoggable(FINE)) {
             String timeout = t >= 0 ? t + "ms" : "none";
             String msg = String.format("trying to establish connection: %s    timeout: %s", connector, timeout);
-            CONN_OUT_LOG.fine(msg);
+            CONN_OUT_LOG.fine(() -> msg);
         }
 
         //
@@ -313,12 +313,12 @@ final class GIOPClient extends Client {
             byte major = down.profileInfo().major;
             byte minor = down.profileInfo().minor;
             if (!connection.isRequestSent() && (major > 1 || minor >= 1)) {
-                if (CONN_OUT_LOG.isLoggable(FINEST)) CONN_OUT_LOG.finest("sending transmission code sets: \n" + codecs());
+                CONN_OUT_LOG.finest(() -> "sending transmission code sets: \n" + codecs());
 
-                Assert.ensure(codeSetSC != null);
+                ensure(codeSetSC != null);
                 down.addToRequestContexts(codeSetSC);
 
-                Assert.ensure(codeBaseSC != null);
+                ensure(codeBaseSC != null);
                 down.addToRequestContexts(codeBaseSC);
             }
 

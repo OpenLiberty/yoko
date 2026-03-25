@@ -64,8 +64,6 @@ public final class ORBInstance {
     private final Properties properties;
     private DispatchStrategyFactory dispatchStrategyFactory;
     private BootManager bootManager;
-    private final Logger logger;
-    private final CoreTraceLevels coreTraceLevels;
     private final RecursiveMutex orbSyncMutex = new RecursiveMutex();
     private final ExecutorService serverExecutor;
     private final Phaser serverPhaser = new Phaser(1);
@@ -95,8 +93,7 @@ public final class ORBInstance {
                        MultiRequestSender multiRequestSender,
                        Properties properties,
                        DispatchStrategyFactory dispatchStrategyFactory,
-                       BootManager bootManager, Logger logger,
-                       CoreTraceLevels coreTraceLevels,
+                       BootManager bootManager,
                        ConFactoryRegistry conFactoryRegistry,
                        AccFactoryRegistry accFactoryRegistry,
                        UnknownExceptionStrategy unknownExceptionStrategy,
@@ -117,8 +114,6 @@ public final class ORBInstance {
         this.properties = properties;
         this.dispatchStrategyFactory = dispatchStrategyFactory;
         this.bootManager = bootManager;
-        this.logger = logger;
-        this.coreTraceLevels = coreTraceLevels;
         this.conFactoryRegistry = conFactoryRegistry;
         this.accFactoryRegistry = accFactoryRegistry;
         this.unknownExceptionStrategy = unknownExceptionStrategy;
@@ -284,14 +279,6 @@ public final class ORBInstance {
 
     public BootManager getBootManager() {
         return bootManager;
-    }
-
-    public Logger getLogger() {
-        return logger;
-    }
-
-    public CoreTraceLevels getCoreTraceLevels() {
-        return coreTraceLevels;
     }
 
     public RecursiveMutex getORBSyncMutex() {

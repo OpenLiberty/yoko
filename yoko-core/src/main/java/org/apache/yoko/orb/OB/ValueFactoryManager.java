@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import java.util.logging.Logger;
 
 import static java.security.AccessController.doPrivileged;
 import static java.util.logging.Logger.getLogger;
+import static org.apache.yoko.util.Assert.ensure;
 import static org.apache.yoko.util.MinorCodes.MinorORBDestroyed;
 import static org.apache.yoko.util.MinorCodes.MinorValueFactoryError;
 import static org.apache.yoko.util.MinorCodes.describeBadParam;
@@ -46,12 +47,12 @@ public final class ValueFactoryManager {
     //
     // The set of registered valuetype factories
     //
-    private Hashtable factories_;
+    private Hashtable<String, ValueFactory> factories_;
 
     //
     // Cached set of factories resolved by class (Java only)
     //
-    private Hashtable classFactories_;
+    private Hashtable<String, ValueFactory> classFactories_;
 
     private boolean destroy_; // True if destroy() was called
 
@@ -140,58 +141,46 @@ public final class ValueFactoryManager {
 
     // Java-specific method
     public ValueFactory lookupValueFactoryWithClass(String id) {
-        //
         // The ORB destroys this object, so it's an initialization error
         // if this operation is called after ORB destruction
-        //
-        if (destroy_)
-        {
-            throw new INITIALIZE(describeInitialize(MinorORBDestroyed), MinorORBDestroyed, COMPLETED_NO);
-        }
+        if (destroy_) throw new INITIALIZE(describeInitialize(MinorORBDestroyed), MinorORBDestroyed, COMPLETED_NO);
 
-        Assert.ensure(id != null);
+        ensure(id != null);
 
-        ValueFactory result;
+        logger.fine(() -> "Looking up value factory for class " + id);
 
-        logger.fine("Looking up value factory for class " + id);
-        //
         // Check the registered factories
-        //
-        result = (ValueFactory) factories_.get(id);
-        if (result != null) {
-            logger.finer("Returning registered value factory " + result.getClass().getName());
-            return result;
-        }
-
-        //
-        // Check the cached factories
-        //
-        result = (ValueFactory) classFactories_.get(id);
-        if (result != null) {
-            logger.finer("Returning cached value factory " + result.getClass().getName());
-            return result;
-        }
-
-        //
-        // Try to convert the repository ID into a class name.
-        //
-        Class<? extends ValueFactory> c = RepIds.query(id).suffix("DefaultFactory").toClass();
-        if (c != null) {
-            try {
-                logger.finer("Attempting to create value factory from class " + c.getName());
-                //
-                // Instantiate the factory
-                //
-                result = doPrivileged(getNoArgConstructor(c)).newInstance();
-
-                //
-                // Cache the result
-                //
-                classFactories_.put(id, result);
-            } catch (ClassCastException | PrivilegedActionException | InvocationTargetException | InstantiationException | IllegalAccessException ignored) {
+        {
+            ValueFactory result = (ValueFactory) factories_.get(id);
+            if (result != null) {
+                logger.finer(() -> "Returning registered value factory " + result.getClass().getName());
+                return result;
             }
         }
 
-        return result;
+        // Check the cached factories
+        {
+            ValueFactory result = (ValueFactory) classFactories_.get(id);
+            if (result != null) {
+                logger.finer(() -> "Returning cached value factory " + result.getClass().getName());
+                return result;
+            }
+        }
+
+        // Try to convert the repository ID into a class name.
+        Class<? extends ValueFactory> c = RepIds.query(id).suffix("DefaultFactory").toClass();
+        if (c != null) {
+            try {
+                logger.finer(() -> "Attempting to create value factory from class " + c.getName());
+                // Instantiate the factory
+                ValueFactory result = doPrivileged(getNoArgConstructor(c)).newInstance();
+
+                // Cache the result
+                classFactories_.put(id, result);
+                return result;
+            } catch (ClassCastException | PrivilegedActionException | InvocationTargetException | InstantiationException | IllegalAccessException ignored) {
+            }
+        }
+        return null;
     }
 }

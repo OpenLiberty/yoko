@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,12 +32,9 @@ import org.omg.PortableInterceptor.ServerRequestInfo;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 import static org.apache.yoko.util.MinorCodes.MinorInvalidComponentId;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidServiceContextId;
-import static org.apache.yoko.util.rofl.Rofl.RemoteOrb.BAD;
-import static org.apache.yoko.util.rofl.Rofl.RemoteOrb.IBM;
 
 public class RoflHelper {
     private static final Logger logger = Logger.getLogger(RoflHelper.class.getName());
@@ -93,8 +90,8 @@ public class RoflHelper {
         return RemoteOrb.of(serviceContext)
                 .map(ro -> ro.createRofl(serviceContext))
                 .orElseGet(() -> {
-                    logger.warning("Failed to find ROFL for service context id:" + serviceContext.context_id);
-                    return BAD.createRofl(serviceContext);
+                    logger.warning(() -> "Failed to find ROFL for service context id:" + serviceContext.context_id);
+                    return RemoteOrb.BAD.createRofl(serviceContext);
                 });
     }
 

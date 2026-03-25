@@ -41,9 +41,9 @@ import org.omg.IOP.UnknownExceptionInfo;
 import org.omg.PortableServer.Servant;
 
 import java.util.Optional;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.util.logging.Level.FINE;
 import static java.util.logging.Logger.getLogger;
 import static org.apache.yoko.io.Buffer.createWriteBuffer;
 import static org.apache.yoko.orb.OB.SendingContextRuntimes.SENDING_CONTEXT_RUNTIME;
@@ -109,7 +109,7 @@ public class Upcall {
 
         this.userEx_ = false;
 
-        logger.fine("Creating upcall request for operation " + op + " and request id " + requestId);
+        logger.fine(() -> "Creating upcall request for operation " + op + " and request id " + requestId);
         in._OB_ORBInstance(orbInstance_);
 
         // get the reply timeout
@@ -328,11 +328,11 @@ public class Upcall {
         // In this case do nothing.
         try {
             if (dispatchStrategy_ != null) {
-                logger.fine("Dispatching request " + reqId_ + " with dispatch strategy " + dispatchStrategy_.getClass().getName());
+                logger.fine(() -> "Dispatching request " + reqId_ + " with dispatch strategy " + dispatchStrategy_.getClass().getName());
                 dispatchStrategy_.dispatch(dispatchRequest_);
             }
         } catch (SystemException ex) {
-            logger.log(Level.FINE, "Exception received dispatching request", ex);
+            logger.log(FINE, ex, () -> "Exception received dispatching request");
             setSystemException(ex);
         }
     }

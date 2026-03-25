@@ -45,6 +45,7 @@ import java.util.logging.Logger;
 
 import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
+import static org.apache.yoko.orb.OB.Net.getCanonicalHostname;
 import static org.apache.yoko.orb.OCI.IIOP.Acceptor_impl.ProfileCardinality.MANY;
 import static org.apache.yoko.orb.OCI.IIOP.Acceptor_impl.ProfileCardinality.ONE;
 import static org.apache.yoko.orb.OCI.IIOP.Acceptor_impl.ProfileCardinality.ZERO;
@@ -94,7 +95,8 @@ final class AccFactory_impl extends LocalObject implements AccFactory {
                     } catch (NumberFormatException ex) {
                         throw new InvalidParam("invalid argument for --backlog: " + backlogArg);
                     }
-                    if (backlog < 1 || backlog > 65535) throw new InvalidParam("invalid backlog value: " + backlogArg);
+                    if (backlog < 1 || backlog > 65535)
+                        throw new InvalidParam("invalid backlog value: " + backlogArg);
                     break;
 
                 case "--bind":
@@ -165,15 +167,17 @@ final class AccFactory_impl extends LocalObject implements AccFactory {
                     if (!connectionHelper.isExtended()) throw new InvalidParam("unknown parameter: " + option);
                 }
             } catch (IndexOutOfBoundsException e) {
-                throw (InvalidParam)new InvalidParam("argument expected for " + option).initCause(e);
+                throw (InvalidParam) new InvalidParam("argument expected for " + option).initCause(e);
             }
         }
 
         if (hosts == null) {
-            hosts = new String[] {Net.getCanonicalHostname(numeric)};
+            hosts = new String[]{getCanonicalHostname(numeric)};
         }
 
-        logger.fine("Creating acceptor for port=" + port);
+        final int finalPort = port;
+        logger.fine(() -> "Creating acceptor for port=" + finalPort);
+
         Codec codec;
         try {
             codec = ((CodecFactory) orb_.resolve_initial_references("CodecFactory")).create_codec(CDR_1_2_ENCODING);

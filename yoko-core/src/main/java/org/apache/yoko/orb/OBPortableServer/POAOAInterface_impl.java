@@ -41,11 +41,19 @@ import org.omg.CORBA.TRANSIENT;
 import org.omg.CORBA.portable.OutputStream;
 import org.omg.IOP.IOR;
 import org.omg.IOP.IORHolder;
+import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static java.util.logging.Level.FINE;
+import static org.apache.yoko.orb.OB.ObjectKey.ParseObjectKey;
+import static org.apache.yoko.util.Assert.ensure;
+import static org.apache.yoko.util.MinorCodes.MinorCannotDispatch;
+import static org.apache.yoko.util.MinorCodes.describeObjectNotExist;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 //
 // We don't need any sort of concurrency protection on this class
@@ -99,7 +107,7 @@ final class POAOAInterface_impl extends LocalObject implements OAInterface {
             String op, YokoInputStream in,
             ServiceContexts requestContexts) {
         Upcall upcall = null;
-        logger.fine("Creating upcall for operation " + op); 
+        logger.fine(() -> "Creating upcall for operation " + op);
         try {
             //
             // If discarding then throw a TRANSIENT exception
@@ -107,17 +115,17 @@ final class POAOAInterface_impl extends LocalObject implements OAInterface {
             if (discard_) {
                 throw new TRANSIENT(
                         "Requests are being discarded", 0,
-                        CompletionStatus.COMPLETED_NO);
+                        COMPLETED_NO);
             }
 
             ObjectKeyData data = new ObjectKeyData();
-            if (ObjectKey.ParseObjectKey(profileInfo.key, data)) {
+            if (ParseObjectKey(profileInfo.key, data)) {
                 while (true) {
                     //
                     // Locate the POA. This may also throw a TRANSIENT
                     // exception if the POA manager is discarding.
                     //
-                    org.omg.PortableServer.POA poa = poaManager_._OB_locatePOA(data);
+                    POA poa = poaManager_._OB_locatePOA(data);
                     if (poa == null) {
                         logger.fine(() -> "Unable to locate POA " + data + " using POAManager " + poaManager_.get_id());
                     } else {
@@ -135,7 +143,7 @@ final class POAOAInterface_impl extends LocalObject implements OAInterface {
                     break;
                 }
             } else if (upcallReturn != null) {
-                logger.fine("Error parsing object key data"); 
+                logger.fine(() -> "Error parsing object key data");
                 //
                 // Check to see if the BootManager knows of a reference
                 // for the ObjectKey. If so, forward the request.
@@ -158,26 +166,24 @@ final class POAOAInterface_impl extends LocalObject implements OAInterface {
                     OutputStream out = upcall.preMarshal();
                     out.write_boolean(true);
                     upcall.postMarshal();
-                } 
-                else {
+                } else {
                     throw new OBJECT_NOT_EXIST(
-                            MinorCodes
-                                    .describeObjectNotExist(MinorCodes.MinorCannotDispatch),
-                            MinorCodes.MinorCannotDispatch,
-                            CompletionStatus.COMPLETED_NO);
+                            describeObjectNotExist(MinorCannotDispatch),
+                            MinorCannotDispatch,
+                            COMPLETED_NO);
                 }
             }
         } catch (SystemException ex) {
-            logger.log(Level.FINE, "System exception creating upcall", ex); 
+            logger.log(FINE, ex, () -> "System exception creating upcall");
             upcall = new Upcall(orbInstance_, upcallReturn, profileInfo, transportInfo, requestId, op, in, requestContexts);
             upcall.setSystemException(ex);
         } catch (LocationForward ex) {
-            logger.log(Level.FINE, "Location forward request creating upcall.", ex); 
+            logger.log(FINE, ex, () -> "Location forward request creating upcall.");
             upcall = new Upcall(orbInstance_, upcallReturn, profileInfo, transportInfo, requestId, op, in, requestContexts);
             upcall.setLocationForward(ex.ior, ex.perm);
         }
 
-        Assert.ensure(upcall != null);
+        ensure(upcall != null);
         return upcall;
     }
 
@@ -185,13 +191,13 @@ final class POAOAInterface_impl extends LocalObject implements OAInterface {
         ObjectKeyData data = new ObjectKeyData();
         if (ObjectKey.ParseObjectKey(key, data)) {
             try {
-                logger.fine("Locate request for object key " + data);  
-                
-                org.omg.PortableServer.POA poa = poaManager_._OB_locatePOA(data);
+                logger.fine(() -> "Locate request for object key " + data);
+
+                POA poa = poaManager_._OB_locatePOA(data);
                 if (poa != null) {
                     POA_impl poaImpl = (POA_impl) poa;
                     poaImpl._OB_locateServant(data.oid);
-                    return OAInterface.OBJECT_HERE;
+                    return OBJECT_HERE;
                 }
             } catch (SystemException ex) {
             } catch (LocationForward fwd) {
@@ -204,10 +210,10 @@ final class POAOAInterface_impl extends LocalObject implements OAInterface {
             // Check to see if the BootManager knows of a reference
             // for the ObjectKey.
             //
-            logger.fine("Checking boot manager for object with key " + data);  
+            logger.fine(() -> "Checking boot manager for object with key " + data);
             ior.value = bootManagerImpl_._OB_locate(key);
             if (ior.value != null) {
-                return OAInterface.OBJECT_FORWARD;
+                return OBJECT_FORWARD;
             }
         }
         return OAInterface.UNKNOWN_OBJECT;

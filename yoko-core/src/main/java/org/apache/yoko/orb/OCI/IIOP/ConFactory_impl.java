@@ -18,7 +18,6 @@
 package org.apache.yoko.orb.OCI.IIOP;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
-import org.apache.yoko.orb.OB.IORDump;
 import org.apache.yoko.orb.OB.IORUtil;
 import org.apache.yoko.orb.OB.PROTOCOL_POLICY_ID;
 import org.apache.yoko.orb.OB.ProtocolPolicy;
@@ -49,15 +48,15 @@ import org.omg.IOP.TaggedProfile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.apache.yoko.logging.VerboseLogging.CONN_IN_LOG;
+import static org.apache.yoko.orb.OB.IORDump.describeIor;
 import static org.apache.yoko.util.Hex.formatHexPara;
 
-final class ConFactory_impl extends LocalObject implements
-        ConFactory {
+final class ConFactory_impl extends LocalObject implements ConFactory {
     // the real logger backing instance.  We use the interface class as the locator
-    static final Logger logger = Logger.getLogger(ConFactory.class.getName());
+    static final Logger logger = CONN_IN_LOG;
     private static final Encoding CDR_1_2_ENCODING = new Encoding(ENCODING_CDR_ENCAPS.value, (byte) 1, (byte) 2);
 
     private final boolean keepAlive_; // The keepalive flag
@@ -99,8 +98,7 @@ final class ConFactory_impl extends LocalObject implements
         //
         // Show general info
         //
-        result.append("iiop_version: " + (int) body.iiop_version.major + '.'
-                + (int) body.iiop_version.minor + '\n');
+        result.append("iiop_version: " + (int) body.iiop_version.major + '.' + (int) body.iiop_version.minor + '\n');
         result.append("host: " + body.host + '\n');
         final int port = ((char)body.port);
         result.append("port: " + port + '\n');
@@ -126,14 +124,12 @@ final class ConFactory_impl extends LocalObject implements
     private static final Connector[] EMPTY_CONNECTORS = new Connector[0];
 
     public Connector[] create_connectors(IOR ior, Policy[] policies) {
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.finest("Creating connection for ior: " + IORDump.describeIor(orb_, ior));
-        }
+        logger.finest(() -> "Creating connection for ior: " + describeIor(orb_, ior));
 
         //
         // Check whether policies are satisfied
         //
-        for (Policy policy: policies) {
+        for (Policy policy : policies) {
             if (policy.policy_type() == PROTOCOL_POLICY_ID.value) {
                 ProtocolPolicy protocolPolicy = ProtocolPolicyHelper.narrow(policy);
                 if (!protocolPolicy.contains(PLUGIN_ID.value))
@@ -146,7 +142,7 @@ final class ConFactory_impl extends LocalObject implements
         //
         // Create Connectors from profiles
         //
-        for (TaggedProfile profile: ior.profiles) {
+        for (TaggedProfile profile : ior.profiles) {
             if (profile.tag != tag()) continue;
 
             //
@@ -164,9 +160,9 @@ final class ConFactory_impl extends LocalObject implements
             try {
                 codec = ((CodecFactory) orb_.resolve_initial_references("CodecFactory")).create_codec(CDR_1_2_ENCODING);
             } catch (InvalidName e) {
-                logger.fine("Could not obtain codec factory using name 'CodecFactory'");
+                logger.fine(() -> "Could not obtain codec factory using name 'CodecFactory'");
             } catch (UnknownEncoding e) {
-                logger.fine("Could not obtain codec using encoding " + CDR_1_2_ENCODING);
+                logger.fine(() -> "Could not obtain codec using encoding " + CDR_1_2_ENCODING);
             }
 
             if (body.port == 0) {
@@ -179,8 +175,8 @@ final class ConFactory_impl extends LocalObject implements
                 //
                 // Create new connector for this profile
                 //
-                final int port = ((char)body.port);
-                logger.fine("Creating connector to host=" + body.host + ", port=" + port);
+                final int port = ((char) body.port);
+                logger.fine(() -> "Creating connector to host=" + body.host + ", port=" + port);
                 ConnectCB[] cbs = info_._OB_getConnectCBSeq();
                 iopConnectors.add(createConnector(ior, policies, body.host, port, cbs, codec));
             }
@@ -204,20 +200,20 @@ final class ConFactory_impl extends LocalObject implements
             // (e.g. the TAG_CSI_SEC_MECH_LIST)
             //
             final ConnectCB[] ccbs = info_._OB_getConnectCBSeq();
-            for (TaggedComponent tc: components) {
+            for (TaggedComponent tc : components) {
                 if (tc.tag == TAG_ALTERNATE_IIOP_ADDRESS.value) {
                     final YokoInputStream cin = new YokoInputStream(tc.component_data);
                     cin._OB_readEndian();
                     final String host = cin.read_string();
                     final short s = cin.read_ushort();
-                    final int cport = ((char)s);
+                    final int cport = ((char) s);
 
-                    if (logger.isLoggable(Level.FINE)) logger.fine("Creating alternate connector to host=" + host + ", port=" + cport);
+                    logger.fine(() -> "Creating alternate connector to host=" + host + ", port=" + cport);
                     Connector newConnector = createConnector(ior, policies, host, cport, ccbs, codec);
                     iopConnectors.add(newConnector);
                 } else if (helperComponentTags.contains(tc.tag)) {
                     for (TransportAddress endpoint : connectionHelper.getEndpoints(tc, policies)) {
-                        if (logger.isLoggable(Level.FINE)) logger.fine("Creating extended connector to host=" + endpoint.host_name + ", port=" + endpoint.port);
+                        logger.fine(() -> "Creating extended connector to host=" + endpoint.host_name + ", port=" + endpoint.port);
                         Connector newConnector = createConnector(ior, policies, endpoint.host_name, endpoint.port, ccbs, codec);
                         extConnectors.add(newConnector);
                         recordPortZero = false;
@@ -229,7 +225,7 @@ final class ConFactory_impl extends LocalObject implements
             // to connect to (i.e. CSIv2 ones) then we create the zero port connector to give the helper a second chance
             // to handle it
             if (recordPortZero) {
-                logger.fine("Creating connector with port=0 to host=" + body.host);
+                logger.fine(() -> "Creating connector with port=0 to host=" + body.host);
                 ConnectCB[] cbs = info_._OB_getConnectCBSeq();
                 iopConnectors.add(createConnector(ior, policies, body.host, 0, cbs, codec));
             }

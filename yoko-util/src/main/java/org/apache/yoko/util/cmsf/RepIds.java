@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -87,8 +86,7 @@ public enum RepIds {
         final String repid = query.repid;
         final String suffix = query.suffix;
         final String codebase = query.codebase;
-        if (LOGGER.isLoggable(Level.FINE))
-            LOGGER.fine(String.format("Searching for class from repid \"%s\" using suffix \"%s\"", repid, suffix));
+        LOGGER.fine(() -> String.format("Searching for class from repid \"%s\" using suffix \"%s\"", repid, suffix));
         Class<?> result = null;
 
         //Special case IDL:omg.org/CORBA/WStringValue:1.0
@@ -96,16 +94,14 @@ public enum RepIds {
 
         final String className = toClassName(query);
 
-        if (LOGGER.isLoggable(Level.FINE))
-            LOGGER.fine(String.format("Class name from repid \"%s\" using suffix \"%s\" is \"%s\"", repid, suffix, className));
+        LOGGER.fine(() -> String.format("Class name from repid \"%s\" using suffix \"%s\" is \"%s\"", repid, suffix, className));
 
         if (className != null) {
             try {
                 // get the appropriate class for the loading.
                 result = Util.loadClass(className, codebase, doPrivileged(GET_CONTEXT_CLASS_LOADER));
             } catch (ClassNotFoundException ex) {
-                if (LOGGER.isLoggable(Level.FINE))
-                    LOGGER.fine(String.format("Class \"%s\" not found", className));
+                LOGGER.fine(() -> String.format("Class \"%s\" not found", className));
                 // ignore
             }
         }

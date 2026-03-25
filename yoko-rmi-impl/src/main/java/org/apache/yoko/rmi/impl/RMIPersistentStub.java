@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import javax.rmi.CORBA.Stub;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.util.logging.Level.WARNING;
 import static javax.rmi.CORBA.Util.createValueHandler;
 import static javax.rmi.PortableRemoteObject.narrow;
 
@@ -47,7 +48,7 @@ public class RMIPersistentStub extends Stub {
         try {
             return narrow(this, type);
         } catch (RuntimeException ex) {
-            logger.log(Level.WARNING, "Error narrowing object", ex); 
+            logger.log(WARNING, ex, () -> "Error narrowing object");
             throw ex;
         }
     }

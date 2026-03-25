@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,17 +50,16 @@ public class CSIInterceptorLoader extends LocalObject implements
     GSSUPIORInterceptor ior_interceptor;
 
     public void pre_init(ORBInitInfo info) {
-        log.fine("********  Running PortableCSILoader ******** ");
+        log.fine(() -> "********  Running PortableCSILoader ******** ");
 
         Codec codec = null;
         try {
             codec = info.codec_factory()
                     .create_codec(
                             new Encoding(ENCODING_CDR_ENCAPS.value, (byte) 1,
-                                         (byte) 2));
-        }
-        catch (UnknownEncoding ex) {
-            log.log(SEVERE, "Could not get codec: ", ex);
+                                    (byte) 2));
+        } catch (UnknownEncoding ex) {
+            log.log(SEVERE, ex, () -> "Could not get codec: ");
             return;
         }
 
@@ -72,21 +71,20 @@ public class CSIInterceptorLoader extends LocalObject implements
         PolicyFactory factory = new CSIPolicyFactory();
         info.register_policy_factory(SecMechanismsPolicy.value, factory);
         info.register_policy_factory(SecInvocationCredentialsPolicy.value,
-                                     factory);
+                factory);
         info.register_policy_factory(SecQOPPolicy.value, factory);
         info.register_policy_factory(SecEstablishTrustPolicy.value, factory);
         info.register_policy_factory(SecGSSUPPolicy.value, factory);
         info.register_policy_factory(SecDelegationDirectivePolicy.value,
-                                     factory);
+                factory);
 
         try {
             info.add_client_request_interceptor(client_interceptor);
             info.add_server_request_interceptor(server_interceptor);
             info.add_ior_interceptor(ior_interceptor);
 
-        }
-        catch (DuplicateName ex) {
-            throw (INITIALIZE)new INITIALIZE(ex.getMessage()).initCause(ex);
+        } catch (DuplicateName ex) {
+            throw (INITIALIZE) new INITIALIZE(ex.getMessage()).initCause(ex);
         }
 
     }

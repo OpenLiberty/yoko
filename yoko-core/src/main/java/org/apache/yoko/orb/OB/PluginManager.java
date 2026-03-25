@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,9 +27,9 @@ import org.omg.CORBA.SystemException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static java.lang.String.format;
 import static java.security.AccessController.doPrivileged;
 import static java.util.logging.Level.SEVERE;
+import static org.apache.yoko.logging.VerboseLogging.INIT_LOG;
 import static org.apache.yoko.osgi.ProviderLocator.loadClass;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
 import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
@@ -61,7 +61,7 @@ public final class PluginManager {
         } catch (SystemException ex) {
             throw ex;
         } catch (Exception ex) {
-            orb.logger().log(SEVERE, format("unable to load OCI plug-in `%s':%n%s", name, ex.getMessage()), ex);
+            INIT_LOG.log(SEVERE, ex, () -> String.format("unable to load OCI plug-in `%s':%n%s", name, ex.getMessage()));
             return null;
         }
     }

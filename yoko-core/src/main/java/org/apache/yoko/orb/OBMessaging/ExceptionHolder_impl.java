@@ -33,6 +33,7 @@ import java.lang.reflect.Method;
 
 import static java.security.AccessController.doPrivileged;
 import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
+import static org.apache.yoko.osgi.ProviderLocator.loadClass;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
 
 public class ExceptionHolder_impl extends _ExceptionHolder {
@@ -114,7 +115,7 @@ public class ExceptionHolder_impl extends _ExceptionHolder {
             try {
                 // Get the helper class and the insert method with
                 // appropriate parameter types
-                Class<?> c = ProviderLocator.loadClass(className + "Helper", exClass, doPrivileged(GET_CONTEXT_CLASS_LOADER));
+                Class<?> c = loadClass(className + "Helper", exClass, doPrivileged(GET_CONTEXT_CLASS_LOADER));
                 Method m = c.getMethod("insert", Any.class, exClass);
                 m.invoke(null, any, ex);
             } catch (ClassNotFoundException | SecurityException e) {

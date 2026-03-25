@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,9 +30,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 
 import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.WARNING;
+import static org.apache.yoko.orb.OB.Connection.State.CLOSING;
 import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.ACTIVE;
 import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.CLOSED;
 import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.HOLDING;
+import static org.apache.yoko.util.Assert.ensure;
+import static org.apache.yoko.util.Assert.fail;
 import static org.apache.yoko.util.MinorCodes.MinorThreadLimit;
 import static org.apache.yoko.util.MinorCodes.describeImpLimit;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
@@ -45,10 +49,10 @@ final class GIOPServerStarterThreaded extends GIOPServerStarter {
             try {
                 starterRun();
             } catch (RuntimeException ex) {
-                throw Assert.fail(ex);
+                throw fail(ex);
             }
 
-            logger.fine("Shutting down ORB server listener thread");
+            logger.fine(() -> "Shutting down ORB server listener thread");
             // Shutdown the acceptor so that no further connections are accepted
             logCloseAcceptor();
             acceptor_.shutdown();
@@ -59,11 +63,11 @@ final class GIOPServerStarterThreaded extends GIOPServerStarter {
                 try {
                     Transport t = acceptor_.accept(false);
                     if (t == null) {
-                        logger.fine("Null transport received from a connect");
+                        logger.fine(() -> "Null transport received from a connect");
                         break;
                     }
                     GIOPConnection connection = new GIOPConnectionThreaded(orbInstance_, t, oaInterface_);
-                    connection.setState(State.CLOSING);
+                    connection.setState(CLOSING);
                 } catch (SystemException ex) {
                 }
             } while (true);
@@ -81,7 +85,7 @@ final class GIOPServerStarterThreaded extends GIOPServerStarter {
     GIOPServerStarterThreaded(ORBInstance orbInstance, Acceptor acceptor, OAInterface oaInterface) {
         super(orbInstance, acceptor, oaInterface);
 
-        logger.fine("GIOPServer thread started " + this + " using acceptor " + acceptor);
+        logger.fine(() -> "GIOPServer thread started " + this + " using acceptor " + acceptor);
         try {
             orbInstance_.getServerPhaser().register();
             //
@@ -95,7 +99,7 @@ final class GIOPServerStarterThreaded extends GIOPServerStarter {
             executor.submit(new Starter());
         } catch (OutOfMemoryError ex) {
             acceptor_.close();
-            serverState = ServerState.CLOSED;
+            serverState = CLOSED;
             throw new IMP_LIMIT(describeImpLimit(MinorThreadLimit),
                     MinorThreadLimit,
                     COMPLETED_NO);
@@ -117,7 +121,7 @@ final class GIOPServerStarterThreaded extends GIOPServerStarter {
             return;
         }
 
-        logger.fine("Setting server state to " + state);
+        logger.fine(() -> "Setting server state to " + state);
 
         //
         // It is not possible to transition backwards, except if we are
@@ -148,17 +152,17 @@ final class GIOPServerStarterThreaded extends GIOPServerStarter {
         case CLOSED: {
             for (int i = 0; i < connections_.size(); i++) {
                 GIOPConnection w = (GIOPConnection) connections_.elementAt(i);
-                w.setState(State.CLOSING);
+                w.setState(CLOSING);
             }
             connections_.removeAllElements();
 
             // Connect to this starter's acceptor, to unblock the call
             // to accept() in the starter thread
             try {
-                org.apache.yoko.orb.OCI.Transport tr = acceptor_.connect_self();
+                Transport tr = acceptor_.connect_self();
                 tr.close();
-            } catch (org.omg.CORBA.SystemException ignored) {
-                CONN_IN_LOG.log(INFO, "Call to unblock accept() failed", ignored);
+            } catch (SystemException ignored) {
+                CONN_IN_LOG.log(INFO, ignored, () -> "Call to unblock accept() failed");
             }
 
             break;
@@ -204,13 +208,13 @@ final class GIOPServerStarterThreaded extends GIOPServerStarter {
                 //
                 while (serverState == HOLDING) {
                     try {
-                        logger.fine("Waiting on an inbound connection because the state is holding.  acceptor=" + acceptor_);
+                        logger.fine(() -> "Waiting on an inbound connection because the state is holding.  acceptor=" + acceptor_);
                         wait();
-                    } catch (InterruptedException ex) {
+                    } catch (InterruptedException ignored) {
                     }
                 }
 
-                logger.fine("Processing an inbound connection with state=" + serverState);
+                logger.fine(() -> "Processing an inbound connection with state=" + serverState);
                 if (transport != null) {
                     try {
                         if (serverState == ACTIVE) {
@@ -223,29 +227,29 @@ final class GIOPServerStarterThreaded extends GIOPServerStarter {
                             connections_.addElement(connection);
                             connection.setState(State.ACTIVE);
                         } else {
-                            logger.fine("Processing an inbound connection because state is closed");
+                            logger.fine(() -> "Processing an inbound connection because state is closed");
                             //
                             // If we're closed, we create a new dummy
                             // worker, only in order to set it to
                             // StateClosing for proper connection shutdown
                             //
-                            Assert.ensure(serverState == CLOSED);
-                            logger.fine("Processing an inbound connection because state is closed");
+                            ensure(serverState == CLOSED);
+                            logger.fine(() -> "Processing an inbound connection because state is closed");
                             GIOPConnection connection = new GIOPConnectionThreaded(
                                     orbInstance_, transport, oaInterface_);
-                            logger.fine("Created connection " + connection);
+                            logger.fine(() -> "Created connection " + connection);
 
-                            connection.setState(State.CLOSING);
-                            logger.fine("set connection state to closing");
+                            connection.setState(CLOSING);
+                            logger.fine(() -> "set connection state to closing");
                         }
                     } catch (SystemException ex) {
                         String msg = "can't accept connection\n" + ex.getMessage();
-                        logger.log(Level.WARNING, msg, ex);
+                        logger.log(WARNING, ex, () -> msg);
                     }
                 }
 
                 if (serverState == CLOSED) {
-                    logger.fine("Shutting down server thread");
+                    logger.fine(() -> "Shutting down server thread");
                     break;
                 }
             }

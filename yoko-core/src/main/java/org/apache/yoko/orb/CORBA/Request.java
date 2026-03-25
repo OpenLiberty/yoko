@@ -17,6 +17,8 @@
  */
 package org.apache.yoko.orb.CORBA;
 
+import static java.util.logging.Level.FINE;
+import static org.apache.yoko.logging.VerboseLogging.REQ_OUT_LOG;
 import static org.apache.yoko.util.MinorCodes.MinorDuplicateSend;
 import static org.apache.yoko.util.MinorCodes.MinorRequestAlreadySent;
 import static org.apache.yoko.util.MinorCodes.MinorRequestNotSent;
@@ -26,13 +28,11 @@ import static org.apache.yoko.util.MinorCodes.describeBadInvOrder;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 import java.util.Vector;
-import java.util.logging.Level;
 
 import org.apache.yoko.orb.OB.Downcall;
 import org.apache.yoko.orb.OB.DowncallStub;
 import org.apache.yoko.orb.OB.FailureException;
 import org.apache.yoko.orb.OB.LocationForward;
-import org.apache.yoko.orb.OB.Logger;
 import org.apache.yoko.orb.OB.MultiRequestSender;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.util.Assert;
@@ -390,8 +390,7 @@ final public class Request extends org.omg.CORBA.Request {
                 }
             } // while(true)
         } catch (SystemException ex) {
-            Logger logger = delegate_._OB_ORBInstance().getLogger(); 
-            logger.log(Level.FINE, "Exception sending request", ex); 
+            REQ_OUT_LOG.log(FINE, ex, () -> "Exception sending request");
             environment_.exception(ex);
             synchronized (stateMutex_) {
                 state_ = RequestStateDone;
@@ -454,8 +453,7 @@ final public class Request extends org.omg.CORBA.Request {
                 }
             } // while(true)
         } catch (SystemException ex) {
-            Logger logger = delegate_._OB_ORBInstance().getLogger(); 
-            logger.log(java.util.logging.Level.FINE, "Exception sending deferred request", ex); 
+            REQ_OUT_LOG.log(FINE, ex, () -> "Exception sending deferred request");
             environment_.exception(ex);
             synchronized (stateMutex_) {
                 multi.addDeferredRequest(this);
@@ -564,8 +562,7 @@ final public class Request extends org.omg.CORBA.Request {
                 }
             } // while(true)
         } catch (SystemException ex) {
-            Logger logger = delegate_._OB_ORBInstance().getLogger(); 
-            logger.log(Level.FINE, "Exception getting request response", ex); 
+            REQ_OUT_LOG.log(FINE, ex, () -> "Exception getting request response");
             environment_.exception(ex);
             synchronized (stateMutex_) {
                 state_ = RequestStateDone;
@@ -659,8 +656,7 @@ final public class Request extends org.omg.CORBA.Request {
                 }
             } // while(true)
         } catch (SystemException ex) {
-            Logger logger = delegate_._OB_ORBInstance().getLogger(); 
-            logger.log(Level.FINE, "Exception polling request response", ex); 
+            REQ_OUT_LOG.log(FINE, ex, () -> "Exception polling request response");
             environment_.exception(ex);
             synchronized (stateMutex_) {
                 state_ = RequestStateReceived;

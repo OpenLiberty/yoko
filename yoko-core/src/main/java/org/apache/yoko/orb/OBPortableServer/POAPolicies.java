@@ -114,7 +114,7 @@ final public class POAPolicies {
                     case ZERO_PORT_POLICY_ID.value: zeroPort = ZeroPortPolicyHelper.narrow(ZeroPortPolicyHelper.narrow(policy)).value(); break;
                     default:
                         // Unknown policy
-                        POA_INIT_LOG.warning(String.format("Ignoring unsupported policy of type 0x%x", policy.policy_type()));
+                        POA_INIT_LOG.warning(() -> String.format("Ignoring unsupported policy of type 0x%x", policy.policy_type()));
                 }
             }
         }

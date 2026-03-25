@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 
 import org.omg.CORBA.INTERNAL;
+
+import static java.util.logging.Level.FINE;
 
 public final class CorbaObjectWriter extends ObjectWriter {
     static Logger logger = Logger.getLogger(CorbaObjectWriter.class.getName());
@@ -112,7 +114,7 @@ public final class CorbaObjectWriter extends ObjectWriter {
         try {
             javax.rmi.CORBA.Util.writeAbstractObject(out, obj);
         } catch (Error err) {
-            logger.log(Level.FINE, "exception in writeObjectOverride", err);
+            logger.log(FINE, err, () -> "exception in writeObjectOverride");
             throw err;
         }
     }
@@ -122,7 +124,7 @@ public final class CorbaObjectWriter extends ObjectWriter {
         try {
             out.write_value((java.io.Serializable) obj);
         } catch (Error err) {
-            logger.log(Level.FINE, "exception in writeValueObject", err);
+            logger.log(FINE, err, () -> "exception in writeValueObject");
             throw err;
         }
 

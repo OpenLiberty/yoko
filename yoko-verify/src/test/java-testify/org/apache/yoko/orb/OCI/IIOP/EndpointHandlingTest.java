@@ -17,7 +17,6 @@
  */
 package org.apache.yoko.orb.OCI.IIOP;
 
-
 import acme.Echo;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.rmi.impl.RMIServant;
@@ -52,7 +51,6 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasKey;
-
 
 /**
  * Set up specific endpoints and tests IORs and listeners are created correctly.

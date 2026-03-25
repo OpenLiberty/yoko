@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,8 +36,6 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static java.security.AccessController.doPrivileged;
-import static java.util.Optional.ofNullable;
-import static java.util.logging.Level.FINE;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
 import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
 
@@ -133,12 +131,12 @@ public class iiop implements PluginInit {
                 case "org.omg.CORBA.ORBInitialHost":
                 case "yoko.iiop.host":
                     this.setHost(value);
-                    logger.fine("Using " + key + " value of " + value);
+                    logger.fine(() -> "Using " + key + " value of " + value);
                     break;
                 case "org.omg.CORBA.ORBInitialPort":
                 case "yoko.iiop.port":
                     this.setPort(value);
-                    logger.fine("Using " + key + " value of " + value);
+                    logger.fine(() -> "Using " + key + " value of " + value);
                     break;
                 case "org.omg.CORBA.ORBListenEndpoints":
                     // both specified on one property
@@ -146,12 +144,12 @@ public class iiop implements PluginInit {
                     if (sep != -1) {
                         this.setHost(value.substring(0, sep));
                         this.setPort(value.substring(sep + 1));
-                        logger.fine("Using " + key + " value of " + value);
+                        logger.fine(() -> "Using " + key + " value of " + value);
                     }
                     break;
                 case "yoko.iiop.numeric":
                     this.setNumeric();
-                    logger.fine("Using " + key + " value of " + value);
+                    logger.fine(() -> "Using " + key + " value of " + value);
                     break;
                 default:
                     if (key.startsWith("yoko.iiop.")) throw new INITIALIZE("iiop: unknown property " + key);
@@ -215,12 +213,12 @@ public class iiop implements PluginInit {
                             .orElse(""));
 
             value.append(numeric ? "iiop --numeric" : "iiop");
-            ofNullable(host).map(s -> " --host \"" + s + "\"").map(value::append);
-            ofNullable(port).map(s -> " --port " + s).map(value::append);
-            ofNullable(backlog).map(s -> " --backlog " + s).map(value::append);
-            ofNullable(bind).map(s -> " --bind " + s).map(value::append);
+            Optional.ofNullable(host).map(s -> " --host \"" + s + "\"").map(value::append);
+            Optional.ofNullable(port).map(s -> " --port " + s).map(value::append);
+            Optional.ofNullable(backlog).map(s -> " --backlog " + s).map(value::append);
+            Optional.ofNullable(bind).map(s -> " --bind " + s).map(value::append);
 
-            if (logger.isLoggable(FINE)) logger.fine(String.format("Setting endpoint property \"%s\" to \"%s\"", key, value));
+            logger.fine(() -> String.format("Setting endpoint property \"%s\" to \"%s\"", key, value));
             target.put(key, value);
         }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import org.omg.CORBA.portable.InputStream;
 import java.io.InvalidClassException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Objects;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.security.AccessController.doPrivileged;
@@ -76,7 +75,7 @@ public enum SerialFilterHelper {
 
     private abstract static class FilterAdapter {
         {
-            if (logger.isLoggable(Level.FINER)) logger.finer(this.getClass().getName() + " created");
+            logger.finer(() -> this.getClass().getName() + " created");
         }
         abstract void checkInput(Class<?> serialClass, long arrayLength, long depth, long streamBytes) throws InvalidClassException;
     }
@@ -100,21 +99,19 @@ public enum SerialFilterHelper {
         @Override
         public final void checkInput(Class<?> serialClass, long arrayLength, long depth, long streamBytes) throws InvalidClassException {
             final long references = 1; // we cannot know how many other references there will be later in the stream
-            if (logger.isLoggable(Level.FINER)) {
-                logger.finer(String.format("Invoking SerialFilter for Class : %s=\"%s\", %s=%d, %s=%d, %s=%d, %s=%d",
-                        "serialClass", serialClass,
-                        "arrayLength", arrayLength,
-                        "depth", depth,
-                        "references", references,
-                        "streamBytes", streamBytes));
-            }
+            logger.finer(() -> String.format("Invoking SerialFilter for Class : %s=\"%s\", %s=%d, %s=%d, %s=%d, %s=%d",
+                    "serialClass", serialClass,
+                    "arrayLength", arrayLength,
+                    "depth", depth,
+                    "references", references,
+                    "streamBytes", streamBytes));
 
             INFO info = makeInfo(serialClass, arrayLength, depth, references, streamBytes);
             STATUS status;
             try {
                 status = checkInput(info);
             } catch (Exception e) {
-                throw (InvalidClassException)new InvalidClassException("Rejected by serialFilter: " + serialClass.getName()).initCause(e);
+                throw (InvalidClassException) new InvalidClassException("Rejected by serialFilter: " + serialClass.getName()).initCause(e);
             }
             if (status == null || status == rejected) {
                 throw new InvalidClassException("Rejected by serialFilter: " + serialClass.getName());

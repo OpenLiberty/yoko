@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,13 +51,11 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.security.AccessController;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -69,7 +67,9 @@ import java.util.logging.Logger;
 
 import static java.security.AccessController.doPrivileged;
 import static java.util.Arrays.asList;
+import static java.util.Collections.EMPTY_MAP;
 import static java.util.Collections.unmodifiableSet;
+import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.util.Exceptions.as;
 
 class ValueDescriptor extends TypeDescriptor {
@@ -254,29 +254,24 @@ class ValueDescriptor extends TypeDescriptor {
                         _constructor.setAccessible(true);
 
                     } catch (NoSuchMethodException ex) {
-                        logger.log(Level.WARNING, "Class " + type.getName() + " is not properly externalizable.  "
-                                + "It has not default constructor.", ex);
+                        logger.log(WARNING, ex, () -> "Class " + type.getName() + " is not properly externalizable.  "
+                                + "It has no default constructor.");
                     }
 
                 } else if (_is_serializable && !type.isInterface()) {
 
-                    Class<?> initClass = type;
-
-                    while ((initClass != null) && Serializable.class.isAssignableFrom(initClass)) {
-                        initClass = initClass.getSuperclass();
-                    }
+                    Class<?> initClass = getFirstNonSerializableSuperclass();
 
                     if (initClass == null) {
-                        logger.warning("Class " + type.getName() + " is not properly serializable.  " + "It has no non-serializable super-class");
+                        logger.warning(() -> "Class " + type.getName() + " is not properly serializable.  " + "It has no non-serializable super-class");
                     } else {
                         try {
-                            Constructor init_cons = initClass.getDeclaredConstructor();
+                            Constructor<?> init_cons = initClass.getDeclaredConstructor();
 
                             if (Modifier.isPublic(init_cons.getModifiers()) || Modifier.isProtected(init_cons.getModifiers())) {
                                 // do nothing - it's accessible
-
                             } else if (!samePackage(type, initClass)) {
-                                logger.warning("Class " + type.getName() + " is not properly serializable.  "
+                                logger.warning(() -> "Class " + type.getName() + " is not properly serializable.  "
                                         + "The default constructor of its first " + "non-serializable super-class (" + initClass.getName()
                                         + ") is not accessible.");
                             }
@@ -284,14 +279,14 @@ class ValueDescriptor extends TypeDescriptor {
                             _constructor = ReflectionFactory.getReflectionFactory().newConstructorForSerialization(type, init_cons);
 
                             if (_constructor == null) {
-                                logger.warning("Unable to get constructor for serialization for class " + java_name);
+                                logger.warning(() -> "Unable to get constructor for serialization for class " + java_name);
                             } else {
                                 _constructor.setAccessible(true);
                             }
 
                         } catch (NoSuchMethodException ex) {
-                            logger.log(Level.WARNING, "Class " + type.getName() + " is not properly serializable.  "
-                                    + "First non-serializable super-class (" + initClass.getName() + ") has no default constructor.", ex);
+                            logger.log(WARNING, ex, () -> "Class " + type.getName() + " is not properly serializable.  "
+                                    + "First non-serializable super-class (" + initClass.getName() + ") has no default constructor.");
                         }
                     }
                 }
@@ -336,7 +331,7 @@ class ValueDescriptor extends TypeDescriptor {
                             if (rf.getType() == f.getType()) {
                                 fd = FieldDescriptor.get(rf,repo);
                             }
-                        } catch (SecurityException | NoSuchFieldException ex) {
+                        } catch (SecurityException | NoSuchFieldException ignored) {
                         }
 
                         if (fd == null) {
@@ -357,14 +352,23 @@ class ValueDescriptor extends TypeDescriptor {
         });
     }
 
-    private boolean samePackage(Class type, Class initClass) {
+    private Class<?> getFirstNonSerializableSuperclass() {
+        Class<?> initClass = type;
+
+        while ((initClass != null) && Serializable.class.isAssignableFrom(initClass)) {
+            initClass = initClass.getSuperclass();
+        }
+        return initClass;
+    }
+
+    private boolean samePackage(Class<?> type, Class<?> initClass) {
         String pkg1 = getPackageName(type);
         String pkg2 = getPackageName(initClass);
 
         return pkg1.equals(pkg2);
     }
 
-    private String getPackageName(Class type) {
+    private String getPackageName(Class<?> type) {
         String name = type.getName();
         int idx = name.lastIndexOf('.');
         return (idx == -1) ? "" : name.substring(0, idx);
@@ -450,17 +454,15 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     protected void defaultWriteValue(ObjectWriter writer, Serializable val) throws IOException {
-        logger.finer("writing fields for " + type);
+        logger.finer(() -> "writing fields for " + type);
         FieldDescriptor[] fields = _fields;
 
-        if (fields == null) {
-            return;
-        }
+        if (fields == null) return;
 
-        for (int i = 0; i < fields.length; i++) {
-            logger.finer("writing field " + _fields[i].java_name);
 
-            fields[i].write(writer, val);
+        for (FieldDescriptor field : fields) {
+            logger.finer(() -> "writing field " + field.java_name);
+            field.write(writer, val);
         }
     }
 
@@ -507,8 +509,8 @@ class ValueDescriptor extends TypeDescriptor {
                 throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
 
             } catch (NullPointerException ex) {
-                logger.log(Level.WARNING, "unable to create instance of " + type.getName(), ex);
-                logger.warning("constructor => " + _constructor);
+                logger.log(WARNING, ex, () -> "unable to create instance of " + type.getName());
+                logger.warning(() -> "constructor => " + _constructor);
 
                 throw ex;
             }
@@ -591,11 +593,11 @@ class ValueDescriptor extends TypeDescriptor {
     protected void defaultReadValue(ObjectReader reader, Serializable value) throws IOException {
         if (null == _fields) return;
 
-        logger.fine("reading fields for " + type.getName());
+        logger.fine(() -> "reading fields for " + type.getName());
 
         for (FieldDescriptor _field : _fields) {
             if (null == _field) continue;
-            logger.fine("reading field " + _field.java_name + " of type " + _field.getType().getName() + " using " + _field.getClass().getName());
+            logger.fine(() -> "reading field " + _field.java_name + " of type " + _field.getType().getName() + " using " + _field.getClass().getName());
 
             try {
                 _field.read(reader, value);
@@ -611,16 +613,16 @@ class ValueDescriptor extends TypeDescriptor {
 
     Map readFields(ObjectReader reader) throws IOException {
         if ((_fields == null) || (_fields.length == 0)) {
-            return Collections.EMPTY_MAP;
+            return EMPTY_MAP;
         }
 
-        logger.finer("reading fields for " + type.getName());
+        logger.finer(() -> "reading fields for " + type.getName());
 
         Map map = new HashMap();
 
         for (FieldDescriptor _field : _fields) {
 
-            logger.finer("reading field " + _field.java_name);
+            logger.finer(() -> "reading field " + _field.java_name);
 
             _field.readFieldIntoMap(reader, map);
         }
@@ -633,11 +635,11 @@ class ValueDescriptor extends TypeDescriptor {
             return;
         }
 
-        logger.finer("writing fields for " + type.getName());
+        logger.finer(() -> "writing fields for " + type.getName());
 
         for (FieldDescriptor _field : _fields) {
 
-            logger.finer("writing field " + _field.java_name);
+            logger.finer(() -> "writing field " + _field.java_name);
 
             _field.writeFieldFromMap(writer, fieldMap);
         }
@@ -763,13 +765,7 @@ class ValueDescriptor extends TypeDescriptor {
         return hash;
     }
 
-    private static final Comparator compareByName = new Comparator() {
-        public int compare(Object f1, Object f2) {
-            String n1 = ((FieldDescriptor) f1).java_name;
-            String n2 = ((FieldDescriptor) f2).java_name;
-            return n1.compareTo(n2);
-        }
-    };
+    private static final Comparator<FieldDescriptor> compareByName = Comparator.comparing(f -> f.java_name);
 
     long getHashCode() {
         return _hash_code;
@@ -907,7 +903,7 @@ class ValueDescriptor extends TypeDescriptor {
 
         Serializable oorig = (Serializable) orig;
 
-        logger.finer("copying " + orig);
+        logger.finer(() -> "copying " + orig);
 
         oorig = writeReplace(oorig);
 
@@ -917,7 +913,7 @@ class ValueDescriptor extends TypeDescriptor {
         } else {
             wdesc = (ValueDescriptor) repo.getDescriptor(oorig.getClass());
 
-            logger.finer("writeReplace -> " + type.getName());
+            logger.finer(() -> "writeReplace -> " + type.getName());
         }
 
         return wdesc.copyObject2(oorig, state);

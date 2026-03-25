@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.util.logging.Level.FINER;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.yasf.Yasf.NON_SERIALIZABLE_FIELD_IS_ABSTRACT_VALUE;
 
@@ -136,7 +137,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
         try {
             f = declaringClass.getDeclaredField(field.getName());
         } catch (NoSuchFieldException e) {
-            logger.log(Level.FINER, "Cannot find java field \"" + field.getName()
+            logger.log(FINER, () -> "Cannot find java field \"" + field.getName()
                     + "\" in class \"" + declaringClass.getName() + "\""
                     + " - perhaps it is handled in readObject()/writeObject()");
         }
@@ -343,7 +344,7 @@ class AnyFieldDescriptor extends FieldDescriptor {
                 try {
                     val = javax.rmi.PortableRemoteObject.narrow(val, this.type);
                 } catch (SecurityException ex) {
-                    logger.finer("Narrow failed" + "\n" + ex);
+                    logger.finer(() -> "Narrow failed" + "\n" + ex);
                     throw ex;
                 }
             } else if (val != null && !type.isInstance(val)) {
@@ -898,7 +899,7 @@ class IntFieldDescriptor extends FieldDescriptor {
         }
         try {
             int value = reader.readInt();
-            logger.finest("Read int field value " + value);
+            logger.finest(() -> "Read int field value " + value);
             field.setInt(obj, value);
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
@@ -970,7 +971,7 @@ class LongFieldDescriptor extends FieldDescriptor {
         }
         try {
             long value = reader.readLong();
-            logger.finest("Read long field value " + value);
+            logger.finest(() -> "Read long field value " + value);
             field.setLong(obj, value);
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);

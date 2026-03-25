@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,28 @@
  */
 package org.apache.yoko.orb.csi;
 
-import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
-
-import java.util.logging.Logger;
-
 import org.omg.CORBA.Any;
-import org.omg.CORBA.CompletionStatus;
+import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.MARSHAL;
+import org.omg.CORBA.Object;
 import org.omg.CORBA.UserException;
 import org.omg.CORBA.portable.ObjectImpl;
-import org.omg.CSI.*;
-import org.omg.CSIIOP.*;
+import org.omg.CSI.EstablishContext;
+import org.omg.CSI.ITTDistinguishedName;
+import org.omg.CSI.ITTPrincipalName;
+import org.omg.CSI.IdentityToken;
+import org.omg.CSI.MTCompleteEstablishContext;
+import org.omg.CSI.MTContextError;
+import org.omg.CSI.MTEstablishContext;
+import org.omg.CSI.MTMessageInContext;
+import org.omg.CSI.SASContextBody;
+import org.omg.CSIIOP.AS_ContextSec;
+import org.omg.CSIIOP.CompoundSecMech;
+import org.omg.CSIIOP.CompoundSecMechList;
+import org.omg.CSIIOP.CompoundSecMechListHelper;
+import org.omg.CSIIOP.EstablishTrustInClient;
+import org.omg.CSIIOP.SAS_ContextSec;
+import org.omg.CSIIOP.TAG_CSI_SEC_MECH_LIST;
 import org.omg.GSSUP.InitialContextToken;
 import org.omg.IOP.Codec;
 import org.omg.IOP.SecurityAttributeService;
@@ -35,6 +46,13 @@ import org.omg.IOP.ServiceContext;
 import org.omg.IOP.TaggedComponent;
 import org.omg.PortableInterceptor.ClientRequestInfo;
 import org.omg.PortableInterceptor.ForwardRequest;
+
+import java.util.Arrays;
+import java.util.logging.Logger;
+
+import static org.apache.yoko.orb.csi.CSIInterceptorBase.CallStatus.pushIsLocal;
+import static org.apache.yoko.orb.csi.SecurityContext.getAuthenticationInfo;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 public class CSIClientRequestInterceptor extends CSIInterceptorBase
         implements org.omg.PortableInterceptor.ClientRequestInterceptor
@@ -52,7 +70,7 @@ public class CSIClientRequestInterceptor extends CSIInterceptorBase
     //
 
     public void send_request(ClientRequestInfo ri) throws ForwardRequest {
-        org.omg.CORBA.Object target = ri.effective_target();
+        Object target = ri.effective_target();
 
         if (target instanceof ObjectImpl) {
             boolean isLocal = ((ObjectImpl) target)
@@ -60,7 +78,7 @@ public class CSIClientRequestInterceptor extends CSIInterceptorBase
 
             // save value of isLocal
             if (ri.response_expected())
-                CallStatus.pushIsLocal(isLocal);
+                pushIsLocal(isLocal);
 
             // ignore CSI for local calls
             if (isLocal) {
@@ -68,71 +86,59 @@ public class CSIClientRequestInterceptor extends CSIInterceptorBase
             }
         }
 
-        boolean target_supports_gssup = false;
-        boolean target_requires_gssup = false;
-
-        CompoundSecMech mech = null;
-
+        final CompoundSecMech mech;
         try {
-            TaggedComponent tc = ri
-                    .get_effective_component(TAG_CSI_SEC_MECH_LIST.value);
+            TaggedComponent tc = ri.get_effective_component(TAG_CSI_SEC_MECH_LIST.value);
 
             byte[] data = tc.component_data;
 
-            Any sl_any = codec.decode_value(data, CompoundSecMechListHelper
-                    .type());
+            Any sl_any = codec.decode_value(data, CompoundSecMechListHelper.type());
             CompoundSecMechList sl = CompoundSecMechListHelper.extract(sl_any);
 
             if (sl.mechanism_list.length == 0) {
-                log.fine("empty sec mech list");
+                log.fine(() -> "empty sec mech list");
                 return;
             }
 
             mech = sl.mechanism_list[0];
 
-        }
-        catch (org.omg.CORBA.BAD_PARAM ex) {
-            log.fine("no security mechanism");
+        } catch (BAD_PARAM ex) {
+            log.fine(() -> "no security mechanism");
             return;
-        }
-        catch (UserException e) {
-            MARSHAL me = new MARSHAL("cannot decode local security descriptor",
-                                     0, COMPLETED_NO);
+        } catch (UserException e) {
+            MARSHAL me = new MARSHAL("cannot decode local security descriptor", 0, COMPLETED_NO);
             me.initCause(e);
             throw me;
         }
 
-        log.fine("transport_mech tag = " + mech.transport_mech.tag);
+        log.fine(() -> "transport_mech tag = " + mech.transport_mech.tag);
 
-        String target_name = null;
+        final String target_name;
+        final boolean target_supports_gssup;
+        final boolean target_requires_gssup;
 
         AS_ContextSec as = mech.as_context_mech;
-        if (as != null) {
-            if (java.util.Arrays.equals(GSSUP_OID,
-                                        as.client_authentication_mech))
-            {
-                target_requires_gssup = (as.target_requires & EstablishTrustInClient.value) != 0;
-                target_supports_gssup = (as.target_supports & EstablishTrustInClient.value) != 0;
-
-                target_name = decodeGSSExportedName(as.target_name);
-
-                log.fine("decoded target name = " + target_name);
-            }
+        if (as != null && Arrays.equals(GSSUP_OID, as.client_authentication_mech)) {
+            target_requires_gssup = (as.target_requires & EstablishTrustInClient.value) != 0;
+            target_supports_gssup = (as.target_supports & EstablishTrustInClient.value) != 0;
+            target_name = decodeGSSExportedName(as.target_name);
+            log.fine(() -> "decoded target name = " + target_name);
+        } else {
+            target_supports_gssup = false;
+            target_requires_gssup = false;
         }
 
         boolean support_gssup_delegation = false;
         boolean support_x500_delegation = false;
 
-        if (!target_supports_gssup) {
-
+        if (target_supports_gssup) {
+            log.fine(() -> "AS SPEC:" + " target_supports=" + target_supports_gssup + " target_requires=" + target_requires_gssup);
+        } else {
             SAS_ContextSec sas = mech.sas_context_mech;
-            for (int i = 0; i < sas.supported_naming_mechanisms.length; i++) {
-                if (java.util.Arrays.equals(GSSUP_OID,
-                                            sas.supported_naming_mechanisms[i])
-                    && (sas.supported_identity_types & ITTPrincipalName.value) != 0)
-                {
+            for (byte[] supportedNamingMechanism: sas.supported_naming_mechanisms) {
+                if (Arrays.equals(GSSUP_OID, supportedNamingMechanism) && (sas.supported_identity_types & ITTPrincipalName.value) != 0) {
                     support_gssup_delegation = true;
-                    log.fine("target supports GSSUP identity delegation");
+                    log.fine(() -> "target supports GSSUP identity delegation");
                     break;
                 }
             }
@@ -142,20 +148,15 @@ public class CSIClientRequestInterceptor extends CSIInterceptorBase
             }
 
             if (!support_gssup_delegation && !support_x500_delegation) {
-                log.fine("target supports security, but not GSSUP/X500");
+                log.fine(() -> "target supports security, but not GSSUP/X500");
                 return;
             }
-
-        } else {
-            log.fine("AS SPEC:" + " target_supports="
-                      + target_supports_gssup + " target_requires="
-                      + target_requires_gssup);
         }
 
-        AuthenticationInfo authInfo = SecurityContext.getAuthenticationInfo();
+        AuthenticationInfo authInfo = getAuthenticationInfo();
 
         if (authInfo == null) {
-            log.fine("no auth info");
+            log.fine(() -> "no auth info");
             return;
         }
 
@@ -187,7 +188,7 @@ public class CSIClientRequestInterceptor extends CSIInterceptorBase
                     .principal_name(encapsulateByteArray(encodeGSSExportedName(scopedUserName)));
             establishMsg.identity_token = identityToken;
 
-            log.fine("send_request, name: \"" + scopedUserName + "\"");
+            log.fine(() -> "send_request, name: \"" + scopedUserName + "\"");
         } else {
 
             // Make GSSUP InitialContextToken
@@ -203,8 +204,8 @@ public class CSIClientRequestInterceptor extends CSIInterceptorBase
             identityToken.absent(true);
             establishMsg.identity_token = identityToken;
 
-            log.fine("send_request, name: \"" + scopedUserName
-                      + "\", pw: \"" + password + "\"");
+            log.fine(() -> "send_request, name: \"" + scopedUserName
+                    + "\", pw: \"" + password + "\"");
         }
 
         sasBody.establish_msg(establishMsg);
@@ -253,12 +254,12 @@ public class CSIClientRequestInterceptor extends CSIInterceptorBase
     }
 
     public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
-        log.fine("receive_exception");
+        log.fine(() -> "receive_exception");
         receive_reply(ri);
     }
 
     public void receive_other(ClientRequestInfo ri) throws ForwardRequest {
-        log.fine("receive_other");
+        log.fine(() -> "receive_other");
         receive_reply(ri);
     }
 

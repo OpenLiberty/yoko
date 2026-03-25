@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,7 @@
 package org.apache.yoko.util.rofl;
 
 import org.apache.yoko.io.SimplyCloseable;
-import org.apache.yoko.util.yasf.Yasf;
 
-import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -62,7 +59,7 @@ public final class RoflThreadLocal {
 
     public static SimplyCloseable push(Rofl rofl) {
         final Stack info = threadLocalStack.get();
-        if (LOGGER.isLoggable(Level.FINER)) LOGGER.finer(String.format("ROFL thread local version pushed onto stack: %s", rofl));
+        LOGGER.finer(() -> String.format("ROFL thread local version pushed onto stack: %s", rofl));
         info.head = new Frame(rofl, info.head);
         return RoflThreadLocal::pop;
     }
@@ -71,21 +68,20 @@ public final class RoflThreadLocal {
         final Stack info = threadLocalStack.get();
         final boolean override = info.override;
         final Rofl rofl = (override) ? null : info.head.value;
-        if (LOGGER.isLoggable(Level.FINER))
-            LOGGER.finer(String.format("ROFL thread local version retrieved: %s, override is %b", rofl, override));
+        LOGGER.finer(() -> String.format("ROFL thread local version retrieved: %s, override is %b", rofl, override));
         return rofl;
     }
 
     public static Rofl pop() {
         final Stack info = threadLocalStack.get();
         final Rofl rofl = info.head.value;
-        if (LOGGER.isLoggable(Level.FINER)) LOGGER.finer(String.format("ROFL thread local version popped from stack: %s", rofl));
+        LOGGER.finer(() -> String.format("ROFL thread local version popped from stack: %s", rofl));
         info.head = info.head.prev;
         return rofl;
     }
 
     public static void reset() {
-        if (LOGGER.isLoggable(Level.FINER)) LOGGER.finer("ROFL thread local stack reset");
+        LOGGER.finer(() -> "ROFL thread local stack reset");
         threadLocalStack.remove();
     }
 }

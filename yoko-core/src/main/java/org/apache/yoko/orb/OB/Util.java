@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -222,7 +222,7 @@ public final class Util {
 
         static SysEx fromId(String id) {
             SysEx result = Optional.of(id).map(INDEX::get).orElse(UNKNOWN);
-            if (!result.id.equals(id)) logger.warning("Using " + result + " for unrecognised system exception id: " + id);
+            if (!result.id.equals(id)) logger.warning(() -> "Using " + result + " for unrecognised system exception id: " + id);
             return result;
         }
 

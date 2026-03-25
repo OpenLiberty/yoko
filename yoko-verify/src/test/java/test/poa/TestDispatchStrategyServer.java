@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 package test.poa;
+
+import org.apache.yoko.orb.OBPortableServer.POAHelper;
+import org.omg.CORBA.Policy;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -119,7 +122,7 @@ public final class TestDispatchStrategyServer {
         org.omg.CORBA.ORB orb = null;
 
         try {
-            args = org.apache.yoko.orb.CORBA.ORB.ParseArgs(args, props, null);
+            args = org.apache.yoko.orb.CORBA.ORB.ParseArgs(args, props );
 
             //
             // Set the communications concurrency model
@@ -135,35 +138,27 @@ public final class TestDispatchStrategyServer {
             //
             // Resolve Root POA and POA Manager
             //
-            org.omg.CORBA.Object poaObj = orb
-                    .resolve_initial_references("RootPOA");
-            org.apache.yoko.orb.OBPortableServer.POA rootPOA = org.apache.yoko.orb.OBPortableServer.POAHelper
-                    .narrow(poaObj);
-            org.omg.PortableServer.POAManager manager = rootPOA
-                    .the_POAManager();
+            var poaObj = orb.resolve_initial_references("RootPOA");
+            var rootPOA = POAHelper.narrow(poaObj);
+            var manager = rootPOA.the_POAManager();
 
             //
             // Resolve Dispatch Strategy Factory
             //
-            org.omg.CORBA.Object dsfObj = orb
-                    .resolve_initial_references("DispatchStrategyFactory");
-            org.apache.yoko.orb.OB.DispatchStrategyFactory dsf = org.apache.yoko.orb.OB.DispatchStrategyFactoryHelper
-                    .narrow(dsfObj);
+            var dsfObj = orb.resolve_initial_references("DispatchStrategyFactory");
+            var dsf = org.apache.yoko.orb.OB.DispatchStrategyFactoryHelper.narrow(dsfObj);
 
             //
             // Create Dispatch Strategy objects
             //
-            org.apache.yoko.orb.OB.DispatchStrategy ds_st = dsf
-                    .create_same_thread_strategy();
+            var ds_st = dsf.create_same_thread_strategy();
 
-            org.apache.yoko.orb.OB.DispatchStrategy ds_tpr = dsf
-                    .create_thread_per_request_strategy();
+            var ds_tpr = dsf.create_thread_per_request_strategy();
 
             int tpid = dsf.create_thread_pool(2);
-            org.apache.yoko.orb.OB.DispatchStrategy ds_tp = dsf
-                    .create_thread_pool_strategy(tpid);
+            var ds_tp = dsf.create_thread_pool_strategy(tpid);
 
-            org.apache.yoko.orb.OB.DispatchStrategy ds_cus = new CustDispatchStrategy();
+            var ds_cus = new CustDispatchStrategy();
 
             //
             // Create POAs with threaded Dispatch Strategy Policies
@@ -172,47 +167,42 @@ public final class TestDispatchStrategyServer {
             // - thread pool (same pool used for two POAs)
             // - custom strategy
             //
-            org.omg.CORBA.Policy[] policies = new org.omg.CORBA.Policy[1];
+            Policy[] policies = new Policy[1];
 
             policies[0] = rootPOA.create_dispatch_strategy_policy(ds_st);
-            org.omg.PortableServer.POA stPOA = rootPOA.create_POA("stPOA",
-                    manager, policies);
+            var stPOA = rootPOA.create_POA("stPOA", manager, policies);
 
             policies[0] = rootPOA.create_dispatch_strategy_policy(ds_tpr);
-            org.omg.PortableServer.POA tprPOA = rootPOA.create_POA("tprPOA",
-                    manager, policies);
+            var tprPOA = rootPOA.create_POA("tprPOA", manager, policies);
 
             policies[0] = rootPOA.create_dispatch_strategy_policy(ds_tp);
-            org.omg.PortableServer.POA tpPOA1 = rootPOA.create_POA("tpPOA1",
-                    manager, policies);
-            org.omg.PortableServer.POA tpPOA2 = rootPOA.create_POA("tpPOA2",
-                    manager, policies);
+            var tpPOA1 = rootPOA.create_POA("tpPOA1", manager, policies);
+            var tpPOA2 = rootPOA.create_POA("tpPOA2", manager, policies);
 
             policies[0] = rootPOA.create_dispatch_strategy_policy(ds_cus);
-            org.omg.PortableServer.POA cusPOA = rootPOA.create_POA("cusPOA",
-                    manager, policies);
+            var cusPOA = rootPOA.create_POA("cusPOA", manager, policies);
 
             //
             // Create test implementation object in each POA
             //
             TestSameThread_impl stTest = new TestSameThread_impl();
             byte[] stObjId = stPOA.activate_object(stTest);
-            org.omg.CORBA.Object stObjRef = stPOA.id_to_reference(stObjId);
+            var stObjRef = stPOA.id_to_reference(stObjId);
 
             TestThreadPerReq_impl tprTest = new TestThreadPerReq_impl();
             byte[] tprObjId = tprPOA.activate_object(tprTest);
-            org.omg.CORBA.Object tprObjRef = tprPOA.id_to_reference(tprObjId);
+            var tprObjRef = tprPOA.id_to_reference(tprObjId);
 
             TestThreadPool_impl tpTest = new TestThreadPool_impl();
             byte[] tpObjId1 = tpPOA1.activate_object(tpTest);
-            org.omg.CORBA.Object tpObjRef1 = tpPOA1.id_to_reference(tpObjId1);
+            var tpObjRef1 = tpPOA1.id_to_reference(tpObjId1);
 
             byte[] tpObjId2 = tpPOA2.activate_object(tpTest);
-            org.omg.CORBA.Object tpObjRef2 = tpPOA2.id_to_reference(tpObjId2);
+            var tpObjRef2 = tpPOA2.id_to_reference(tpObjId2);
 
             TestSameThread_impl cusTest = new TestSameThread_impl();
             byte[] cusObjId = cusPOA.activate_object(cusTest);
-            org.omg.CORBA.Object cusObjRef = cusPOA.id_to_reference(cusObjId);
+            var cusObjRef = cusPOA.id_to_reference(cusObjId);
 
             //
             // Create Test Server

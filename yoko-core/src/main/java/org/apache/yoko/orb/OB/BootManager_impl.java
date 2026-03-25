@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,13 +23,12 @@ import org.apache.yoko.orb.OB.BootManagerPackage.NotFound;
 import org.omg.CORBA.BooleanHolder;
 import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.ORB;
-import org.omg.CORBA.ObjectHolder;
 import org.omg.CORBA.ORBPackage.InvalidName;
+import org.omg.CORBA.ObjectHolder;
 import org.omg.CORBA.portable.ObjectImpl;
 import org.omg.IOP.IOR;
 
 import java.util.Hashtable;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.apache.yoko.util.Hex.formatHexPara;
@@ -40,7 +39,7 @@ public final class BootManager_impl extends LocalObject implements
     //
     // Set of known bindings
     //
-    private Hashtable bindings_;
+    private final Hashtable<ObjectIdHasher, org.omg.CORBA.Object> bindings_;
 
     //
     // The Boot Locator. There is no need for the BootLocatorHolder
@@ -49,10 +48,10 @@ public final class BootManager_impl extends LocalObject implements
     private BootLocator locator_ = null;
     
     // the ORB that created us 
-    private ORB orb_; 
+    private final ORB orb_;
 
     public BootManager_impl(ORB orb) {
-        bindings_ = new Hashtable(17);
+        bindings_ = new Hashtable<>(17);
         orb_ = orb; 
     }
 
@@ -60,12 +59,9 @@ public final class BootManager_impl extends LocalObject implements
     // Standard IDL to Java Mapping
     // ------------------------------------------------------------------
 
-    public void add_binding(byte[] id, org.omg.CORBA.Object obj)
-            throws AlreadyExists {
+    public void add_binding(byte[] id, org.omg.CORBA.Object obj) throws AlreadyExists {
         ObjectIdHasher oid = new ObjectIdHasher(id);
-        if (logger.isLoggable(Level.FINE)) {
-            logger.fine("Adding binding under id " + formatHexPara(id));
-        }
+        logger.fine(() -> "Adding binding under id " + formatHexPara(id));
 
         //
         // If binding id is not already mapped add the binding.
@@ -78,12 +74,9 @@ public final class BootManager_impl extends LocalObject implements
         }
     }
 
-    public void remove_binding(byte[] id)
-            throws NotFound {
+    public void remove_binding(byte[] id) throws NotFound {
         ObjectIdHasher oid = new ObjectIdHasher(id);
-        if (logger.isLoggable(Level.FINE)) {
-            logger.fine("Removing binding with id " + formatHexPara(id));
-        }
+        logger.fine(() -> "Removing binding with id " + formatHexPara(id));
 
         //
         // If binding id is mapped remove the binding
@@ -112,13 +105,11 @@ public final class BootManager_impl extends LocalObject implements
         // binding for the requested ObjectId.
         //
         ObjectIdHasher oid = new ObjectIdHasher(id);
-        
-        if (logger.isLoggable(Level.FINE)) {
-            logger.fine("Searching for binding with id " + formatHexPara(id));
-        }
-        org.omg.CORBA.Object obj = (org.omg.CORBA.Object) bindings_.get(oid);
+
+        logger.fine(() -> "Searching for binding with id " + formatHexPara(id));
+        org.omg.CORBA.Object obj = bindings_.get(oid);
         if (obj == null && locator_ != null) {
-            logger.fine("Object not found, passing on to locator");
+            logger.fine(() -> "Object not found, passing on to locator");
             try {
                 ObjectHolder objHolder = new ObjectHolder();
                 BooleanHolder addHolder = new BooleanHolder();
@@ -128,19 +119,19 @@ public final class BootManager_impl extends LocalObject implements
                 if (addHolder.value) {
                     bindings_.put(oid, obj);
                 }
-            } catch (NotFound ex) {
+            } catch (NotFound ignored) {
             }
         }
 
         if (obj == null) {
             // these should map to initial references as well when used as a corbaloc name.
             // convert the key to a string and try for one of those 
-            String keyString = new String(id); 
+            String keyString = new String(id);
             try {
-                obj = orb_.resolve_initial_references(keyString); 
+                obj = orb_.resolve_initial_references(keyString);
             } catch (InvalidName ex) {
                 // if this is not valid, it won't work 
-                return null; 
+                return null;
             }
             // just return null if still not there 
             if (obj == null) {

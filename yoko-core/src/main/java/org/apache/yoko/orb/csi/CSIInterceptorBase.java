@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -373,20 +373,20 @@ public abstract class CSIInterceptorBase extends LocalObject {
 
     String decodeGSSExportedName(byte[] data) {
         if (data.length < 8 + GSSUP_OID.length) {
-            log.fine("exported name too short len=" + data.length);
+            log.fine(() -> "exported name too short len=" + data.length);
             return null;
         }
 
         if (data[0] != 0x04 || data[1] != 0x01 || data[2] != 0x00
-            || data[3] != GSSUP_OID.length)
-        {
-            log.fine("wrong name header");
+            || data[3] != GSSUP_OID.length) {
+            log.fine(() -> "wrong name header");
             return null;
         }
 
         for (int i = 0; i < GSSUP_OID.length; i++) {
             if (data[4 + i] != GSSUP_OID[i]) {
-                log.fine("wrong name OID @ " + i);
+                final int fi = i;
+                log.fine(() -> "wrong name OID @ " + fi);
                 return null;
             }
         }

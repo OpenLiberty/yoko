@@ -127,7 +127,7 @@ final public class TestMultipleOrbsThreadedServer {
         org.omg.CORBA.ORB orb = null;
 
         try {
-            args = ParseArgs(args, props, null);
+            args = ParseArgs(args, props);
             props.put("yoko.orb.conc_model", "threaded");
             props.put("yoko.orb.oa.conc_model", "threaded");
 

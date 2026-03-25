@@ -29,7 +29,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
@@ -55,8 +54,7 @@ public class UnresolvedException extends UnknownException {
 
     public SystemException resolve() {
         try (YokoInputStream in = new YokoInputStream(data, false, converters, GIOP1_2)) {
-            if (LOGGER.isLoggable(Level.FINE))
-                LOGGER.fine(String.format("Unpacking Unknown Exception Info%n%s", in.dumpRemainingData()));
+            LOGGER.fine(() -> String.format("Unpacking Unknown Exception Info%n%s", in.dumpRemainingData()));
             try {
                 in.__setSendingContextRuntime(sendingContextRuntime);
                 in.__setCodeBase(codebase);

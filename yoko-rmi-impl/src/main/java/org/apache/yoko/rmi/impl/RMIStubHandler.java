@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.FINER;
 import static javax.rmi.CORBA.Util.mapSystemException;
 import static org.apache.yoko.util.Streams.concatStreams;
 
@@ -62,7 +64,7 @@ public class RMIStubHandler implements StubHandler, Serializable {
 
         final String method_name = method.getIDLName();
 
-        logger.finer("invoking " + method_name);
+        logger.finer(() -> "invoking " + method_name);
 
         return stub._is_local() ? invokeLocal(stub, method, args, method_name) : invokeRemote(stub, method, args, method_name);
     }
@@ -80,20 +82,20 @@ public class RMIStubHandler implements StubHandler, Serializable {
                 try {
                     method.readException(ex.getInputStream());
                 } catch (Throwable exx) {
-                    logger.log(Level.FINE, "rmi1::" + method_name + " " + exx.getMessage(), exx);
+                    logger.log(FINE, exx, () -> "rmi1::" + method_name + " " + exx.getMessage());
                     throw addLocalTrace(method, exx);
                 }
             } catch (UnknownException ex) {
-                logger.log(Level.FINER, "rmi2::" + method_name + " " + ex.getMessage(), ex);
-                logger.log(Level.FINER, "rmi2::" + method_name + " " + ex.originalEx.getMessage(), ex.originalEx);
+                logger.log(FINER, ex, () -> "rmi2::" + method_name + " " + ex.getMessage());
+                logger.log(FINER, ex.originalEx, () -> "rmi2::" + method_name + " " + ex.originalEx.getMessage());
 
                 throw addLocalTrace(method, ex.originalEx);
             } catch (SystemException ex) {
                 RemoteException exx = mapSystemException(ex);
-                logger.log(Level.FINER, "rmi3::" + method_name + " " + exx.getMessage(), exx);
+                logger.log(FINER, exx, () -> "rmi3::" + method_name + " " + exx.getMessage());
                 throw exx;
             } catch (Throwable ex) {
-                logger.log(Level.FINER, "rmi4::" + method_name + " " + ex.getMessage(), ex);
+                logger.log(FINER, ex, () -> "rmi4::" + method_name + " " + ex.getMessage());
                 throw ex;
             } finally {
                 stub._releaseReply(in);

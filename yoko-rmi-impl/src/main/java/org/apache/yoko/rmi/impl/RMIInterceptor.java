@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,19 @@
  */
 package org.apache.yoko.rmi.impl;
 
-import java.util.logging.Logger;
-import java.util.logging.Level;
-
 import org.omg.CORBA.Any;
 import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.ORB;
 import org.omg.IOP.Codec;
+import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 import org.omg.IOP.TAG_JAVA_CODEBASE;
 import org.omg.IOP.TaggedComponent;
-import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 import org.omg.PortableInterceptor.IORInfo;
 import org.omg.PortableInterceptor.IORInterceptor;
+
+import java.util.logging.Logger;
+
+import static java.util.logging.Level.WARNING;
 
 public class RMIInterceptor extends LocalObject implements IORInterceptor {
 
@@ -55,14 +56,14 @@ public class RMIInterceptor extends LocalObject implements IORInterceptor {
         String codeBase = (String) currentCodeBase.get();
         if (codeBase != null) {
 
-            logger.finer("registering " + codeBase + " for ORB");
+            logger.finer(() -> "registering " + codeBase + " for ORB");
 
             //
             // Create encapsulation
             //
-            
+
             Any any = ORB.init().create_any();
-            
+
             any.insert_string(codeBase);
 
             try {
@@ -72,7 +73,7 @@ public class RMIInterceptor extends LocalObject implements IORInterceptor {
 
                 info.add_ior_component(component);
             } catch (InvalidTypeForEncoding e) {
-                logger.log(Level.WARNING, "Failed to add java codebase to IOR" + e.getMessage(), e);
+                logger.log(WARNING, e, () -> "Failed to add java codebase to IOR" + e.getMessage());
             }
         }
     }

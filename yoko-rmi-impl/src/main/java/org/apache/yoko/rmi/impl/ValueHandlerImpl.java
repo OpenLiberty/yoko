@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 package org.apache.yoko.rmi.impl;
 
 import org.apache.yoko.rmi.util.SerialFilterHelper;
-import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
@@ -42,12 +41,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import static java.security.AccessController.doPrivileged;
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
 
 public class ValueHandlerImpl implements ValueHandler {
     private static final Logger logger = Logger.getLogger(ValueHandlerImpl.class.getName());
@@ -102,7 +103,7 @@ public class ValueHandlerImpl implements ValueHandler {
             SerialFilterHelper.checkInput(clz, depthHolder.value, in);
             return readValue0(in, offset, clz, repid, codebase);
         } catch (Error | RuntimeException ex) {
-            logger.log(Level.FINE, "Exception reading value of type " + repid, ex); 
+            logger.log(FINE, ex, () -> "Exception reading value of type " + repid);
             throw ex;
         } finally {
             depthHolder.value--;
@@ -152,7 +153,7 @@ public class ValueHandlerImpl implements ValueHandler {
     }
 
     public synchronized RunTime getRunTimeCodeBase() {
-        logger.finer("getRunTimeCodeBase");
+        logger.finer(() -> "getRunTimeCodeBase");
 
         if (codeBase == null) {
             codeBase = new RunTimeCodeBaseImpl(this);
@@ -166,7 +167,7 @@ public class ValueHandlerImpl implements ValueHandler {
         } catch (ServantNotActive ex) {
             // ignore //
         } catch (WrongPolicy ex) {
-            throw (INTERNAL)new INTERNAL("should not happen").initCause(ex);
+            throw (INTERNAL) new INTERNAL("should not happen").initCause(ex);
         }
 
         try {
@@ -174,7 +175,7 @@ public class ValueHandlerImpl implements ValueHandler {
             org.omg.CORBA.Object ref = poa.id_to_reference(id);
             return CodeBaseHelper.narrow(ref);
         } catch (ServantAlreadyActive | ObjectNotActive | WrongPolicy ex) {
-            throw (INTERNAL)new INTERNAL("should not happen").initCause(ex);
+            throw (INTERNAL) new INTERNAL("should not happen").initCause(ex);
         }
     }
 
@@ -186,33 +187,34 @@ public class ValueHandlerImpl implements ValueHandler {
             Stub result = state.getStaticStub(stub._get_codebase(), type);
             if (null == result) return new RMIPersistentStub(stub, type);
             result._set_delegate(stub._get_delegate());
-            logger.finer("replacing with stub " + result.getClass().getName());
+            logger.finer(() -> "replacing with stub " + result.getClass().getName());
             return result;
         } else {
             ValueDescriptor desc = desc(val.getClass());
             Serializable result = desc.writeReplace(val);
-            if (result != val) logger.finer("replacing with value of type " + val.getClass().getName() + " with " + result.getClass().getName());
+            if (result != val)
+                logger.finer(() -> "replacing with value of type " + val.getClass().getName() + " with " + result.getClass().getName());
             return result; 
         }
     }
 
     static Class getClassFromRepositoryID(String id) {
-        if (logger.isLoggable(Level.FINER)) logger.finer("getClassFromRepositoryID => " + id);
+        logger.finer(() -> "getClassFromRepositoryID => " + id);
         try {
             final String[] parts = COLON.split(id, 3);
             switch (parts[0]) {
             case "RMI": // fall through
             case "IDL":
                 final String className = parts[1];
-                if (logger.isLoggable(Level.FINER)) logger.finer("getClassFromRepositoryID =>> " + className);
+                logger.finer(() -> "getClassFromRepositoryID =>> " + className);
                 ClassLoader loader = doPrivileged(GET_CONTEXT_CLASS_LOADER);
                 return loader.loadClass(className);
             default:
-                if (logger.isLoggable(Level.FINER)) logger.finer("getClassFromRepositoryID =>> " + null);
+                logger.finer(() -> "getClassFromRepositoryID =>> " + null);
                 return null;
             }
         } catch (Throwable ex) {
-            logger.log(Level.FINE, "error resolving class from id", ex); 
+            logger.log(FINE, ex, () -> "error resolving class from id");
             return null;
         }
     }
@@ -226,14 +228,14 @@ public class ValueHandlerImpl implements ValueHandler {
             } else {
                 result = Util.getCodebase(clz);
                 if (result == null) {
-                    if (logger.isLoggable(Level.FINE)) logger.fine("failed to find implementation " + id);
+                    logger.fine(() -> "failed to find implementation " + id);
                     return "";
                 }
             }
-            if (logger.isLoggable(Level.FINER)) logger.finer("getImplementation " + id + " => " + result);
+            logger.finer(() -> "getImplementation " + id + " => " + result);
             return result;
         } catch (RuntimeException ex) {
-            logger.log(Level.FINE, "error implementation class from id", ex); 
+            logger.log(FINE, ex, () -> "error implementation class from id");
             throw ex;
         }
     }
@@ -246,21 +248,21 @@ public class ValueHandlerImpl implements ValueHandler {
     }
 
     FullValueDescription meta(String repId) {
-        if (logger.isLoggable(Level.FINER)) logger.finer(String.format("meta \"%s\"", repId));
+        logger.finer(() -> String.format("meta \"%s\"", repId));
         try {
             ValueDescriptor desc = desc(repId);
             if (null == desc) {
                 Class clz = getClassFromRepositoryID(repId);
                 if (clz == null) {
-                    logger.warning("class not found: " + repId);
-                    throw new MARSHAL(0x4f4d0001, CompletionStatus.COMPLETED_MAYBE);
+                    logger.warning(() -> "class not found: " + repId);
+                    throw new MARSHAL(0x4f4d0001, COMPLETED_MAYBE);
                 }
                 desc = desc(clz);
             }
             return desc.getFullValueDescription();
         } catch (Throwable ex) {
-            logger.log(Level.WARNING, "exception in meta", ex);
-            throw (OBJECT_NOT_EXIST)new OBJECT_NOT_EXIST().initCause(ex);
+            logger.log(WARNING, ex, () -> "exception in meta");
+            throw (OBJECT_NOT_EXIST) new OBJECT_NOT_EXIST().initCause(ex);
         }
     }
 
@@ -284,11 +286,11 @@ public class ValueHandlerImpl implements ValueHandler {
             for (int i = 0; i < supers.size(); i++) result[i] = ((TypeDescriptor) supers.get(i)).getRepositoryID();
 
 
-            if (logger.isLoggable(Level.FINER)) logger.finer("getBases " + id + " => " + Arrays.toString(result));
+            logger.finer(() -> "getBases " + id + " => " + Arrays.toString(result));
 
             return result;
         } catch (Throwable ex) {
-            logger.log(Level.WARNING, "exception in CodeBase::bases", ex);
+            logger.log(WARNING, ex, () -> "exception in CodeBase::bases");
             return new String[0];
         }
     }

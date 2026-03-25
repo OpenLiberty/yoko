@@ -24,11 +24,15 @@ import org.omg.CORBA.INITIALIZE;
 import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.TRANSIENT;
 
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.logging.Logger;
 
+import static java.lang.Integer.parseInt;
 import static java.util.logging.Logger.getLogger;
+import static org.apache.yoko.logging.VerboseLogging.INIT_LOG;
+import static org.apache.yoko.util.Assert.fail;
 import static org.apache.yoko.util.MinorCodes.*;
 import static org.omg.CORBA.CompletionStatus.*;
 
@@ -284,17 +288,17 @@ public final class DispatchStrategyFactory_impl extends LocalObject implements D
         // Set the dispatch strategy policy as specified by the
         // conc_model property
         //
-        String value = properties.getProperty("yoko.orb.oa.conc_model");
+        final String concModelProp = properties.getProperty("yoko.orb.oa.conc_model");
 
-        if (value != null) {
-            logger.fine("Defined concurrency model is " + value);
-            switch (value) {
+        if (concModelProp != null) {
+            logger.fine(() -> "Defined concurrency model is " + concModelProp);
+            switch (concModelProp) {
                 case "threaded":
                 case "thread_per_client":
-                    logger.fine("Using same thread dispatch strategy");
+                    logger.fine(() -> "Using same thread dispatch strategy");
                     return create_same_thread_strategy();
                 case "thread_per_request":
-                    logger.fine("Using thread per request dispatch strategy");
+                    logger.fine(() -> "Using thread per request dispatch strategy");
                     return create_thread_per_request_strategy();
                 case "thread_pool":
                     //
@@ -303,28 +307,23 @@ public final class DispatchStrategyFactory_impl extends LocalObject implements D
                     //
                     if (!haveDefaultThreadPool_) {
                         haveDefaultThreadPool_ = true;
-                        value = properties.getProperty("yoko.orb.oa.thread_pool");
-                        int nthreads = 0;
-                        if (value != null) {
-                            nthreads = Integer.parseInt(value);
-                        }
-                        if (nthreads == 0) {
-                            nthreads = 10;
-                        }
-                        logger.fine("Creating a thread pool of size " + nthreads);
+                        final int nthreads = Optional.of(properties)
+                                .map(props -> props.getProperty("yoko.orb.oa.thread_pool"))
+                                .map(Integer::parseInt)
+                                .filter(i -> i > 0)
+                                .orElse(10);
+                        logger.fine(() -> "Creating a thread pool of size " + nthreads);
                         defaultThreadPool_ = create_thread_pool(nthreads);
                     }
                     try {
-                        logger.fine("Using a thread pool dispatch strategy");
+                        logger.fine(() -> "Using a thread pool dispatch strategy");
                         return create_thread_pool_strategy(defaultThreadPool_);
                     } catch (InvalidThreadPool ex) {
-                        throw Assert.fail(ex);
+                        throw fail(ex);
                     }
                 default:
-                    String err = "yoko.orb.oa.conc_model: Unknown value `";
-                    err += value;
-                    err += "'";
-                    orbInstance_.getLogger().warning(err);
+                    String unknownValue = concModelProp;
+                    INIT_LOG.warning(() -> "yoko.orb.oa.conc_model: Unknown value `" + unknownValue + "'");
                     break;
             }
         }
@@ -333,7 +332,7 @@ public final class DispatchStrategyFactory_impl extends LocalObject implements D
         // The default is to use a thread-per-request.  Not doing this can cause 
         // deadlocks, so the single thread 
         //
-        logger.fine("Using default thread per request strategy"); 
+        logger.fine(() -> "Using default thread per request strategy");
         return create_thread_per_request_strategy();
     }
 

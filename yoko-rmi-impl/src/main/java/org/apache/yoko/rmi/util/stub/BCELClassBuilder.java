@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,11 +66,13 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.lang.String.join;
 import static java.lang.reflect.Modifier.isAbstract;
 import static java.lang.reflect.Modifier.isStatic;
 import static java.security.AccessController.doPrivileged;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Objects.requireNonNull;
+import static java.util.logging.Level.WARNING;
 import static java.util.stream.IntStream.range;
 import static org.apache.bcel.Constants.ACC_FINAL;
 import static org.apache.bcel.Constants.ACC_PRIVATE;
@@ -145,7 +147,7 @@ class BCELClassBuilder {
                 try {
                     javaClass.dump(out); //privileged
                 } catch (IOException ex) {
-                    logger.log(Level.WARNING, "", ex);
+                    logger.log(WARNING, ex, () -> "");
                 }
             }
 
@@ -159,9 +161,9 @@ class BCELClassBuilder {
                     f.set(null, data[i]); // privileged
                     f.setAccessible(false); // privileged
                 } catch (NoSuchFieldException | IllegalAccessException e) {
-                    logger.log(Level.WARNING, "cannot find/access field " + dataFieldGens[i].getName()
+                    logger.log(WARNING, e, () -> "cannot find/access field " + dataFieldGens[i].getName()
                             + " for stub class " + className + " extends: " + superClassName
-                            + " implements: " + String.join(", ", interfaceNames), e);
+                            + " implements: " + join(", ", interfaceNames));
                     throw new Error("internal error!", e);
                 }
             });

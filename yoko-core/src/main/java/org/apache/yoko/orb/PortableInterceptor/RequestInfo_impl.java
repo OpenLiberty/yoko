@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -276,7 +276,7 @@ public class RequestInfo_impl extends LocalObject implements RequestInfo {
     public Any get_slot(int id) throws InvalidSlot {
         if (id >= requestSlotData.length || id < 0) throw new InvalidSlot("No slot for id " + id);
 
-        logger.fine("getting slot " + id + " for operation " + operationName);
+        logger.fine(() -> "getting slot " + id + " for operation " + operationName);
 
         Any result = orb.create_any();
         if (null != requestSlotData[id]) {

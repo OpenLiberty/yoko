@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@ import org.omg.IOP.Encoding;
 import org.omg.PortableInterceptor.ORBInitInfo;
 import org.omg.PortableInterceptor.ORBInitializer;
 
+import static java.util.logging.Level.FINER;
+
 public class RMIInitializer extends LocalObject implements ORBInitializer {
     static final Logger logger = Logger.getLogger(RMIInitializer.class
             .getName());
@@ -41,7 +43,7 @@ public class RMIInitializer extends LocalObject implements ORBInitializer {
             RMIInterceptor rmiInterceptor = new RMIInterceptor(codec);
             info.add_ior_interceptor(rmiInterceptor);
         } catch (UserException e) {
-            logger.log(Level.FINER, "cannot register RMI Interceptor" + e.getMessage(), e);
+            logger.log(FINER, e, () -> "cannot register RMI Interceptor" + e.getMessage());
         }
     }
 

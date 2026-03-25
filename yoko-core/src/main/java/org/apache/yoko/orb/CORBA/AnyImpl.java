@@ -29,6 +29,7 @@ import org.omg.CORBA.Principal;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.TypeCodePackage.BadKind;
 import org.omg.CORBA.portable.Streamable;
+import org.omg.CORBA_2_3.portable.InputStream;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -37,7 +38,6 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.util.logging.Logger;
 
-import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.logging.Logger.getLogger;
 import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_convertForeignTypeCode;
@@ -169,7 +169,7 @@ public final class AnyImpl extends Any {
     private void readValue(org.omg.CORBA.portable.InputStream in) throws MARSHAL {
         final int kind = origTypeCode.kind().value();
 
-        logger.fine("Reading ANY value of kind " + kind); 
+        logger.fine(() -> "Reading ANY value of kind " + kind);
         //
         // Spec says that calling read_value when a Streamable has
         // previously been inserted will update the Streamable
@@ -289,7 +289,7 @@ public final class AnyImpl extends Any {
                 String str = in.read_string();
                 int len = origTypeCode.length();
                 if (len != 0 && str.length() > len)
-                    throw new MARSHAL(format("string length (%d) exceeds bound (%d)", str.length(), len), MinorReadStringOverflow, COMPLETED_NO);
+                    throw new MARSHAL(String.format("string length (%d) exceeds bound (%d)", str.length(), len), MinorReadStringOverflow, COMPLETED_NO);
                 value = str;
             } catch (BadKind ex) {
                 throw fail(ex);
@@ -302,7 +302,7 @@ public final class AnyImpl extends Any {
                 String str = in.read_wstring();
                 int len = origTypeCode.length();
                 if (len != 0 && str.length() > len)
-                    throw new MARSHAL(format("wstring length (%d) exceeds bound (%d)", str.length(), len), MinorReadWStringOverflow, COMPLETED_NO);
+                    throw new MARSHAL(String.format("wstring length (%d) exceeds bound (%d)", str.length(), len), MinorReadWStringOverflow, COMPLETED_NO);
                 value = str;
             } catch (BadKind ex) {
                 throw fail(ex);

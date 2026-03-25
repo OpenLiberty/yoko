@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,10 +26,9 @@ import org.omg.CORBA.SystemException;
 import java.util.Vector;
 import java.util.logging.Logger;
 
-import static java.util.logging.Level.FINE;
+import static org.apache.yoko.logging.VerboseLogging.CONN_IN_LOG;
 import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.CLOSED;
 import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.HOLDING;
-import static org.apache.yoko.logging.VerboseLogging.CONN_IN_LOG;
 
 abstract class GIOPServerStarter {
     static final Logger logger = Logger.getLogger(GIOPServerStarter.class.getName());
@@ -40,7 +39,7 @@ abstract class GIOPServerStarter {
 
     protected final OAInterface oaInterface_; // The OA interface
 
-    protected final Vector connections_ = new Vector(); // Workers
+    protected final Vector<GIOPConnection> connections_ = new Vector<>(); // Workers
 
     enum ServerState {
         ACTIVE,
@@ -69,17 +68,16 @@ abstract class GIOPServerStarter {
     // Emit a trace message when closing the acceptor
     //
     protected void logCloseAcceptor() {
-        if (CONN_IN_LOG.isLoggable(FINE)) CONN_IN_LOG.fine("stopped accepting connections\n" +  acceptor_.get_info().describe());
+        CONN_IN_LOG.fine(() -> "stopped accepting connections\n" + acceptor_.get_info().describe());
     }
 
     protected void reapWorkers() {
         for (int i = 0; i < connections_.size();) {
-            GIOPConnection connection = (GIOPConnection) connections_.elementAt(i);
+            GIOPConnection connection = connections_.elementAt(i);
             if (connection.destroyed())
                 connections_.removeElementAt(i);
             else
                 ++i;
-
         }
     }
 
@@ -96,7 +94,7 @@ abstract class GIOPServerStarter {
 
         try {
             // Trace acceptor creation
-            if (CONN_IN_LOG.isLoggable(FINE)) CONN_IN_LOG.fine("accepting connections\n" + acceptor_.get_info().describe());
+            CONN_IN_LOG.fine(() -> "accepting connections\n" + acceptor_.get_info().describe());
 
             // Start listening
             acceptor_.listen();
@@ -117,7 +115,7 @@ abstract class GIOPServerStarter {
 
         // iterate the workers
         for (int i = 0; i < connections_.size(); i++) {
-            GIOPConnection worker = (GIOPConnection) connections_.elementAt(i);
+            GIOPConnection worker = connections_.elementAt(i);
 
             // we only want to find inbound connections
             if (worker.isOutbound())

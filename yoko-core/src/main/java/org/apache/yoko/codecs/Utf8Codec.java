@@ -20,7 +20,6 @@ package org.apache.yoko.codecs;
 import org.apache.yoko.io.ReadBuffer;
 import org.apache.yoko.io.WriteBuffer;
 import org.apache.yoko.orb.OB.CodeSetInfo;
-import org.apache.yoko.util.yasf.Yasf;
 import org.omg.CORBA.DATA_CONVERSION;
 
 import static java.lang.Character.highSurrogate;
@@ -29,10 +28,10 @@ import static java.lang.Character.isLowSurrogate;
 import static java.lang.Character.lowSurrogate;
 import static java.lang.Character.toCodePoint;
 import static java.util.logging.Level.WARNING;
-import static org.apache.yoko.logging.VerboseLogging.DATA_IN_LOG;
-import static org.apache.yoko.logging.VerboseLogging.DATA_OUT_LOG;
 import static org.apache.yoko.codecs.Util.ASCII_REPLACEMENT_BYTE;
 import static org.apache.yoko.codecs.Util.UNICODE_REPLACEMENT_CHAR;
+import static org.apache.yoko.logging.VerboseLogging.GIOP_IN_LOG;
+import static org.apache.yoko.logging.VerboseLogging.MARSHAL_OUT_LOG;
 import static org.apache.yoko.util.MinorCodes.MinorUTF8Encoding;
 import static org.apache.yoko.util.yasf.Yasf.WRITE_UTF8_AS_UTF8;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
@@ -93,8 +92,8 @@ final class Utf8Codec implements CharCodec {
             return highSurrogate(codepoint);
         } catch (Exception e) {
             // something went wrong while reading a multibyte encoding
-            DATA_IN_LOG.log(WARNING, e, () -> String.format("Bad input while reading multi-byte encoding beginning at position 0x%d: 0x%s", pos, in.asHex(pos, in.getPosition()).toUpperCase()));
-            DATA_IN_LOG.fine(in::dumpAllDataWithPosition);
+            GIOP_IN_LOG.log(WARNING, e, () -> String.format("Bad input while reading multi-byte encoding beginning at position 0x%d: 0x%s", pos, in.asHex(pos, in.getPosition()).toUpperCase()));
+            GIOP_IN_LOG.fine(in::dumpAllDataWithPosition);
             // so return a replacement character and set the pointer just past this lead byte
             // whatever follows should be interpreted independently of this unsatisfied lead byte
             in.setPosition(pos + 1);
@@ -157,14 +156,14 @@ final class Utf8Codec implements CharCodec {
                     out.writeByte(ASCII_REPLACEMENT_BYTE);
                     return;
                 } else if (isLowSurrogate(c)) {
-                    DATA_OUT_LOG.warning(String.format("Received unexpected low surrogate: 0x%04X", (int) c));
+                    MARSHAL_OUT_LOG.warning(() -> String.format("Received unexpected low surrogate: 0x%04X", (int) c));
                     out.writeByte(ASCII_REPLACEMENT_BYTE);
                     return;
                 } else codepoint = c;
             } else codepoint = c;
             writeBytes(codepoint, out);
         } catch (InternalException x) {
-            DATA_OUT_LOG.warning(x.getMessage());
+            MARSHAL_OUT_LOG.warning(x::getMessage);
             throw (DATA_CONVERSION) new DATA_CONVERSION(x.getMessage(), MinorUTF8Encoding, COMPLETED_MAYBE).initCause(x);
         }
     }

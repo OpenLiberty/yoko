@@ -56,8 +56,10 @@ public enum VerboseLogging {
 
     /** Log ORB initialization */
     public static final Logger INIT_LOG = Logger.getLogger("yoko.verbose.init");
-    public static final Logger ORB_INIT_LOG = Logger.getLogger("yoko.verbose.init.orb");
     public static final Logger POA_INIT_LOG = Logger.getLogger("yoko.verbose.init.poa");
+
+    /** Log Shutdown */
+    public static final Logger SHUTDOWN_LOG = Logger.getLogger("yoko.verbose.shutdown");
 
 
     /** Connection logging: <pre>
@@ -75,11 +77,11 @@ public enum VerboseLogging {
     public static final Logger CONN_OUT_LOG = Logger.getLogger("yoko.verbose.connection.out");
 
     /** Log data transmissions */
-    public static final Logger DATA_LOG = Logger.getLogger("yoko.verbose.data");
+    public static final Logger GIOP_LOG = Logger.getLogger("yoko.verbose.giop");
     /** Log data received */
-    public static final Logger DATA_IN_LOG = Logger.getLogger("yoko.verbose.data.in");
+    public static final Logger GIOP_IN_LOG = Logger.getLogger("yoko.verbose.giop.in");
     /** Log data sent */
-    public static final Logger DATA_OUT_LOG = Logger.getLogger("yoko.verbose.data.out");
+    public static final Logger GIOP_OUT_LOG = Logger.getLogger("yoko.verbose.giop.out");
 
     public static final Logger RETRY_LOG = Logger.getLogger("yoko.verbose.retry");
 
@@ -100,10 +102,10 @@ public enum VerboseLogging {
      * </pre>
      */
     public static final Logger REQ_LOG = Logger.getLogger("yoko.verbose.request");
-    /** @see #REQ_LOG */
-    public static final Logger REQ_OUT_LOG = Logger.getLogger("yoko.verbose.request.out");
-    /** @see #REQ_LOG */
+    /** Log request activity on the client side, including writing out the request and reading in and processing the reply */
     public static final Logger REQ_IN_LOG = Logger.getLogger("yoko.verbose.request.in");
+    /** Log request activity on the server side, including reading in and processing the request and writing out the reply */
+    public static final Logger REQ_OUT_LOG = Logger.getLogger("yoko.verbose.request.out");
 
     /** Marshalling logging: <pre>
      * CONFIG:
@@ -113,6 +115,10 @@ public enum VerboseLogging {
      * </pre>
      */
     public static final Logger MARSHAL_LOG = Logger.getLogger("yoko.verbose.marshal");
+    /** Log unmarshalling (from wire format IN to Java) */
+    public static final Logger MARSHAL_IN_LOG = Logger.getLogger("yoko.verbose.marshal.in");
+    /** Log marshalling (from Java OUT to wire format) */
+    public static final Logger MARSHAL_OUT_LOG = Logger.getLogger("yoko.verbose.marshal.out");
 
     /** Class loading logging: <pre>
      * CONFIG:
@@ -122,6 +128,8 @@ public enum VerboseLogging {
      * </pre>
      */
     public static final Logger CLASS_LOG = Logger.getLogger("yoko.verbose.class");
+
+    public static final Logger NAMING_LOG = Logger.getLogger("yoko.verbose.naming");
 
     /**
      * Use this as a pass-through method for an exception when it is being processed without a new exception being created.
@@ -134,8 +142,8 @@ public enum VerboseLogging {
      */
     public static <L extends Throwable> L logged(Logger logger, L loggable, String reason) {
         loggable.addSuppressed(new StackTraceRecord(reason));
-        if (logger.isLoggable(FINEST)) logger.log(FINEST, reason, loggable); // usually formats stack trace
-        else if (logger.isLoggable(FINE)) logger.fine(reason + ": " + loggable); // will only log exception.toString()
+        if (logger.isLoggable(FINEST)) logger.log(FINEST, loggable, () -> reason);
+        else logger.fine(() -> reason + ": " + loggable);
         return loggable;
     }
 
@@ -165,7 +173,7 @@ public enum VerboseLogging {
      * @return the loggable throwable
      */
     public static <L extends Throwable> L warned(Logger logger, L loggable, String reason) {
-        logger.log(WARNING, reason, loggable);
+        logger.log(WARNING, loggable, () -> reason);
         return loggable;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ import java.util.logging.Level;
 import javax.rmi.PortableRemoteObject;
 
 import static java.security.AccessController.doPrivileged;
+import static java.util.logging.Level.FINER;
 import static org.apache.yoko.util.PrivilegedActions.getClassLoader;
 
 abstract class RemoteDescriptor extends TypeDescriptor {
@@ -96,13 +97,13 @@ abstract class RemoteDescriptor extends TypeDescriptor {
 
     void debugMethodMap() {
         if (logger.isLoggable(Level.FINER)) {
-            logger.finer("METHOD MAP FOR " + type.getName());
+            logger.finer(() -> "METHOD MAP FOR " + type.getName());
 
             Iterator it = method_map.keySet().iterator();
             while (it.hasNext()) {
                 String idl_name = (String) it.next();
                 MethodDescriptor desc = (MethodDescriptor) method_map.get(idl_name);
-                logger.finer("IDL " + idl_name + " -> "+ desc.reflected_method);
+                logger.finer(() -> "IDL " + idl_name + " -> " + desc.reflected_method);
             }
         }
     }
@@ -223,7 +224,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
         method_map = new HashMap();
         for (int i = 0; i < method_list.size(); i++) {
             MethodDescriptor desc = (MethodDescriptor) method_list.get(i);
-            logger.finer("Adding method " + desc.java_name + " to method map under " + desc.getIDLName());
+            logger.finer(() -> "Adding method " + desc.java_name + " to method map under " + desc.getIDLName());
             method_map.put(desc.getIDLName(), desc);
         }
 
@@ -265,9 +266,9 @@ abstract class RemoteDescriptor extends TypeDescriptor {
             methods = clz.getDeclaredMethods();
         } catch (NoClassDefFoundError e) {
             ClassLoader clzClassLoader = doPrivileged(getClassLoader(clz));
-            logger.log(Level.FINER, "cannot find class " + e.getMessage() + " from "
+            logger.log(FINER, e, () -> "cannot find class " + e.getMessage() + " from "
                     + clz.getName() + " (classloader " + clzClassLoader + "): "
-                    + e.getMessage(), e);
+                    + e.getMessage());
             throw e;
         }
         for (int j = 0; j < methods.length; j++) {

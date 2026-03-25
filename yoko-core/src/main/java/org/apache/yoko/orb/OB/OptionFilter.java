@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,32 +17,27 @@
  */
 package org.apache.yoko.orb.OB;
 
+import org.omg.CORBA.INITIALIZE;
+
 import java.util.Hashtable;
 import java.util.Vector;
+
+import static org.apache.yoko.logging.VerboseLogging.INIT_LOG;
 
 //
 // This class maintains a list of options starting with a particular prefix.
 //
 
 public final class OptionFilter {
-    //
-    // Prefix for error messages
-    //
+    /** Prefix for error messages */
     private String errorPrefix_;
 
-    //
-    // Prefix for the options handled by this filter
-    //
+    /** Prefix for the options handled by this filter */
     private String optionPrefix_;
 
-    //
-    // List with options and their number of arguments
-    //
+    /** List with options and their number of arguments */
     private Hashtable argTable_ = new Hashtable();
 
-    //
-    // An option
-    //
     public class Option {
         public String name;
 
@@ -54,26 +49,21 @@ public final class OptionFilter {
         }
     }
 
-    //
-    // Constructor
-    //
     public OptionFilter(String errorPrefix, String optionPrefix) {
         errorPrefix_ = errorPrefix;
         optionPrefix_ = optionPrefix;
     }
 
-    //
-    // Add option string and the number of arguments for this option
-    //
+    /** Add option string and the number of arguments for this option */
     public void add(String option, int nrOfArgs) {
         argTable_.put(option, nrOfArgs);
     }
 
-    //
-    // Parse option list by extracting known options.
-    // Check if the number of arguments is sufficient for each option.
-    //
-    public Option[] parse(Logger logger, String[] args) {
+    /**
+     * Parse option list by extracting known options.
+     * Check if the number of arguments is sufficient for each option.
+     */
+    public Option[] parse(String[] args) {
         Vector options = new Vector();
 
         for (int i = 0; i < args.length; i++) {
@@ -85,10 +75,9 @@ public final class OptionFilter {
                     String[] value = new String[n];
 
                     if (i + n >= args.length) {
-                        String err = errorPrefix_ + ": argument expected for `"
-                                + optionPrefix_ + option + "'";
-                        logger.severe(err);
-                        throw new org.omg.CORBA.INITIALIZE(err);
+                        String err = errorPrefix_ + ": argument expected for `" + optionPrefix_ + option + "'";
+                        INIT_LOG.severe(() -> err);
+                        throw new INITIALIZE(err);
                     }
 
                     for (int j = 0; j < n; j++)
@@ -98,8 +87,7 @@ public final class OptionFilter {
 
                     continue;
                 } else
-                    logger.warning(errorPrefix_ + ": unknown option: `"
-                            + optionPrefix_ + option + "'");
+                    INIT_LOG.warning(() -> errorPrefix_ + ": unknown option: `" + optionPrefix_ + option + "'");
             }
         }
 
@@ -108,9 +96,7 @@ public final class OptionFilter {
         return result;
     }
 
-    //
-    // Filter known options and their arguments
-    //
+    /** Filter known options and their arguments */
     public String[] filter(String[] args) {
         Vector unknown = new Vector(args.length);
 

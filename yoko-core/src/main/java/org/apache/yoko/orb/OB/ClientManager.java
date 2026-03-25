@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.orb.OB;
 
+import org.apache.yoko.logging.VerboseLogging;
 import org.apache.yoko.orb.OBPortableServer.POAManager;
 import org.apache.yoko.orb.OBPortableServer.POAManagerFactory;
 import org.apache.yoko.orb.OBPortableServer.POAManager_impl;
@@ -46,13 +47,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.Collections.synchronizedSet;
+import static org.apache.yoko.logging.VerboseLogging.CONN_OUT_LOG;
 import static org.apache.yoko.orb.exceptions.Transients.NO_USABLE_PROFILE_IN_IOR;
 import static org.apache.yoko.util.MinorCodes.MinorORBDestroyed;
 import static org.apache.yoko.util.MinorCodes.describeInitialize;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 public final class ClientManager {
-    static final Logger logger = Logger.getLogger(ClientManager.class.getName());
+    static final Logger logger = CONN_OUT_LOG;
     private boolean destroyed; // True if destroy() was called
 
     private ORBInstance orbInstance;
@@ -139,9 +141,7 @@ public final class ClientManager {
         // if this operation is called after ORB destruction
         //
         if (destroyed) {
-            throw new INITIALIZE(describeInitialize(MinorORBDestroyed),
-                    MinorORBDestroyed,
-                    COMPLETED_NO);
+            throw new INITIALIZE(describeInitialize(MinorORBDestroyed), MinorORBDestroyed, COMPLETED_NO);
         }
 
 
@@ -253,29 +253,15 @@ public final class ClientManager {
         for (ConFactory factory : factories) {
             Connector[] connectors = factory.create_connectors(ior, policies);
             for (Connector connector : connectors) {
-                //
-                // Skip any connector whose protocol is not present in the
-                // protocol list
-                //
-                if (protocolPolicy != null && !protocolPolicy.contains(connector.id())) {
-                    continue;
-                }
+                // Skip any connector whose protocol is not present in the protocol list
+                if (protocolPolicy != null && !protocolPolicy.contains(connector.id())) continue;
 
-                //
-                // Get all usable profiles
-                //
                 ProfileInfo[] profileInfos = connector.get_usable_profiles(ior, policies);
-//                Assert._OB_assert(profileInfos.length != 0);
-                if (profileInfos.length == 0) {
-                    continue;
-                }
 
-                //
                 // Create a new GIOPClient for each usable profile, and set
                 // the concurrency model and code converters. Filter out
                 // clients that are equivalent to other clients we already
                 // have.
-                //
                 for (ProfileInfo profileInfo: profileInfos) {
                     CodecPair codecs = CodeSetUtil.getNegotiatedCodecs(orbInstance, profileInfo);
 
@@ -353,16 +339,14 @@ public final class ClientManager {
         // If we still don't have any client/profile pairs, throw a
         // TRANSIENT exception
         //
-        if (pairs.isEmpty()) {
-            throw NO_USABLE_PROFILE_IN_IOR.create();
-        }
+        if (pairs.isEmpty()) throw NO_USABLE_PROFILE_IN_IOR.create();
+
 
         //
         // Increment the usage count on all clients
         //
-        for (ClientProfilePair pair : pairs) {
-            pair.client.obtain();
-        }
+        for (ClientProfilePair pair : pairs) pair.client.obtain();
+
         return pairs;
     }
 
@@ -377,7 +361,7 @@ public final class ClientManager {
      * Instructs the client manager never to reuse a client or expect any further notification regarding it
      */
     public synchronized void besmirchClient(Client client) {
-        if (logger.isLoggable(Level.FINE)) logger.fine("Client besmirched: " + client);
+        logger.fine(() -> "Client besmirched: " + client);
         destroyClient(client);
     }
 
@@ -391,14 +375,13 @@ public final class ClientManager {
         ConFactoryRegistry conFactoryRegistry = orbInstance.getConFactoryRegistry();
 
         for (ConFactory factory : conFactoryRegistry.get_factories()) {
-            if (!!!factory.equivalent(ior1, ior2)) {
-                return false;
-            }
+            if (!factory.equivalent(ior1, ior2)) return false;
         }
         return true;
     }
 
     public int hash(IOR ior, int maximum) {
+        // TODO: find a better hash
         return Arrays.hashCode(orbInstance.getConFactoryRegistry().get_factories());
     }
 }

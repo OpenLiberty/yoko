@@ -33,8 +33,8 @@ import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.FINEST;
 import static org.apache.yoko.giop.MessageType.StringField.OPERATION;
 import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
-import static org.apache.yoko.logging.VerboseLogging.DATA_IN_LOG;
-import static org.apache.yoko.logging.VerboseLogging.DATA_OUT_LOG;
+import static org.apache.yoko.logging.VerboseLogging.GIOP_IN_LOG;
+import static org.apache.yoko.logging.VerboseLogging.GIOP_OUT_LOG;
 import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_0;
 import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
 import static org.omg.GIOP.LocateStatusType_1_2._LOC_NEEDS_ADDRESSING_MODE;
@@ -170,15 +170,15 @@ public enum MessageType {
     MessageType() { this(-1); }
 
     public static void logIncomingGiopMessage(WriteBuffer buffer) {
-        logGiopMessage(buffer, DATA_IN_LOG, "\nIN COMING ");
+        logGiopMessage(buffer, GIOP_IN_LOG);
     }
 
     public static void logOutgoingGiopMessage(ReadBuffer buffer) {
-        logGiopMessage(buffer, DATA_OUT_LOG, "\nOUT GOING ");
+        logGiopMessage(buffer, GIOP_OUT_LOG);
     }
 
-    private static void logGiopMessage(Buffer<?> buffer, Logger logger, String direction) {
-        if (! logger.isLoggable(FINE)) return;
+    private static void logGiopMessage(Buffer<?> buffer, Logger logger) {
+        if (!logger.isLoggable(FINE)) return;
         final boolean includeMessageHeader;
         final boolean includeMessageOctets;
         final Level level;
@@ -195,7 +195,7 @@ public enum MessageType {
             includeMessageOctets = false;
             level = FINE;
         }
-        logger.log(level, describeGiopMessage(buffer, includeMessageHeader, includeMessageOctets));
+        logger.log(level, () -> describeGiopMessage(buffer, includeMessageHeader, includeMessageOctets));
     }
 
     private static String describeGiopMessage(Buffer<?> buffer, boolean includeMessageHeader, boolean includeMessageOctets) {
