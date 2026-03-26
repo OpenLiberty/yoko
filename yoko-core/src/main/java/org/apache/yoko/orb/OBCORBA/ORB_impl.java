@@ -17,7 +17,6 @@
  */
 package org.apache.yoko.orb.OBCORBA;
 
-import org.apache.yoko.logging.VerboseLogging;
 import org.apache.yoko.orb.CORBA.Context;
 import org.apache.yoko.orb.CORBA.ContextList;
 import org.apache.yoko.orb.CORBA.Delegate;
@@ -298,11 +297,11 @@ public class ORB_impl extends ORBSingleton {
             clientManager.setORBInstance(orbInstance_);
             dsf._OB_setORBInstance(orbInstance_);
             try {
-                urlRegistry.add_scheme(new IORURLScheme_impl(orbInstance_));
-                urlRegistry.add_scheme(new FileURLScheme_impl(false, urlRegistry));
-                urlRegistry.add_scheme(new FileURLScheme_impl(true, urlRegistry));
-                urlRegistry.add_scheme(new CorbalocURLScheme_impl(orbInstance_));
-                urlRegistry.add_scheme(new CorbanameURLScheme_impl(this, urlRegistry));
+                urlRegistry.addScheme(new IORURLScheme_impl(orbInstance_));
+                urlRegistry.addScheme(new FileURLScheme_impl(false, urlRegistry));
+                urlRegistry.addScheme(new FileURLScheme_impl(true, urlRegistry));
+                urlRegistry.addScheme(new CorbalocURLScheme_impl(orbInstance_));
+                urlRegistry.addScheme(new CorbanameURLScheme_impl(this, urlRegistry));
             } catch (SchemeAlreadyExists ex) {
                 throw Assert.fail(ex);
             }

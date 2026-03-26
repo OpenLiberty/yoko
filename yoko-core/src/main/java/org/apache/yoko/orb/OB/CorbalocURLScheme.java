@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,19 +17,19 @@
  */
 package org.apache.yoko.orb.OB;
 
-//
-// IDL:orb.yoko.apache.org/OB/CorbalocURLScheme:1.0
-//
+import org.apache.yoko.orb.OB.CorbalocURLSchemePackage.ProtocolAlreadyExists;
+
 /**
- *
  * CorbalocURLScheme implements the <code>corbaloc</code> URL scheme,
  * and serves as a registry for CorbalocProtocol objects.
  *
  * @see CorbalocProtocol
- *
- **/
-
-public interface CorbalocURLScheme extends CorbalocURLSchemeOperations,
-                                           URLScheme
-{
+ */
+public interface CorbalocURLScheme extends URLScheme {
+    /**
+     * Register a new <code>corbaloc</code> protocol.
+     * @param protocol The new protocol.
+     * @throws org.apache.yoko.orb.OB.CorbalocURLSchemePackage.ProtocolAlreadyExists Another protocol already exists with the same name.
+     */
+    void addProtocol(CorbalocProtocol protocol) throws ProtocolAlreadyExists;
 }
