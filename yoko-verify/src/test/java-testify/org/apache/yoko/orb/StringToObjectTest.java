@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,14 @@
  */
 package org.apache.yoko.orb;
 
+import acme.Echo;
+import org.junit.jupiter.api.Test;
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
 import org.omg.CosNaming.NamingContext;
+import org.omg.CosNaming.NamingContextHelper;
 import org.omg.PortableInterceptor.ClientRequestInfo;
+import testify.annotation.Logging;
 import testify.iiop.TestClientRequestInterceptor;
 import testify.annotation.RetriedTest;
 import testify.iiop.annotation.ConfigureOrb;
@@ -28,7 +32,10 @@ import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
 import testify.iiop.annotation.ConfigureServer;
 import testify.iiop.annotation.ConfigureServer.BeforeServer;
 import testify.iiop.annotation.ServerControl;
-import testify.parts.PartRunner;
+
+import javax.rmi.PortableRemoteObject;
+
+import java.net.URLEncoder;
 
 import static testify.iiop.annotation.ConfigureOrb.NameService.READ_WRITE;
 import static testify.iiop.annotation.ConfigureOrb.OrbId.CLIENT_ORB;
@@ -36,13 +43,21 @@ import static testify.iiop.annotation.ConfigureOrb.OrbId.CLIENT_ORB;
 @ConfigureServer(serverOrb = @ConfigureOrb(nameService = READ_WRITE))
 public class StringToObjectTest {
     private static final String MY_CONTEXT = "my_context";
+    private static final String MY_ENTRY = "na\u00efvet\u00e9"; // "naivete" with i diaeresis and e acute
     private static final NameComponent[] MY_CONTEXT_NC = {new NameComponent(MY_CONTEXT, "")};
+    private static final NameComponent[] MY_ENTRY_NC = {new NameComponent(MY_ENTRY, "")};
 
     @ConfigureServer.NameServiceUrl
     public static String nameServiceUrl;
 
     @ConfigureServer.Control
     public static ServerControl serverControl;
+
+    @ConfigureServer.RemoteImpl
+    public static final Echo impl = s -> s;
+
+    @ConfigureServer.RemoteStub
+    public static Echo stub;
 
     /** Traces request flows from the client ORB perspective */
     @UseWithOrb(CLIENT_ORB)
@@ -67,11 +82,25 @@ public class StringToObjectTest {
     }
 
     @RetriedTest(maxRuns = 10)
-    public void testRestartServer(PartRunner runner, ORB orb) throws Exception {
+    public void testRestartServer(ORB orb) throws Exception {
         String url = nameServiceUrl + "#" + MY_CONTEXT;
         System.out.println("### url = " + url);
         orb.string_to_object(url);
         serverControl.restart();
         orb.string_to_object(url);
+    }
+
+    @Test
+    @Logging
+    public void testLatinChars(ORB orb) throws Exception {
+        String url = nameServiceUrl + "#" + MY_CONTEXT;
+        NamingContext ctx = NamingContextHelper.narrow(orb.string_to_object(url));
+        ctx.bind(MY_ENTRY_NC, (org.omg.CORBA.Object)PortableRemoteObject.toStub(stub));
+        String corbaname = nameServiceUrl + "#" + MY_CONTEXT + "/" + MY_ENTRY;
+        System.out.println("### corbaname = " + URLEncoder.encode(corbaname));
+        Object obj = orb.string_to_object(corbaname);
+        Echo stub2 = (Echo) PortableRemoteObject.narrow(obj, Echo.class);
+        String s = stub2.echo(corbaname);
+        System.out.println("### echoed corbaname = " + s);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,34 @@
  */
 package org.apache.yoko.orb.OB;
 
-//
-// IDL:orb.yoko.apache.org/OB/URLRegistry:1.0
-//
-/**
- *
- * The URLRegistry holds all of the supported URL schemes.
- *
- * @see URLScheme
- *
- **/
+import org.apache.yoko.orb.OB.URLRegistryPackage.SchemeAlreadyExists;
+import org.omg.CORBA.BAD_PARAM;
 
-public interface URLRegistry extends URLRegistryOperations,
-                                     org.omg.CORBA.Object
-{
+/**
+ * The URLRegistry holds all supported URL schemes.
+ * @see URLScheme
+ */
+public interface URLRegistry {
+    /**
+     * Register a new URL scheme.
+     * @param scheme The new scheme.
+     * @throws SchemeAlreadyExists Another scheme already exists with the same name.
+     */
+    void add_scheme(URLScheme scheme) throws SchemeAlreadyExists;
+
+    /**
+     * Find a scheme with the given name.
+     * @param name The scheme name, in lower case.
+     * @return The URLScheme, or nil if no match was found.
+     */
+    URLScheme find_scheme(String name);
+
+    /**
+     * Convert a URL into an object reference by delegating to a
+     * registered URLScheme object.
+     * @param url The complete URL, including the scheme.
+     * @return An object reference.
+     * @throws BAD_PARAM if the URL is invalid.
+     */
+    org.omg.CORBA.Object parse_url(String url);
 }

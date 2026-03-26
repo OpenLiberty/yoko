@@ -36,8 +36,11 @@ import org.omg.CosNaming.NamingContextPackage.NotEmpty;
 import org.omg.CosNaming.NamingContextPackage.NotFound;
 import org.omg.CosNaming.NamingContextPackage.NotFoundReason;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -461,8 +464,15 @@ public abstract class NamingContextBase extends NamingContextExtPOA {
         if (address == null || address.isEmpty()) throw new InvalidAddress();
         if (sn == null || sn.isEmpty()) throw new InvalidName();
 
-        // TODO: What validation, if any, needs to be done here?
-        return "corbaname:" + address + "#" + encodeRFC2396Name(sn);
+        try {
+            //
+            URI uri = new URI("corbaname", address, sn);
+            return uri.toASCIIString();
+        } catch (URISyntaxException e) {
+            String oldImpl = "corbaname:" + address + "#" + encodeRFC2396Name(sn);
+            NAMING_LOG.log(Level.WARNING, e, () -> String.format("problem constructing corbaname as a URI - using previous implementation to give \"%s\"", oldImpl));
+            return oldImpl;
+        }
     }
 
     /**
