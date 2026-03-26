@@ -76,7 +76,7 @@ public final class ObjectFactory {
 
     public org.omg.CORBA.Object stringToObject(String ior) {
         logger.fine(() -> "Creating an object from " + ior);
-        return orbInstance_.getURLRegistry().parse_url(ior);
+        return orbInstance_.getURLRegistry().parseUrl(ior);
     }
 
     public Policy[] policies() {
