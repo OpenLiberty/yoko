@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
  */
 package org.apache.yoko.orb.OB;
 
-//
-// IDL:orb.yoko.apache.org/OB/CorbalocProtocol:1.0
-//
+import org.omg.CORBA.BAD_PARAM;
+import org.omg.IOP.TaggedProfile;
+
 /**
  *
  * The <code>corbaloc</code> URL scheme supports multiple protocols,
@@ -31,7 +31,27 @@ package org.apache.yoko.orb.OB;
  *
  **/
 
-public interface CorbalocProtocol extends CorbalocProtocolOperations,
-                                          org.omg.CORBA.Object
-{
+public interface CorbalocProtocol {
+    /**
+     * Each protocol must have a unique name. All protocol names must be in lower case.
+     */
+    String name();
+
+    /**
+     * Parse a protocol address and create a tagged profile for inclusion
+     * in an IOR.
+     *
+     * @param addr The protocol address, not including the protocol name
+     * or trailing object key. For example, the URL
+     * <code>corbaloc:iiop:1.2@localhost:5000/Key</code> would result in
+     * an address argument of <code>1.2@localhost:5000</code>.
+     *
+     * @param key The object key from the URL, converted into a sequence
+     * of octets.
+     *
+     * @return A tagged profile.
+     *
+     * @throws BAD_PARAM if the address is invalid.
+     */
+    TaggedProfile parseAddress(String addr, byte[] key);
 }

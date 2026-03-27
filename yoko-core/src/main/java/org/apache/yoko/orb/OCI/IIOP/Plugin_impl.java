@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,8 @@
 package org.apache.yoko.orb.OCI.IIOP;
 
 import org.apache.yoko.orb.OB.CorbalocURLScheme;
-import org.apache.yoko.orb.OB.CorbalocURLSchemeHelper;
 import org.apache.yoko.orb.OB.CorbalocURLSchemePackage.ProtocolAlreadyExists;
 import org.apache.yoko.orb.OB.URLRegistry;
-import org.apache.yoko.orb.OB.URLRegistryHelper;
 import org.apache.yoko.orb.OB.URLScheme;
 import org.apache.yoko.orb.OCI.AccFactoryRegistry;
 import org.apache.yoko.orb.OCI.AccFactoryRegistryHelper;
@@ -76,11 +74,11 @@ public final class Plugin_impl extends LocalObject implements Plugin {
 
         // Install the "iiop" corbaloc URL protocol
         try {
-            URLRegistry registry = URLRegistryHelper.narrow(orb_.resolve_initial_references("URLRegistry"));
+            URLRegistry registry = (URLRegistry)orb_.resolve_initial_references("URLRegistry");
             URLScheme scheme = registry.find_scheme("corbaloc");
             ensure(scheme != null);
-            CorbalocURLScheme corbaloc = CorbalocURLSchemeHelper.narrow(scheme);
-            corbaloc.add_protocol(new CorbalocProtocol_impl());
+            CorbalocURLScheme corbaloc = (CorbalocURLScheme) scheme;
+            corbaloc.addProtocol(new CorbalocProtocol_impl());
         } catch (InvalidName | ProtocolAlreadyExists ex) {
             throw Assert.fail(ex);
         }
