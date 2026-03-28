@@ -38,6 +38,8 @@ import org.omg.CosNaming.NamingContextPackage.NotFound;
 import org.omg.CosNaming.NamingContextPackage.NotFoundReason;
 import org.omg.PortableServer.POA;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -45,6 +47,7 @@ import java.util.stream.Stream;
 
 import static java.lang.Integer.toHexString;
 import static java.util.Objects.requireNonNull;
+import static java.util.logging.Level.WARNING;
 import static java.util.stream.Collectors.joining;
 import static org.apache.yoko.logging.VerboseLogging.NAMING_LOG;
 import static org.apache.yoko.util.MinorCodes.MinorObjectIsNull;
@@ -471,8 +474,14 @@ public abstract class NamingContextBase extends NamingContextExtPOA
         if (address == null || address.isEmpty()) throw new InvalidAddress();
         if (sn == null || sn.isEmpty()) throw new InvalidName();
 
-        // TODO: What validation, if any, needs to be done here?
-        return "corbaname:" + address + "#" + encodeRFC2396Name(sn);
+        try {
+            URI uri = new URI("corbaname", address, sn);
+            return uri.toASCIIString();
+        } catch (URISyntaxException e) {
+            String oldImpl = "corbaname:" + address + "#" + encodeRFC2396Name(sn);
+            NAMING_LOG.log(WARNING, e, () -> String.format("problem constructing corbaname as a URI - using previous implementation to give \"%s\"", oldImpl));
+            return oldImpl;
+        }
     }
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -144,7 +144,7 @@ public class InsTest {
             se.printStackTrace();
             System.err.println("Original URL: " + objStr);
             System.err.println("Resultant URL: " + (obj == null ? "NONE, string_to_object raised the exception" : orb.object_to_string(obj)));
-            throw new AssertionFailed(se.getMessage());
+            throw new AssertionFailed(se.getMessage(), se);
         }
     }
 
