@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -144,7 +144,7 @@ class OrbSteward implements ExtensionContext.Store.CloseableResource {
      */
     static Properties props(ConfigureOrb cfg, Class<?> testClass, Predicate<Class<?>> nestedClassFilter) {
         Properties props = new Properties();
-        props.put("yoko.orb.id", cfg.value());
+        props.put("yoko.orb.id", cfg.value().name());
         props.put("org.omg.CORBA.ORBClass", "org.apache.yoko.orb.CORBA.ORB");
         props.put("org.omg.CORBA.ORBSingletonClass", "org.apache.yoko.orb.CORBA.ORBSingleton");
         for (String prop : cfg.props()) {
