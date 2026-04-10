@@ -15,25 +15,15 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.omg.CORBA;
+package org.omg.PortableInterceptor;
 
-import org.omg.CORBA.portable.IDLEntity;
+import org.omg.CORBA.*;
 
-//
-// IDL:omg.org/CORBA/StructMember:1.0
-//
-public final class StructMember implements IDLEntity {
-    private static final String _ob_id = "IDL:omg.org/CORBA/StructMember:1.0";
-
-    public StructMember() {}
-
-    public StructMember(String name, TypeCode type, IDLType type_def) {
-        this.name = name;
-        this.type = type;
-        this.type_def = type_def;
-    }
-
-    public String name;
-    public TypeCode type;
-    public IDLType type_def;
+final class MyClientPolicy_impl extends LocalObject implements MyClientPolicy {
+    private final int value;
+    MyClientPolicy_impl(int value) { this.value = value; }
+    public int value() { return value; }
+    public int policy_type() { return MY_CLIENT_POLICY_ID.value; }
+    public Policy copy() { return this; }
+    public void destroy() {}
 }
