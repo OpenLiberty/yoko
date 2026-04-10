@@ -80,9 +80,12 @@ import static org.omg.PortableInterceptor.PortableInterceptorTest.IorKey.DSI_IMP
 import static org.omg.PortableInterceptor.PortableInterceptorTest.IorKey.IMPL;
 import static testify.iiop.annotation.ConfigureOrb.OrbId.CLIENT_ORB;
 import static testify.iiop.annotation.ConfigureOrb.OrbId.SERVER_ORB;
+import static testify.iiop.annotation.ConfigureServer.Separation.COLLOCATED;
 
 @ConfigureServer
 public class PortableInterceptorTest {
+    @ConfigureServer(separation = COLLOCATED)
+    public static class PICollocatedTest extends PortableInterceptorTest{}
     static ClientProxyManager clientProxyManager;
     private static Policy[] policies;
     private static Bus clientBus;
@@ -90,7 +93,15 @@ public class PortableInterceptorTest {
     static int clientSlotId;
     static int serverSlotId;
 
-    @UseWithOrb(CLIENT_ORB)
+    /**
+     * Use this client initializer on the client ORB for the inter-orb tests
+     * and on the server ORB for the collocated tests.
+     *
+     * Since the server ORB does not act as a client in the inter-orb test,
+     * it does not matter or affect the test to have this initializer run
+     * on the server ORB for that test too.
+     */
+    @UseWithOrb({CLIENT_ORB, SERVER_ORB})
     public static class ClientOrbInitializer implements TestORBInitializer {
         @Override
         public void pre_init(ORBInitInfo info) {
