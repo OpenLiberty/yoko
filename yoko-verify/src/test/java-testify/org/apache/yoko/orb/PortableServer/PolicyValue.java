@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import org.omg.PortableServer.ServantRetentionPolicyValue;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-public enum PolicyValue {
+public enum PolicyValue implements Function<POA, Policy> {
     UNIQUE_ID(poa -> poa.create_id_uniqueness_policy(IdUniquenessPolicyValue.UNIQUE_ID)),
     MULTIPLE_ID(poa -> poa.create_id_uniqueness_policy(IdUniquenessPolicyValue.MULTIPLE_ID)),
     RETAIN(poa -> poa.create_servant_retention_policy(ServantRetentionPolicyValue.RETAIN)),
@@ -52,10 +52,13 @@ public enum PolicyValue {
         this.factory = factory;
     }
 
-    public static POA create_POA(String id, POA parentPoa, POAManager poaMgr, PolicyValue...policies) throws InvalidPolicy, AdapterAlreadyExists {
-        Policy[] policyList = Stream.of(policies)
-                .map(policy -> policy.factory.apply(parentPoa))
+    public static POA create_POA(String id, POA parentPoa, POAManager poaMgr, Function<POA, Policy>...factories) throws InvalidPolicy, AdapterAlreadyExists {
+        Policy[] policyList = Stream.of(factories)
+                .map(factory -> factory.apply(parentPoa))
                 .toArray(Policy[]::new);
         return parentPoa.create_POA(id, poaMgr, policyList);
     }
+
+    @Override
+    public Policy apply(POA poa) { return factory.apply(poa); }
 }
