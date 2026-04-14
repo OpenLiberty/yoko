@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,11 @@
  */
 package org.apache.yoko.orb.OB;
 
-//
-// IDL:orb.yoko.apache.org/OB/URLScheme:1.0
-//
+import org.omg.CORBA.BAD_PARAM;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+
 /**
  *
  * A URLScheme (e.g., <code>file:</code>, <code>corbaloc:</code>, etc.)
@@ -30,7 +32,19 @@ package org.apache.yoko.orb.OB;
  *
  **/
 
-public interface URLScheme extends URLSchemeOperations,
-                                   org.omg.CORBA.Object
-{
+public interface URLScheme {
+    /**
+     * Each scheme must have a unique name. All scheme names must
+     * be in lower case, and do not include the trailing colon.
+     */
+    String name();
+
+    /**
+     * Convert a URL into an object reference.
+     *
+     * @param uri The complete URL, including the scheme.
+     * @return An object reference.
+     * @throws BAD_PARAM If the URL is invalid.
+     */
+    org.omg.CORBA.Object parse(URI uri) throws URISyntaxException;
 }

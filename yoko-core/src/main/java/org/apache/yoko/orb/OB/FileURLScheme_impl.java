@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,88 +17,44 @@
  */
 package org.apache.yoko.orb.OB;
 
-import static org.apache.yoko.orb.OB.URLUtil.unescapeURL;
+import org.omg.CORBA.BAD_PARAM;
+
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.net.URI;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.apache.yoko.util.MinorCodes.MinorBadSchemeSpecificPart;
 import static org.apache.yoko.util.MinorCodes.describeBadParam;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-
-import org.omg.CORBA.BAD_PARAM;
-import org.omg.CORBA.LocalObject;
-
-public class FileURLScheme_impl extends LocalObject implements
-        URLScheme {
-    private boolean relative_;
-
-    private URLRegistry registry_;
-
-    // ------------------------------------------------------------------
-    // FileURLScheme_impl constructor
-    // ------------------------------------------------------------------
+public class FileURLScheme_impl implements URLScheme {
+    private final boolean relative_;
+    private final URLRegistry registry_;
 
     public FileURLScheme_impl(boolean relative, URLRegistry registry) {
         relative_ = relative;
         registry_ = registry;
     }
 
-    // ------------------------------------------------------------------
-    // Standard IDL to Java Mapping
-    // ------------------------------------------------------------------
+    public String name() { return (relative_ ? "relfile" : "file"); }
 
-    public String name() {
-        return (relative_ ? "relfile" : "file");
-    }
+    public org.omg.CORBA.Object parse(URI uri) {
+        String ssp = uri.getSchemeSpecificPart();
 
-    public org.omg.CORBA.Object parse_url(String url) {
-        int startIdx;
-        if (relative_)
-            startIdx = 8; // skip "relfile:"
-        else
-            startIdx = 5; // skip "file:"
+        int len = ssp.length();
 
-        int len = url.length();
+        // Allow up to three leading '/''s to match commonly used forms of the "file:" URL scheme
+        final String prefix = relative_ ? "" : "/";
+        final String filename = ssp.replaceFirst("^/{0,3}", prefix);
+        if (filename.equals(prefix)) throw new BAD_PARAM(describeBadParam(MinorBadSchemeSpecificPart) + ": no file name specified", MinorBadSchemeSpecificPart, COMPLETED_NO);
 
-        //
-        // Allow up to three leading '/''s to match commonly used forms
-        // of the "file:" URL scheme
-        // 
-        for (int n = 0; startIdx < len && n < 3; n++, startIdx++)
-            if (url.charAt(startIdx) != '/')
-                break;
-
-        if (startIdx >= len)
-            throw new BAD_PARAM(describeBadParam(MinorBadSchemeSpecificPart)
-                    + ": no file name specified",
-                    MinorBadSchemeSpecificPart,
-                    COMPLETED_NO);
-
-        String fileName;
-        if (relative_)
-            fileName = "";
-        else
-            fileName = "/";
-        fileName += unescapeURL(url.substring(startIdx));
-
-        try {
-            java.io.FileInputStream file = new FileInputStream(fileName);
-            java.io.BufferedReader in = new BufferedReader(
-                    new InputStreamReader(file));
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(filename), US_ASCII))) {
             String ref = in.readLine();
-            file.close();
-
-            return registry_.parse_url(ref);
-        } catch (IOException ex) {
-            throw new BAD_PARAM(describeBadParam(MinorBadSchemeSpecificPart)
-                    + ": file error", MinorBadSchemeSpecificPart,
-                    COMPLETED_NO);
+            return registry_.parseUrl(ref);
+        } catch (Exception e) {
+            throw (BAD_PARAM)new BAD_PARAM(describeBadParam(MinorBadSchemeSpecificPart) + ": file error", MinorBadSchemeSpecificPart, COMPLETED_NO).initCause(e);
         }
-    }
-
-    public void destroy() {
-        registry_ = null;
     }
 }

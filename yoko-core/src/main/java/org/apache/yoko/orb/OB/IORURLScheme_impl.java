@@ -24,12 +24,14 @@ import org.omg.CORBA.MARSHAL;
 import org.omg.IOP.IOR;
 import org.omg.IOP.IORHelper;
 
+import java.net.URI;
+
 import static org.apache.yoko.util.HexConverter.fromHex;
 import static org.apache.yoko.util.MinorCodes.MinorBadSchemeSpecificPart;
 import static org.apache.yoko.util.MinorCodes.describeBadParam;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
-public class IORURLScheme_impl extends LocalObject implements URLScheme {
+public class IORURLScheme_impl implements URLScheme {
     private ORBInstance orbInstance_;
 
     public IORURLScheme_impl(ORBInstance orbInstance) {
@@ -40,20 +42,15 @@ public class IORURLScheme_impl extends LocalObject implements URLScheme {
         return "ior";
     }
 
-    public org.omg.CORBA.Object parse_url(String url) {
-        int len = url.length() - 4; // skip "IOR:"
+    public org.omg.CORBA.Object parse(URI uri) {
+        String hex = uri.getSchemeSpecificPart().toLowerCase();
+        // check the number of hex chars is even
+        if ((hex.length() % 2) != 0) throw new BAD_PARAM(describeBadParam(MinorBadSchemeSpecificPart) + ": invalid length", MinorBadSchemeSpecificPart, COMPLETED_NO);
 
-        if ((len % 2) != 0)
-            throw new BAD_PARAM(describeBadParam(MinorBadSchemeSpecificPart) + ": invalid length", MinorBadSchemeSpecificPart, COMPLETED_NO);
-
-        byte[] data = fromHex(url, 4);
-
+        byte[] data = fromHex(hex);
         try {
-            //
             // Error in conversion
-            //
-            if (data == null)
-                throw new MARSHAL();
+            if (data == null) throw new MARSHAL();
 
             YokoInputStream in = new YokoInputStream(data);
             in._OB_readEndian();
@@ -61,14 +58,8 @@ public class IORURLScheme_impl extends LocalObject implements URLScheme {
             ObjectFactory objectFactory = orbInstance_.getObjectFactory();
             return objectFactory.createObject(ior);
         } catch (MARSHAL ex) {
-            //
             // In this case, a marshal error is really a bad "IOR:..." string
-            // 
-            throw new BAD_PARAM(describeBadParam(MinorBadSchemeSpecificPart) + ": invalid IOR \"" + url + "\"", MinorBadSchemeSpecificPart, COMPLETED_NO);
+            throw new BAD_PARAM(describeBadParam(MinorBadSchemeSpecificPart) + ": invalid IOR \"" + uri + "\"", MinorBadSchemeSpecificPart, COMPLETED_NO);
         }
-    }
-
-    public void destroy() {
-        orbInstance_ = null;
     }
 }

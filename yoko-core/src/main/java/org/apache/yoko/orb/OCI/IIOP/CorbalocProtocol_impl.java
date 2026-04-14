@@ -20,7 +20,6 @@ package org.apache.yoko.orb.OCI.IIOP;
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OB.CorbalocProtocol;
 import org.omg.CORBA.BAD_PARAM;
-import org.omg.CORBA.LocalObject;
 import org.omg.IIOP.ProfileBody_1_0;
 import org.omg.IIOP.ProfileBody_1_0Helper;
 import org.omg.IIOP.ProfileBody_1_1;
@@ -30,167 +29,86 @@ import org.omg.IOP.TAG_INTERNET_IOP;
 import org.omg.IOP.TaggedComponent;
 import org.omg.IOP.TaggedProfile;
 
+import static java.lang.Integer.parseInt;
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+import static org.apache.yoko.logging.VerboseLogging.IOR_LOG;
 import static org.apache.yoko.util.MinorCodes.MinorBadAddress;
 import static org.apache.yoko.util.MinorCodes.describeBadParam;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
-public class CorbalocProtocol_impl extends LocalObject implements
-        CorbalocProtocol {
+public class CorbalocProtocol_impl implements CorbalocProtocol {
     public String name() {
         return "iiop";
     }
 
-    public TaggedProfile parse_address(String addr, byte[] key) {
-        byte major, minor;
-
-        //
+    public TaggedProfile parseAddress(String addr, byte[] key) {
+        final byte major = 1, minor;
+        IOR_LOG.finest(() -> "parsing address: " + '"' + addr + '"');
         // Do we have an iiop version 'X.Y@' portion? (default is 1.0)
-        //
-        int start = 0;
-        int at = addr.indexOf('@');
-        if (at == -1) {
-            major = 1;
+        // e.g. 1.2@localhost:2809
+        String[] parts = addr.split("@", 2);
+        final String hostAndPort;
+        if (parts.length == 1) {
+            hostAndPort = parts[0];
             minor = 0;
         } else {
-            int pos = 0;
-            int dot = 0;
-            boolean seenDot = false;
-            boolean ok = true;
-            while (pos < at && ok) {
-                char ch = addr.charAt(pos);
-                if (ch == '.') {
-                    if (seenDot || pos == 0 || pos == at - 1)
-                        ok = false;
-                    seenDot = true;
-                    dot = pos;
-                } else if (!Character.isDigit(ch))
-                    ok = false;
-                pos++;
-            }
-            if (!ok || !seenDot)
-                throw new BAD_PARAM(
-                        describeBadParam(MinorBadAddress)
-                                + ": iiop version must be of the form `X.Y'",
-                        MinorBadAddress,
-                        COMPLETED_NO);
-
-            int nMajor = 0, nMinor = 0;
-            try {
-                nMajor = Integer.parseInt(addr.substring(0, dot));
-                nMinor = Integer.parseInt(addr.substring(dot + 1, at));
-            } catch (NumberFormatException ex) {
-            }
-            if (nMajor != 1 || nMinor > 255)
-                throw new BAD_PARAM(
-                        describeBadParam(MinorBadAddress)
-                                + ": iiop version is invalid or unsupported",
-                        MinorBadAddress,
-                        COMPLETED_NO);
-            // 
-            // Can only provide up to an iiop 1.2 profile. A server should
-            // be able to communicate with a client with a lesser minor
-            // version number.
-            // 
-            if (nMinor > 2)
-                nMinor = 2;
-
-            major = (byte) nMajor;
-            minor = (byte) nMinor;
-
-            //
-            // Skip the version
-            //
-            start = at + 1;
+            hostAndPort = parts[1];
+            minor = checkMajorAndGetMinor(parts[0]);
         }
 
-        //
-        // Empty hostname is illegal (as is port ':YYYY' by itself)
-        //
-        if (start == addr.length() || addr.charAt(start) == ':')
-            throw new BAD_PARAM(
-                    describeBadParam(MinorBadAddress)
-                            + ": iiop hostname must be specified",
-                    MinorBadAddress,
-                    COMPLETED_NO);
-
-        //
         // Hostname is terminated by ':port', or by end of string
-        //
-        String host;
-        int colon = addr.indexOf(':', start);
-        if (colon == -1)
-            host = addr.substring(start);
-        else
-            host = addr.substring(start, colon);
+        parts = hostAndPort.split(":", 2);
+        final String host = parts[0];
+        // Empty hostname is illegal (as is port ':YYYY' by itself)
+        if (host.isEmpty()) throw new BAD_PARAM(describeBadParam(MinorBadAddress) + ": iiop hostname must be specified: " + addr, MinorBadAddress, COMPLETED_NO);
 
-        //
         // Valid range for port is 1 - 65535
-        //
-        int port = 2809; // default port
-        if (colon != -1 && colon < addr.length()) {
-            String str = addr.substring(colon + 1);
-            try {
-                port = Integer.parseInt(str);
-            } catch (NumberFormatException ex) {
-                throw new BAD_PARAM(
-                        describeBadParam(MinorBadAddress)
-                                + ": iiop port is invalid",
-                        MinorBadAddress,
-                        COMPLETED_NO);
-            }
-            if (port < 1 || port > 65535)
-                throw new BAD_PARAM(
-                        describeBadParam(MinorBadAddress)
-                                + ": iiop port must be between 1 and 65535",
-                        MinorBadAddress,
-                        COMPLETED_NO);
-        }
+        final short port = getPort(parts);
 
-        //
         // Create profile
-        //
         TaggedProfile profile = new TaggedProfile();
         profile.tag = TAG_INTERNET_IOP.value;
 
-        if (major == (byte) 1 && minor == (byte) 0) {
-            ProfileBody_1_0 body = new ProfileBody_1_0();
-            body.iiop_version = new Version(major, minor);
-            body.host = host;
-            if (port >= 0x8000)
-                body.port = (short) (port - 0xffff - 1);
-            else
-                body.port = (short) port;
-            body.object_key = key;
-
-            try (YokoOutputStream out = new YokoOutputStream()) {
-                out._OB_writeEndian();
-                ProfileBody_1_0Helper.write(out, body);
-                profile.profile_data = out.copyWrittenBytes();
-            }
-        } else {
-            // 
-            // IIOP version is 1.1 or 1.2
-            //
-            ProfileBody_1_1 body = new ProfileBody_1_1();
-            body.iiop_version = new Version(major, minor);
-            body.host = host;
-            if (port >= 0x8000)
-                body.port = (short) (port - 0xffff - 1);
-            else
-                body.port = (short) port;
-            body.object_key = key;
-            body.components = new TaggedComponent[0];
-
-            try (YokoOutputStream out = new YokoOutputStream()) {
-                out._OB_writeEndian();
-                ProfileBody_1_1Helper.write(out, body);
-                profile.profile_data = out.copyWrittenBytes();
-            }
+        try (YokoOutputStream out = new YokoOutputStream()) {
+            // create a CDR encapsulation of the correct IDL profile struct
+            out._OB_writeEndian();
+            if (minor == 0) ProfileBody_1_0Helper.write(out, new ProfileBody_1_0(new Version(major, minor), host, port, key));
+            else ProfileBody_1_1Helper.write(out, new ProfileBody_1_1(new Version(major, minor), host, port, key, new TaggedComponent[0]));
+            profile.profile_data = out.copyWrittenBytes();
         }
-
         return profile;
     }
 
-    public void destroy() {
+    private static byte checkMajorAndGetMinor(String ver) {
+        IOR_LOG.finest(() -> "parsing version " + '"' + ver + '"');
+        final byte minor;
+        if (! ver.startsWith("1.")) throw new BAD_PARAM(describeBadParam(MinorBadAddress) + ": iiop version is invalid or unsupported: " + ver, MinorBadAddress, COMPLETED_NO);
+        final String minorVer = ver.substring(2);
+        try {
+            final int n = parseInt(minorVer);
+            if (n != (n & 0xFF)) throw new BAD_PARAM(describeBadParam(MinorBadAddress) + ": iiop version is invalid or unsupported: " + ver, MinorBadAddress, COMPLETED_NO);
+            minor = (byte) min(n, 2);
+        } catch (NumberFormatException e) {
+            throw (BAD_PARAM) new BAD_PARAM(describeBadParam(MinorBadAddress) + ": iiop version is invalid or unsupported: " + ver, MinorBadAddress, COMPLETED_NO).initCause(e);
+        }
+        IOR_LOG.finest(() -> "returning minor version: " + minor);
+        return minor;
+    }
+
+    private static short getPort(String[] parts) {
+        final int port; // default port
+        if (parts.length == 1) {
+            port = 2809;
+        } else {
+            final String portStr = parts[1];
+            try {
+                port = parseInt(portStr);
+            } catch (NumberFormatException ex) {
+                throw new BAD_PARAM(describeBadParam(MinorBadAddress) + ": iiop port is invalid", MinorBadAddress, COMPLETED_NO);
+            }
+            if (port < 1 || port > 65535) throw new BAD_PARAM(describeBadParam(MinorBadAddress) + ": iiop port must be between 1 and 65535: " + portStr, MinorBadAddress, COMPLETED_NO);
+        }
+        return (short) port;
     }
 }
