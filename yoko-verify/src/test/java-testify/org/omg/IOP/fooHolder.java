@@ -15,25 +15,20 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.omg.CORBA;
+package org.omg.IOP;
 
-import org.omg.CORBA.portable.IDLEntity;
+import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA.portable.Streamable;
 
 //
-// IDL:omg.org/CORBA/StructMember:1.0
+// IDL:foo:1.0
 //
-public final class StructMember implements IDLEntity {
-    private static final String _ob_id = "IDL:omg.org/CORBA/StructMember:1.0";
-
-    public StructMember() {}
-
-    public StructMember(String name, TypeCode type, IDLType type_def) {
-        this.name = name;
-        this.type = type;
-        this.type_def = type_def;
-    }
-
-    public String name;
-    public TypeCode type;
-    public IDLType type_def;
+public final class fooHolder implements Streamable {
+    public foo value;
+    public fooHolder() {}
+    public fooHolder(foo initial) { value = initial; }
+    public void _read(InputStream in) { value = fooHelper.read(in); }
+    public void _write(OutputStream out) { fooHelper.write(out, value); }
+    public org.omg.CORBA.TypeCode _type() { return fooHelper.type(); }
 }

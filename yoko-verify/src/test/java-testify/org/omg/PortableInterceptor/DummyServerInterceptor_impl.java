@@ -15,25 +15,33 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.omg.CORBA;
+package org.omg.PortableInterceptor;
 
-import org.omg.CORBA.portable.IDLEntity;
+final class DummyServerInterceptor_impl extends org.omg.CORBA.LocalObject
+        implements org.omg.PortableInterceptor.ServerRequestInterceptor {
+    //
+    // IDL to Java Mapping
+    //
 
-//
-// IDL:omg.org/CORBA/StructMember:1.0
-//
-public final class StructMember implements IDLEntity {
-    private static final String _ob_id = "IDL:omg.org/CORBA/StructMember:1.0";
-
-    public StructMember() {}
-
-    public StructMember(String name, TypeCode type, IDLType type_def) {
-        this.name = name;
-        this.type = type;
-        this.type_def = type_def;
+    public String name() {
+        return "dummy";
     }
 
-    public String name;
-    public TypeCode type;
-    public IDLType type_def;
+    public void destroy() {
+    }
+
+    public void receive_request_service_contexts(ServerRequestInfo ri) {
+    }
+
+    public void receive_request(ServerRequestInfo ri) {
+    }
+
+    public void send_reply(ServerRequestInfo ri) {
+    }
+
+    public void send_other(ServerRequestInfo ri) {
+    }
+
+    public void send_exception(ServerRequestInfo ri) {
+    }
 }
