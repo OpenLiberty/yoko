@@ -1,3 +1,10 @@
+## [v1.6.1] - 2026-04-15
+
+### 🐛 Bug Fixes
+
+- Decode Latin chars in corbaname URIs
+- Incorrect policy type value
+
 ## [v1.6.0] - 2026-02-25
 
 ### 🚀 Features
