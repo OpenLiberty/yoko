@@ -872,11 +872,16 @@ task createGitHubRelease {
 
         println "Creating GitHub release: ${releaseVersion}"
         
+        // Get current branch to use as target
+        def currentBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
+        println "Creating release from branch: ${currentBranch}"
+        
         // Create release
         def createCmd = [
             'gh', 'release', 'create', releaseVersion,
             '--title', "Yoko ${releaseVersion}",
-            '--notes-file', releaseNotesFile.absolutePath
+            '--notes-file', releaseNotesFile.absolutePath,
+            '--target', currentBranch
         ]
         
         // Add all JAR files
