@@ -464,8 +464,9 @@ task validateRelease {
         
         // 5. Branch check
         print "Checking current branch... "
+        def currentBranch = null
         try {
-            def currentBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
+            currentBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
             if (currentBranch == 'main') {
                 println "✅ (${currentBranch})"
             } else if (currentBranch.startsWith('release/')) {
@@ -477,6 +478,32 @@ task validateRelease {
         } catch (Exception e) {
             warnings.add("Unable to check branch: ${e.message}")
             println "⚠️"
+        }
+        
+        // 5b. Branch sync check (for release branches)
+        if (currentBranch && currentBranch.startsWith('release/')) {
+            print "Checking branch sync with origin... "
+            try {
+                // Fetch to ensure we have latest remote info
+                exec {
+                    commandLine 'git', 'fetch', 'origin', currentBranch
+                    standardOutput = new ByteArrayOutputStream()
+                    errorOutput = new ByteArrayOutputStream()
+                }
+                
+                def localCommit = "git rev-parse HEAD".execute().text.trim()
+                def remoteCommit = "git rev-parse origin/${currentBranch}".execute().text.trim()
+                
+                if (localCommit == remoteCommit) {
+                    println "✅ (in sync)"
+                } else {
+                    errors.add("Local branch ${currentBranch} is not in sync with origin/${currentBranch}. Push your changes first.")
+                    println "❌"
+                }
+            } catch (Exception e) {
+                warnings.add("Unable to check branch sync: ${e.message}")
+                println "⚠️"
+            }
         }
         
         // 6. GitHub CLI check

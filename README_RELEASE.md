@@ -19,6 +19,8 @@ Yoko uses a **branch-based release workflow** with Gradle automation. Releases a
 Before starting a release, ensure you have:
 
 1. **Git** - For version control
+   - **Important:** All release commands explicitly use `origin` remote
+   - If your default push remote is a fork, the commands will still push to `origin`
 2. **GitHub CLI (`gh`)** - For creating releases
    - Install: https://cli.github.com/
    - Authenticate: `gh auth login`
@@ -48,7 +50,7 @@ git status
 Create a dedicated release branch for the new version:
 
 ```bash
-# Create and push release branch (replace X.Y.Z with your version)
+# Create and push release branch to origin (replace X.Y.Z with your version)
 git switch -c release/X.Y.Z
 git push -u origin release/X.Y.Z
 ```
@@ -72,7 +74,7 @@ This updates `gradle.properties` with the new version.
 ```bash
 git add gradle.properties
 git commit -m "chore: bump version to X.Y.Z"
-git push origin release/X.Y.Z
+git push origin release/X.Y.Z  # Always push to origin for releases
 ```
 
 ### Step 4: Update CHANGELOG
@@ -96,7 +98,7 @@ git add -p CHANGELOG.md
 
 # Commit
 git commit -m "chore: update CHANGELOG for vX.Y.Z"
-git push origin release/X.Y.Z
+git push origin release/X.Y.Z  # Always push to origin for releases
 ```
 
 ### Step 5: Validate Release Readiness
@@ -169,7 +171,7 @@ git pull origin main
 # Fast-forward merge the release branch
 git merge --ff-only release/X.Y.Z
 
-# Push to origin
+# Push to origin (explicitly specify origin for releases)
 git push origin main
 
 # Optionally, delete the release branch
@@ -393,11 +395,11 @@ git switch -c release/X.Y.Z && git push -u origin release/X.Y.Z
 
 # 2. Bump version
 gradle bumpVersion
-git add gradle.properties && git commit -m "chore: bump version to X.Y.Z" && git push
+git add gradle.properties && git commit -m "chore: bump version to X.Y.Z" && git push origin release/X.Y.Z
 
 # 3. Update CHANGELOG
 gradle updateChangelog
-git add CHANGELOG.md && git commit -m "chore: update CHANGELOG for vX.Y.Z" && git push
+git add CHANGELOG.md && git commit -m "chore: update CHANGELOG for vX.Y.Z" && git push origin release/X.Y.Z
 
 # 4. Validate
 gradle validateRelease
@@ -409,7 +411,7 @@ gradle release
 open https://github.com/OpenLiberty/yoko/releases
 
 # 7. Merge to main (after verification)
-git switch main && git pull && git merge --ff-only release/X.Y.Z && git push
+git switch main && git pull origin main && git merge --ff-only release/X.Y.Z && git push origin main
 ```
 
 ## 📞 Support
