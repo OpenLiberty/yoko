@@ -48,7 +48,9 @@ public class URLRegistry_impl extends LocalObject implements URLRegistry {
 
     public org.omg.CORBA.Object parseUrl(String url) {
         try {
-            URI uri = new URI(url);
+            // first escape any literal backslashes
+            String escapedUrl = url.replace("\\", "%5C");
+            URI uri = new URI(escapedUrl);
             String schemeName = uri.getScheme().toLowerCase();
             URLScheme scheme = findScheme(schemeName);
             if (scheme == null) throw new BAD_PARAM(describeBadParam(MinorBadSchemeName), MinorBadSchemeName, COMPLETED_NO);
