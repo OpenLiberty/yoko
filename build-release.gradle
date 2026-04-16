@@ -908,6 +908,9 @@ task release {
     dependsOn 'validateRelease'
     dependsOn 'createGitHubRelease'
     
+    // Ensure validateRelease runs before createGitHubRelease
+    tasks.createGitHubRelease.mustRunAfter tasks.validateRelease
+
     doFirst {
         println """
 ╔════════════════════════════════════════════════════════════════╗
