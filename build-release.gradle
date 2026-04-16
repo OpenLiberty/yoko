@@ -504,6 +504,31 @@ task validateRelease {
                 warnings.add("Unable to check branch sync: ${e.message}")
                 println "⚠️"
             }
+            
+            // 5c. Check release branch is based on current origin/main
+            print "Checking release branch is based on origin/main... "
+            try {
+                // Fetch main to ensure we have latest
+                exec {
+                    commandLine 'git', 'fetch', 'origin', 'main'
+                    standardOutput = new ByteArrayOutputStream()
+                    errorOutput = new ByteArrayOutputStream()
+                }
+                
+                // Find merge-base between current branch and origin/main
+                def mergeBase = "git merge-base HEAD origin/main".execute().text.trim()
+                def originMain = "git rev-parse origin/main".execute().text.trim()
+                
+                if (mergeBase == originMain) {
+                    println "✅ (based on current origin/main)"
+                } else {
+                    errors.add("Release branch ${currentBranch} is not based on current origin/main. Rebase or recreate from latest main.")
+                    println "❌"
+                }
+            } catch (Exception e) {
+                warnings.add("Unable to check branch base: ${e.message}")
+                println "⚠️"
+            }
         }
         
         // 6. GitHub CLI check
