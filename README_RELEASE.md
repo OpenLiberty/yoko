@@ -47,10 +47,10 @@ Choose the appropriate version bump (major, minor, or patch):
 
 ```bash
 # Interactive version bump (recommended)
-./gradlew bumpVersion
+gradle bumpVersion
 
 # Or non-interactive (for automation)
-./gradlew bumpVersionNonInteractive -PversionBump=patch
+gradle bumpVersionNonInteractive -PversionBump=patch
 ```
 
 This updates `gradle.properties` with the new version.
@@ -68,7 +68,7 @@ git push origin main
 Generate release notes from git commits:
 
 ```bash
-./gradlew updateChangelog
+gradle updateChangelog
 ```
 
 This uses `git-cliff` to extract commits since the last release and updates `CHANGELOG.md`.
@@ -92,7 +92,7 @@ git push origin main
 Run comprehensive validation checks:
 
 ```bash
-./gradlew validateRelease
+gradle validateRelease
 ```
 
 This checks:
@@ -111,7 +111,7 @@ This checks:
 Execute the complete release process:
 
 ```bash
-./gradlew release
+gradle release
 ```
 
 This will:
@@ -265,7 +265,7 @@ gh release delete vX.Y.Z --yes
 
 **Solution:** Update the CHANGELOG:
 ```bash
-./gradlew updateChangelog
+gradle updateChangelog
 git add CHANGELOG.md
 git commit -m "chore: update CHANGELOG for vX.Y.Z"
 ```
@@ -325,7 +325,7 @@ Remove or update the release entry in CHANGELOG.md.
 
 1. **Always run tests** before releasing:
    ```bash
-   ./gradlew test
+   gradle test
    ```
 
 2. **Use semantic versioning** consistently
@@ -334,7 +334,7 @@ Remove or update the release entry in CHANGELOG.md.
 
 4. **Validate before releasing**:
    ```bash
-   ./gradlew validateRelease
+   gradle validateRelease
    ```
 
 5. **Test the release artifacts** after publishing
@@ -351,18 +351,18 @@ Remove or update the release entry in CHANGELOG.md.
 
 ```bash
 # 1. Bump version
-./gradlew bumpVersion
+gradle bumpVersion
 git add gradle.properties && git commit -m "chore: bump version to X.Y.Z" && git push
 
 # 2. Update CHANGELOG
-./gradlew updateChangelog
+gradle updateChangelog
 git add CHANGELOG.md && git commit -m "chore: update CHANGELOG for vX.Y.Z" && git push
 
 # 3. Validate
-./gradlew validateRelease
+gradle validateRelease
 
 # 4. Release
-./gradlew release
+gradle release
 
 # 5. Verify
 open https://github.com/OpenLiberty/yoko/releases
@@ -385,9 +385,9 @@ Use this checklist for each release:
 - [ ] On main branch with latest changes
 - [ ] Version bumped in gradle.properties
 - [ ] CHANGELOG.md updated
-- [ ] All tests passing (`./gradlew test`)
-- [ ] Validation passed (`./gradlew validateRelease`)
-- [ ] Release created (`./gradlew release`)
+- [ ] All tests passing (`gradle test`)
+- [ ] Validation passed (`gradle validateRelease`)
+- [ ] Release created (`gradle release`)
 - [ ] GitHub release verified
 - [ ] Artifacts downloaded and checksums verified
 - [ ] Git tag verified
