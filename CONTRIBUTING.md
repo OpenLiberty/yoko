@@ -32,31 +32,8 @@ After we obtain the signed CLA, you are welcome to open a pull request, and the 
 Please ensure you follow the coding standards used throughout the existing code base. Some basic rules include:
 
 * **License Headers**: All files must have an Apache License 2.0 header (see existing files for format)
-* **Java 8 Compatibility**: Production code must be Java 8 compatible (sourceCompatibility/targetCompatibility = 1.8)
-  - No Java 9+ features in production code
-  - Test code can use Java 11+
-* **Checkstyle**: Follow the rules in `checkstyle.xml`
 * **Testing**: All PRs must include comprehensive tests
-* **Build**: All PRs must have a passing build (`./gradlew build`)
-* **OSGi Metadata**: Projects with `bnd.bnd` files require proper OSGi bundle metadata
-
-### Java Version Requirements
-
-- **Build Requirements**: Must run with Java 11 or higher
-- **Production Code**: Must be Java 8 compatible
-- **Test Code**: Java 11+
-
-## GenAI Guidelines
-
-Code contributions that include output from generative AI (GenAI) tools must follow the [GenAI Usage for Code Contributions guidelines](GENAI_GUIDELINES.md).
-
-All commits that include AI-generated content must have their commit message end with:
-
-```
-Co-authored-by-AI: <AI Tool/IDE/Platform> (<Model Name/Version>)
-```
-
-For detailed guidelines on working with AI agents on this project, see [AGENTS.md](AGENTS.md).
+* **Build**: All PRs must have a passing build
 
 ## License
 
