@@ -161,6 +161,12 @@ task assembleRelease {
     
     doLast {
         def releaseDir = file("${buildDir}/release")
+        
+        // Clean release directory to remove old artifacts
+        if (releaseDir.exists()) {
+            println "Cleaning old release artifacts from: ${releaseDir}"
+            delete releaseDir
+        }
         releaseDir.mkdirs()
         
         // Copy all JARs to release directory
@@ -872,16 +878,18 @@ task createGitHubRelease {
 
         println "Creating GitHub release: ${releaseVersion}"
         
-        // Get current branch to use as target
+        // Get current commit hash to use as target (not branch name)
+        def currentCommit = 'git rev-parse HEAD'.execute().text.trim()
         def currentBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
         println "Creating release from branch: ${currentBranch}"
+        println "Tagging commit: ${currentCommit.take(10)}"
         
-        // Create release
+        // Create release using current HEAD commit as target
         def createCmd = [
             'gh', 'release', 'create', releaseVersion,
             '--title', "Yoko ${releaseVersion}",
             '--notes-file', releaseNotesFile.absolutePath,
-            '--target', currentBranch
+            '--target', currentCommit
         ]
         
         // Add all JAR files
