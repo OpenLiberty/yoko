@@ -254,10 +254,17 @@ task bumpVersionNonInteractive {
         def minor = matcher.group(2).toInteger()
         def patch = matcher.group(3).toInteger()
         
-        def newVersion = switch(bumpType) {
-            case 'major' -> "${major + 1}.0.0"
-            case 'minor' -> "${major}.${minor + 1}.0"
-            case 'patch' -> "${major}.${minor}.${patch + 1}"
+        def newVersion
+        switch(bumpType) {
+            case 'major':
+                newVersion = "${major + 1}.0.0"
+                break
+            case 'minor':
+                newVersion = "${major}.${minor + 1}.0"
+                break
+            case 'patch':
+                newVersion = "${major}.${minor}.${patch + 1}"
+                break
         }
         
         def content = propsFile.text
