@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import test.iiopplugin.TestORBInitializer;
 import testify.iiop.annotation.ConfigureOrb;
 import testify.iiop.annotation.ConfigureOrb.NameService;
 import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
+import testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope;
 import testify.iiop.annotation.ConfigureServer;
 import testify.iiop.annotation.ConfigureServer.NameServiceStub;
 import testify.iiop.annotation.ConfigureServer.RemoteImpl;
@@ -41,16 +42,15 @@ import testify.iiop.annotation.ConfigureServer.RemoteImpl;
 import javax.rmi.CORBA.Stub;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.CLIENT_ORB;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.SERVER_ORB;
+import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.SERVER;
 
 /**
  * The codecs retrieved from an ORBInitInfo should be capable
  * of marshalling and demarshalling an object reference.
  */
-@ConfigureServer(serverOrb = @ConfigureOrb(value = SERVER_ORB, nameService = NameService.READ_ONLY))
+@ConfigureServer(serverOrb = @ConfigureOrb(nameService = NameService.READ_ONLY))
 public class CodecObjectReferenceTest {
-    @UseWithOrb(CLIENT_ORB)
+    @UseWithOrb(scope = InitializerScope.CLIENT)
     public static class ClientOrbInitializer extends TestORBInitializer {
         private static Codec codec;
         public void post_init(ORBInitInfo info) {
@@ -62,7 +62,7 @@ public class CodecObjectReferenceTest {
         }
     }
 
-    @UseWithOrb(SERVER_ORB)
+    @UseWithOrb(scope = SERVER)
     public static class ServerOrbInitializer extends TestORBInitializer {
         private static Codec codec;
         public void post_init(ORBInitInfo info) {

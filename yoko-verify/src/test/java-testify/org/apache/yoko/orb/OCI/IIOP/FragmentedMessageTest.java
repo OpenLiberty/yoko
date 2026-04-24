@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,11 +28,10 @@ import org.omg.CORBA.Policy;
 import org.omg.CSIIOP.TransportAddress;
 import org.omg.IOP.TaggedComponent;
 import org.omg.PortableInterceptor.IORInfo;
+import testify.annotation.TraceTestify;
 import testify.bus.Bus;
 import testify.bus.key.StringKey;
 import testify.iiop.TestIORInterceptor;
-import testify.annotation.TraceTestify;
-import testify.iiop.annotation.ConfigureOrb;
 import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
 import testify.iiop.annotation.ConfigureServer;
 import testify.iiop.annotation.ConfigureServer.RemoteImpl;
@@ -46,8 +45,8 @@ import java.net.Socket;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.CLIENT_ORB;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.SERVER_ORB;
+import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.CLIENT;
+import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.SERVER;
 
 /**
  * Test receiving fragment messages. This is hard to test because at the time of writing,
@@ -130,7 +129,7 @@ public class FragmentedMessageTest {
      * Look out for tagged components from the {@link ServerSideFragmenter} and redirect traffic via the specified
      * alternative port.
      */
-    @UseWithOrb(CLIENT_ORB)
+    @UseWithOrb(scope = CLIENT)
     public static class ClientSideFragmenter implements ExtendedConnectionHelper {
         private ConnectionHelper connHelper = new DefaultConnectionHelper();
 
@@ -181,7 +180,7 @@ public class FragmentedMessageTest {
      * Specifically, it inserts one that describes an alternative port.
      * The {@link ClientSideFragmenter} sees this component and then redirects the traffic via the alternative port.
      */
-    @UseWithOrb(SERVER_ORB)
+    @UseWithOrb(scope = SERVER)
     public static class ServerSideFragmenter implements TestIORInterceptor {
         private volatile Relay relay;
         @Override

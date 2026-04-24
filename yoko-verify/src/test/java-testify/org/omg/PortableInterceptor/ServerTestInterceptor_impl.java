@@ -17,6 +17,7 @@
  */
 package org.omg.PortableInterceptor;
 
+import org.hamcrest.MatcherAssert;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.BAD_PARAM;
@@ -38,6 +39,8 @@ import org.omg.PortableInterceptor.TestInterfacePackage.sHelper;
 import org.omg.PortableInterceptor.TestInterfacePackage.userHelper;
 
 import static org.apache.yoko.orb.OB.Util.readSysEx;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.oneOf;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -48,7 +51,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.omg.CORBA.ParameterMode.PARAM_IN;
 import static org.omg.CORBA.ParameterMode.PARAM_INOUT;
 import static org.omg.CORBA.ParameterMode.PARAM_OUT;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.SERVER_ORB;
 
 final class ServerTestInterceptor_impl extends LocalObject implements ServerRequestInterceptor {
     private final Codec cdrCodec;
@@ -356,7 +358,7 @@ final class ServerTestInterceptor_impl extends LocalObject implements ServerRequ
             assertEquals("", ri.server_id());
 
             // Test: orb id is correct
-            assertEquals(SERVER_ORB.name(), ri.orb_id());
+            MatcherAssert.assertThat(ri.orb_id(), is(oneOf("server orb", "collocated orb")));
 
             // Test: adapter name is correct
             String[] adapterName = ri.adapter_name();
@@ -437,7 +439,7 @@ final class ServerTestInterceptor_impl extends LocalObject implements ServerRequ
             assertEquals("", ri.server_id());
 
             // Test: orb id is correct
-            assertEquals(SERVER_ORB.name(), ri.orb_id());
+            MatcherAssert.assertThat(ri.orb_id(), is(oneOf("server orb", "collocated orb")));
 
             // Test: adapter name is correct
             String[] adapterName = ri.adapter_name();
@@ -513,7 +515,7 @@ final class ServerTestInterceptor_impl extends LocalObject implements ServerRequ
             assertEquals("", ri.server_id());
 
             // Test: orb id is correct
-            assertEquals(SERVER_ORB.name(), ri.orb_id());
+            MatcherAssert.assertThat(ri.orb_id(), is(oneOf("server orb", "collocated orb")));
 
             // Test: adapter name is correct
             String[] adapterName = ri.adapter_name();
@@ -594,7 +596,8 @@ final class ServerTestInterceptor_impl extends LocalObject implements ServerRequ
             assertEquals("", ri.server_id());
 
             // Test: orb id is correct
-            assertEquals(SERVER_ORB.name(), ri.orb_id());
+            // Test: orb id is correct
+            MatcherAssert.assertThat(ri.orb_id(), is(oneOf("server orb", "collocated orb")));
 
             // Test: adapter name is correct
             String[] adapterName = ri.adapter_name();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -8,7 +8,7 @@
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an \"AS IS\" BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
@@ -58,46 +58,16 @@ import static testify.iiop.annotation.ConfigureOrb.NameService.READ_WRITE;
 @Logging(value = "yoko.verbose.data", level = FINEST)
 @TestInstance(Lifecycle.PER_CLASS) // this allows @BeforeAll on an instance method
 public class FullValueDescriptorTest {
-    @ConfigureServer(
-            separation = Separation.COLLOCATED,
-            serverOrb = @ConfigureOrb(nameService = READ_WRITE)
-    )
-    public static class FVDCollocatedTest extends FullValueDescriptorTest {}
+    static final Loader CLIENT_LOADER = Loader.V1;
+    static final Loader SERVER_LOADER = Loader.V2;
 
-    public static class FVDThreadContextTest extends FullValueDescriptorTest {
-        SimplyCloseable threadContextSetting;
-
-        @BeforeAll
-        public void initClient(ORB orb, Bus bus) throws Exception {
-            Object obj = nameService.resolve(PROCESSOR_BIND_NAME);
-            // Narrow using the more specialized interface from the client loader.
-            // This should allow the correct class loader context when unmarshalling the return value.
-            stub = (Processor)PortableRemoteObject.narrow(obj, Processor.class);
-            bus.log("Narrowed stub");
-        }
-
-        @BeforeEach
-        public void setTCCL() {
-            threadContextSetting = CLIENT_LOADER.setAsThreadContextClassLoader();
-        }
-
-        @AfterEach
-        public void unsetTCCL() {
-            threadContextSetting.close();
-            threadContextSetting = null;
-        }
-    }
-
-    private static final Loader CLIENT_LOADER = Loader.V1;
-    private static final Loader SERVER_LOADER = Loader.V2;
-
-    private static final NameComponent[] PROCESSOR_BIND_NAME = {new NameComponent("VersionedProcessor", "")};
-    private static final Constructor<? extends Processor> TARGET_CONSTRUCTOR = SERVER_LOADER.getConstructor("versioned.VersionedProcessorImpl", Bus.class);
+    static final NameComponent[] PROCESSOR_BIND_NAME = {new NameComponent("VersionedProcessor", "")};
+    static final Constructor<? extends Processor> TARGET_CONSTRUCTOR = SERVER_LOADER.getConstructor("versioned.VersionedProcessorImpl", Bus.class);
 
     @NameServiceStub
     public static NamingContext nameService;
 
-    private static Processor stub;
+    static Processor stub;
 
     @BeforeServer
     public static void initServer(ORB orb, Bus bus) throws Exception {
@@ -157,3 +127,35 @@ public class FullValueDescriptorTest {
     }
 
 }
+
+@ConfigureServer(
+        separation = Separation.COLLOCATED,
+        serverOrb = @ConfigureOrb(nameService = READ_WRITE)
+)
+class FVDCollocatedTest extends FullValueDescriptorTest {}
+
+class FVDThreadContextTest extends FullValueDescriptorTest {
+    SimplyCloseable threadContextSetting;
+
+    @BeforeAll
+    public void initClient(ORB orb, Bus bus) throws Exception {
+        Object obj = nameService.resolve(PROCESSOR_BIND_NAME);
+        // Narrow using the more specialized interface from the client loader.
+        // This should allow the correct class loader context when unmarshalling the return value.
+        stub = (Processor)PortableRemoteObject.narrow(obj, Processor.class);
+        bus.log("Narrowed stub");
+    }
+
+    @BeforeEach
+    public void setTCCL() {
+        threadContextSetting = CLIENT_LOADER.setAsThreadContextClassLoader();
+    }
+
+    @AfterEach
+    public void unsetTCCL() {
+        threadContextSetting.close();
+        threadContextSetting = null;
+    }
+}
+
+// Made with Bob

@@ -25,8 +25,8 @@ import org.omg.CosNaming.NamingContext;
 import org.omg.CosNaming.NamingContextHelper;
 import org.omg.PortableInterceptor.ClientRequestInfo;
 import testify.annotation.Logging;
-import testify.iiop.TestClientRequestInterceptor;
 import testify.annotation.RetriedTest;
+import testify.iiop.TestClientRequestInterceptor;
 import testify.iiop.annotation.ConfigureOrb;
 import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
 import testify.iiop.annotation.ConfigureServer;
@@ -34,11 +34,10 @@ import testify.iiop.annotation.ConfigureServer.BeforeServer;
 import testify.iiop.annotation.ServerControl;
 
 import javax.rmi.PortableRemoteObject;
-
 import java.net.URLEncoder;
 
 import static testify.iiop.annotation.ConfigureOrb.NameService.READ_WRITE;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.CLIENT_ORB;
+import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.CLIENT;
 
 @ConfigureServer(serverOrb = @ConfigureOrb(nameService = READ_WRITE))
 public class StringToObjectTest {
@@ -60,7 +59,7 @@ public class StringToObjectTest {
     public static Echo stub;
 
     /** Traces request flows from the client ORB perspective */
-    @UseWithOrb(CLIENT_ORB)
+    @UseWithOrb(scope = CLIENT)
     public static class ClientInterceptor implements TestClientRequestInterceptor {
         public void send_request(ClientRequestInfo ri) { System.out.println("### client interceptor send_request op=" + ri.operation()); }
         public void send_poll(ClientRequestInfo ri) { System.out.println("### client interceptor send_poll op=" + ri.operation()); }

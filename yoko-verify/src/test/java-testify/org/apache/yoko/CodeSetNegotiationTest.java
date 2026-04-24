@@ -84,7 +84,7 @@ public abstract class CodeSetNegotiationTest {
         return new CodeSetComponent(nativeCodeSet.id, stream(conversionCodeSets).mapToInt(cs -> cs.id).toArray());
     }
 
-    private static CodeSetComponentInfo currentCodeSetComponentInfo;
+    static CodeSetComponentInfo currentCodeSetComponentInfo;
 
     interface Echo extends RemoteFunction<Serializable, Serializable> {}
 
@@ -98,7 +98,7 @@ public abstract class CodeSetNegotiationTest {
 
     @RemoteStub
     public static Echo stub;
-    public static Echo stub150, stub152;
+    static Echo stub150, stub152;
 
     @BeforeAll
     public static void scrapeStub(ORB orb) {
@@ -224,47 +224,49 @@ public abstract class CodeSetNegotiationTest {
         System.out.println("Skipped " + len + " bytes");
     }
 
-    /**
-     * Test interaction with a Yoko-1.5.0-style IOR in this class to avoid connections caching codeset negotiation from other tests.
-     */
-    @ConfigureServer
-    public static class Yoko_1_5_0_Test extends CodeSetNegotiationTest {
-        @Test
-        void testTransmitChars(ORB orb) throws RemoteException {
-            stub150.apply(PAYLOAD_NC);
-        }
+}
 
-        @Test
-        void testTransmitWchars(ORB orb) throws RemoteException {
-            stub150.apply(PAYLOAD);
-        }
+
+/**
+ * Test interaction with a Yoko-1.5.0-style IOR in this class to avoid connections caching codeset negotiation from other tests.
+ */
+@ConfigureServer
+class Yoko_1_5_0_Test extends CodeSetNegotiationTest {
+    @Test
+    void testTransmitChars(ORB orb) throws RemoteException {
+        stub150.apply(PAYLOAD_NC);
     }
 
-    /**
-     * Test interaction with a Yoko-1.5.2-style IOR in this class to avoid connections caching codeset negotiation from other tests.
-     */
-    @ConfigureServer
-    public static class Yoko_1_5_2_Test extends CodeSetNegotiationTest {
-        @Test
-        void testTransmitChars(ORB orb) throws RemoteException {
-            stub152.apply(PAYLOAD_NC);
-        }
+    @Test
+    void testTransmitWchars(ORB orb) throws RemoteException {
+        stub150.apply(PAYLOAD);
+    }
+}
 
-        @Test
-        void testTransmitWchars(ORB orb) throws RemoteException {
-            stub152.apply(PAYLOAD);
-        }
+/**
+ * Test interaction with a Yoko-1.5.2-style IOR in this class to avoid connections caching codeset negotiation from other tests.
+ */
+@ConfigureServer
+class Yoko_1_5_2_Test extends CodeSetNegotiationTest {
+    @Test
+    void testTransmitChars(ORB orb) throws RemoteException {
+        stub152.apply(PAYLOAD_NC);
     }
 
-    /**
-     * Test that the codeset tag component is created as expected
-     */
-    @ConfigureServer
-    public static class CodesetTagComponentCreationTest extends CodeSetNegotiationTest {
-        @Test
-        void testCodesetsTagComponent() throws Exception {
-            assertThat(currentCodeSetComponentInfo.ForCharData.native_code_set, is(UTF_8.id));
-            assertThat(currentCodeSetComponentInfo.ForWcharData.native_code_set, is(CodeSetInfo.UTF_16.id));
-        }
+    @Test
+    void testTransmitWchars(ORB orb) throws RemoteException {
+        stub152.apply(PAYLOAD);
+    }
+}
+
+/**
+ * Test that the codeset tag component is created as expected
+ */
+@ConfigureServer
+class CodesetTagComponentCreationTest extends CodeSetNegotiationTest {
+    @Test
+    void testCodesetsTagComponent() throws Exception {
+        assertThat(currentCodeSetComponentInfo.ForCharData.native_code_set, is(UTF_8.id));
+        assertThat(currentCodeSetComponentInfo.ForWcharData.native_code_set, is(CodeSetInfo.UTF_16.id));
     }
 }
