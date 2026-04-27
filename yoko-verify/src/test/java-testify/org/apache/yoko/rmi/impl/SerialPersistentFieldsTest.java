@@ -56,8 +56,9 @@ public abstract class SerialPersistentFieldsTest implements Serializable {
         Serializable result = in.read_value();
         assertNotNull(result);
     }
+}
 
-    public static class Primitives extends SerialPersistentFieldsTest {
+class Primitives extends SerialPersistentFieldsTest {
         private static final ObjectStreamField[] serialPersistentFields = {
                 new ObjectStreamField("z", boolean.class),
                 new ObjectStreamField("b", byte.class),
@@ -102,9 +103,9 @@ public abstract class SerialPersistentFieldsTest implements Serializable {
             assertEquals(J, fields.get("j", 0L));
             assertEquals(D, fields.get("d", 0D));
         }
-    }
+}
 
-    public static class MiscellaneousTypes extends SerialPersistentFieldsTest {
+class MiscellaneousTypes extends SerialPersistentFieldsTest {
         private static final ObjectStreamField[] serialPersistentFields = {
                 new ObjectStreamField("s", String.class),
                 new ObjectStreamField("c", Class.class),
@@ -137,27 +138,26 @@ public abstract class SerialPersistentFieldsTest implements Serializable {
             assertEquals(E, fields.get("e", null));
             assertEquals(T, fields.get("t", null));
         }
+}
+
+class ValueTypes extends SerialPersistentFieldsTest {
+    private static final ObjectStreamField[] serialPersistentFields = {
+            new ObjectStreamField("abstractValue", AbstractInterface.class),
+            new ObjectStreamField("valueInterface", AbstractValue.class),
+            new ObjectStreamField("valueClass", StringValue.class),
+            new ObjectStreamField("anyValue", Serializable.class)
+    };
+    private static final List<String> FIELD_NAMES = Stream.of(serialPersistentFields).map(ObjectStreamField::getName).collect(toUnmodifiableList());
+
+    private void writeObject(ObjectOutputStream out) throws IOException {
+        System.out.println("### writeObject() called");
+        PutField fields = out.putFields();
+        FIELD_NAMES.forEach(name -> fields.put(name, new StringValue(name)));
+        out.writeFields();
     }
 
-    public static class ValueTypes extends SerialPersistentFieldsTest {
-        private static final ObjectStreamField[] serialPersistentFields = {
-                new ObjectStreamField("abstractValue", AbstractInterface.class),
-                new ObjectStreamField("valueInterface", AbstractValue.class),
-                new ObjectStreamField("valueClass", StringValue.class),
-                new ObjectStreamField("anyValue", Serializable.class)
-        };
-        private static final List<String> FIELD_NAMES = Stream.of(serialPersistentFields).map(ObjectStreamField::getName).collect(toUnmodifiableList());
-
-        private void writeObject(ObjectOutputStream out) throws IOException {
-            System.out.println("### writeObject() called");
-            PutField fields = out.putFields();
-            FIELD_NAMES.forEach(name -> fields.put(name, new StringValue(name)));
-            out.writeFields();
-        }
-
-        private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-            GetField fields = in.readFields();
-            for (String name: FIELD_NAMES) assertEquals(name, ((StringValue) fields.get(name, null)).toString());
-        }
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        GetField fields = in.readFields();
+        for (String name: FIELD_NAMES) assertEquals(name, ((StringValue) fields.get(name, null)).toString());
     }
 }

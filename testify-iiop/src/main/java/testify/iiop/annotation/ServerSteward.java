@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,27 +19,28 @@ package testify.iiop.annotation;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.omg.CORBA.ORB;
-import org.omg.CORBA.Object;
 import org.omg.CosNaming.NamingContext;
 import org.omg.CosNaming.NamingContextHelper;
-import testify.annotation.Summoner;
 import testify.annotation.runner.AnnotationButler;
 import testify.bus.Bus;
-import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
 import testify.parts.PartRunner;
 
 import javax.rmi.PortableRemoteObject;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.rmi.Remote;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
@@ -48,15 +49,19 @@ import static org.hamcrest.CoreMatchers.anyOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
-import static testify.annotation.runner.PartRunnerSteward.requirePartRunner;
+import static testify.annotation.runner.PartRunners.requirePartRunner;
 import static testify.bus.key.MemberKey.getMemberEvaluationType;
-import static testify.iiop.annotation.OrbSteward.args;
-import static testify.iiop.annotation.OrbSteward.props;
+import static testify.iiop.annotation.ConfigureOrb.NameService.NONE;
+import static testify.iiop.annotation.ConfigureServer.Separation.COLLOCATED;
+import static testify.iiop.annotation.ConfigureServer.Separation.INTER_PROCESS;
+import static testify.iiop.annotation.OrbSteward.getServerArgs;
+import static testify.iiop.annotation.OrbSteward.getServerProps;
 import static testify.util.Assertions.failf;
+import static testify.util.Predicates.not;
 import static testify.util.Reflect.setStaticField;
 
 class ServerSteward {
-    private static final Summoner<ConfigureServer, ServerSteward> SUMMONER = Summoner.forAnnotation(ConfigureServer.class, ServerSteward.class, ServerSteward::new);
+    private static final Namespace NAMESPACE = Namespace.create(ServerSteward.class);
     private final List<Field> controlFields;
     private final List<Field> nameServiceFields;
     private final List<Field> nameServiceUrlFields;
@@ -180,19 +185,16 @@ class ServerSteward {
         );
 
         // blow up if jvm args specified unnecessarily
-        if (config.separation() != ConfigureServer.Separation.INTER_PROCESS && config.jvmArgs().length > 0)
+        if (config.separation() != INTER_PROCESS && config.jvmArgs().length > 0)
             throw new Error("The annotation @" + ConfigureServer.class.getSimpleName()
-                    + " must not include JVM arguments unless it is configured as " + ConfigureServer.Separation.INTER_PROCESS);
+                    + " must not include JVM arguments unless it is configured as " + INTER_PROCESS);
 
-        PartRunner runner = requirePartRunner(context);
-        // does this part run in a thread or a new process?
-        if (this.config.separation() == ConfigureServer.Separation.INTER_PROCESS) runner.useNewJVMWhenForking(this.config.jvmArgs());
-        else runner.useNewThreadWhenForking();
-
-        final Properties props = props(this.config.serverOrb(), context.getRequiredTestClass(), this::isServerOrbModifier);
-        final String[] args = args(this.config.serverOrb(), context.getRequiredTestClass(), this::isServerOrbModifier);
+        boolean colloc = isCollocated();
+        ConfigureOrb cfg = colloc ? combineClientAndServerOrbConfig() : config.serverOrb();
+        final Properties props = getServerProps(context.getRequiredTestClass(), cfg, colloc);
+        final String[] args = getServerArgs(context.getRequiredTestClass(), cfg, colloc);
         this.serverComms = new ServerComms(this.config.serverName(), props, args);
-        serverComms.launch(runner);
+        // Don't launch the server yet - defer until beforeAll() so other extensions can configure the PartRunner first
 
         this.serverControl = new ServerController();
     }
@@ -202,6 +204,15 @@ class ServerSteward {
     }
 
     void beforeAll(ExtensionContext ctx) {
+        // Configure the PartRunner now that all extensions have had a chance to configure it
+        PartRunner runner = requirePartRunner(ctx);
+        // does this part run in a thread or a new process?
+        if (this.config.separation() == INTER_PROCESS) runner.useNewJVMWhenForking(this.config.jvmArgs());
+        else runner.useNewThreadWhenForking();
+
+        // Launch the server now that the PartRunner is configured
+        serverComms.launch(runner);
+
         populateControlFields(ctx);
         serverControl.start();
     }
@@ -243,9 +254,7 @@ class ServerSteward {
             Remote stub = (Remote)PortableRemoteObject.narrow(object, getMemberEvaluationType(m));
             e.setValue(stub);
         });
-        remoteStubFields.forEach(f -> {
-            setStaticField(f, resolveParameter(getMemberEvaluationType(f)));
-        });
+        remoteStubFields.forEach(f -> setStaticField(f, resolveParameter(getMemberEvaluationType(f))));
     }
 
     private void beforeServer(ExtensionContext ctx) {
@@ -258,22 +267,38 @@ class ServerSteward {
         afterMethods.forEach(serverComms::invoke);
     }
 
-    private boolean isServerOrbModifier(Class<?> c) {
-        return findAnnotation(c, UseWithOrb.class)
-                .map(UseWithOrb::value)
-                .map(Stream::of)
-                .orElseGet(Stream::empty)
-                .anyMatch(config.serverOrb().value()::equals);
+    /**
+     * Combines the server and client ORB configurations into a single merged configuration.
+     * This method merges properties and arguments from both the server ORB and client ORB
+     * configurations, with server configuration taking precedence in case of conflicts.
+     */
+    ConfigureOrb combineClientAndServerOrbConfig() {
+        return new ConfigureOrb() {
+            public Class<? extends Annotation> annotationType() { return ConfigureOrb.class; }
+            public String[] args() { return configs(ConfigureOrb::args).flatMap(Arrays::stream).toArray(String[]::new); }
+            public String[] props() { return configs(ConfigureOrb::props).flatMap(Arrays::stream).toArray(String[]::new); }
+            public NameService nameService() { return configs(ConfigureOrb::nameService).filter(not(NONE::equals)).findFirst().orElse(NONE); }
+            private <T> Stream<T> configs(Function<ConfigureOrb,T> mapper) { return Stream.of(config.serverOrb(), config.clientOrb()).map(mapper); }
+        };
     }
 
-    static ServerSteward getInstance(ExtensionContext ctx) {
-        return SUMMONER.forContext(ctx).requestSteward().orElseThrow(Error::new); // if no ServerSteward can be found, this is an error in the framework
+    static ServerSteward getInstance(ExtensionContext context) {
+        // only one server per test class (each nested test class gets its own ServerSteward and PartRunner)
+        var store = context.getStore(NAMESPACE);
+        return context.getElement()
+                .flatMap(e -> findAnnotation(e, ConfigureServer.class))
+                .or(() -> findAnnotation(context.getRequiredTestClass(), ConfigureServer.class))
+                .map(annotation -> store.getOrComputeIfAbsent(annotation, cfg -> new ServerSteward(cfg, context), ServerSteward.class))
+                .orElseThrow(Error::new); // if no ServerSteward can be found, this is an error in the framework
     }
 
     public ORB getClientOrb() {
-        // TODO: make the client ORB a field that is initialized early
-        return config.separation() == ConfigureServer.Separation.COLLOCATED ? serverComms.getServerOrb().orElseThrow(Error::new) : OrbSteward.getOrb(context, config.clientOrb());
+        if (isCollocated()) return serverComms.getServerOrb().orElseThrow(Error::new);
+        // For non-collocated servers, use OrbSteward to create and cache the client ORB
+        return OrbSteward.getClientOrb(context, config.clientOrb());
     }
+
+    private boolean isCollocated() { return config.separation() == COLLOCATED; }
 
     public void beforeEach(ExtensionContext ctx) {
         serverControl.ensureStarted();

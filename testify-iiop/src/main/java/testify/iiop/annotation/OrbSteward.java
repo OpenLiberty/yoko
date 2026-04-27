@@ -27,14 +27,11 @@ import org.omg.PortableInterceptor.ORBInitializer;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
-import testify.annotation.Summoner;
-import testify.iiop.annotation.ConfigureOrb.OrbId;
 import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
-import testify.util.ArrayUtils;
-import testify.util.Predicates;
+import testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope;
 
+import java.util.Objects;
 import java.util.Properties;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -43,6 +40,8 @@ import static org.junit.platform.commons.support.AnnotationSupport.findAnnotatio
 import static org.junit.platform.commons.support.ModifierSupport.isPublic;
 import static org.junit.platform.commons.support.ModifierSupport.isStatic;
 import static testify.streams.Collectors.requireNoMoreThanOne;
+import static testify.util.ArrayUtils.concat;
+import static testify.util.Predicates.anyOf;
 
 class OrbSteward implements ExtensionContext.Store.CloseableResource {
     private static final Class<?> CONNECTION_HELPER_CLASS;
@@ -57,18 +56,32 @@ class OrbSteward implements ExtensionContext.Store.CloseableResource {
         }
     }
 
-    private final OrbId orbId;
-
     @SuppressWarnings("unused")
     interface NullIiopConnectionHelper {
     }
 
+    public static ORB getClientOrb(ExtensionContext ctx, ConfigureOrb config) { return getOrb(ctx, config, OrbScope.CLIENT); }
+    public static ORB getCollocatedOrb(ExtensionContext ctx, ConfigureOrb config) { return getOrb(ctx, config, OrbScope.COLLOCATED); }
+
+    public static String[] getServerArgs(Class<?> testClass, ConfigureOrb config, boolean collocated) {
+        return new OrbSteward(config, collocated ? OrbScope.COLLOCATED : OrbScope.SERVER).args(testClass);
+    }
+
+    public static Properties getServerProps(Class<?> testClass, ConfigureOrb config, boolean collocated) {
+        return new OrbSteward(config, collocated ? OrbScope.COLLOCATED : OrbScope.SERVER).props(testClass);
+    }
+
     private final ConfigureOrb annotation;
+    private final OrbScope orbScope;
     private ORB orb;
 
-    OrbSteward(ConfigureOrb annotation) {
+    private OrbSteward(ConfigureOrb annotation, OrbScope orbScope) {
         this.annotation = annotation;
-        this.orbId = annotation.value();
+        this.orbScope = orbScope;
+    }
+
+    private OrbSteward(ConfigAndScope key) {
+        this(key.config, key.orbScope);
     }
 
     /**
@@ -77,7 +90,7 @@ class OrbSteward implements ExtensionContext.Store.CloseableResource {
     private synchronized ORB getOrbInstance(ExtensionContext ctx) {
         if (orb != null) return orb;
         Class<?> testClass = ctx.getRequiredTestClass();
-        this.orb = ORB.init(args(annotation, testClass, this::isOrbModifier), props(annotation, testClass, this::isOrbModifier));
+        this.orb = ORB.init(args(testClass), props(testClass));
         return this.orb;
     }
 
@@ -93,10 +106,9 @@ class OrbSteward implements ExtensionContext.Store.CloseableResource {
 
     private boolean isOrbModifier(Class<?> c) {
         return AnnotationSupport.findAnnotation(c, UseWithOrb.class)
-                .map(UseWithOrb::value)
-                .map(Stream::of)
-                .orElseGet(Stream::empty)
-                .anyMatch(orbId::equals);
+                .map(UseWithOrb::scope)
+                .filter(orbScope::matches)
+                .isPresent();
     }
 
     /**
@@ -115,50 +127,46 @@ class OrbSteward implements ExtensionContext.Store.CloseableResource {
     }
 
     /**
-     * Extract the orb arguments from a {@link ConfigureOrb} annotation
+     * Compute the ORB arguments
+     *
+     * @param testClass the test class on which the annotation is specified
      */
-    static String[] args(ConfigureOrb cfg, Class<?> testClass, Predicate<Class<?>> nestedClassFilter) {
-        return ArrayUtils.concat(
-                getNestedModifierTypes(testClass, nestedClassFilter)
-                        .filter(Predicates.anyOf(
-                                CONNECTION_HELPER_CLASS::isAssignableFrom,
-                                EXTENDED_CONNECTION_HELPER_CLASS::isAssignableFrom))
+    String[] args(Class<?> testClass) {
+        return concat(getNestedModifierTypes(testClass)
+                        .filter(anyOf(CONNECTION_HELPER_CLASS::isAssignableFrom, EXTENDED_CONNECTION_HELPER_CLASS::isAssignableFrom))
                         .collect(requireNoMoreThanOne("Only one connection helper can be configured but two were supplied: %s, %s"))
-                        .map(c -> ArrayUtils.concat(cfg.args(), "-IIOPconnectionHelper", c.getName()))
-                        .orElse(cfg.args()),
-                cfg.nameService().args);
+                        .map(c -> concat(annotation.args(), "-IIOPconnectionHelper", c.getName()))
+                        .orElseGet(annotation::args),
+                annotation.nameService().args);
     }
 
-    private static Stream<Class<?>> getNestedModifierTypes(Class<?> testClass, Predicate<Class<?>> nestedClassFilter) {
+    private Stream<Class<?>> getNestedModifierTypes(Class<?> testClass) {
         return Stream.of(testClass.getClasses())
-                .filter(nestedClassFilter)
+                .filter(this::isOrbModifier)
                 .peek(OrbSteward::validateOrbModifierType);
     }
 
     /**
-     * Extract the orb properties from a {@link ConfigureOrb} annotation.
+     * Compute the orb properties.
      *
-     * @param cfg               the annotation to inspect for properties
-     * @param testClass         the test class on which the annotation is specified
-     * @param nestedClassFilter a boolean predicate to test whether to process the nested annotation types
+     * @param testClass the test class on which the annotation is specified
      */
-    static Properties props(ConfigureOrb cfg, Class<?> testClass, Predicate<Class<?>> nestedClassFilter) {
+    Properties props(Class<?> testClass) {
         Properties props = new Properties();
-        props.put("yoko.orb.id", cfg.value().name());
         props.put("org.omg.CORBA.ORBClass", "org.apache.yoko.orb.CORBA.ORB");
         props.put("org.omg.CORBA.ORBSingletonClass", "org.apache.yoko.orb.CORBA.ORBSingleton");
-        for (String prop : cfg.props()) {
+        for (String prop : annotation.props()) {
             if (prop.isEmpty()) continue;
             String[] arr = prop.split("=", 2);
             props.put(arr[0], arr.length < 2 ? "" : arr[1]);
         }
         // add initializer properties for each specified initializer class
         //noinspection unchecked
-        getNestedModifierTypes(testClass, nestedClassFilter)
+        getNestedModifierTypes(testClass)
                 .filter(ORBInitializer.class::isAssignableFrom)
                 .forEachOrdered(initializer -> addORBInitializerProp(props, (Class<? extends ORBInitializer>) initializer));
         // add initializer property for name service if configured
-        cfg.nameService().getInitializerClass().ifPresent(c -> addORBInitializerProp(props, c));
+        annotation.nameService().getInitializerClass().ifPresent(c -> addORBInitializerProp(props, c));
         return props;
     }
 
@@ -169,16 +177,17 @@ class OrbSteward implements ExtensionContext.Store.CloseableResource {
         props.put(name, "true");
     }
 
-    private static final Summoner<ConfigureOrb, OrbSteward> SUMMONER = Summoner.forAnnotation(ConfigureOrb.class, OrbSteward.class, OrbSteward::new);
-
-    static ORB getOrb(ExtensionContext ctx) {
-        return SUMMONER.forContext(ctx).requestSteward()
-                .map(steward -> steward.getOrbInstance(ctx))
+    private static ORB getOrb(ExtensionContext ctx, OrbScope scope) {
+        return ctx.getElement()
+                .flatMap(e -> findAnnotation(e, ConfigureOrb.class))
+                .or(() -> findAnnotation(ctx.getRequiredTestClass(), ConfigureOrb.class))
+                .map(anno -> getOrb(ctx, anno, scope))
                 .orElseThrow(Error::new); // error in framework, not calling code
     }
 
-    static ORB getOrb(ExtensionContext ctx, ConfigureOrb config) {
-        return SUMMONER.forContext(ctx).requireSteward(config).getOrbInstance(ctx);
+    private static ORB getOrb(ExtensionContext ctx, ConfigureOrb anno, OrbScope scope) {
+        var key = new ConfigAndScope(anno, scope);
+        return ctx.getStore(ExtensionContext.Namespace.create(key)).getOrComputeIfAbsent(key, OrbSteward::new, OrbSteward.class).getOrbInstance(ctx);
     }
 
     static POA getActivatedRootPoa(ORB orb) {
@@ -190,6 +199,43 @@ class OrbSteward implements ExtensionContext.Store.CloseableResource {
             throw new ParameterResolutionException("Could not resolve initial reference \"RootPOA\"");
         } catch (AdapterInactive adapterInactive) {
             throw new ParameterResolutionException("Could not activate POA manager for root POA", adapterInactive);
+        }
+    }
+
+    private final static class ConfigAndScope {
+        final ConfigureOrb config;
+        final OrbScope orbScope;
+
+        ConfigAndScope(ConfigureOrb config, OrbScope orbScope) {
+            this.config = config;
+            this.orbScope = orbScope;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof ConfigAndScope)) return false;
+            ConfigAndScope that = (ConfigAndScope) o;
+            return Objects.equals(config, that.config) && orbScope == that.orbScope;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(config, orbScope);
+        }
+    }
+
+    private enum OrbScope {
+        CLIENT, SERVER, COLLOCATED;
+
+        boolean matches(InitializerScope scope) {
+            switch (this) {
+                case CLIENT:
+                    return scope.includesClient();
+                case SERVER:
+                    return scope.includesServer();
+                default:
+                    return true;
+            }
         }
     }
 }
