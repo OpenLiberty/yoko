@@ -33,6 +33,7 @@ buildscript {
 plugins {
   id "biz.aQute.bnd.builder" version "6.4.0" apply false
   id "com.dorongold.task-tree" version "2.1.1"
+  id "base"
 }
 
 ext {
@@ -362,4 +363,68 @@ task testReport (type: TestReport) {
     }
     def projectsWithTests = subprojects.findAll { it.tasks.findByName('test') != null }
     testResults.from = projectsWithResults.test
+}
+
+
+task createBuildLibSymlinks {
+    description = 'Creates symbolic links to jar files in the build/lib directory'
+    group = 'build'
+
+    def targetProjects = [
+        ':yoko-core',
+        ':yoko-spec-corba',
+        ':yoko-rmi-impl',
+        ':yoko-rmi-spec',
+        ':yoko-util',
+        ':yoko-osgi'
+    ]
+
+    // Depend on jar tasks of all target projects
+    targetProjects.each { projectPath ->
+        dependsOn "${projectPath}:jar"
+    }
+
+    // Register output directory so gradle clean removes it
+    outputs.dir("${buildDir}/lib")
+
+    doLast {
+        def libDir = file("${buildDir}/lib")
+
+        // Create lib directory if it doesn't exist
+        if (!libDir.exists()) {
+            libDir.mkdirs()
+            println "Created directory: ${libDir}"
+        }
+
+        // Clean out existing symbolic links
+        libDir.listFiles().each { file ->
+            if (java.nio.file.Files.isSymbolicLink(file.toPath())) {
+                file.delete()
+                println "Removed existing symlink: ${file.name}"
+            }
+        }
+
+        // Create symbolic links for each project's jar
+        targetProjects.each { projectPath ->
+            def subproject = project(projectPath)
+            def jarTask = subproject.tasks.jar
+            def jarFile = jarTask.archiveFile.get().asFile
+
+            if (jarFile.exists()) {
+                // Use simple name without version info
+                def projectName = subproject.name
+                def linkFile = new File(libDir, "${projectName}.jar")
+
+                // Create symbolic link using relative path
+                def relativePath = libDir.toPath().relativize(jarFile.toPath())
+                java.nio.file.Files.createSymbolicLink(
+                    linkFile.toPath(),
+                    relativePath
+                )
+                println "Created symlink: ${linkFile.name} -> ${relativePath}"
+            } else {
+                println "Warning: JAR file not found: ${jarFile}"
+            }
+        }
+    }
 }
