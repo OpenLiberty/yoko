@@ -33,6 +33,7 @@ buildscript {
 plugins {
   id "biz.aQute.bnd.builder" version "6.4.0" apply false
   id "com.dorongold.task-tree" version "2.1.1"
+  id "base"
 }
 
 ext {
@@ -316,8 +317,8 @@ task testReport (type: TestReport) {
 }
 
 
-task createLibsSymlinks {
-    description = 'Creates symbolic links to jar files in the libs directory'
+task createBuildLibSymlinks {
+    description = 'Creates symbolic links to jar files in the build/lib directory'
     group = 'build'
 
     def targetProjects = [
@@ -334,17 +335,20 @@ task createLibsSymlinks {
         dependsOn "${projectPath}:jar"
     }
 
-    doLast {
-        def libsDir = file("${projectDir}/libs")
+    // Register output directory so gradle clean removes it
+    outputs.dir("${buildDir}/lib")
 
-        // Create libs directory if it doesn't exist
-        if (!libsDir.exists()) {
-            libsDir.mkdirs()
-            println "Created directory: ${libsDir}"
+    doLast {
+        def libDir = file("${buildDir}/lib")
+
+        // Create lib directory if it doesn't exist
+        if (!libDir.exists()) {
+            libDir.mkdirs()
+            println "Created directory: ${libDir}"
         }
 
         // Clean out existing symbolic links
-        libsDir.listFiles().each { file ->
+        libDir.listFiles().each { file ->
             if (java.nio.file.Files.isSymbolicLink(file.toPath())) {
                 file.delete()
                 println "Removed existing symlink: ${file.name}"
@@ -360,10 +364,10 @@ task createLibsSymlinks {
             if (jarFile.exists()) {
                 // Use simple name without version info
                 def projectName = subproject.name
-                def linkFile = new File(libsDir, "${projectName}.jar")
+                def linkFile = new File(libDir, "${projectName}.jar")
 
                 // Create symbolic link using relative path
-                def relativePath = libsDir.toPath().relativize(jarFile.toPath())
+                def relativePath = libDir.toPath().relativize(jarFile.toPath())
                 java.nio.file.Files.createSymbolicLink(
                     linkFile.toPath(),
                     relativePath
