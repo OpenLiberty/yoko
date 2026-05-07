@@ -48,6 +48,55 @@ wrapper {
     distributionType = Wrapper.DistributionType.ALL
 }
 
+// Validate that .sdkmanrc Gradle version matches wrapper version
+def validateGradleVersions() {
+    def sdkmanrcFile = file('.sdkmanrc')
+    def wrapperPropsFile = file('gradle/wrapper/gradle-wrapper.properties')
+
+    if (!sdkmanrcFile.exists()) {
+        logger.warn("Warning: .sdkmanrc file not found")
+        return
+    }
+
+    if (!wrapperPropsFile.exists()) {
+        throw new GradleException("gradle-wrapper.properties not found")
+    }
+
+    // Parse .sdkmanrc for gradle version
+    def sdkmanrcVersion = null
+    sdkmanrcFile.eachLine { line ->
+        if (line.trim().startsWith('gradle=')) {
+            sdkmanrcVersion = line.split('=')[1].trim()
+        }
+    }
+
+    // Parse wrapper properties for gradle version
+    def wrapperVersion = null
+    wrapperPropsFile.eachLine { line ->
+        if (line.trim().startsWith('distributionUrl=')) {
+            def matcher = (line =~ /gradle-(\d+\.\d+(?:\.\d+)?)-/)
+            if (matcher.find()) {
+                wrapperVersion = matcher.group(1)
+            }
+        }
+    }
+
+    if (sdkmanrcVersion && wrapperVersion) {
+        if (sdkmanrcVersion != wrapperVersion) {
+            throw new GradleException(
+                "Gradle version mismatch!\n" +
+                "  .sdkmanrc:                    gradle=${sdkmanrcVersion}\n" +
+                "  gradle-wrapper.properties:    gradle-${wrapperVersion}\n" +
+                "Please update both files to use the same Gradle version."
+            )
+        }
+        logger.quiet("✓ Gradle version validated: ${wrapperVersion}")
+    }
+}
+
+// Run validation during configuration phase
+validateGradleVersions()
+
 // Apply release configuration
 apply from: 'build-release.gradle'
 

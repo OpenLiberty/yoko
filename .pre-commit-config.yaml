@@ -1,4 +1,4 @@
-# Copyright 2025 IBM Corporation and others.
+# Copyright 2026 IBM Corporation and others.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,3 +38,10 @@ repos:
         entry: scripts/check-copyright.sh -s
         language: script
         pass_filenames: false
+      - id: check-gradle-version
+        name: Check Gradle version consistency
+        description: Ensures .sdkmanrc and gradle-wrapper.properties have matching Gradle versions
+        entry: ./gradlew help --quiet
+        language: system
+        pass_filenames: false
+        files: '^(\.sdkmanrc|gradle/wrapper/gradle-wrapper\.properties)$'
