@@ -389,18 +389,26 @@ task createBuildLibSymlinks {
 
     doLast {
         def libDir = file("${buildDir}/lib")
+        def depsDir = file("${buildDir}/lib/deps")
 
-        // Create lib directory if it doesn't exist
-        if (!libDir.exists()) {
-            libDir.mkdirs()
-            println "Created directory: ${libDir}"
+        // Create directories if they don't exist
+        if (!depsDir.exists()) {
+            depsDir.mkdirs()
+            println "Created directory: ${depsDir}"
         }
 
-        // Clean out existing symbolic links
+        // Clean out existing symbolic links and regular files in lib
         libDir.listFiles().each { file ->
-            if (java.nio.file.Files.isSymbolicLink(file.toPath())) {
+            if (file.isFile() || (java.nio.file.Files.isSymbolicLink(file.toPath()) && file.name.endsWith('.jar'))) {
                 file.delete()
-                println "Removed existing symlink: ${file.name}"
+                println "Removed existing file: ${file.name}"
+            }
+        }
+
+        // Clean out deps directory
+        if (depsDir.exists()) {
+            depsDir.listFiles().each { file ->
+                file.delete()
             }
         }
 
@@ -425,6 +433,38 @@ task createBuildLibSymlinks {
             } else {
                 println "Warning: JAR file not found: ${jarFile}"
             }
+        }
+
+        // Copy external dependencies from yoko-core runtime classpath to deps/
+        def coreProject = project(':yoko-core')
+        def runtimeClasspath = coreProject.configurations.runtimeClasspath
+        def externalDeps = runtimeClasspath.resolvedConfiguration.resolvedArtifacts.findAll { artifact ->
+            // Only include external dependencies (not project dependencies)
+            artifact.moduleVersion.id.group != project.group
+        }
+
+        externalDeps.each { artifact ->
+            def sourceFile = artifact.file
+            def targetFile = new File(depsDir, sourceFile.name)
+
+            // Copy the file to deps/ directory
+            java.nio.file.Files.copy(
+                sourceFile.toPath(),
+                targetFile.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            )
+            println "Copied dependency: ${sourceFile.name} -> deps/"
+
+            // Create version-free symlink in lib/ pointing to deps/
+            def baseName = sourceFile.name.replaceAll(/-\d+(\.\d+)*(-[^.]+)?\.jar$/, '.jar')
+            def symlinkFile = new File(libDir, baseName)
+            def symlinkTarget = libDir.toPath().relativize(targetFile.toPath())
+
+            java.nio.file.Files.createSymbolicLink(
+                symlinkFile.toPath(),
+                symlinkTarget
+            )
+            println "Created symlink: ${baseName} -> ${symlinkTarget}"
         }
     }
 }
