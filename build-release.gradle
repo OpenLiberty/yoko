@@ -930,18 +930,29 @@ task createGitHubRelease {
 
         println "Creating GitHub release: ${releaseVersion}"
         
-        // Get current commit hash to use as target (not branch name)
+        // Get current commit hash and branch
         def currentCommit = 'git rev-parse HEAD'.execute().text.trim()
         def currentBranch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
         println "Creating release from branch: ${currentBranch}"
         println "Tagging commit: ${currentCommit.take(10)}"
         
-        // Create release using current HEAD commit as target
+        // Create annotated tag first (GitHub best practice)
+        println "Creating annotated tag: ${releaseVersion}"
+        exec {
+            commandLine 'git', 'tag', '-a', releaseVersion, '-m', "Release v${versionMatcher.group(1)}: see CHANGELOG.md for details"
+        }
+        
+        // Push the annotated tag to origin
+        println "Pushing tag to origin..."
+        exec {
+            commandLine 'git', 'push', 'origin', releaseVersion
+        }
+        
+        // Create GitHub release using the existing annotated tag
         def createCmd = [
             'gh', 'release', 'create', releaseVersion,
             '--title', "Yoko ${releaseVersion}",
-            '--notes-file', releaseNotesFile.absolutePath,
-            '--target', currentCommit
+            '--notes-file', releaseNotesFile.absolutePath
         ]
         
         // Add all JAR files
