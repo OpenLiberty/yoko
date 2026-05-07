@@ -314,3 +314,64 @@ task testReport (type: TestReport) {
     def projectsWithTests = subprojects.findAll { it.tasks.findByName('test') != null }
     testResults.from = projectsWithResults.test
 }
+
+
+task createLibsSymlinks {
+    description = 'Creates symbolic links to jar files in the libs directory'
+    group = 'build'
+
+    def targetProjects = [
+        ':yoko-core',
+        ':yoko-spec-corba',
+        ':yoko-rmi-impl',
+        ':yoko-rmi-spec',
+        ':yoko-util',
+        ':yoko-osgi'
+    ]
+
+    // Depend on jar tasks of all target projects
+    targetProjects.each { projectPath ->
+        dependsOn "${projectPath}:jar"
+    }
+
+    doLast {
+        def libsDir = file("${projectDir}/libs")
+
+        // Create libs directory if it doesn't exist
+        if (!libsDir.exists()) {
+            libsDir.mkdirs()
+            println "Created directory: ${libsDir}"
+        }
+
+        // Clean out existing symbolic links
+        libsDir.listFiles().each { file ->
+            if (java.nio.file.Files.isSymbolicLink(file.toPath())) {
+                file.delete()
+                println "Removed existing symlink: ${file.name}"
+            }
+        }
+
+        // Create symbolic links for each project's jar
+        targetProjects.each { projectPath ->
+            def subproject = project(projectPath)
+            def jarTask = subproject.tasks.jar
+            def jarFile = jarTask.archiveFile.get().asFile
+
+            if (jarFile.exists()) {
+                // Use simple name without version info
+                def projectName = subproject.name
+                def linkFile = new File(libsDir, "${projectName}.jar")
+
+                // Create symbolic link using relative path
+                def relativePath = libsDir.toPath().relativize(jarFile.toPath())
+                java.nio.file.Files.createSymbolicLink(
+                    linkFile.toPath(),
+                    relativePath
+                )
+                println "Created symlink: ${linkFile.name} -> ${relativePath}"
+            } else {
+                println "Warning: JAR file not found: ${jarFile}"
+            }
+        }
+    }
+}
