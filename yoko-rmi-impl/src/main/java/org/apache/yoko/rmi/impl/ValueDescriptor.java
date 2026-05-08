@@ -149,6 +149,25 @@ class ValueDescriptor extends TypeDescriptor {
         return (serialForm != null) ? serialForm.getSerialVersionUID() : 0L;
     }
 
+    /**
+     * Filters out static and transient fields. This is the base filter that always applies.
+     */
+    private final boolean isSerializableField(Field f) {
+        int mod = f.getModifiers();
+        return !Modifier.isStatic(mod) && !Modifier.isTransient(mod);
+    }
+
+    /**
+     * Additional filter for fields. Subclasses can override to exclude specific fields
+     * from _fields, FVD, and hash calculation (e.g., EnumDescriptor excludes the ordinal field).
+     *
+     * @param f the field to check
+     * @return true if the field should be included, false otherwise
+     */
+    protected boolean includeField(Field f) {
+        return true;
+    }
+
     public void init() {
         try {
             init0();
@@ -298,23 +317,13 @@ class ValueDescriptor extends TypeDescriptor {
                         _fields = new FieldDescriptor[0];
 
                     } else {
-                        List<FieldDescriptor> flist = new ArrayList<>();
-
-                        for (Field f : ff) {
-                            int mod = f.getModifiers();
-                            if (Modifier.isStatic(mod) || Modifier.isTransient(mod)) {
-                                continue;
-                            }
-
-                            f.setAccessible(true);
-                            FieldDescriptor fd = FieldDescriptor.get(f, repo);
-                            flist.add(fd);
-                        }
-
-                        _fields = new FieldDescriptor[flist.size()];
-                        _fields = flist.toArray(_fields);
-
-                        Arrays.sort(_fields);
+                        _fields = Arrays.stream(ff)
+                            .filter(ValueDescriptor.this::isSerializableField)
+                            .filter(ValueDescriptor.this::includeField)
+                            .peek(f -> f.setAccessible(true))
+                            .map(f -> FieldDescriptor.get(f, repo))
+                            .sorted()
+                            .toArray(FieldDescriptor[]::new);
                     }
                 } else {
                     _fields = new FieldDescriptor[serial_persistent_fields.length];
