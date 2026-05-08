@@ -21,6 +21,7 @@ import acme.RemoteFunction;
 import org.junit.jupiter.api.Test;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.INITIALIZE;
+import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NamingContext;
 import org.omg.CosNaming.NamingContextHelper;
@@ -30,7 +31,7 @@ import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 import org.omg.IOP.ENCODING_CDR_ENCAPS;
 import org.omg.IOP.Encoding;
 import org.omg.PortableInterceptor.ORBInitInfo;
-import test.iiopplugin.TestORBInitializer;
+import org.omg.PortableInterceptor.ORBInitializer;
 import testify.iiop.annotation.ConfigureOrb;
 import testify.iiop.annotation.ConfigureOrb.NameService;
 import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
@@ -51,8 +52,15 @@ import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.S
 @ConfigureServer(serverOrb = @ConfigureOrb(nameService = NameService.READ_ONLY))
 public class CodecObjectReferenceTest {
     @UseWithOrb(scope = InitializerScope.CLIENT)
-    public static class ClientOrbInitializer extends TestORBInitializer {
+    public static class ClientOrbInitializer extends LocalObject implements ORBInitializer {
         private static Codec codec;
+
+        @Override
+        public void pre_init(ORBInitInfo info) {
+            // No pre-initialization needed
+        }
+
+        @Override
         public void post_init(ORBInitInfo info) {
             try {
                 codec = info.codec_factory().create_codec(CDR_1_2_ENCODING);
@@ -63,8 +71,15 @@ public class CodecObjectReferenceTest {
     }
 
     @UseWithOrb(scope = SERVER)
-    public static class ServerOrbInitializer extends TestORBInitializer {
+    public static class ServerOrbInitializer extends LocalObject implements ORBInitializer {
         private static Codec codec;
+
+        @Override
+        public void pre_init(ORBInitInfo info) {
+            // No pre-initialization needed
+        }
+
+        @Override
         public void post_init(ORBInitInfo info) {
             try {
                 codec = info.codec_factory().create_codec(CDR_1_2_ENCODING);
