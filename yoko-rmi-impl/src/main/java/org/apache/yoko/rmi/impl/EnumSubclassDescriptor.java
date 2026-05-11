@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package org.apache.yoko.rmi.impl;
 
 import org.omg.CORBA.portable.IndirectionException;
 import org.omg.CORBA.portable.InputStream;
+import org.omg.CORBA.ValueMember;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -93,5 +94,12 @@ class EnumSubclassDescriptor extends ValueDescriptor {
     public final Serializable writeReplace(Serializable val) {
         // Never allow the honoring of writeReplace on an Enum subclass
         return val;
+    }
+
+    @Override
+    protected boolean includeField(java.lang.reflect.Field f) {
+        // Enum subclasses have no fields of their own - they delegate to the parent enum
+        // Exclude all fields so _fields is empty, which makes genValueMembers() return empty array
+        return false;
     }
 }

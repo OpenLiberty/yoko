@@ -468,3 +468,6 @@ task createBuildLibSymlinks {
         }
     }
 }
+
+// Make createBuildLibSymlinks run at the end of build
+build.finalizedBy createBuildLibSymlinks
