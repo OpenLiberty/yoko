@@ -102,6 +102,14 @@ class OrbSteward implements ExtensionContext.Store.CloseableResource {
         orb.shutdown(true);
         orb.destroy();
         orb = null;
+        // WORKAROUND for https://github.com/OpenLiberty/yoko/issues/783
+        // Clean up ThreadLocal state to prevent pollution across test classes.
+        // When ORB shuts down, in-flight requests may not complete their full interceptor lifecycle,
+        // leaving ThreadLocal state on the stack. Reset to ensure clean state for next test.
+        // TODO: Remove this workaround once issue #783 is properly fixed in Yoko core.
+        org.apache.yoko.util.cmsf.CmsfThreadLocal.reset();
+        org.apache.yoko.util.rofl.RoflThreadLocal.reset();
+        org.apache.yoko.util.yasf.YasfThreadLocal.reset();
     }
 
     private boolean isOrbModifier(Class<?> c) {
