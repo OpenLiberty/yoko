@@ -73,7 +73,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
     private final ValueMemberAccess valueMemberAccess;
 
     protected FieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repo) {
+            Field f, TypeRepository repo) {
         super(repo, name);
         this.type = type;
         init();
@@ -138,20 +138,20 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
     }
 
     abstract void read(ObjectReader reader, Object obj)
-            throws java.io.IOException;
+            throws IOException;
 
     abstract void write(ObjectWriter writer, Object obj)
-            throws java.io.IOException;
+            throws IOException;
 
-    abstract void readFieldIntoMap(ObjectReader reader, java.util.Map map)
-            throws java.io.IOException;
+    abstract void readFieldIntoMap(ObjectReader reader, Map map)
+            throws IOException;
 
-    abstract void writeFieldFromMap(ObjectWriter writer, java.util.Map map)
-            throws java.io.IOException;
+    abstract void writeFieldFromMap(ObjectWriter writer, Map map)
+            throws IOException;
 
     abstract void copyState(Object orig, Object copy, CopyState state);
 
-    static FieldDescriptor get(java.lang.reflect.Field f, TypeRepository repository) {
+    static FieldDescriptor get(Field f, TypeRepository repository) {
         return get(f.getDeclaringClass(), f.getType(), f.getName(), f, repository);
     }
 
@@ -168,14 +168,14 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
     }
 
     static FieldDescriptor get(Class<?> owner, Class<?> type, String name,
-                               java.lang.reflect.Field f, TypeRepository repository) {
+                               Field f, TypeRepository repository) {
         FieldDescriptor desc = get0(owner, type, name, f, repository);
         desc.init();
         return desc;
     }
 
     private static FieldDescriptor get0(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
 
         if (type.isPrimitive()) {
             if (type == Boolean.TYPE) {
@@ -232,7 +232,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         }
     }
 
-    void print(java.io.PrintWriter pw, java.util.Map recurse, Object val) {
+    void print(java.io.PrintWriter pw, Map recurse, Object val) {
         pw.print(java_name);
         pw.print("=");
         try {
@@ -257,7 +257,7 @@ class RemoteFieldDescriptor extends FieldDescriptor {
     final Class<?> interfaceType;
 
     RemoteFieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
 
         if (type.isInterface()) {
@@ -286,7 +286,7 @@ class RemoteFieldDescriptor extends FieldDescriptor {
     }
 
     public void read(ObjectReader reader, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             Object value = reader.readRemoteObject(interfaceType);
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
@@ -297,7 +297,7 @@ class RemoteFieldDescriptor extends FieldDescriptor {
     }
 
     public void write(ObjectWriter writer, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             writer.writeRemoteObject((java.rmi.Remote) field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).get(obj));
@@ -350,13 +350,13 @@ class AnyFieldDescriptor extends FieldDescriptor {
     boolean narrowValue;
 
     AnyFieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
         narrowValue = java.rmi.Remote.class.isAssignableFrom(type);
     }
 
     public void read(ObjectReader reader, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             Object val = reader.readAny();
             if (narrowValue && val != null && !type.isInstance(val)) {
@@ -380,7 +380,7 @@ class AnyFieldDescriptor extends FieldDescriptor {
     }
 
     public void write(ObjectWriter writer, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             writer.writeAny(field.get().get(obj));
         } catch (IllegalAccessException ex) {
@@ -426,11 +426,11 @@ class AnyFieldDescriptor extends FieldDescriptor {
 
 class ValueFieldDescriptor extends FieldDescriptor {
     ValueFieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
 
-    public void read(ObjectReader reader, Object obj) throws java.io.IOException {
+    public void read(ObjectReader reader, Object obj) throws IOException {
         try {
             Object value;
             if (NON_SERIALIZABLE_FIELD_IS_ABSTRACT_VALUE.isSupported()
@@ -448,7 +448,7 @@ class ValueFieldDescriptor extends FieldDescriptor {
         }
     }
 
-    public void write(ObjectWriter writer, Object obj) throws java.io.IOException {
+    public void write(ObjectWriter writer, Object obj) throws IOException {
         try {
             if (NON_SERIALIZABLE_FIELD_IS_ABSTRACT_VALUE.isSupported()
                     || type.isInterface()
@@ -509,12 +509,12 @@ class ValueFieldDescriptor extends FieldDescriptor {
 
 class StringFieldDescriptor extends FieldDescriptor {
     StringFieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
 
     public void read(ObjectReader reader, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             String value = (String) reader.readValueObject();
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
@@ -525,7 +525,7 @@ class StringFieldDescriptor extends FieldDescriptor {
     }
 
     public void write(ObjectWriter writer, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             writer.writeValueObject(field.get().get(obj));
         } catch (IllegalAccessException ex) {
@@ -561,12 +561,12 @@ class StringFieldDescriptor extends FieldDescriptor {
 
 class ObjectFieldDescriptor extends FieldDescriptor {
     ObjectFieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
 
     public void read(ObjectReader reader, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             Object value = reader.readAbstractObject();
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
@@ -577,7 +577,7 @@ class ObjectFieldDescriptor extends FieldDescriptor {
     }
 
     public void write(ObjectWriter writer, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             writer.writeObject(field.get().get(obj));
         } catch (IllegalAccessException ex) {
@@ -623,12 +623,12 @@ class ObjectFieldDescriptor extends FieldDescriptor {
 
 class BooleanFieldDescriptor extends FieldDescriptor {
     BooleanFieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
 
     public void read(ObjectReader reader, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             boolean value = reader.readBoolean();
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
@@ -639,7 +639,7 @@ class BooleanFieldDescriptor extends FieldDescriptor {
     }
 
     public void write(ObjectWriter writer, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             writer.writeBoolean(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getBoolean(obj));
@@ -656,7 +656,7 @@ class BooleanFieldDescriptor extends FieldDescriptor {
         }
     }
 
-    void print(java.io.PrintWriter pw, java.util.Map recurse, Object val) {
+    void print(java.io.PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
@@ -688,12 +688,12 @@ class BooleanFieldDescriptor extends FieldDescriptor {
 
 class ByteFieldDescriptor extends FieldDescriptor {
     ByteFieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
 
     public void read(ObjectReader reader, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             byte value = reader.readByte();
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
@@ -704,7 +704,7 @@ class ByteFieldDescriptor extends FieldDescriptor {
     }
 
     public void write(ObjectWriter writer, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             writer.writeByte(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getByte(obj));
@@ -721,7 +721,7 @@ class ByteFieldDescriptor extends FieldDescriptor {
         }
     }
 
-    void print(java.io.PrintWriter pw, java.util.Map recurse, Object val) {
+    void print(java.io.PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
@@ -753,12 +753,12 @@ class ByteFieldDescriptor extends FieldDescriptor {
 
 class ShortFieldDescriptor extends FieldDescriptor {
     ShortFieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
 
     public void read(ObjectReader reader, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             short value = reader.readShort();
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
@@ -769,7 +769,7 @@ class ShortFieldDescriptor extends FieldDescriptor {
     }
 
     public void write(ObjectWriter writer, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             writer.writeShort(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getShort(obj));
@@ -786,7 +786,7 @@ class ShortFieldDescriptor extends FieldDescriptor {
         }
     }
 
-    void print(java.io.PrintWriter pw, java.util.Map recurse, Object val) {
+    void print(java.io.PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
@@ -818,12 +818,12 @@ class ShortFieldDescriptor extends FieldDescriptor {
 
 class CharFieldDescriptor extends FieldDescriptor {
     CharFieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
 
     public void read(ObjectReader reader, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             char value = reader.readChar();
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
@@ -834,7 +834,7 @@ class CharFieldDescriptor extends FieldDescriptor {
     }
 
     public void write(ObjectWriter writer, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             writer.writeChar(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getChar(obj));
@@ -851,7 +851,7 @@ class CharFieldDescriptor extends FieldDescriptor {
         }
     }
 
-    void print(java.io.PrintWriter pw, java.util.Map recurse, Object val) {
+    void print(java.io.PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
@@ -887,12 +887,12 @@ class CharFieldDescriptor extends FieldDescriptor {
 
 class IntFieldDescriptor extends FieldDescriptor {
     IntFieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
 
     public void read(ObjectReader reader, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             int value = reader.readInt();
             logger.finest(() -> "Read int field value " + value);
@@ -904,7 +904,7 @@ class IntFieldDescriptor extends FieldDescriptor {
     }
 
     public void write(ObjectWriter writer, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             writer.writeInt(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getInt(obj));
@@ -921,7 +921,7 @@ class IntFieldDescriptor extends FieldDescriptor {
         }
     }
 
-    void print(java.io.PrintWriter pw, java.util.Map recurse, Object val) {
+    void print(java.io.PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
@@ -953,12 +953,12 @@ class IntFieldDescriptor extends FieldDescriptor {
 
 class LongFieldDescriptor extends FieldDescriptor {
     LongFieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
 
     public void read(ObjectReader reader, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             long value = reader.readLong();
             logger.finest(() -> "Read long field value " + value);
@@ -970,7 +970,7 @@ class LongFieldDescriptor extends FieldDescriptor {
     }
 
     public void write(ObjectWriter writer, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             writer.writeLong(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getLong(obj));
@@ -987,7 +987,7 @@ class LongFieldDescriptor extends FieldDescriptor {
         }
     }
 
-    void print(java.io.PrintWriter pw, java.util.Map recurse, Object val) {
+    void print(java.io.PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
@@ -1019,12 +1019,12 @@ class LongFieldDescriptor extends FieldDescriptor {
 
 class FloatFieldDescriptor extends FieldDescriptor {
     FloatFieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
 
     public void read(ObjectReader reader, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             float value = reader.readFloat();
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
@@ -1035,7 +1035,7 @@ class FloatFieldDescriptor extends FieldDescriptor {
     }
 
     public void write(ObjectWriter writer, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             writer.writeFloat(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getFloat(obj));
@@ -1052,7 +1052,7 @@ class FloatFieldDescriptor extends FieldDescriptor {
         }
     }
 
-    void print(java.io.PrintWriter pw, java.util.Map recurse, Object val) {
+    void print(java.io.PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
@@ -1085,12 +1085,12 @@ class FloatFieldDescriptor extends FieldDescriptor {
 
 class DoubleFieldDescriptor extends FieldDescriptor {
     DoubleFieldDescriptor(Class<?> owner, Class<?> type, String name,
-            java.lang.reflect.Field f, TypeRepository repository) {
+            Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
 
     public void read(ObjectReader reader, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             double value = reader.readDouble();
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
@@ -1101,7 +1101,7 @@ class DoubleFieldDescriptor extends FieldDescriptor {
     }
 
     public void write(ObjectWriter writer, Object obj)
-            throws java.io.IOException {
+            throws IOException {
         try {
             writer.writeDouble(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getDouble(obj));
@@ -1118,7 +1118,7 @@ class DoubleFieldDescriptor extends FieldDescriptor {
         }
     }
 
-    void print(java.io.PrintWriter pw, java.util.Map recurse, Object val) {
+    void print(java.io.PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
