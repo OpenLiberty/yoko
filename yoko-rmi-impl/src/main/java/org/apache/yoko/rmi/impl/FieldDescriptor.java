@@ -34,7 +34,7 @@ import static java.util.logging.Level.FINER;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.yasf.Yasf.NON_SERIALIZABLE_FIELD_IS_ABSTRACT_VALUE;
 
-abstract class FieldDescriptor extends ModelElement implements Comparable {
+abstract class FieldDescriptor extends ModelElement implements Comparable<FieldDescriptor> {
     static Logger logger = Logger.getLogger(FieldDescriptor.class.getName());
 
     /**
@@ -116,22 +116,21 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
     /**
      * ordering of fields
      */
-    public int compareTo(Object other) {
-        FieldDescriptor desc = (FieldDescriptor) other;
-
+    @Override
+    public int compareTo(FieldDescriptor other) {
         //
         // Primitive fields precede non-primitive fields
         //
-        if (this.isPrimitive() && !desc.isPrimitive())
+        if (this.isPrimitive() && !other.isPrimitive())
             return -1;
 
-        else if (!this.isPrimitive() && desc.isPrimitive())
+        else if (!this.isPrimitive() && other.isPrimitive())
             return 1;
 
         //
         // fields of the same kind are ordered lexicographically
         //
-        return java_name.compareTo(desc.java_name);
+        return java_name.compareTo(other.java_name);
     }
 
     public boolean isPrimitive() {
