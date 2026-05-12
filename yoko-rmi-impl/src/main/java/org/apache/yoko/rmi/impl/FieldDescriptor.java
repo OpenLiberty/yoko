@@ -64,7 +64,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         }
     }
 
-    final Optional<org.apache.yoko.rmi.util.corba.Field> field;
+    private final Optional<org.apache.yoko.rmi.util.corba.Field> field;
 
     final Class<?> type;
 
@@ -139,6 +139,10 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
 
     public boolean isPrimitive() {
         return type.isPrimitive();
+    }
+
+    org.apache.yoko.rmi.util.corba.Field getField() {
+        return field.orElseThrow(() -> new IllegalStateException("cannot read/write using serialPersistentFields"));
     }
 
     abstract void read(ObjectReader reader, Object obj)
@@ -240,13 +244,15 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         pw.print(java_name);
         pw.print("=");
         try {
-            Object obj = field.get().get(val);
+            Object obj = getField().get(val);
             if (obj == null) {
                 pw.print("null");
             } else {
                 TypeDescriptor desc = repo.getDescriptor(obj.getClass());
                 desc.print(pw, recurse, obj);
             }
+        } catch (IllegalStateException ex) {
+            pw.print("<non-local>");
         } catch (IllegalAccessException ex) {
             /*
              * } catch (RuntimeException ex) { System.err.println
@@ -293,9 +299,8 @@ class RemoteFieldDescriptor extends FieldDescriptor {
             throws IOException {
         try {
             Object value = reader.readRemoteObject(interfaceType);
-            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
-                .set(obj, value);
-        } catch (IllegalAccessException ex) {
+            getField().set(obj, value);
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
@@ -303,28 +308,33 @@ class RemoteFieldDescriptor extends FieldDescriptor {
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
         try {
-            writer.writeRemoteObject((Remote) field.orElseThrow(() ->
-                new IOException("cannot read/write using serialPersistentFields")).get(obj));
-        } catch (IllegalAccessException ex) {
+            writer.writeRemoteObject((Remote) getField().get(obj));
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
+        final org.apache.yoko.rmi.util.corba.Field field;
         try {
-            field.get().set(copy, state.copy(field.get().get(orig)));
+            field = getField();
+        } catch (IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
+        }
+        try {
+            field.set(copy, state.copy(field.get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.get().set(copy, value);
+                        field.set(copy, value);
                     } catch (IllegalAccessException ex) {
-                        throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+                        throw as(InternalError::new, ex, ex.getMessage());
                     }
                 }
             });
         } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
@@ -376,37 +386,42 @@ class AnyFieldDescriptor extends FieldDescriptor {
                         + type.getName());
             }
 
-            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
-                .set(obj, val);
-        } catch (IllegalAccessException ex) {
-            throw (MARSHAL)new MARSHAL(ex.getMessage()).initCause(ex);
+            getField().set(obj, val);
+        } catch (IllegalAccessException | IllegalStateException ex) {
+            throw as(MARSHAL::new, ex, ex.getMessage());
         }
     }
 
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
         try {
-            writer.writeAny(field.get().get(obj));
-        } catch (IllegalAccessException ex) {
+            writer.writeAny(getField().get(obj));
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
+        final org.apache.yoko.rmi.util.corba.Field field;
         try {
-            field.get().set(copy, state.copy(field.get().get(orig)));
+            field = getField();
+        } catch (IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
+        }
+        try {
+            field.set(copy, state.copy(field.get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.get().set(copy, value);
+                        field.set(copy, value);
                     } catch (IllegalAccessException ex) {
-                        throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+                        throw as(InternalError::new, ex, ex.getMessage());
                     }
                 }
             });
         } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
@@ -445,10 +460,9 @@ class ValueFieldDescriptor extends FieldDescriptor {
                 // older versions of Yoko treat non-serializable classes as abstract objects
                 value = reader.readAbstractObject();
             }
-            if (null == field) return;
-            field.get().set(obj, value);
-        } catch (IllegalAccessException ex) {
-            throw (org.omg.CORBA.MARSHAL)new org.omg.CORBA.MARSHAL(ex.getMessage()).initCause(ex);
+            getField().set(obj, value);
+        } catch (IllegalAccessException | IllegalStateException ex) {
+            throw as(MARSHAL::new, ex, ex.getMessage());
         }
     }
 
@@ -458,7 +472,7 @@ class ValueFieldDescriptor extends FieldDescriptor {
                     || type.isInterface()
                     || Serializable.class.isAssignableFrom(type)) {
                 try {
-                    writer.writeValueObject(field.get().get(obj));
+                    writer.writeValueObject(getField().get(obj));
                 } catch (SystemException e) {
                     throw e;
                 } catch (Exception e) {
@@ -466,28 +480,34 @@ class ValueFieldDescriptor extends FieldDescriptor {
                 }
             } else {
                 // older versions of Yoko treat non-serializable classes as abstract objects
-                writer.writeObject(field.get().get(obj));
+                writer.writeObject(getField().get(obj));
             }
-        } catch (IllegalAccessException ex) {
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
+        final org.apache.yoko.rmi.util.corba.Field field;
         try {
-            field.get().set(copy, state.copy(field.get().get(orig)));
+            field = getField();
+        } catch (IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
+        }
+        try {
+            field.set(copy, state.copy(field.get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.get().set(copy, value);
+                        field.set(copy, value);
                     } catch (IllegalAccessException ex) {
-                        throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+                        throw as(InternalError::new, ex, ex.getMessage());
                     }
                 }
             });
         } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
@@ -495,7 +515,7 @@ class ValueFieldDescriptor extends FieldDescriptor {
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
     void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
-        java.io.Serializable value = (java.io.Serializable) reader
+        Serializable value = (Serializable) reader
                 .readValueObject();
         map.put(java_name, value);
     }
@@ -504,7 +524,7 @@ class ValueFieldDescriptor extends FieldDescriptor {
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
     void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
-        java.io.Serializable value = (java.io.Serializable) map
+        Serializable value = (Serializable) map
                 .get(java_name);
         writer.writeValueObject(value);
     }
@@ -521,9 +541,8 @@ class StringFieldDescriptor extends FieldDescriptor {
             throws IOException {
         try {
             String value = (String) reader.readValueObject();
-            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
-                .set(obj, value);
-        } catch (IllegalAccessException ex) {
+            getField().set(obj, value);
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
@@ -531,17 +550,18 @@ class StringFieldDescriptor extends FieldDescriptor {
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
         try {
-            writer.writeValueObject(field.get().get(obj));
-        } catch (IllegalAccessException ex) {
+            writer.writeValueObject(getField().get(obj));
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.get().set(copy, field.get().get(orig));
-        } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            org.apache.yoko.rmi.util.corba.Field field = getField();
+            field.set(copy, field.get(orig));
+        } catch (IllegalAccessException | IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
@@ -573,37 +593,42 @@ class ObjectFieldDescriptor extends FieldDescriptor {
             throws IOException {
         try {
             Object value = reader.readAbstractObject();
-            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
-                .set(obj, value);
-        } catch (IllegalAccessException ex) {
-            throw (org.omg.CORBA.MARSHAL)new org.omg.CORBA.MARSHAL(ex.getMessage()).initCause(ex);
+            getField().set(obj, value);
+        } catch (IllegalAccessException | IllegalStateException ex) {
+            throw as(MARSHAL::new, ex, ex.getMessage());
         }
     }
 
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
         try {
-            writer.writeObject(field.get().get(obj));
-        } catch (IllegalAccessException ex) {
+            writer.writeObject(getField().get(obj));
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
+        final org.apache.yoko.rmi.util.corba.Field field;
         try {
-            field.get().set(copy, state.copy(field.get().get(orig)));
+            field = getField();
+        } catch (IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
+        }
+        try {
+            field.set(copy, state.copy(field.get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.get().set(copy, value);
+                        field.set(copy, value);
                     } catch (IllegalAccessException ex) {
-                        throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+                        throw as(InternalError::new, ex, ex.getMessage());
                     }
                 }
             });
         } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
@@ -635,9 +660,8 @@ class BooleanFieldDescriptor extends FieldDescriptor {
             throws IOException {
         try {
             boolean value = reader.readBoolean();
-            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
-                .setBoolean(obj, value);
-        } catch (IllegalAccessException ex) {
+            getField().setBoolean(obj, value);
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
@@ -645,26 +669,28 @@ class BooleanFieldDescriptor extends FieldDescriptor {
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
         try {
-            writer.writeBoolean(field.orElseThrow(() ->
-                new IOException("cannot read/write using serialPersistentFields")).getBoolean(obj));
-        } catch (IllegalAccessException ex) {
+            writer.writeBoolean(getField().getBoolean(obj));
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.get().setBoolean(copy, field.get().getBoolean(orig));
-        } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            org.apache.yoko.rmi.util.corba.Field field = getField();
+            field.setBoolean(copy, field.getBoolean(orig));
+        } catch (IllegalAccessException | IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
-    void print(java.io.PrintWriter pw, Map recurse, Object val) {
+    void print(PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.get().getBoolean(val));
+            pw.print(getField().getBoolean(val));
+        } catch (IllegalStateException ex) {
+            pw.print("<non-local>");
         } catch (IllegalAccessException ex) {
         }
     }
@@ -700,9 +726,8 @@ class ByteFieldDescriptor extends FieldDescriptor {
             throws IOException {
         try {
             byte value = reader.readByte();
-            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
-                .setByte(obj, value);
-        } catch (IllegalAccessException ex) {
+            getField().setByte(obj, value);
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
@@ -710,26 +735,28 @@ class ByteFieldDescriptor extends FieldDescriptor {
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
         try {
-            writer.writeByte(field.orElseThrow(() ->
-                new IOException("cannot read/write using serialPersistentFields")).getByte(obj));
-        } catch (IllegalAccessException ex) {
+            writer.writeByte(getField().getByte(obj));
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.get().setByte(copy, field.get().getByte(orig));
-        } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            org.apache.yoko.rmi.util.corba.Field field = getField();
+            field.setByte(copy, field.getByte(orig));
+        } catch (IllegalAccessException | IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
-    void print(java.io.PrintWriter pw, Map recurse, Object val) {
+    void print(PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.get().getByte(val));
+            pw.print(getField().getByte(val));
+        } catch (IllegalStateException ex) {
+            pw.print("<non-local>");
         } catch (IllegalAccessException ex) {
         }
     }
@@ -765,9 +792,8 @@ class ShortFieldDescriptor extends FieldDescriptor {
             throws IOException {
         try {
             short value = reader.readShort();
-            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
-                .setShort(obj, value);
-        } catch (IllegalAccessException ex) {
+            getField().setShort(obj, value);
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
@@ -775,26 +801,28 @@ class ShortFieldDescriptor extends FieldDescriptor {
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
         try {
-            writer.writeShort(field.orElseThrow(() ->
-                new IOException("cannot read/write using serialPersistentFields")).getShort(obj));
-        } catch (IllegalAccessException ex) {
+            writer.writeShort(getField().getShort(obj));
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.get().setShort(copy, field.get().getShort(orig));
-        } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            org.apache.yoko.rmi.util.corba.Field field = getField();
+            field.setShort(copy, field.getShort(orig));
+        } catch (IllegalAccessException | IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
-    void print(java.io.PrintWriter pw, Map recurse, Object val) {
+    void print(PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.get().getShort(val));
+            pw.print(getField().getShort(val));
+        } catch (IllegalStateException ex) {
+            pw.print("<non-local>");
         } catch (IllegalAccessException ex) {
         }
     }
@@ -830,9 +858,8 @@ class CharFieldDescriptor extends FieldDescriptor {
             throws IOException {
         try {
             char value = reader.readChar();
-            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
-                .setChar(obj, value);
-        } catch (IllegalAccessException ex) {
+            getField().setChar(obj, value);
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
@@ -840,30 +867,32 @@ class CharFieldDescriptor extends FieldDescriptor {
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
         try {
-            writer.writeChar(field.orElseThrow(() ->
-                new IOException("cannot read/write using serialPersistentFields")).getChar(obj));
-        } catch (IllegalAccessException ex) {
+            writer.writeChar(getField().getChar(obj));
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.get().setChar(copy, field.get().getChar(orig));
-        } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            org.apache.yoko.rmi.util.corba.Field field = getField();
+            field.setChar(copy, field.getChar(orig));
+        } catch (IllegalAccessException | IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
-    void print(java.io.PrintWriter pw, Map recurse, Object val) {
+    void print(PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
-            char ch = field.get().getChar(val);
+            char ch = getField().getChar(val);
             pw.print(ch);
             pw.print('(');
             pw.print(Integer.toHexString(0xffff & ((int) ch)));
             pw.print(')');
+        } catch (IllegalStateException ex) {
+            pw.print("<non-local>");
         } catch (IllegalAccessException ex) {
         }
     }
@@ -900,9 +929,8 @@ class IntFieldDescriptor extends FieldDescriptor {
         try {
             int value = reader.readInt();
             logger.finest(() -> "Read int field value " + value);
-            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
-                .setInt(obj, value);
-        } catch (IllegalAccessException ex) {
+            getField().setInt(obj, value);
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
@@ -910,26 +938,28 @@ class IntFieldDescriptor extends FieldDescriptor {
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
         try {
-            writer.writeInt(field.orElseThrow(() ->
-                new IOException("cannot read/write using serialPersistentFields")).getInt(obj));
-        } catch (IllegalAccessException ex) {
+            writer.writeInt(getField().getInt(obj));
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.get().setInt(copy, field.get().getInt(orig));
-        } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            org.apache.yoko.rmi.util.corba.Field field = getField();
+            field.setInt(copy, field.getInt(orig));
+        } catch (IllegalAccessException | IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
-    void print(java.io.PrintWriter pw, Map recurse, Object val) {
+    void print(PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.get().getInt(val));
+            pw.print(getField().getInt(val));
+        } catch (IllegalStateException ex) {
+            pw.print("<non-local>");
         } catch (IllegalAccessException ex) {
         }
     }
@@ -966,9 +996,8 @@ class LongFieldDescriptor extends FieldDescriptor {
         try {
             long value = reader.readLong();
             logger.finest(() -> "Read long field value " + value);
-            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
-                .setLong(obj, value);
-        } catch (IllegalAccessException ex) {
+            getField().setLong(obj, value);
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
@@ -976,26 +1005,28 @@ class LongFieldDescriptor extends FieldDescriptor {
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
         try {
-            writer.writeLong(field.orElseThrow(() ->
-                new IOException("cannot read/write using serialPersistentFields")).getLong(obj));
-        } catch (IllegalAccessException ex) {
+            writer.writeLong(getField().getLong(obj));
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.get().setLong(copy, field.get().getLong(orig));
-        } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            org.apache.yoko.rmi.util.corba.Field field = getField();
+            field.setLong(copy, field.getLong(orig));
+        } catch (IllegalAccessException | IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
-    void print(java.io.PrintWriter pw, Map recurse, Object val) {
+    void print(PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.get().getLong(val));
+            pw.print(getField().getLong(val));
+        } catch (IllegalStateException ex) {
+            pw.print("<non-local>");
         } catch (IllegalAccessException ex) {
         }
     }
@@ -1031,9 +1062,8 @@ class FloatFieldDescriptor extends FieldDescriptor {
             throws IOException {
         try {
             float value = reader.readFloat();
-            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
-                .setFloat(obj, value);
-        } catch (IllegalAccessException ex) {
+            getField().setFloat(obj, value);
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
@@ -1041,26 +1071,28 @@ class FloatFieldDescriptor extends FieldDescriptor {
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
         try {
-            writer.writeFloat(field.orElseThrow(() ->
-                new IOException("cannot read/write using serialPersistentFields")).getFloat(obj));
-        } catch (IllegalAccessException ex) {
+            writer.writeFloat(getField().getFloat(obj));
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.get().setFloat(copy, field.get().getFloat(orig));
-        } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            org.apache.yoko.rmi.util.corba.Field field = getField();
+            field.setFloat(copy, field.getFloat(orig));
+        } catch (IllegalAccessException | IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
-    void print(java.io.PrintWriter pw, Map recurse, Object val) {
+    void print(PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.get().getFloat(val));
+            pw.print(getField().getFloat(val));
+        } catch (IllegalStateException ex) {
+            pw.print("<non-local>");
         } catch (IllegalAccessException ex) {
         }
     }
@@ -1097,9 +1129,8 @@ class DoubleFieldDescriptor extends FieldDescriptor {
             throws IOException {
         try {
             double value = reader.readDouble();
-            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
-                .setDouble(obj, value);
-        } catch (IllegalAccessException ex) {
+            getField().setDouble(obj, value);
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
@@ -1107,26 +1138,28 @@ class DoubleFieldDescriptor extends FieldDescriptor {
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
         try {
-            writer.writeDouble(field.orElseThrow(() ->
-                new IOException("cannot read/write using serialPersistentFields")).getDouble(obj));
-        } catch (IllegalAccessException ex) {
+            writer.writeDouble(getField().getDouble(obj));
+        } catch (IllegalAccessException | IllegalStateException ex) {
             throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.get().setDouble(copy, field.get().getDouble(orig));
-        } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            org.apache.yoko.rmi.util.corba.Field field = getField();
+            field.setDouble(copy, field.getDouble(orig));
+        } catch (IllegalAccessException | IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
-    void print(java.io.PrintWriter pw, Map recurse, Object val) {
+    void print(PrintWriter pw, Map recurse, Object val) {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.get().getDouble(val));
+            pw.print(getField().getDouble(val));
+        } catch (IllegalStateException ex) {
+            pw.print("<non-local>");
         } catch (IllegalAccessException ex) {
         }
     }
@@ -1160,31 +1193,35 @@ class CorbaObjectFieldDescriptor extends FieldDescriptor {
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
+        final org.apache.yoko.rmi.util.corba.Field field;
         try {
-            field.get().set(copy, state.copy(field.get().get(orig)));
+            field = getField();
+        } catch (IllegalStateException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
+        }
+        try {
+            field.set(copy, state.copy(field.get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.get().set(copy, value);
+                        field.set(copy, value);
                     } catch (IllegalAccessException ex) {
-                        throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+                        throw as(InternalError::new, ex, ex.getMessage());
                     }
                 }
             });
         } catch (IllegalAccessException ex) {
-            throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
+            throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
     void read(ObjectReader reader, Object obj) throws IOException {
         Object value = reader.readCorbaObject(null);
         try {
-            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
-                .set(obj, value);
-            field.get().set(obj, value);
+            getField().set(obj, value);
         } catch (IllegalAccessException e) {
-            throw (IOException)new IOException(e.getMessage()).initCause(e);
+            throw as(IOException::new, e, e.getMessage());
         }
     }
 
@@ -1196,10 +1233,10 @@ class CorbaObjectFieldDescriptor extends FieldDescriptor {
 
     void write(ObjectWriter writer, Object obj) throws IOException {
         try {
-            writer.writeCorbaObject(field.get().get(obj));
+            writer.writeCorbaObject(getField().get(obj));
         }
         catch(IllegalAccessException e) {
-            throw (IOException)new IOException(e.getMessage()).initCause(e);
+            throw as(IOException::new, e, e.getMessage());
         }
     }
 
