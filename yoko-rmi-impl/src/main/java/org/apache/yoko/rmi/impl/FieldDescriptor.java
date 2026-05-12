@@ -268,7 +268,7 @@ class RemoteFieldDescriptor extends FieldDescriptor {
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
                 .set(obj, value);
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -278,7 +278,7 @@ class RemoteFieldDescriptor extends FieldDescriptor {
             writer.writeRemoteObject((java.rmi.Remote) field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).get(obj));
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -360,7 +360,7 @@ class AnyFieldDescriptor extends FieldDescriptor {
         try {
             writer.writeAny(field.get().get(obj));
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -441,7 +441,7 @@ class ValueFieldDescriptor extends FieldDescriptor {
                 writer.writeObject(field.get().get(obj));
             }
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -496,7 +496,7 @@ class StringFieldDescriptor extends FieldDescriptor {
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
                 .set(obj, value);
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -505,7 +505,7 @@ class StringFieldDescriptor extends FieldDescriptor {
         try {
             writer.writeValueObject(field.get().get(obj));
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -557,7 +557,7 @@ class ObjectFieldDescriptor extends FieldDescriptor {
         try {
             writer.writeObject(field.get().get(obj));
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -610,7 +610,7 @@ class BooleanFieldDescriptor extends FieldDescriptor {
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
                 .setBoolean(obj, value);
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -620,7 +620,7 @@ class BooleanFieldDescriptor extends FieldDescriptor {
             writer.writeBoolean(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getBoolean(obj));
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -675,7 +675,7 @@ class ByteFieldDescriptor extends FieldDescriptor {
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
                 .setByte(obj, value);
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -685,7 +685,7 @@ class ByteFieldDescriptor extends FieldDescriptor {
             writer.writeByte(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getByte(obj));
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -740,7 +740,7 @@ class ShortFieldDescriptor extends FieldDescriptor {
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
                 .setShort(obj, value);
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -750,7 +750,7 @@ class ShortFieldDescriptor extends FieldDescriptor {
             writer.writeShort(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getShort(obj));
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -805,7 +805,7 @@ class CharFieldDescriptor extends FieldDescriptor {
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
                 .setChar(obj, value);
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -815,7 +815,7 @@ class CharFieldDescriptor extends FieldDescriptor {
             writer.writeChar(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getChar(obj));
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -875,7 +875,7 @@ class IntFieldDescriptor extends FieldDescriptor {
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
                 .setInt(obj, value);
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -885,7 +885,7 @@ class IntFieldDescriptor extends FieldDescriptor {
             writer.writeInt(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getInt(obj));
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -941,7 +941,7 @@ class LongFieldDescriptor extends FieldDescriptor {
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
                 .setLong(obj, value);
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -951,7 +951,7 @@ class LongFieldDescriptor extends FieldDescriptor {
             writer.writeLong(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getLong(obj));
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -1006,7 +1006,7 @@ class FloatFieldDescriptor extends FieldDescriptor {
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
                 .setFloat(obj, value);
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -1016,7 +1016,7 @@ class FloatFieldDescriptor extends FieldDescriptor {
             writer.writeFloat(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getFloat(obj));
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -1072,7 +1072,7 @@ class DoubleFieldDescriptor extends FieldDescriptor {
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
                 .setDouble(obj, value);
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
@@ -1082,7 +1082,7 @@ class DoubleFieldDescriptor extends FieldDescriptor {
             writer.writeDouble(field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).getDouble(obj));
         } catch (IllegalAccessException ex) {
-            throw (IOException)new IOException(ex.getMessage()).initCause(ex);
+            throw as(IOException::new, ex, ex.getMessage());
         }
     }
 
