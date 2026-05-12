@@ -58,10 +58,6 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
             }
             throw new IllegalArgumentException("Invalid ValueMember access value: " + access);
         }
-
-        boolean isPublic() {
-            return this == PUBLIC;
-        }
     }
 
     final Optional<org.apache.yoko.rmi.util.corba.Field> field;
@@ -72,7 +68,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
 
     final boolean isFinal;
 
-    ValueMember valuemember;
+    ValueMember valueMember;
 
     private final ValueMemberAccess valueMemberAccess;
 
@@ -101,16 +97,16 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
     }
 
     ValueMember getValueMember(TypeRepository rep) {
-        if (valuemember == null) {
+        if (valueMember == null) {
             TypeDescriptor desc = rep.getDescriptor(type);
             TypeDescriptor owner = rep.getDescriptor(declaringClass);
 
-            valuemember = new ValueMember(getIDLName(), desc.getRepositoryID(),
+            valueMember = new ValueMember(getIDLName(), desc.getRepositoryID(),
                     owner.getRepositoryID(), "1.0", desc.getTypeCode(), null,
                     valueMemberAccess.value);
         }
 
-        return valuemember;
+        return valueMember;
     }
 
     public Class getType() {
