@@ -21,11 +21,15 @@ import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.SystemException;
 import org.omg.CORBA.ValueMember;
 
+import javax.rmi.PortableRemoteObject;
+import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectStreamField;
+import java.io.PrintWriter;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.rmi.Remote;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -202,20 +206,20 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
             if(org.omg.CORBA.Object.class.isAssignableFrom(type)) {
                 return new CorbaObjectFieldDescriptor(owner, type, name, f, repository);
             }
-            if (java.lang.Object.class.equals(type)
-                    || java.io.Externalizable.class.equals(type)
-                    || java.io.Serializable.class.equals(type)) {
+            if (Object.class.equals(type)
+                    || Externalizable.class.equals(type)
+                    || Serializable.class.equals(type)) {
                 return new AnyFieldDescriptor(owner, type, name, f,repository);
 
-            } else if (java.rmi.Remote.class.isAssignableFrom(type)
-                    || java.rmi.Remote.class.equals(type))
+            } else if (Remote.class.isAssignableFrom(type)
+                    || Remote.class.equals(type))
             {
                 return new RemoteFieldDescriptor(owner, type, name, f, repository);
 
             } else if (String.class.equals(type)) {
                 return new StringFieldDescriptor(owner, type, name, f, repository);
 
-            } else if (java.io.Serializable.class.isAssignableFrom(type)) {
+            } else if (Serializable.class.isAssignableFrom(type)) {
                 return new ValueFieldDescriptor(owner, type, name, f, repository);
             } else if (type.isInterface() && type.getMethods().length == 0) {
                 // TODO: make this spec-compliant
@@ -232,7 +236,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         }
     }
 
-    void print(java.io.PrintWriter pw, Map recurse, Object val) {
+    void print(PrintWriter pw, Map recurse, Object val) {
         pw.print(java_name);
         pw.print("=");
         try {
@@ -269,7 +273,7 @@ class RemoteFieldDescriptor extends FieldDescriptor {
             loop: while (!Object.class.equals(t)) {
                 Class<?>[] ifs = t.getInterfaces();
                 for (int i = 0; i < ifs.length; i++) {
-                    if (java.rmi.Remote.class.isAssignableFrom(ifs[i])) {
+                    if (Remote.class.isAssignableFrom(ifs[i])) {
                         foundInterface = ifs[i];
                         break loop;
                     }
@@ -299,7 +303,7 @@ class RemoteFieldDescriptor extends FieldDescriptor {
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
         try {
-            writer.writeRemoteObject((java.rmi.Remote) field.orElseThrow(() ->
+            writer.writeRemoteObject((Remote) field.orElseThrow(() ->
                 new IOException("cannot read/write using serialPersistentFields")).get(obj));
         } catch (IllegalAccessException ex) {
             throw as(IOException::new, ex, ex.getMessage());
@@ -328,7 +332,7 @@ class RemoteFieldDescriptor extends FieldDescriptor {
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
     void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
-        java.rmi.Remote value = (java.rmi.Remote) reader
+        Remote value = (Remote) reader
                 .readRemoteObject(interfaceType);
         map.put(java_name, value);
     }
@@ -337,7 +341,7 @@ class RemoteFieldDescriptor extends FieldDescriptor {
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
     void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
-        java.rmi.Remote value = (java.rmi.Remote) map.get(java_name);
+        Remote value = (Remote) map.get(java_name);
         writer.writeRemoteObject(value);
     }
 
@@ -352,7 +356,7 @@ class AnyFieldDescriptor extends FieldDescriptor {
     AnyFieldDescriptor(Class<?> owner, Class<?> type, String name,
             Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
-        narrowValue = java.rmi.Remote.class.isAssignableFrom(type);
+        narrowValue = Remote.class.isAssignableFrom(type);
     }
 
     public void read(ObjectReader reader, Object obj)
@@ -361,13 +365,13 @@ class AnyFieldDescriptor extends FieldDescriptor {
             Object val = reader.readAny();
             if (narrowValue && val != null && !type.isInstance(val)) {
                 try {
-                    val = javax.rmi.PortableRemoteObject.narrow(val, this.type);
+                    val = PortableRemoteObject.narrow(val, this.type);
                 } catch (SecurityException ex) {
                     logger.finer(() -> "Narrow failed" + "\n" + ex);
                     throw ex;
                 }
             } else if (val != null && !type.isInstance(val)) {
-                throw new org.omg.CORBA.MARSHAL("value is instance of "
+                throw new MARSHAL("value is instance of "
                         + val.getClass().getName() + " -- should be: "
                         + type.getName());
             }
@@ -375,7 +379,7 @@ class AnyFieldDescriptor extends FieldDescriptor {
             field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
                 .set(obj, val);
         } catch (IllegalAccessException ex) {
-            throw (org.omg.CORBA.MARSHAL)new org.omg.CORBA.MARSHAL(ex.getMessage()).initCause(ex);
+            throw (MARSHAL)new MARSHAL(ex.getMessage()).initCause(ex);
         }
     }
 
