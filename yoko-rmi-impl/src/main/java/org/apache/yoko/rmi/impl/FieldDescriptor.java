@@ -27,6 +27,7 @@ import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,7 +38,7 @@ import static org.apache.yoko.util.yasf.Yasf.NON_SERIALIZABLE_FIELD_IS_ABSTRACT_
 abstract class FieldDescriptor extends ModelElement implements Comparable {
     static Logger logger = Logger.getLogger(FieldDescriptor.class.getName());
 
-    org.apache.yoko.rmi.util.corba.Field field;
+    Optional<org.apache.yoko.rmi.util.corba.Field> field;
 
     Class type;
 
@@ -58,11 +59,11 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
 
         if (f != null) {
             isPublic = (Modifier.isPublic(f.getModifiers()));
-            this.field = new org.apache.yoko.rmi.util.corba.Field(f);
+            this.field = Optional.of(new org.apache.yoko.rmi.util.corba.Field(f));
             isFinal = Modifier.isFinal(f.getModifiers());
         } else {
             isPublic = false;
-            this.field = null;
+            this.field = Optional.empty();
             isFinal = false;
         }
     }
@@ -213,7 +214,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
         pw.print(java_name);
         pw.print("=");
         try {
-            Object obj = field.get(val);
+            Object obj = field.get().get(val);
             if (obj == null) {
                 pw.print("null");
             } else {
@@ -262,13 +263,10 @@ class RemoteFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
             Object value = reader.readRemoteObject(interfaceType);
-            field.set(obj, value);
+            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
+                .set(obj, value);
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -276,12 +274,9 @@ class RemoteFieldDescriptor extends FieldDescriptor {
 
     public void write(ObjectWriter writer, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
-            writer.writeRemoteObject((java.rmi.Remote) field.get(obj));
+            writer.writeRemoteObject((java.rmi.Remote) field.orElseThrow(() ->
+                new IOException("cannot read/write using serialPersistentFields")).get(obj));
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -289,12 +284,12 @@ class RemoteFieldDescriptor extends FieldDescriptor {
 
     void copyState(final Object orig, final Object copy, CopyState state) {
         try {
-            field.set(copy, state.copy(field.get(orig)));
+            field.get().set(copy, state.copy(field.get().get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.set(copy, value);
+                        field.get().set(copy, value);
                     } catch (IllegalAccessException ex) {
                         throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
                     }
@@ -353,7 +348,8 @@ class AnyFieldDescriptor extends FieldDescriptor {
                         + type.getName());
             }
 
-            field.set(obj, val);
+            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
+                .set(obj, val);
         } catch (IllegalAccessException ex) {
             throw (org.omg.CORBA.MARSHAL)new org.omg.CORBA.MARSHAL(ex.getMessage()).initCause(ex);
         }
@@ -362,7 +358,7 @@ class AnyFieldDescriptor extends FieldDescriptor {
     public void write(ObjectWriter writer, Object obj)
             throws java.io.IOException {
         try {
-            writer.writeAny(field.get(obj));
+            writer.writeAny(field.get().get(obj));
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -370,12 +366,12 @@ class AnyFieldDescriptor extends FieldDescriptor {
 
     void copyState(final Object orig, final Object copy, CopyState state) {
         try {
-            field.set(copy, state.copy(field.get(orig)));
+            field.get().set(copy, state.copy(field.get().get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.set(copy, value);
+                        field.get().set(copy, value);
                     } catch (IllegalAccessException ex) {
                         throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
                     }
@@ -412,14 +408,17 @@ class ValueFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj) throws java.io.IOException {
         try {
+            Object value;
             if (NON_SERIALIZABLE_FIELD_IS_ABSTRACT_VALUE.isSupported()
                     || type.isInterface()
                     || Serializable.class.isAssignableFrom(type)) {
-                field.set(obj, reader.readValueObject(getType()));
+                value = reader.readValueObject(getType());
             } else {
                 // older versions of Yoko treat non-serializable classes as abstract objects
-                field.set(obj, reader.readAbstractObject());
+                value = reader.readAbstractObject();
             }
+            if (null == field) return;
+            field.get().set(obj, value);
         } catch (IllegalAccessException ex) {
             throw (org.omg.CORBA.MARSHAL)new org.omg.CORBA.MARSHAL(ex.getMessage()).initCause(ex);
         }
@@ -431,7 +430,7 @@ class ValueFieldDescriptor extends FieldDescriptor {
                     || type.isInterface()
                     || Serializable.class.isAssignableFrom(type)) {
                 try {
-                    writer.writeValueObject(field.get(obj));
+                    writer.writeValueObject(field.get().get(obj));
                 } catch (SystemException e) {
                     throw e;
                 } catch (Exception e) {
@@ -439,7 +438,7 @@ class ValueFieldDescriptor extends FieldDescriptor {
                 }
             } else {
                 // older versions of Yoko treat non-serializable classes as abstract objects
-                writer.writeObject(field.get(obj));
+                writer.writeObject(field.get().get(obj));
             }
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
@@ -448,12 +447,12 @@ class ValueFieldDescriptor extends FieldDescriptor {
 
     void copyState(final Object orig, final Object copy, CopyState state) {
         try {
-            field.set(copy, state.copy(field.get(orig)));
+            field.get().set(copy, state.copy(field.get().get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.set(copy, value);
+                        field.get().set(copy, value);
                     } catch (IllegalAccessException ex) {
                         throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
                     }
@@ -494,7 +493,8 @@ class StringFieldDescriptor extends FieldDescriptor {
             throws java.io.IOException {
         try {
             String value = (String) reader.readValueObject();
-            field.set(obj, value);
+            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
+                .set(obj, value);
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -503,7 +503,7 @@ class StringFieldDescriptor extends FieldDescriptor {
     public void write(ObjectWriter writer, Object obj)
             throws java.io.IOException {
         try {
-            writer.writeValueObject(field.get(obj));
+            writer.writeValueObject(field.get().get(obj));
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -511,7 +511,7 @@ class StringFieldDescriptor extends FieldDescriptor {
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.set(copy, field.get(orig));
+            field.get().set(copy, field.get().get(orig));
         } catch (IllegalAccessException ex) {
             throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
         }
@@ -544,18 +544,18 @@ class ObjectFieldDescriptor extends FieldDescriptor {
     public void read(ObjectReader reader, Object obj)
             throws java.io.IOException {
         try {
-            field.set(obj, reader.readAbstractObject());
-
+            Object value = reader.readAbstractObject();
+            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
+                .set(obj, value);
         } catch (IllegalAccessException ex) {
             throw (org.omg.CORBA.MARSHAL)new org.omg.CORBA.MARSHAL(ex.getMessage()).initCause(ex);
         }
-
     }
 
     public void write(ObjectWriter writer, Object obj)
             throws java.io.IOException {
         try {
-            writer.writeObject(field.get(obj));
+            writer.writeObject(field.get().get(obj));
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -563,12 +563,12 @@ class ObjectFieldDescriptor extends FieldDescriptor {
 
     void copyState(final Object orig, final Object copy, CopyState state) {
         try {
-            field.set(copy, state.copy(field.get(orig)));
+            field.get().set(copy, state.copy(field.get().get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.set(copy, value);
+                        field.get().set(copy, value);
                     } catch (IllegalAccessException ex) {
                         throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
                     }
@@ -605,13 +605,10 @@ class BooleanFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
             boolean value = reader.readBoolean();
-            field.setBoolean(obj, value);
+            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
+                .setBoolean(obj, value);
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -619,12 +616,9 @@ class BooleanFieldDescriptor extends FieldDescriptor {
 
     public void write(ObjectWriter writer, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
-            writer.writeBoolean(field.getBoolean(obj));
+            writer.writeBoolean(field.orElseThrow(() ->
+                new IOException("cannot read/write using serialPersistentFields")).getBoolean(obj));
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -632,7 +626,7 @@ class BooleanFieldDescriptor extends FieldDescriptor {
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.setBoolean(copy, field.getBoolean(orig));
+            field.get().setBoolean(copy, field.get().getBoolean(orig));
         } catch (IllegalAccessException ex) {
             throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
         }
@@ -642,7 +636,7 @@ class BooleanFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.getBoolean(val));
+            pw.print(field.get().getBoolean(val));
         } catch (IllegalAccessException ex) {
         }
     }
@@ -676,13 +670,10 @@ class ByteFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
             byte value = reader.readByte();
-            field.setByte(obj, value);
+            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
+                .setByte(obj, value);
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -690,12 +681,9 @@ class ByteFieldDescriptor extends FieldDescriptor {
 
     public void write(ObjectWriter writer, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
-            writer.writeByte(field.getByte(obj));
+            writer.writeByte(field.orElseThrow(() ->
+                new IOException("cannot read/write using serialPersistentFields")).getByte(obj));
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -703,7 +691,7 @@ class ByteFieldDescriptor extends FieldDescriptor {
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.setByte(copy, field.getByte(orig));
+            field.get().setByte(copy, field.get().getByte(orig));
         } catch (IllegalAccessException ex) {
             throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
         }
@@ -713,7 +701,7 @@ class ByteFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.getByte(val));
+            pw.print(field.get().getByte(val));
         } catch (IllegalAccessException ex) {
         }
     }
@@ -747,13 +735,10 @@ class ShortFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
             short value = reader.readShort();
-            field.setShort(obj, value);
+            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
+                .setShort(obj, value);
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -761,12 +746,9 @@ class ShortFieldDescriptor extends FieldDescriptor {
 
     public void write(ObjectWriter writer, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
-            writer.writeShort(field.getShort(obj));
+            writer.writeShort(field.orElseThrow(() ->
+                new IOException("cannot read/write using serialPersistentFields")).getShort(obj));
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -774,7 +756,7 @@ class ShortFieldDescriptor extends FieldDescriptor {
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.setShort(copy, field.getShort(orig));
+            field.get().setShort(copy, field.get().getShort(orig));
         } catch (IllegalAccessException ex) {
             throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
         }
@@ -784,7 +766,7 @@ class ShortFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.getShort(val));
+            pw.print(field.get().getShort(val));
         } catch (IllegalAccessException ex) {
         }
     }
@@ -818,13 +800,10 @@ class CharFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
             char value = reader.readChar();
-            field.setChar(obj, value);
+            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
+                .setChar(obj, value);
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -832,12 +811,9 @@ class CharFieldDescriptor extends FieldDescriptor {
 
     public void write(ObjectWriter writer, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
-            writer.writeChar(field.getChar(obj));
+            writer.writeChar(field.orElseThrow(() ->
+                new IOException("cannot read/write using serialPersistentFields")).getChar(obj));
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -845,7 +821,7 @@ class CharFieldDescriptor extends FieldDescriptor {
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.setChar(copy, field.getChar(orig));
+            field.get().setChar(copy, field.get().getChar(orig));
         } catch (IllegalAccessException ex) {
             throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
         }
@@ -855,7 +831,7 @@ class CharFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            char ch = field.getChar(val);
+            char ch = field.get().getChar(val);
             pw.print(ch);
             pw.print('(');
             pw.print(Integer.toHexString(0xffff & ((int) ch)));
@@ -893,14 +869,11 @@ class IntFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
             int value = reader.readInt();
             logger.finest(() -> "Read int field value " + value);
-            field.setInt(obj, value);
+            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
+                .setInt(obj, value);
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -908,12 +881,9 @@ class IntFieldDescriptor extends FieldDescriptor {
 
     public void write(ObjectWriter writer, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
-            writer.writeInt(field.getInt(obj));
+            writer.writeInt(field.orElseThrow(() ->
+                new IOException("cannot read/write using serialPersistentFields")).getInt(obj));
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -921,7 +891,7 @@ class IntFieldDescriptor extends FieldDescriptor {
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.setInt(copy, field.getInt(orig));
+            field.get().setInt(copy, field.get().getInt(orig));
         } catch (IllegalAccessException ex) {
             throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
         }
@@ -931,7 +901,7 @@ class IntFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.getInt(val));
+            pw.print(field.get().getInt(val));
         } catch (IllegalAccessException ex) {
         }
     }
@@ -965,14 +935,11 @@ class LongFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
             long value = reader.readLong();
             logger.finest(() -> "Read long field value " + value);
-            field.setLong(obj, value);
+            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
+                .setLong(obj, value);
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -980,12 +947,9 @@ class LongFieldDescriptor extends FieldDescriptor {
 
     public void write(ObjectWriter writer, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
-            writer.writeLong(field.getLong(obj));
+            writer.writeLong(field.orElseThrow(() ->
+                new IOException("cannot read/write using serialPersistentFields")).getLong(obj));
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -993,7 +957,7 @@ class LongFieldDescriptor extends FieldDescriptor {
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.setLong(copy, field.getLong(orig));
+            field.get().setLong(copy, field.get().getLong(orig));
         } catch (IllegalAccessException ex) {
             throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
         }
@@ -1003,7 +967,7 @@ class LongFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.getLong(val));
+            pw.print(field.get().getLong(val));
         } catch (IllegalAccessException ex) {
         }
     }
@@ -1037,13 +1001,10 @@ class FloatFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
             float value = reader.readFloat();
-            field.setFloat(obj, value);
+            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
+                .setFloat(obj, value);
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -1051,12 +1012,9 @@ class FloatFieldDescriptor extends FieldDescriptor {
 
     public void write(ObjectWriter writer, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
-            writer.writeFloat(field.getFloat(obj));
+            writer.writeFloat(field.orElseThrow(() ->
+                new IOException("cannot read/write using serialPersistentFields")).getFloat(obj));
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -1064,7 +1022,7 @@ class FloatFieldDescriptor extends FieldDescriptor {
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.setFloat(copy, field.getFloat(orig));
+            field.get().setFloat(copy, field.get().getFloat(orig));
         } catch (IllegalAccessException ex) {
             throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
         }
@@ -1074,7 +1032,7 @@ class FloatFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.getFloat(val));
+            pw.print(field.get().getFloat(val));
         } catch (IllegalAccessException ex) {
         }
     }
@@ -1109,13 +1067,10 @@ class DoubleFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
             double value = reader.readDouble();
-            field.setDouble(obj, value);
+            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
+                .setDouble(obj, value);
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -1123,12 +1078,9 @@ class DoubleFieldDescriptor extends FieldDescriptor {
 
     public void write(ObjectWriter writer, Object obj)
             throws java.io.IOException {
-        if (field == null) {
-            throw new IOException(
-                    "cannot read/write using serialPersistentFields");
-        }
         try {
-            writer.writeDouble(field.getDouble(obj));
+            writer.writeDouble(field.orElseThrow(() ->
+                new IOException("cannot read/write using serialPersistentFields")).getDouble(obj));
         } catch (IllegalAccessException ex) {
             throw (IOException)new IOException(ex.getMessage()).initCause(ex);
         }
@@ -1136,7 +1088,7 @@ class DoubleFieldDescriptor extends FieldDescriptor {
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            field.setDouble(copy, field.getDouble(orig));
+            field.get().setDouble(copy, field.get().getDouble(orig));
         } catch (IllegalAccessException ex) {
             throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
         }
@@ -1146,7 +1098,7 @@ class DoubleFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(field.getDouble(val));
+            pw.print(field.get().getDouble(val));
         } catch (IllegalAccessException ex) {
         }
     }
@@ -1181,12 +1133,12 @@ class CorbaObjectFieldDescriptor extends FieldDescriptor {
 
     void copyState(final Object orig, final Object copy, CopyState state) {
         try {
-            field.set(copy, state.copy(field.get(orig)));
+            field.get().set(copy, state.copy(field.get().get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.set(copy, value);
+                        field.get().set(copy, value);
                     } catch (IllegalAccessException ex) {
                         throw (InternalError)new InternalError(ex.getMessage()).initCause(ex);
                     }
@@ -1200,7 +1152,9 @@ class CorbaObjectFieldDescriptor extends FieldDescriptor {
     void read(ObjectReader reader, Object obj) throws IOException {
         Object value = reader.readCorbaObject(null);
         try {
-            field.set(obj, value);
+            field.orElseThrow(() -> new IOException("cannot read/write using serialPersistentFields"))
+                .set(obj, value);
+            field.get().set(obj, value);
         } catch (IllegalAccessException e) {
             throw (IOException)new IOException(e.getMessage()).initCause(e);
         }
@@ -1214,7 +1168,7 @@ class CorbaObjectFieldDescriptor extends FieldDescriptor {
 
     void write(ObjectWriter writer, Object obj) throws IOException {
         try {
-            writer.writeCorbaObject(field.get(obj));
+            writer.writeCorbaObject(field.get().get(obj));
         }
         catch(IllegalAccessException e) {
             throw (IOException)new IOException(e.getMessage()).initCause(e);
