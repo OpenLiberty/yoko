@@ -37,17 +37,44 @@ import static org.apache.yoko.util.yasf.Yasf.NON_SERIALIZABLE_FIELD_IS_ABSTRACT_
 abstract class FieldDescriptor extends ModelElement implements Comparable {
     static Logger logger = Logger.getLogger(FieldDescriptor.class.getName());
 
-    Optional<org.apache.yoko.rmi.util.corba.Field> field;
+    /**
+     * Represents the access level of a ValueMember field.
+     */
+    enum ValueMemberAccess {
+        PRIVATE(0),
+        PUBLIC(1);
 
-    Class<?> type;
+        public final short value;
 
-    Class<?> declaringClass;
+        ValueMemberAccess(int value) {
+            this.value = (short) value;
+        }
 
-    boolean isFinal;
+        static ValueMemberAccess fromShort(short access) {
+            for (ValueMemberAccess vma : values()) {
+                if (vma.value == access) {
+                    return vma;
+                }
+            }
+            throw new IllegalArgumentException("Invalid ValueMember access value: " + access);
+        }
+
+        boolean isPublic() {
+            return this == PUBLIC;
+        }
+    }
+
+    final Optional<org.apache.yoko.rmi.util.corba.Field> field;
+
+    final Class<?> type;
+
+    final Class<?> declaringClass;
+
+    final boolean isFinal;
 
     ValueMember valuemember;
 
-    boolean isPublic;
+    private final ValueMemberAccess valueMemberAccess;
 
     protected FieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repo) {
@@ -57,11 +84,12 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
         declaringClass = owner;
 
         if (f != null) {
-            isPublic = (Modifier.isPublic(f.getModifiers()));
+            boolean isPublicField = Modifier.isPublic(f.getModifiers());
+            this.valueMemberAccess = isPublicField ? ValueMemberAccess.PUBLIC : ValueMemberAccess.PRIVATE;
             this.field = Optional.of(new org.apache.yoko.rmi.util.corba.Field(f));
             isFinal = Modifier.isFinal(f.getModifiers());
         } else {
-            isPublic = false;
+            this.valueMemberAccess = ValueMemberAccess.PRIVATE;
             this.field = Optional.empty();
             isFinal = false;
         }
@@ -79,7 +107,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
 
             valuemember = new ValueMember(getIDLName(), desc.getRepositoryID(),
                     owner.getRepositoryID(), "1.0", desc.getTypeCode(), null,
-                    (short) (isPublic ? 1 : 0));
+                    valueMemberAccess.value);
         }
 
         return valuemember;
@@ -231,32 +259,34 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
 }
 
 class RemoteFieldDescriptor extends FieldDescriptor {
-    Class<?> interfaceType;
+    final Class<?> interfaceType;
 
     RemoteFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
 
         if (type.isInterface()) {
-            interfaceType = type;
+            this.interfaceType = type;
         } else {
-            Class t = type;
+            Class<?> foundInterface = null;
+            Class<?> t = type;
 
             loop: while (!Object.class.equals(t)) {
-                Class[] ifs = t.getInterfaces();
+                Class<?>[] ifs = t.getInterfaces();
                 for (int i = 0; i < ifs.length; i++) {
                     if (java.rmi.Remote.class.isAssignableFrom(ifs[i])) {
-                        interfaceType = ifs[i];
+                        foundInterface = ifs[i];
                         break loop;
                     }
                 }
                 t = t.getSuperclass();
             }
 
-            if (interfaceType == null) {
+            if (foundInterface == null) {
                 throw new RuntimeException("cannot find " + "remote interface "
                         + "for " + type);
             }
+            this.interfaceType = foundInterface;
         }
     }
 
