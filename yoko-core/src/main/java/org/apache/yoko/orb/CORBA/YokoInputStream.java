@@ -646,7 +646,7 @@ final public class YokoInputStream extends InputStreamWithOffsets {
                 }
 
                 default :
-                    throw new BAD_TYPECODE("Unknown TypeCode kind: " + kind);
+                    throw new BAD_TYPECODE(String.format("Unknown TypeCode kind: 0x%08x (%1$d)", kind));
             }
         }
 

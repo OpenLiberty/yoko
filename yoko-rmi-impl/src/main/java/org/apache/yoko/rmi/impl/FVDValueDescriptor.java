@@ -21,6 +21,7 @@ import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.ValueDefPackage.FullValueDescription;
 import org.omg.CORBA.ValueMember;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
@@ -52,15 +53,13 @@ final class FVDValueDescriptor extends ValueDescriptor {
 //        }
 
         MARSHAL_LOG.finer(() -> "Computing field descriptors for " + fvd.name + " version " + fvd.version);
-        ValueMember[] members = fvd.members;
-        FieldDescriptor[] new_fields = new FieldDescriptor[members.length];
-        for (int i = 0; i < members.length; i++) {
-            ValueMember vm = members[i];
-            FieldDescriptor fd = findField(vm);
-            new_fields[i] = fd;
-            MARSHAL_LOG.finer(() -> String.format("\t%s -> %s", describe(vm), describe(fd)));
-        }
-        _fields = new_fields;
+        _fields = Arrays.stream(fvd.members)
+                .map(vm -> {
+                    FieldDescriptor fd = findField(vm);
+                    MARSHAL_LOG.finer(() -> String.format("\t%s -> %s", describe(vm), describe(fd)));
+                    return fd;
+                })
+                .toArray(FieldDescriptor[]::new);
     }
 
     private static String describe(FieldDescriptor fd) {
@@ -87,12 +86,9 @@ final class FVDValueDescriptor extends ValueDescriptor {
                 }
             }
         }
-        // There was no matching field in the local implementation so look up a remote field descriptor.
-
-        String repId =  valueMember.id;
-
-
-        return null;
+        // There was no matching field in the local implementation, so create a field descriptor
+        // that will read from the stream but not assign to any local field
+        return new ValueMemberFieldDescriptor(type, valueMember, repo);
     }
 
     @Override

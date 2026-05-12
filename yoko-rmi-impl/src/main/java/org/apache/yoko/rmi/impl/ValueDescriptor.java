@@ -24,6 +24,7 @@ import org.omg.CORBA.Initializer;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.OperationDescription;
+import org.omg.CORBA.Principal;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.VM_NONE;
 import org.omg.CORBA.ValueDefPackage.FullValueDescription;
@@ -31,9 +32,6 @@ import org.omg.CORBA.ValueMember;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
 import org.omg.CORBA.portable.UnknownException;
-import org.omg.SendingContext.CodeBase;
-import org.omg.SendingContext.CodeBaseHelper;
-import org.omg.SendingContext.RunTime;
 import sun.reflect.ReflectionFactory;
 
 import java.io.ByteArrayOutputStream;
@@ -51,6 +49,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.rmi.Remote;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.PrivilegedAction;
@@ -63,18 +62,53 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static java.security.AccessController.doPrivileged;
 import static java.util.Arrays.asList;
 import static java.util.Collections.EMPTY_MAP;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.logging.Level.WARNING;
+import static org.apache.yoko.logging.VerboseLogging.MARSHAL_IN_LOG;
+import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
+import static org.apache.yoko.logging.VerboseLogging.MARSHAL_OUT_LOG;
+import static org.apache.yoko.rmi.util.StringUtil.convertToValidIDLNames;
 import static org.apache.yoko.util.Exceptions.as;
+import static org.omg.CORBA.TCKind._tk_Principal;
+import static org.omg.CORBA.TCKind._tk_TypeCode;
+import static org.omg.CORBA.TCKind._tk_abstract_interface;
+import static org.omg.CORBA.TCKind._tk_alias;
+import static org.omg.CORBA.TCKind._tk_any;
+import static org.omg.CORBA.TCKind._tk_array;
+import static org.omg.CORBA.TCKind._tk_boolean;
+import static org.omg.CORBA.TCKind._tk_char;
+import static org.omg.CORBA.TCKind._tk_double;
+import static org.omg.CORBA.TCKind._tk_enum;
+import static org.omg.CORBA.TCKind._tk_except;
+import static org.omg.CORBA.TCKind._tk_fixed;
+import static org.omg.CORBA.TCKind._tk_float;
+import static org.omg.CORBA.TCKind._tk_long;
+import static org.omg.CORBA.TCKind._tk_longdouble;
+import static org.omg.CORBA.TCKind._tk_longlong;
+import static org.omg.CORBA.TCKind._tk_native;
+import static org.omg.CORBA.TCKind._tk_null;
+import static org.omg.CORBA.TCKind._tk_objref;
+import static org.omg.CORBA.TCKind._tk_octet;
+import static org.omg.CORBA.TCKind._tk_sequence;
+import static org.omg.CORBA.TCKind._tk_short;
+import static org.omg.CORBA.TCKind._tk_string;
+import static org.omg.CORBA.TCKind._tk_struct;
+import static org.omg.CORBA.TCKind._tk_ulong;
+import static org.omg.CORBA.TCKind._tk_ulonglong;
+import static org.omg.CORBA.TCKind._tk_union;
+import static org.omg.CORBA.TCKind._tk_ushort;
+import static org.omg.CORBA.TCKind._tk_value;
+import static org.omg.CORBA.TCKind._tk_value_box;
+import static org.omg.CORBA.TCKind._tk_void;
+import static org.omg.CORBA.TCKind._tk_wchar;
+import static org.omg.CORBA.TCKind._tk_wstring;
+import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
 class ValueDescriptor extends TypeDescriptor {
-    static final Logger logger = Logger.getLogger(ValueDescriptor.class.getName());
-
     private boolean _is_externalizable;
 
     private boolean _is_serializable;
@@ -95,7 +129,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     protected FieldDescriptor[] _fields;
 
-    private ObjectDeserializer _object_deserializer;
+
 
     private boolean _is_immutable_value;
 
@@ -116,14 +150,14 @@ class ValueDescriptor extends TypeDescriptor {
 
     @Override
     protected final RemoteInterfaceDescriptor genRemoteInterface() {
-        if (!!!java.rmi.Remote.class.isAssignableFrom(type)) return super.genRemoteInterface();
-        return RemoteDescriptor.genMostSpecificRemoteInterface(type, repo);
+        return Remote.class.isAssignableFrom(type) ?
+                RemoteDescriptor.genMostSpecificRemoteInterface(type, repo) :
+                super.genRemoteInterface();
     }
 
     @Override
     protected String genRepId() {
-        return String.format("RMI:%s:%016X:%016X", StringUtil.convertToValidIDLNames(type.getName()),
-                _hash_code, getSerialVersionUID());
+        return String.format("RMI:%s:%016X:%016X", convertToValidIDLNames(type.getName()), _hash_code, getSerialVersionUID());
     }
 
     private String genCustomRepId() {
@@ -254,8 +288,7 @@ class ValueDescriptor extends TypeDescriptor {
                         _constructor.setAccessible(true);
 
                     } catch (NoSuchMethodException ex) {
-                        logger.log(WARNING, ex, () -> "Class " + type.getName() + " is not properly externalizable.  "
-                                + "It has no default constructor.");
+                        MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName() + " is not properly externalizable. It has no default constructor.");
                     }
 
                 } else if (_is_serializable && !type.isInterface()) {
@@ -263,7 +296,7 @@ class ValueDescriptor extends TypeDescriptor {
                     Class<?> initClass = getFirstNonSerializableSuperclass();
 
                     if (initClass == null) {
-                        logger.warning(() -> "Class " + type.getName() + " is not properly serializable.  " + "It has no non-serializable super-class");
+                        MARSHAL_LOG.warning(() -> "Class " + type.getName() + " is not properly serializable.  " + "It has no non-serializable super-class");
                     } else {
                         try {
                             Constructor<?> init_cons = initClass.getDeclaredConstructor();
@@ -271,7 +304,7 @@ class ValueDescriptor extends TypeDescriptor {
                             if (Modifier.isPublic(init_cons.getModifiers()) || Modifier.isProtected(init_cons.getModifiers())) {
                                 // do nothing - it's accessible
                             } else if (!samePackage(type, initClass)) {
-                                logger.warning(() -> "Class " + type.getName() + " is not properly serializable.  "
+                                MARSHAL_LOG.warning(() -> "Class " + type.getName() + " is not properly serializable.  "
                                         + "The default constructor of its first " + "non-serializable super-class (" + initClass.getName()
                                         + ") is not accessible.");
                             }
@@ -279,13 +312,13 @@ class ValueDescriptor extends TypeDescriptor {
                             _constructor = ReflectionFactory.getReflectionFactory().newConstructorForSerialization(type, init_cons);
 
                             if (_constructor == null) {
-                                logger.warning(() -> "Unable to get constructor for serialization for class " + java_name);
+                                MARSHAL_LOG.warning(() -> "Unable to get constructor for serialization for class " + java_name);
                             } else {
                                 _constructor.setAccessible(true);
                             }
 
                         } catch (NoSuchMethodException ex) {
-                            logger.log(WARNING, ex, () -> "Class " + type.getName() + " is not properly serializable.  "
+                            MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName() + " is not properly serializable.  "
                                     + "First non-serializable super-class (" + initClass.getName() + ") has no default constructor.");
                         }
                     }
@@ -344,7 +377,7 @@ class ValueDescriptor extends TypeDescriptor {
 
                 _hash_code = computeHashCode();
 
-                _object_deserializer = new ObjectDeserializer(ValueDescriptor.this);
+
 
                 return null;
             }
@@ -436,13 +469,11 @@ class ValueDescriptor extends TypeDescriptor {
     public void writeValue(final OutputStream out, final Serializable value) {
         try {
 
-            ObjectWriter writer = doPrivileged(new PrivilegedAction<ObjectWriter>() {
-                public ObjectWriter run() {
-                    try {
-                        return new CorbaObjectWriter(out, value);
-                    } catch (IOException ex) {
-                        throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-                    }
+            ObjectWriter writer = doPrivileged((PrivilegedAction<ObjectWriter>) () -> {
+                try {
+                    return new CorbaObjectWriter(out, value);
+                } catch (IOException ex) {
+                    throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
                 }
             });
 
@@ -454,14 +485,13 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     protected void defaultWriteValue(ObjectWriter writer, Serializable val) throws IOException {
-        logger.finer(() -> "writing fields for " + type);
+        MARSHAL_OUT_LOG.finer(() -> "writing fields for " + type);
         FieldDescriptor[] fields = _fields;
 
         if (fields == null) return;
 
-
         for (FieldDescriptor field : fields) {
-            logger.finer(() -> "writing field " + field.java_name);
+            MARSHAL_OUT_LOG.finer(() -> "writing field " + field.java_name);
             field.write(writer, val);
         }
     }
@@ -509,8 +539,8 @@ class ValueDescriptor extends TypeDescriptor {
                 throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
 
             } catch (NullPointerException ex) {
-                logger.log(WARNING, ex, () -> "unable to create instance of " + type.getName());
-                logger.warning(() -> "constructor => " + _constructor);
+                MARSHAL_IN_LOG.log(WARNING, ex, () -> "unable to create instance of " + type.getName());
+                MARSHAL_IN_LOG.warning(() -> "constructor => " + _constructor);
 
                 throw ex;
             }
@@ -526,13 +556,11 @@ class ValueDescriptor extends TypeDescriptor {
         offsetMap.put(offset, value);
 
         try {
-            ObjectReader reader = doPrivileged(new PrivilegedAction<ObjectReader>() {
-                public ObjectReader run() {
-                    try {
-                        return new CorbaObjectReader(in, offsetMap, value);
-                    } catch (IOException ex) {
-                        throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-                    }
+            ObjectReader reader = doPrivileged((PrivilegedAction<ObjectReader>) () -> {
+                try {
+                    return new CorbaObjectReader(in, offsetMap, value);
+                } catch (IOException ex) {
+                    throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
                 }
             });
 
@@ -593,11 +621,10 @@ class ValueDescriptor extends TypeDescriptor {
     protected void defaultReadValue(ObjectReader reader, Serializable value) throws IOException {
         if (null == _fields) return;
 
-        logger.fine(() -> "reading fields for " + type.getName());
+        MARSHAL_IN_LOG.fine(() -> "reading fields for " + type.getName());
 
         for (FieldDescriptor _field : _fields) {
-            if (null == _field) continue;
-            logger.fine(() -> "reading field " + _field.java_name + " of type " + _field.getType().getName() + " using " + _field.getClass().getName());
+            MARSHAL_IN_LOG.fine(() -> "reading field " + _field.java_name + " of type " + _field.getType().getName() + " using " + _field.getClass().getName());
 
             try {
                 _field.read(reader, value);
@@ -616,13 +643,13 @@ class ValueDescriptor extends TypeDescriptor {
             return EMPTY_MAP;
         }
 
-        logger.finer(() -> "reading fields for " + type.getName());
+        MARSHAL_IN_LOG.finer(() -> "reading fields for " + type.getName());
 
         Map map = new HashMap();
 
         for (FieldDescriptor _field : _fields) {
 
-            logger.finer(() -> "reading field " + _field.java_name);
+            MARSHAL_IN_LOG.finer(() -> "reading field " + _field.java_name);
 
             _field.readFieldIntoMap(reader, map);
         }
@@ -635,11 +662,11 @@ class ValueDescriptor extends TypeDescriptor {
             return;
         }
 
-        logger.finer(() -> "writing fields for " + type.getName());
+        MARSHAL_OUT_LOG.finer(() -> "writing fields for " + type.getName());
 
         for (FieldDescriptor _field : _fields) {
 
-            logger.finer(() -> "writing field " + _field.java_name);
+            MARSHAL_OUT_LOG.finer(() -> "writing field " + _field.java_name);
 
             _field.writeFieldFromMap(writer, fieldMap);
         }
@@ -647,7 +674,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     /**
-     * This methods reads the fields of a single class slice.
+     * This method reads the fields of a single class slice.
      */
     protected void readValue(ObjectReader reader, Serializable value) throws IOException {
         if (_is_externalizable) {
@@ -668,7 +695,7 @@ class ValueDescriptor extends TypeDescriptor {
             // read custom marshalling value header
             byte cmsfVersion = reader.readByte(); // custom marshal stream format version
             boolean dwoCalled = reader.readBoolean(); // was defaultWriteObject() called?
-            logger.log(Level.FINE, "Reading value in streamFormatVersion=" + cmsfVersion + " defaultWriteObject=" + dwoCalled);
+            MARSHAL_IN_LOG.log(Level.FINE, "Reading value in streamFormatVersion=" + cmsfVersion + " defaultWriteObject=" + dwoCalled);
 
             if (cmsfVersion == 2) {
                 // use a wrapped reader to open the secondary custom valuetype
@@ -835,61 +862,7 @@ class ValueDescriptor extends TypeDescriptor {
         return fvd;
     }
 
-    class ObjectDeserializer {
 
-        ObjectDeserializer super_descriptor;
-
-        String repository_id;
-
-        final FieldDescriptor[] fields;
-
-        ObjectDeserializer(ValueDescriptor desc) {
-            fields = desc._fields;
-            repository_id = desc.getRepositoryID();
-
-            if (desc._super_descriptor != null) {
-                super_descriptor = desc._super_descriptor._object_deserializer;
-            }
-        }
-
-        ObjectDeserializer(FullValueDescription desc, RunTime runtime) throws IOException {
-            Class myClass = type;
-            ValueMember[] members = desc.members;
-            fields = new FieldDescriptor[members.length];
-            for (int i = 0; i < members.length; i++) {
-                Class type = getClassFromTypeCode(members[i].type);
-                fields[i] = FieldDescriptor.get(myClass, type, members[i].name, null, repo);
-            }
-
-            if (!"".equals(desc.base_value)) {
-                Class clz = ValueHandlerImpl.getClassFromRepositoryID(desc.base_value);
-                TypeDescriptor tdesc = repo.getDescriptor(clz);
-
-                if ((tdesc instanceof ValueDescriptor)) {
-                    super_descriptor = ((ValueDescriptor) tdesc).getObjectDeserializer(desc.base_value, runtime);
-                }
-            }
-        }
-    }
-
-    private ObjectDeserializer getObjectDeserializer(String repositoryID, RunTime runtime) throws IOException {
-        if (repositoryID.equals(getRepositoryID())) {
-            return _object_deserializer;
-        }
-
-        CodeBase codebase = CodeBaseHelper.narrow(runtime);
-        if (codebase == null) {
-            throw new IOException("cannot narrow RunTime -> CodeBase");
-        }
-
-        FullValueDescription desc = codebase.meta(repositoryID);
-
-        return new ObjectDeserializer(desc, codebase);
-    }
-
-    private static Class getClassFromTypeCode(TypeCode tc) {
-        return null;
-    }
 
     public boolean copyWithinState() {
         return !(_is_immutable_value | _is_rmi_stub);
@@ -903,7 +876,7 @@ class ValueDescriptor extends TypeDescriptor {
 
         Serializable oorig = (Serializable) orig;
 
-        logger.finer(() -> "copying " + orig);
+        MARSHAL_OUT_LOG.finer(() -> "copying " + orig);
 
         oorig = writeReplace(oorig);
 
@@ -913,7 +886,7 @@ class ValueDescriptor extends TypeDescriptor {
         } else {
             wdesc = (ValueDescriptor) repo.getDescriptor(oorig.getClass());
 
-            logger.finer(() -> "writeReplace -> " + type.getName());
+            MARSHAL_OUT_LOG.finer(() -> "writeReplace -> " + type.getName());
         }
 
         return wdesc.copyObject2(oorig, state);
