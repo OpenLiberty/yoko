@@ -53,15 +53,6 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         ValueMemberAccess(int value) {
             this.value = (short) value;
         }
-
-        static ValueMemberAccess fromShort(short access) {
-            for (ValueMemberAccess vma : values()) {
-                if (vma.value == access) {
-                    return vma;
-                }
-            }
-            throw new IllegalArgumentException("Invalid ValueMember access value: " + access);
-        }
     }
 
     private final Optional<org.apache.yoko.rmi.util.corba.Field> field;

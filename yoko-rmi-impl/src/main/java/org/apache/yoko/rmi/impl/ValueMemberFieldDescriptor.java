@@ -23,9 +23,9 @@ import org.omg.CORBA.ValueMember;
 
 import java.io.IOException;
 import java.util.BitSet;
+import java.util.Map;
 import java.util.logging.Logger;
 
-import static org.apache.yoko.rmi.impl.FieldDescriptor.ValueMemberAccess;
 import static org.omg.CORBA.TCKind._tk_abstract_interface;
 import static org.omg.CORBA.TCKind._tk_alias;
 import static org.omg.CORBA.TCKind._tk_any;
@@ -83,7 +83,6 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
     private final ValueMember valueMember;
     private final TypeCode typeCode;
     private final TCKind kind;
-    private final ValueMemberAccess access;
 
     /**
      * Creates a ValueMemberFieldDescriptor from a ValueMember.
@@ -97,7 +96,6 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
         this.valueMember = valueMember;
         this.typeCode = valueMember.type;
         this.kind = typeCode.kind();
-        this.access = ValueMemberAccess.fromShort(valueMember.access);
     }
 
     @Override
@@ -124,13 +122,13 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
     }
 
     @Override
-    void readFieldIntoMap(ObjectReader reader, java.util.Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
         Object value = readValueByTypeCode(reader);
         map.put(java_name, value);
     }
 
     @Override
-    void writeFieldFromMap(ObjectWriter writer, java.util.Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
         // Cannot write a value that doesn't exist locally
         throw new IOException("Cannot write field '" + java_name +
                 "' from map - no local field equivalent exists for ValueMember from FVD");
