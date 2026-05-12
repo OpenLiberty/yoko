@@ -28,7 +28,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Map;
 import java.util.Optional;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.FINER;
@@ -40,9 +39,9 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
 
     Optional<org.apache.yoko.rmi.util.corba.Field> field;
 
-    Class type;
+    Class<?> type;
 
-    Class declaringClass;
+    Class<?> declaringClass;
 
     boolean isFinal;
 
@@ -50,7 +49,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
 
     boolean isPublic;
 
-    protected FieldDescriptor(Class owner, Class type, String name,
+    protected FieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repo) {
         super(repo, name);
         this.type = type;
@@ -133,7 +132,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
         return get(f.getDeclaringClass(), f.getType(), f.getName(), f, repository);
     }
 
-    static FieldDescriptor getForSerialPersistentField(Class declaringClass, ObjectStreamField field, TypeRepository repository) {
+    static FieldDescriptor getForSerialPersistentField(Class<?> declaringClass, ObjectStreamField field, TypeRepository repository) {
         Field f = null;
         try {
             f = declaringClass.getDeclaredField(field.getName());
@@ -145,14 +144,14 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
         return get(declaringClass, field.getType(), field.getName(), f, repository);
     }
 
-    static FieldDescriptor get(Class owner, Class type, String name,
+    static FieldDescriptor get(Class<?> owner, Class<?> type, String name,
                                java.lang.reflect.Field f, TypeRepository repository) {
         FieldDescriptor desc = get0(owner, type, name, f, repository);
         desc.init();
         return desc;
     }
 
-    private static FieldDescriptor get0(Class owner, Class type, String name,
+    private static FieldDescriptor get0(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
 
         if (type.isPrimitive()) {
@@ -232,9 +231,9 @@ abstract class FieldDescriptor extends ModelElement implements Comparable {
 }
 
 class RemoteFieldDescriptor extends FieldDescriptor {
-    Class interfaceType;
+    Class<?> interfaceType;
 
-    RemoteFieldDescriptor(Class owner, Class type, String name,
+    RemoteFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
 
@@ -325,7 +324,7 @@ class AnyFieldDescriptor extends FieldDescriptor {
 
     boolean narrowValue;
 
-    AnyFieldDescriptor(Class owner, Class type, String name,
+    AnyFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
         narrowValue = java.rmi.Remote.class.isAssignableFrom(type);
@@ -401,7 +400,7 @@ class AnyFieldDescriptor extends FieldDescriptor {
 }
 
 class ValueFieldDescriptor extends FieldDescriptor {
-    ValueFieldDescriptor(Class owner, Class type, String name,
+    ValueFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
@@ -484,7 +483,7 @@ class ValueFieldDescriptor extends FieldDescriptor {
 }
 
 class StringFieldDescriptor extends FieldDescriptor {
-    StringFieldDescriptor(Class owner, Class type, String name,
+    StringFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
@@ -536,7 +535,7 @@ class StringFieldDescriptor extends FieldDescriptor {
 }
 
 class ObjectFieldDescriptor extends FieldDescriptor {
-    ObjectFieldDescriptor(Class owner, Class type, String name,
+    ObjectFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
@@ -598,7 +597,7 @@ class ObjectFieldDescriptor extends FieldDescriptor {
 }
 
 class BooleanFieldDescriptor extends FieldDescriptor {
-    BooleanFieldDescriptor(Class owner, Class type, String name,
+    BooleanFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
@@ -663,7 +662,7 @@ class BooleanFieldDescriptor extends FieldDescriptor {
 }
 
 class ByteFieldDescriptor extends FieldDescriptor {
-    ByteFieldDescriptor(Class owner, Class type, String name,
+    ByteFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
@@ -728,7 +727,7 @@ class ByteFieldDescriptor extends FieldDescriptor {
 }
 
 class ShortFieldDescriptor extends FieldDescriptor {
-    ShortFieldDescriptor(Class owner, Class type, String name,
+    ShortFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
@@ -793,7 +792,7 @@ class ShortFieldDescriptor extends FieldDescriptor {
 }
 
 class CharFieldDescriptor extends FieldDescriptor {
-    CharFieldDescriptor(Class owner, Class type, String name,
+    CharFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
@@ -862,7 +861,7 @@ class CharFieldDescriptor extends FieldDescriptor {
 }
 
 class IntFieldDescriptor extends FieldDescriptor {
-    IntFieldDescriptor(Class owner, Class type, String name,
+    IntFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
@@ -928,7 +927,7 @@ class IntFieldDescriptor extends FieldDescriptor {
 }
 
 class LongFieldDescriptor extends FieldDescriptor {
-    LongFieldDescriptor(Class owner, Class type, String name,
+    LongFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
@@ -994,7 +993,7 @@ class LongFieldDescriptor extends FieldDescriptor {
 }
 
 class FloatFieldDescriptor extends FieldDescriptor {
-    FloatFieldDescriptor(Class owner, Class type, String name,
+    FloatFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
@@ -1060,7 +1059,7 @@ class FloatFieldDescriptor extends FieldDescriptor {
 }
 
 class DoubleFieldDescriptor extends FieldDescriptor {
-    DoubleFieldDescriptor(Class owner, Class type, String name,
+    DoubleFieldDescriptor(Class<?> owner, Class<?> type, String name,
             java.lang.reflect.Field f, TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
@@ -1127,7 +1126,7 @@ class DoubleFieldDescriptor extends FieldDescriptor {
 
 class CorbaObjectFieldDescriptor extends FieldDescriptor {
 
-    protected CorbaObjectFieldDescriptor(Class owner, Class type, String name, Field f,TypeRepository repository) {
+    protected CorbaObjectFieldDescriptor(Class<?> owner, Class<?> type, String name, Field f,TypeRepository repository) {
         super(owner, type, name, f, repository);
     }
 
