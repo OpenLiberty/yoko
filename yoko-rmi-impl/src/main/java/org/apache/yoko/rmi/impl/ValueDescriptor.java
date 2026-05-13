@@ -17,14 +17,12 @@
  */
 package org.apache.yoko.rmi.impl;
 
-import org.apache.yoko.rmi.util.StringUtil;
 import org.omg.CORBA.AttributeDescription;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.Initializer;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.OperationDescription;
-import org.omg.CORBA.Principal;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.VM_NONE;
 import org.omg.CORBA.ValueDefPackage.FullValueDescription;
@@ -73,40 +71,6 @@ import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_OUT_LOG;
 import static org.apache.yoko.rmi.util.StringUtil.convertToValidIDLNames;
 import static org.apache.yoko.util.Exceptions.as;
-import static org.omg.CORBA.TCKind._tk_Principal;
-import static org.omg.CORBA.TCKind._tk_TypeCode;
-import static org.omg.CORBA.TCKind._tk_abstract_interface;
-import static org.omg.CORBA.TCKind._tk_alias;
-import static org.omg.CORBA.TCKind._tk_any;
-import static org.omg.CORBA.TCKind._tk_array;
-import static org.omg.CORBA.TCKind._tk_boolean;
-import static org.omg.CORBA.TCKind._tk_char;
-import static org.omg.CORBA.TCKind._tk_double;
-import static org.omg.CORBA.TCKind._tk_enum;
-import static org.omg.CORBA.TCKind._tk_except;
-import static org.omg.CORBA.TCKind._tk_fixed;
-import static org.omg.CORBA.TCKind._tk_float;
-import static org.omg.CORBA.TCKind._tk_long;
-import static org.omg.CORBA.TCKind._tk_longdouble;
-import static org.omg.CORBA.TCKind._tk_longlong;
-import static org.omg.CORBA.TCKind._tk_native;
-import static org.omg.CORBA.TCKind._tk_null;
-import static org.omg.CORBA.TCKind._tk_objref;
-import static org.omg.CORBA.TCKind._tk_octet;
-import static org.omg.CORBA.TCKind._tk_sequence;
-import static org.omg.CORBA.TCKind._tk_short;
-import static org.omg.CORBA.TCKind._tk_string;
-import static org.omg.CORBA.TCKind._tk_struct;
-import static org.omg.CORBA.TCKind._tk_ulong;
-import static org.omg.CORBA.TCKind._tk_ulonglong;
-import static org.omg.CORBA.TCKind._tk_union;
-import static org.omg.CORBA.TCKind._tk_ushort;
-import static org.omg.CORBA.TCKind._tk_value;
-import static org.omg.CORBA.TCKind._tk_value_box;
-import static org.omg.CORBA.TCKind._tk_void;
-import static org.omg.CORBA.TCKind._tk_wchar;
-import static org.omg.CORBA.TCKind._tk_wstring;
-import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
 class ValueDescriptor extends TypeDescriptor {
     private boolean _is_externalizable;
