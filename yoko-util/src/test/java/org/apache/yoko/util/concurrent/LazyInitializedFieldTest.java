@@ -28,12 +28,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import static java.util.stream.IntStream.range;
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Tests for {@link LazyInitializedField}.
- */
 class LazyInitializedFieldTest {
+    private static final int INITIALIZATION_DELAY_MS = 50;
+    private static final int EXPENSIVE_INITIALIZATION_DELAY_MS = 10;
+    private static final int CONCURRENT_THREAD_COUNT = 10;
+    private static final int HIGH_CONTENTION_THREAD_COUNT = 50;
+    private static final int TEST_TIMEOUT_SECONDS = 10;
+    private static final int EXECUTOR_SHUTDOWN_TIMEOUT_SECONDS = 5;
+    private static final int SEQUENTIAL_ACCESS_COUNT = 100;
 
     @Test
     void testBasicInitialization() {
@@ -69,7 +74,7 @@ class LazyInitializedFieldTest {
 
             // Simulate some work
             try {
-                Thread.sleep(50);
+                Thread.sleep(INITIALIZATION_DELAY_MS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -78,14 +83,13 @@ class LazyInitializedFieldTest {
             return "initialized";
         });
 
-        int threadCount = 10;
-        CountDownLatch startLatch = new CountDownLatch(1);
-        CountDownLatch doneLatch = new CountDownLatch(threadCount);
-        AtomicReference<Throwable> error = new AtomicReference<>();
+        final CountDownLatch startLatch = new CountDownLatch(1);
+        final CountDownLatch doneLatch = new CountDownLatch(CONCURRENT_THREAD_COUNT);
+        final AtomicReference<Throwable> error = new AtomicReference<>();
 
-        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        ExecutorService executor = Executors.newFixedThreadPool(CONCURRENT_THREAD_COUNT);
 
-        for (int i = 0; i < threadCount; i++) {
+        range(0, CONCURRENT_THREAD_COUNT).forEach(i -> {
             executor.submit(() -> {
                 try {
                     // Wait for all threads to be ready
@@ -100,16 +104,16 @@ class LazyInitializedFieldTest {
                     doneLatch.countDown();
                 }
             });
-        }
+        });
 
         // Release all threads at once
         startLatch.countDown();
 
         // Wait for all threads to complete
-        assertTrue(doneLatch.await(10, TimeUnit.SECONDS), "All threads should complete");
+        assertTrue(doneLatch.await(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), "All threads should complete");
 
         executor.shutdown();
-        assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS), "Executor should terminate");
+        assertTrue(executor.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS), "Executor should terminate");
 
         assertNull(error.get(), "No errors should occur");
         assertEquals(1, initCount.get(), "Initializer should be called exactly once despite concurrent access");
@@ -124,21 +128,20 @@ class LazyInitializedFieldTest {
             int count = initCount.incrementAndGet();
             // Simulate expensive initialization
             try {
-                Thread.sleep(10);
+                Thread.sleep(EXPENSIVE_INITIALIZATION_DELAY_MS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
             return count;
         });
 
-        int threadCount = 50;
         CountDownLatch startLatch = new CountDownLatch(1);
-        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+        CountDownLatch doneLatch = new CountDownLatch(HIGH_CONTENTION_THREAD_COUNT);
         AtomicInteger successCount = new AtomicInteger(0);
 
-        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        ExecutorService executor = Executors.newFixedThreadPool(HIGH_CONTENTION_THREAD_COUNT);
 
-        for (int i = 0; i < threadCount; i++) {
+        for (int i = 0; i < HIGH_CONTENTION_THREAD_COUNT; i++) {
             executor.submit(() -> {
                 try {
                     startLatch.await();
@@ -154,12 +157,12 @@ class LazyInitializedFieldTest {
         }
 
         startLatch.countDown();
-        assertTrue(doneLatch.await(10, TimeUnit.SECONDS), "All threads should complete");
+        assertTrue(doneLatch.await(TEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), "All threads should complete");
 
         executor.shutdown();
-        assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS), "Executor should terminate");
+        assertTrue(executor.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS), "Executor should terminate");
 
-        assertEquals(threadCount, successCount.get(), "All threads should succeed");
+        assertEquals(HIGH_CONTENTION_THREAD_COUNT, successCount.get(), "All threads should succeed");
         assertEquals(1, initCount.get(), "Initializer should be called exactly once");
     }
 
@@ -267,7 +270,7 @@ class LazyInitializedFieldTest {
         });
 
         // Multiple sequential accesses
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < SEQUENTIAL_ACCESS_COUNT; i++) {
             assertEquals("value", field.get());
         }
 

@@ -22,6 +22,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * A thread-safe lazily initialized field using atomic function pointer swapping.
  * <p>
@@ -88,7 +90,7 @@ public class LazyInitializedField<T> {
      * @param initializer the supplier that will compute the value on first access
      */
     public LazyInitializedField(Supplier<T> initializer) {
-        this.initializer = initializer;
+        this.initializer = requireNonNull(initializer, "initializer must not be null");
         this.functionPointer = new AtomicReference<>(initializationFunctionRef);
     }
 
@@ -157,7 +159,7 @@ public class LazyInitializedField<T> {
 
             LOGGER.fine(() -> "Thread " + Thread.currentThread().getName() + " completed initialization");
             return result;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             LOGGER.warning(() -> "Thread " + Thread.currentThread().getName() + " failed initialization, resetting for retry");
             functionPointer.set(initializationFunctionRef);
             throw e;
