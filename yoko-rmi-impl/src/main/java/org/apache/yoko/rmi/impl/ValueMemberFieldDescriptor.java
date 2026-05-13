@@ -18,7 +18,6 @@
 package org.apache.yoko.rmi.impl;
 
 import org.omg.CORBA.TCKind;
-import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.ValueMember;
 
 import java.io.IOException;
@@ -142,7 +141,6 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
     }
 
     private final ValueMember valueMember;
-    private final TypeCode typeCode;
     private final TCKind kind;
 
     /**
@@ -155,8 +153,7 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
     ValueMemberFieldDescriptor(Class<?> owner, ValueMember valueMember, TypeRepository repository) {
         super(owner, Object.class, valueMember.name, null, repository);
         this.valueMember = valueMember;
-        this.typeCode = valueMember.type;
-        this.kind = typeCode.kind();
+        this.kind = valueMember.type.kind();
     }
 
     @Override
