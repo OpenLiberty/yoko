@@ -1,0 +1,276 @@
+/*
+ * Copyright 2026 IBM Corporation and others.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package org.apache.yoko.util.concurrent;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.RepeatedTest;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Tests for {@link LazyInitializedField}.
+ */
+class LazyInitializedFieldTest {
+
+    @Test
+    void testBasicInitialization() {
+        AtomicInteger initCount = new AtomicInteger(0);
+        LazyInitializedField<String> field = new LazyInitializedField<>(() -> {
+            initCount.incrementAndGet();
+            return "initialized";
+        });
+
+        assertFalse(field.isInitialized(), "Field should not be initialized initially");
+
+        String value = field.get();
+        assertEquals("initialized", value, "Should return initialized value");
+        assertEquals(1, initCount.get(), "Initializer should be called exactly once");
+        assertTrue(field.isInitialized(), "Field should be initialized after first get");
+
+        // Second call should return cached value without re-initialization
+        String value2 = field.get();
+        assertEquals("initialized", value2, "Should return same value");
+        assertEquals(1, initCount.get(), "Initializer should still be called only once");
+    }
+
+    @Test
+    void testConcurrentInitialization() throws InterruptedException {
+        AtomicInteger initCount = new AtomicInteger(0);
+        AtomicInteger maxConcurrentInits = new AtomicInteger(0);
+        AtomicInteger currentConcurrentInits = new AtomicInteger(0);
+
+        LazyInitializedField<String> field = new LazyInitializedField<>(() -> {
+            initCount.incrementAndGet();
+            int concurrent = currentConcurrentInits.incrementAndGet();
+            maxConcurrentInits.updateAndGet(max -> Math.max(max, concurrent));
+
+            // Simulate some work
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            currentConcurrentInits.decrementAndGet();
+            return "initialized";
+        });
+
+        int threadCount = 10;
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+        AtomicReference<Throwable> error = new AtomicReference<>();
+
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+        for (int i = 0; i < threadCount; i++) {
+            executor.submit(() -> {
+                try {
+                    // Wait for all threads to be ready
+                    startLatch.await();
+
+                    // All threads try to get the value simultaneously
+                    String value = field.get();
+                    assertEquals("initialized", value, "All threads should get the same value");
+                } catch (Throwable t) {
+                    error.set(t);
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        // Release all threads at once
+        startLatch.countDown();
+
+        // Wait for all threads to complete
+        assertTrue(doneLatch.await(10, TimeUnit.SECONDS), "All threads should complete");
+
+        executor.shutdown();
+        assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS), "Executor should terminate");
+
+        assertNull(error.get(), "No errors should occur");
+        assertEquals(1, initCount.get(), "Initializer should be called exactly once despite concurrent access");
+        assertEquals(1, maxConcurrentInits.get(), "Only one thread should be initializing at a time");
+    }
+
+    @RepeatedTest(10)
+    void testHighContentionInitialization() throws InterruptedException {
+        AtomicInteger initCount = new AtomicInteger(0);
+
+        LazyInitializedField<Integer> field = new LazyInitializedField<>(() -> {
+            int count = initCount.incrementAndGet();
+            // Simulate expensive initialization
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return count;
+        });
+
+        int threadCount = 50;
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+        AtomicInteger successCount = new AtomicInteger(0);
+
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+
+        for (int i = 0; i < threadCount; i++) {
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    Integer value = field.get();
+                    assertEquals(1, value.intValue(), "All threads should get value 1");
+                    successCount.incrementAndGet();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        assertTrue(doneLatch.await(10, TimeUnit.SECONDS), "All threads should complete");
+
+        executor.shutdown();
+        assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS), "Executor should terminate");
+
+        assertEquals(threadCount, successCount.get(), "All threads should succeed");
+        assertEquals(1, initCount.get(), "Initializer should be called exactly once");
+    }
+
+    @Test
+    void testInitializationWithException() {
+        LazyInitializedField<String> field = new LazyInitializedField<>(() -> {
+            throw new RuntimeException("Initialization failed");
+        });
+
+        assertThrows(RuntimeException.class, field::get, "Should propagate initialization exception");
+    }
+
+    @Test
+    void testInitializationWithExceptionRetry() {
+        AtomicInteger attemptCount = new AtomicInteger(0);
+        LazyInitializedField<String> field = new LazyInitializedField<>(() -> {
+            int attempt = attemptCount.incrementAndGet();
+            if (attempt == 1) {
+                throw new RuntimeException("First attempt failed");
+            }
+            return "success-" + attempt;
+        });
+
+        // First attempt should fail
+        assertThrows(RuntimeException.class, field::get, "First attempt should throw exception");
+        assertFalse(field.isInitialized(), "Field should not be initialized after exception");
+
+        // Second attempt should succeed
+        String value = field.get();
+        assertEquals("success-2", value, "Second attempt should succeed");
+        assertTrue(field.isInitialized(), "Field should be initialized after successful retry");
+        assertEquals(2, attemptCount.get(), "Should have attempted twice");
+
+        // Subsequent calls should return cached value
+        assertEquals("success-2", field.get(), "Should return cached value");
+        assertEquals(2, attemptCount.get(), "Should not retry after success");
+    }
+
+    @Test
+    void testMultipleInstances() {
+        AtomicInteger initCount = new AtomicInteger(0);
+        Supplier<String> supplier = () -> {
+            int count = initCount.incrementAndGet();
+            return "initialized-" + count;
+        };
+
+        LazyInitializedField<String> field1 = new LazyInitializedField<>(supplier);
+        assertEquals("initialized-1", field1.get());
+        assertTrue(field1.isInitialized());
+
+        LazyInitializedField<String> field2 = new LazyInitializedField<>(supplier);
+        assertEquals("initialized-2", field2.get());
+        assertTrue(field2.isInitialized());
+
+        // Verify each field maintains its own value
+        assertEquals("initialized-1", field1.get());
+        assertEquals("initialized-2", field2.get());
+        assertEquals(2, initCount.get(), "Initializer should be called once per field");
+    }
+
+    @Test
+    void testNullValue() {
+        LazyInitializedField<String> field = new LazyInitializedField<>(() -> null);
+
+        assertNull(field.get(), "Should support null values");
+        assertTrue(field.isInitialized(), "Field should be initialized even with null value");
+
+        // Second call should still return null without re-initialization
+        assertNull(field.get(), "Should return null on subsequent calls");
+    }
+
+    @Test
+    void testComplexObject() {
+        class ComplexObject {
+            final String name;
+            final int value;
+
+            ComplexObject(String name, int value) {
+                this.name = name;
+                this.value = value;
+            }
+        }
+
+        AtomicInteger counter = new AtomicInteger(0);
+        LazyInitializedField<ComplexObject> field = new LazyInitializedField<>(() -> {
+            counter.incrementAndGet();
+            return new ComplexObject("test", 42);
+        });
+
+        ComplexObject obj1 = field.get();
+        ComplexObject obj2 = field.get();
+
+        assertSame(obj1, obj2, "Should return the same instance");
+        assertEquals("test", obj1.name);
+        assertEquals(42, obj1.value);
+        assertEquals(1, counter.get(), "Should initialize only once");
+    }
+
+    @Test
+    void testSequentialAccess() {
+        AtomicInteger initCount = new AtomicInteger(0);
+        LazyInitializedField<String> field = new LazyInitializedField<>(() -> {
+            initCount.incrementAndGet();
+            return "value";
+        });
+
+        // Multiple sequential accesses
+        for (int i = 0; i < 100; i++) {
+            assertEquals("value", field.get());
+        }
+
+        assertEquals(1, initCount.get(), "Should initialize only once despite many accesses");
+    }
+}
