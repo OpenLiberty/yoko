@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.rmi.impl;
 
+import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
@@ -33,35 +34,32 @@ abstract class TypeDescriptor extends ModelElement {
 
     final Class type;
 
-    private volatile String _repid = null;
+    private final LazyReference<String> _repid = new LazyReference<>(this::genRepId);
 
-    private volatile String packageName = null;    // the package name qualifier (if any)
+    private final LazyReference<String> packageName = new LazyReference<>(this::genPackageName);
     protected String genPackageName() {
         int idx = java_name.lastIndexOf('.');
         return ((idx < 0) ? "" : java_name.substring(0, idx));
     }
     public final String getPackageName() {
-        if (null == packageName) packageName = genPackageName();
-        return packageName;
+        return packageName.get();
     }
 
-    private volatile String typeName = null;       // the simple type name (minus package, if any)
+    private final LazyReference<String> typeName = new LazyReference<>(this::genTypeName);
     protected String genTypeName() {
         int idx = java_name.lastIndexOf('.');
         return ((idx < 0) ? java_name : java_name.substring(idx + 1));
     }
     public final String getTypeName() {
-        if (null == typeName) typeName = genTypeName();
-        return typeName;
+        return typeName.get();
     }
 
-    private volatile FullKey key = null;
+    private final LazyReference<FullKey> key = new LazyReference<>(this::genKey);
     private FullKey genKey() {
         return new FullKey(getRepositoryID(), type);
     }
     public final FullKey getKey() {
-        if (null == key) key = genKey();
-        return key;
+        return key.get();
     }
 
     public static class SimpleKey {
@@ -134,17 +132,15 @@ abstract class TypeDescriptor extends ModelElement {
         return String.format("RMI:%s:%016X", type.getName(), 0);
     }
     public final String getRepositoryID() {
-        if (_repid == null) _repid = genRepId();
-        return _repid;
+        return _repid.get();
     }
 
-    private volatile RemoteInterfaceDescriptor remoteInterface = null;
+    private final LazyReference<RemoteInterfaceDescriptor> remoteInterface = new LazyReference<>(this::genRemoteInterface);
     protected RemoteInterfaceDescriptor genRemoteInterface() {
         throw new UnsupportedOperationException("class " + type + " does not implement " + Remote.class.getName());
     }
     final RemoteInterfaceDescriptor getRemoteInterface() {
-        if (null == remoteInterface) remoteInterface = genRemoteInterface();
-        return remoteInterface;
+        return remoteInterface.get();
     }
 
 

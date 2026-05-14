@@ -17,16 +17,16 @@
  */
 package org.apache.yoko.rmi.impl;
 
-import org.apache.yoko.util.PrivilegedActions;
+import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
 
+import javax.rmi.PortableRemoteObject;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.rmi.Remote;
-import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -39,8 +39,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
-
-import javax.rmi.PortableRemoteObject;
 
 import static java.security.AccessController.doPrivileged;
 import static java.util.logging.Level.FINER;
@@ -66,18 +64,17 @@ abstract class RemoteDescriptor extends TypeDescriptor {
 
     private static final java.lang.Class REMOTE_EXCEPTION = java.rmi.RemoteException.class;
 
-    private volatile String[] ids;
+    private final LazyReference<String[]> ids = new LazyReference<>(this::genIds);
     private String[] genIds() {
         final SortedSet<Class<?>> allRemoteInterfaces = genAllRemoteInterfaces(type);
-        final List<String> ids = new ArrayList(allRemoteInterfaces.size());
+        final List<String> ids = new ArrayList<>(allRemoteInterfaces.size());
         for (Class<?> i: allRemoteInterfaces) {
             ids.add(repo.getDescriptor(i).getRepositoryID());
         }
         return ids.toArray(new String[ids.size()]);
     }
     public String[] all_interfaces() {
-        if (ids == null) ids = genIds();
-        return ids;
+        return ids.get();
     }
 
     public MethodDescriptor getMethod(String idl_name) {

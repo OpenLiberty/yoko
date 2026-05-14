@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.rmi.impl;
 
+import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.AttributeDescription;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.Initializer;
@@ -99,7 +100,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private boolean _is_rmi_stub;
 
-    private String _custom_repid;
+    private final LazyReference<String> _custom_repid = new LazyReference<>(this::genCustomRepId);
 
     private static final Set<? extends Class<? extends Serializable>> _immutable_value_classes = unmodifiableSet(new HashSet<>(asList(Integer.class,
             Character.class, Boolean.class, Byte.class, Long.class, Float.class, Double.class, Short.class)));
@@ -129,8 +130,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     public final String getCustomRepositoryID() {
-        if (_custom_repid == null) _custom_repid = genCustomRepId();
-        return _custom_repid;
+        return _custom_repid.get();
     }
 
     protected long getSerialVersionUID() {
