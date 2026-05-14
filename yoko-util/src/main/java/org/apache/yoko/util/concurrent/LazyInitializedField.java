@@ -52,6 +52,15 @@ public class LazyInitializedField<T> {
     }
 
     /**
+     * Exception thrown when a thread is interrupted while waiting for initialization.
+     */
+    public static class InitializationInterruptedException extends RuntimeException {
+        private InitializationInterruptedException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    /**
      * Marker interface for the getter function to enable instanceof checks.
      */
     private interface Getter<T> extends Supplier<T> {
@@ -70,7 +79,7 @@ public class LazyInitializedField<T> {
                 latch.await();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException("Interrupted while waiting for initialization", e);
+                throw new InitializationInterruptedException("Interrupted while waiting for initialization", e);
             }
             LOGGER.fine(() -> "Thread " + Thread.currentThread().getName() + " resuming after initialization");
             return functionPointer.get().get();
@@ -129,9 +138,14 @@ public class LazyInitializedField<T> {
      * will throw {@link InitializationException} wrapping the original cause. This
      * applies to both the initial call and all subsequent calls, without retrying
      * initialization.
+     * <p>
+     * If a thread is interrupted while waiting for initialization to complete by another
+     * thread, this method will throw {@link InitializationInterruptedException} wrapping
+     * the {@link InterruptedException}.
      *
      * @return the initialized value
      * @throws InitializationException iff initialization failed and retry is not allowed
+     * @throws InitializationInterruptedException if the thread is interrupted while waiting for initialization
      */
     public T get() {
         return functionPointer.get().get();
