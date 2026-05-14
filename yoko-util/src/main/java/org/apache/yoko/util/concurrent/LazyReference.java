@@ -219,7 +219,7 @@ public class LazyReference<T> {
                 LOGGER.warning(() -> "Thread " + Thread.currentThread().getName() + " failed initialization, setting permanent error state");
                 // Store the original cause and create new exception on each call for accurate stack traces
                 Getter<T> errorGetter = () -> {
-                    throw new InitializationException("Initialization failed and retry is not allowed", e);
+                    throw new InitializationException("Initialization failed (elsewhere) and retry is not allowed", e);
                 };
                 functionPointer.set(errorGetter);
                 throw new InitializationException("Initialization failed and retry is not allowed", e);
@@ -231,7 +231,7 @@ public class LazyReference<T> {
     }
 
     /**
-     * Checks if initialization has completed.
+     * Checks whether initialization has completed.
      * <p>
      * Returns {@code true} if initialization succeeded or failed with {@code allowRetry=false}
      * (permanent error state). Returns {@code false} if not yet attempted or failed with
