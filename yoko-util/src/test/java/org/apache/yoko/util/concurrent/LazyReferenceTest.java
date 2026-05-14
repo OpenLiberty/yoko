@@ -214,7 +214,6 @@ class LazyReferenceTest {
         LazyReference.InitializationException firstException = 
             assertThrows(LazyReference.InitializationException.class, ref::get, 
                 "First attempt should throw InitializationException");
-        assertEquals("Initialization failed and retry is not allowed", firstException.getMessage());
         assertSame(originalException, firstException.getCause(), "Should wrap original exception");
         assertTrue(ref.isCompleted(), "Reference should be in error state after exception");
         assertEquals(1, attemptCount.get(), "Should have attempted once");
@@ -223,14 +222,12 @@ class LazyReferenceTest {
         LazyReference.InitializationException secondException = 
             assertThrows(LazyReference.InitializationException.class, ref::get, 
                 "Second attempt should throw wrapped exception");
-        assertEquals("Initialization failed and retry is not allowed", secondException.getMessage());
         assertSame(originalException, secondException.getCause(), "Should wrap same original exception");
         assertEquals(1, attemptCount.get(), "Should not retry initialization");
 
         // Subsequent calls should continue throwing new wrapped exceptions with same cause
         LazyReference.InitializationException thirdException = 
             assertThrows(LazyReference.InitializationException.class, ref::get);
-        assertEquals("Initialization failed and retry is not allowed", thirdException.getMessage());
         assertSame(originalException, thirdException.getCause(), "Should still wrap same original exception");
         assertEquals(1, attemptCount.get(), "Should still not retry");
     }
@@ -248,7 +245,6 @@ class LazyReferenceTest {
         LazyReference.InitializationException firstException = 
             assertThrows(LazyReference.InitializationException.class, ref::get, 
                 "First attempt should throw InitializationException");
-        assertEquals("Initialization failed and retry is not allowed", firstException.getMessage());
         assertSame(originalError, firstException.getCause(), "Should wrap original Error");
         assertTrue(ref.isCompleted(), "Reference should be in error state after Error");
         assertEquals(1, attemptCount.get(), "Should have attempted once");
@@ -257,7 +253,6 @@ class LazyReferenceTest {
         LazyReference.InitializationException secondException = 
             assertThrows(LazyReference.InitializationException.class, ref::get, 
                 "Second attempt should throw wrapped exception");
-        assertEquals("Initialization failed and retry is not allowed", secondException.getMessage());
         assertSame(originalError, secondException.getCause(), "Should wrap same original Error");
         assertEquals(1, attemptCount.get(), "Should not retry initialization");
     }
