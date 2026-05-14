@@ -114,4 +114,18 @@ public final class CmsfThreadLocal {
         LOGGER.finer(() -> "CMSF thread local stack reset");
         cmsfInfo.remove();
     }
+
+    /**
+     * Returns the current stack depth for testing purposes only.
+     */
+    static int getStackDepth() {
+        final CmsfInfo info = cmsfInfo.get();
+        int depth = 0;
+        Frame current = info.head;
+        while (Frame.DEFAULT != current) {
+            depth++;
+            current = current.prev;
+        }
+        return depth;
+    }
 }

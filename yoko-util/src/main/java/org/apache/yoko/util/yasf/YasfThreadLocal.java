@@ -98,4 +98,21 @@ public final class YasfThreadLocal {
         LOGGER.finer(() -> "YASF thread local stack reset");
         yasfInfo.remove();
     }
+
+    /**
+     * Returns the current stack depth for testing purposes only.
+     * This method is package-private and should not be used in production code.
+     *
+     * @return the number of frames currently on the stack (0 means empty/clean state)
+     */
+    static int getStackDepth() {
+        final YasfInfo info = yasfInfo.get();
+        int depth = 0;
+        Frame current = info.head;
+        while (current != Frame.DEFAULT) {
+            depth++;
+            current = current.prev;
+        }
+        return depth;
+    }
 }
