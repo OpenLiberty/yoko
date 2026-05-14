@@ -61,6 +61,16 @@ public class LazyReference<T> {
     }
 
     /**
+     * Exception thrown when recursive initialization is detected.
+     */
+    public static class RecursiveInitializationException extends IllegalStateException {
+        private RecursiveInitializationException(String threadName) {
+            super("Recursive initialization detected: Thread " + threadName + 
+                  " attempted to call get() while already initializing");
+        }
+    }
+
+    /**
      * Marker interface for the getter function to enable instanceof checks.
      */
     private interface Getter<T> extends Supplier<T> {
@@ -71,17 +81,24 @@ public class LazyReference<T> {
      */
     private class Waiter implements Supplier<T> {
         public final CountDownLatch latch = new CountDownLatch(1);
+        private final Thread initializingThread = Thread.currentThread();
 
         @Override
         public T get() {
-            LOGGER.fine(() -> "Thread " + Thread.currentThread().getName() + " waiting for initialization");
+            final Thread currentThread = Thread.currentThread();
+            // Detect recursive call from the initializing thread
+            if (initializingThread == currentThread) {
+                throw new RecursiveInitializationException(currentThread.getName());
+            }
+            
+            LOGGER.fine(() -> "Thread " + currentThread.getName() + " waiting for initialization");
             try {
                 latch.await();
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                currentThread.interrupt();
                 throw new InitializationInterruptedException("Interrupted while waiting for initialization", e);
             }
-            LOGGER.fine(() -> "Thread " + Thread.currentThread().getName() + " resuming after initialization");
+            LOGGER.fine(() -> "Thread " + currentThread.getName() + " resuming after initialization");
             return functionPointer.get().get();
         }
     }
@@ -142,10 +159,16 @@ public class LazyReference<T> {
      * If a thread is interrupted while waiting for initialization to complete by another
      * thread, this method will throw {@link InitializationInterruptedException} wrapping
      * the {@link InterruptedException}.
+     * <p>
+     * If the initializer recursively calls {@code get()} on the same {@code LazyReference}
+     * instance, this method will throw {@link IllegalStateException} wrapping a
+     * {@link RecursiveInitializationException}. This prevents deadlock where the initializing
+     * thread would wait for itself to complete initialization.
      *
      * @return the initialized value
      * @throws InitializationException iff initialization failed and retry is not allowed
      * @throws InitializationInterruptedException if the thread is interrupted while waiting for initialization
+     * @throws IllegalStateException if recursive initialization is detected
      */
     public T get() {
         return functionPointer.get().get();
@@ -210,6 +233,15 @@ public class LazyReference<T> {
 
             LOGGER.fine(() -> "Thread " + Thread.currentThread().getName() + " completed initialization");
             return result;
+        } catch (RecursiveInitializationException e) {
+            // Recursive initialization is a programming error - set permanent error state
+            LOGGER.warning(() -> "Thread " + Thread.currentThread().getName() + " detected recursive initialization");
+            // Wrap in IllegalStateException to capture each caller's stack trace
+            Getter<T> errorGetter = () -> {
+                throw new IllegalStateException("Initialization failed (elsewhere) due to recursive call", e);
+            };
+            functionPointer.set(errorGetter);
+            throw new IllegalStateException("Initialization failed due to recursive call", e);
         } catch (Throwable e) {
             if (allowRetry) {
                 LOGGER.warning(() -> "Thread " + Thread.currentThread().getName() + " failed initialization, resetting for retry");

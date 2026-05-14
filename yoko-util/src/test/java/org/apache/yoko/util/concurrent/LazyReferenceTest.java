@@ -332,4 +332,37 @@ class LazyReferenceTest {
 
         assertEquals(1, initCount.get(), "Should initialize only once despite many accesses");
     }
+
+    @Test
+    void testRecursiveInitializationDetection() {
+        // Use array to work around Java's effectively final requirement
+        LazyReference<String>[] refHolder = new LazyReference[1];
+        
+        // Create a LazyReference that tries to call get() during initialization
+        refHolder[0] = new LazyReference<>(() -> {
+            // This should throw IllegalStateException due to recursive call
+            return refHolder[0].get();
+        });
+
+        IllegalStateException exception = assertThrows(
+            IllegalStateException.class,
+            refHolder[0]::get,
+            "Should detect recursive initialization"
+        );
+        
+        assertEquals("Initialization failed due to recursive call", exception.getMessage(),
+            "Exception message should indicate recursive initialization failure");
+        
+        assertNotNull(exception.getCause(), "Should have a cause");
+        assertTrue(exception.getCause() instanceof LazyReference.RecursiveInitializationException,
+            "Cause should be RecursiveInitializationException");
+        assertTrue(
+            exception.getCause().getMessage().contains("Recursive initialization detected"),
+            "Cause message should indicate recursive initialization"
+        );
+        assertTrue(
+            exception.getCause().getMessage().contains(Thread.currentThread().getName()),
+            "Cause message should include thread name"
+        );
+    }
 }
