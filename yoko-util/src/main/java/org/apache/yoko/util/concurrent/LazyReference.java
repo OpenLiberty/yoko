@@ -25,7 +25,7 @@ import java.util.logging.Logger;
 import static java.util.Objects.requireNonNull;
 
 /**
- * A thread-safe lazily initialized field using atomic function pointer swapping.
+ * A thread-safe lazy reference using atomic function pointer swapping.
  * <p>
  * This implementation uses a sophisticated lock-free pattern where:
  * <ol>
@@ -39,8 +39,8 @@ import static java.util.Objects.requireNonNull;
  *
  * @param <T> the type of the lazily initialized value
  */
-public class LazyInitializedField<T> {
-    private static final Logger LOGGER = Logger.getLogger(LazyInitializedField.class.getName());
+public class LazyReference<T> {
+    private static final Logger LOGGER = Logger.getLogger(LazyReference.class.getName());
 
     /**
      * Exception thrown when lazy initialization fails and retry is not allowed.
@@ -108,21 +108,21 @@ public class LazyInitializedField<T> {
     private final Supplier<T> initializationFunctionRef = this::initializationFunction;
 
     /**
-     * Creates a new lazily initialized field with retry disabled.
+     * Creates a new lazy reference with retry disabled.
      *
      * @param initializer the supplier that will compute the value on first access
      */
-    public LazyInitializedField(Supplier<T> initializer) {
+    public LazyReference(Supplier<T> initializer) {
         this(initializer, false);
     }
 
     /**
-     * Creates a new lazily initialized field.
+     * Creates a new lazy reference.
      *
      * @param initializer the supplier that will compute the value on first access
      * @param allowRetry whether to allow retry on initialization failure
      */
-    public LazyInitializedField(Supplier<T> initializer, boolean allowRetry) {
+    public LazyReference(Supplier<T> initializer, boolean allowRetry) {
         this.initializer = requireNonNull(initializer, "initializer must not be null");
         this.allowRetry = allowRetry;
         this.functionPointer = new AtomicReference<>(initializationFunctionRef);
