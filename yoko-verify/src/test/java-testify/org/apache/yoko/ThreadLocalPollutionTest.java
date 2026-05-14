@@ -198,8 +198,9 @@ class ThreadLocalPollutionTestWithUncheckedException extends ThreadLocalPollutio
 
     ThreadLocalPollutionTestWithUncheckedException() {
         super(buildExpectations()
-                .ifConfiguredToThrowOn(NEVER, SEND_POLL, RECEIVE_REPLY, RECEIVE_OTHER).expect(UncheckedException.class)
-                .ifConfiguredToThrowOn(SEND_REQUEST, RECEIVE_EXCEPTION).expect(InterceptorException.class));
+                // Note: RECEIVE_EXCEPTION does throw, but the InterceptorException is suppressed
+                .ifConfiguredToThrowOn(NEVER, SEND_POLL, RECEIVE_REPLY, RECEIVE_EXCEPTION, RECEIVE_OTHER).expect(UncheckedException.class)
+                .ifConfiguredToThrowOn(SEND_REQUEST).expect(InterceptorException.class));
     }
 }
 
