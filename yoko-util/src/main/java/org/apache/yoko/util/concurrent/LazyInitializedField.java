@@ -117,6 +117,12 @@ public class LazyInitializedField<T> {
     private T initializationFunction() {
         LOGGER.fine(() -> "Thread " + Thread.currentThread().getName() + " attempting to initialize");
 
+        // Check if we're still in initialization state before allocating Waiter
+        if (functionPointer.get() != initializationFunctionRef) {
+            LOGGER.fine(() -> "Thread " + Thread.currentThread().getName() + " detected initialization already in progress, reinvoking");
+            return functionPointer.get().get();
+        }
+
         Waiter waiter = new Waiter();
 
         boolean swapSucceeded = functionPointer.compareAndSet(
