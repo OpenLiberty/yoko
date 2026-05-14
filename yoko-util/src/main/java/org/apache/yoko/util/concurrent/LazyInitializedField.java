@@ -43,6 +43,15 @@ public class LazyInitializedField<T> {
     private static final Logger LOGGER = Logger.getLogger(LazyInitializedField.class.getName());
 
     /**
+     * Exception thrown when lazy initialization fails and retry is not allowed.
+     */
+    public static class InitializationException extends RuntimeException {
+        private InitializationException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    /**
      * Marker interface for the getter function to enable instanceof checks.
      */
     private interface Getter<T> extends Supplier<T> {
@@ -80,17 +89,33 @@ public class LazyInitializedField<T> {
     private final Supplier<T> initializer;
 
     /**
+     * Whether to allow retry on initialization failure.
+     */
+    private final boolean allowRetry;
+
+    /**
      * Reference to the initialization function for use in CAS operation.
      */
     private final Supplier<T> initializationFunctionRef = this::initializationFunction;
 
     /**
-     * Creates a new lazily initialized field.
+     * Creates a new lazily initialized field with retry disabled.
      *
      * @param initializer the supplier that will compute the value on first access
      */
     public LazyInitializedField(Supplier<T> initializer) {
+        this(initializer, false);
+    }
+
+    /**
+     * Creates a new lazily initialized field.
+     *
+     * @param initializer the supplier that will compute the value on first access
+     * @param allowRetry whether to allow retry on initialization failure
+     */
+    public LazyInitializedField(Supplier<T> initializer, boolean allowRetry) {
         this.initializer = requireNonNull(initializer, "initializer must not be null");
+        this.allowRetry = allowRetry;
         this.functionPointer = new AtomicReference<>(initializationFunctionRef);
     }
 
@@ -99,8 +124,14 @@ public class LazyInitializedField<T> {
      * <p>
      * This method is thread-safe and ensures that initialization happens exactly once,
      * even under concurrent access.
+     * <p>
+     * If initialization fails and {@code allowRetry} is {@code false}, this method
+     * will throw {@link InitializationException} wrapping the original cause. This
+     * applies to both the initial call and all subsequent calls, without retrying
+     * initialization.
      *
      * @return the initialized value
+     * @throws InitializationException iff initialization failed and retry is not allowed
      */
     public T get() {
         return functionPointer.get().get();
@@ -166,9 +197,19 @@ public class LazyInitializedField<T> {
             LOGGER.fine(() -> "Thread " + Thread.currentThread().getName() + " completed initialization");
             return result;
         } catch (Throwable e) {
-            LOGGER.warning(() -> "Thread " + Thread.currentThread().getName() + " failed initialization, resetting for retry");
-            functionPointer.set(initializationFunctionRef);
-            throw e;
+            if (allowRetry) {
+                LOGGER.warning(() -> "Thread " + Thread.currentThread().getName() + " failed initialization, resetting for retry");
+                functionPointer.set(initializationFunctionRef);
+                throw e;
+            } else {
+                LOGGER.warning(() -> "Thread " + Thread.currentThread().getName() + " failed initialization, setting permanent error state");
+                // Store the original cause and create new exception on each call for accurate stack traces
+                Getter<T> errorGetter = () -> {
+                    throw new InitializationException("Initialization failed and retry is not allowed", e);
+                };
+                functionPointer.set(errorGetter);
+                throw new InitializationException("Initialization failed and retry is not allowed", e);
+            }
         } finally {
             waiter.latch.countDown();
             LOGGER.fine(() -> "Thread " + Thread.currentThread().getName() + " released initialization latch");
@@ -176,11 +217,15 @@ public class LazyInitializedField<T> {
     }
 
     /**
-     * Checks if the field has been initialized.
+     * Checks if initialization has completed.
+     * <p>
+     * Returns {@code true} if initialization succeeded or failed with {@code allowRetry=false}
+     * (permanent error state). Returns {@code false} if not yet attempted or failed with
+     * {@code allowRetry=true} (retry allowed).
      *
-     * @return true if initialization has completed, false otherwise
+     * @return true if initialization completed (success or permanent error), false otherwise
      */
-    public boolean isInitialized() {
+    public boolean isCompleted() {
         return functionPointer.get() instanceof Getter;
     }
 }

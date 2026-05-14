@@ -48,12 +48,12 @@ class LazyInitializedFieldTest {
             return "initialized";
         });
 
-        assertFalse(field.isInitialized(), "Field should not be initialized initially");
+        assertFalse(field.isCompleted(), "Field should not be initialized initially");
 
         String value = field.get();
         assertEquals("initialized", value, "Should return initialized value");
         assertEquals(1, initCount.get(), "Initializer should be called exactly once");
-        assertTrue(field.isInitialized(), "Field should be initialized after first get");
+        assertTrue(field.isCompleted(), "Field should be initialized after first get");
 
         // Second call should return cached value without re-initialization
         String value2 = field.get();
@@ -184,21 +184,82 @@ class LazyInitializedFieldTest {
                 throw new RuntimeException("First attempt failed");
             }
             return "success-" + attempt;
-        });
+        }, true); // Enable retry
 
         // First attempt should fail
         assertThrows(RuntimeException.class, field::get, "First attempt should throw exception");
-        assertFalse(field.isInitialized(), "Field should not be initialized after exception");
+        assertFalse(field.isCompleted(), "Field should not be initialized after exception");
 
         // Second attempt should succeed
         String value = field.get();
         assertEquals("success-2", value, "Second attempt should succeed");
-        assertTrue(field.isInitialized(), "Field should be initialized after successful retry");
+        assertTrue(field.isCompleted(), "Field should be initialized after successful retry");
         assertEquals(2, attemptCount.get(), "Should have attempted twice");
 
         // Subsequent calls should return cached value
         assertEquals("success-2", field.get(), "Should return cached value");
         assertEquals(2, attemptCount.get(), "Should not retry after success");
+    }
+
+    @Test
+    void testInitializationWithExceptionNoRetry() {
+        AtomicInteger attemptCount = new AtomicInteger(0);
+        RuntimeException originalException = new RuntimeException("Initialization failed");
+        LazyInitializedField<String> field = new LazyInitializedField<>(() -> {
+            attemptCount.incrementAndGet();
+            throw originalException;
+        }, false); // Disable retry (default behavior)
+
+        // First attempt should fail with wrapped exception
+        LazyInitializedField.InitializationException firstException = 
+            assertThrows(LazyInitializedField.InitializationException.class, field::get, 
+                "First attempt should throw InitializationException");
+        assertEquals("Initialization failed and retry is not allowed", firstException.getMessage());
+        assertSame(originalException, firstException.getCause(), "Should wrap original exception");
+        assertTrue(field.isCompleted(), "Field should be in error state after exception");
+        assertEquals(1, attemptCount.get(), "Should have attempted once");
+
+        // Second attempt should throw new wrapped exception with same cause, without retrying
+        LazyInitializedField.InitializationException secondException = 
+            assertThrows(LazyInitializedField.InitializationException.class, field::get, 
+                "Second attempt should throw wrapped exception");
+        assertEquals("Initialization failed and retry is not allowed", secondException.getMessage());
+        assertSame(originalException, secondException.getCause(), "Should wrap same original exception");
+        assertEquals(1, attemptCount.get(), "Should not retry initialization");
+
+        // Subsequent calls should continue throwing new wrapped exceptions with same cause
+        LazyInitializedField.InitializationException thirdException = 
+            assertThrows(LazyInitializedField.InitializationException.class, field::get);
+        assertEquals("Initialization failed and retry is not allowed", thirdException.getMessage());
+        assertSame(originalException, thirdException.getCause(), "Should still wrap same original exception");
+        assertEquals(1, attemptCount.get(), "Should still not retry");
+    }
+
+    @Test
+    void testInitializationWithErrorNoRetry() {
+        AtomicInteger attemptCount = new AtomicInteger(0);
+        OutOfMemoryError originalError = new OutOfMemoryError("Simulated OOM");
+        LazyInitializedField<String> field = new LazyInitializedField<>(() -> {
+            attemptCount.incrementAndGet();
+            throw originalError;
+        }, false); // Disable retry
+
+        // First attempt should fail with wrapped exception (even for Error)
+        LazyInitializedField.InitializationException firstException = 
+            assertThrows(LazyInitializedField.InitializationException.class, field::get, 
+                "First attempt should throw InitializationException");
+        assertEquals("Initialization failed and retry is not allowed", firstException.getMessage());
+        assertSame(originalError, firstException.getCause(), "Should wrap original Error");
+        assertTrue(field.isCompleted(), "Field should be in error state after Error");
+        assertEquals(1, attemptCount.get(), "Should have attempted once");
+
+        // Second attempt should throw new wrapped exception with same cause, without retrying
+        LazyInitializedField.InitializationException secondException = 
+            assertThrows(LazyInitializedField.InitializationException.class, field::get, 
+                "Second attempt should throw wrapped exception");
+        assertEquals("Initialization failed and retry is not allowed", secondException.getMessage());
+        assertSame(originalError, secondException.getCause(), "Should wrap same original Error");
+        assertEquals(1, attemptCount.get(), "Should not retry initialization");
     }
 
     @Test
@@ -211,11 +272,11 @@ class LazyInitializedFieldTest {
 
         LazyInitializedField<String> field1 = new LazyInitializedField<>(supplier);
         assertEquals("initialized-1", field1.get());
-        assertTrue(field1.isInitialized());
+        assertTrue(field1.isCompleted());
 
         LazyInitializedField<String> field2 = new LazyInitializedField<>(supplier);
         assertEquals("initialized-2", field2.get());
-        assertTrue(field2.isInitialized());
+        assertTrue(field2.isCompleted());
 
         // Verify each field maintains its own value
         assertEquals("initialized-1", field1.get());
@@ -228,7 +289,7 @@ class LazyInitializedFieldTest {
         LazyInitializedField<String> field = new LazyInitializedField<>(() -> null);
 
         assertNull(field.get(), "Should support null values");
-        assertTrue(field.isInitialized(), "Field should be initialized even with null value");
+        assertTrue(field.isCompleted(), "Field should be initialized even with null value");
 
         // Second call should still return null without re-initialization
         assertNull(field.get(), "Should return null on subsequent calls");
