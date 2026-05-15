@@ -57,6 +57,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -76,17 +77,17 @@ class ValueDescriptor extends TypeDescriptor {
 
     private boolean _is_serializable;
 
-    private Method _write_replace_method;
+    private Optional<Method> _write_replace_method;
 
-    private Method _read_resolve_method;
+    private Optional<Method> _read_resolve_method;
 
-    private Constructor _constructor;
+    private Optional<Constructor> _constructor;
 
-    private Method _write_object_method;
+    private Optional<Method> _write_object_method;
 
-    private Method _read_object_method;
+    private Optional<Method> _read_object_method;
 
-    private Field _serial_version_uid_field;
+    private Optional<Field> _serial_version_uid_field;
 
     protected ValueDescriptor _super_descriptor;
 
@@ -136,10 +137,9 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     protected long getSerialVersionUID() {
-        if (_serial_version_uid_field != null) {
-
+        if (_serial_version_uid_field.isPresent()) {
             try {
-                return _serial_version_uid_field.getLong(null);
+                return _serial_version_uid_field.get().getLong(null);
             } catch (IllegalAccessException ex) {
                 // skip //
             }
@@ -208,82 +208,81 @@ class ValueDescriptor extends TypeDescriptor {
             _read_object_method = findReadObjectMethod();
             _write_object_method = findWriteObjectMethod();
             _serial_version_uid_field = findSerialVersionUIDField();
-            ObjectStreamField[] serialPersistentFields = findSerialPersistentFields();
             _constructor = findConstructor();
-            _fields = buildFieldDescriptors(serialPersistentFields);
+            _fields = buildFieldDescriptors();
             _hash_code = computeHashCode();
             return null;
         });
     }
 
-    private Method findWriteReplaceMethod() {
+    private Optional<Method> findWriteReplaceMethod() {
         for (Class<?> curr = type; curr != null; curr = curr.getSuperclass()) {
             try {
                 Method method = curr.getDeclaredMethod("writeReplace");
                 method.setAccessible(true);
-                return method;
+                return Optional.of(method);
             } catch (NoSuchMethodException ignored) {
             }
         }
-        return null;
+        return Optional.empty();
     }
 
-    private Method findReadResolveMethod() {
+    private Optional<Method> findReadResolveMethod() {
         try {
             Method method = type.getDeclaredMethod("readResolve");
             method.setAccessible(true);
-            return method;
+            return Optional.of(method);
         } catch (NoSuchMethodException ignored) {
-            return null;
         }
+        return Optional.empty();
     }
 
-    private Method findReadObjectMethod() {
+    private Optional<Method> findReadObjectMethod() {
         try {
             Method method = type.getDeclaredMethod("readObject", ObjectInputStream.class);
-            method.setAccessible(true);
             
             // Validate the method
             int modifiers = method.getModifiers();
             if (!Modifier.isPrivate(modifiers) || Modifier.isStatic(modifiers)) {
-                return null;
+                return Optional.empty();
             }
             
-            return method;
+            method.setAccessible(true);
+            return Optional.of(method);
         } catch (NoSuchMethodException ignored) {
-            return null;
         }
+        return Optional.empty();
     }
 
-    private Method findWriteObjectMethod() {
+    private Optional<Method> findWriteObjectMethod() {
         try {
             Method method = type.getDeclaredMethod("writeObject", ObjectOutputStream.class);
-            method.setAccessible(true);
             
             // Validate the method
             int modifiers = method.getModifiers();
             if (!Modifier.isPrivate(modifiers) 
                     || Modifier.isStatic(modifiers) 
                     || method.getDeclaringClass() != type) {
-                return null;
+                return Optional.empty();
             }
             
-            return method;
+            method.setAccessible(true);
+            return Optional.of(method);
         } catch (NoSuchMethodException ignored) {
-            return null;
         }
+        return Optional.empty();
     }
 
-    private Field findSerialVersionUIDField() {
+    private Optional<Field> findSerialVersionUIDField() {
         try {
             Field field = type.getDeclaredField("serialVersionUID");
             if (Modifier.isStatic(field.getModifiers())) {
                 field.setAccessible(true);
-                return field;
+                return Optional.of(field);
             }
         } catch (NoSuchFieldException ignored) {
         }
-        return null;
+        return Optional.empty();
     }
 
     private ObjectStreamField[] findSerialPersistentFields() {
@@ -292,45 +291,45 @@ class ValueDescriptor extends TypeDescriptor {
             field.setAccessible(true);
             return (ObjectStreamField[]) field.get(null);
         } catch (IllegalAccessException | NoSuchFieldException ignored) {
-            return null;
         }
+        return null;
     }
 
-    private Constructor<?> findConstructor() {
+    private Optional<Constructor> findConstructor() {
         if (_is_externalizable) {
             return findExternalizableConstructor();
         } else if (_is_serializable && !type.isInterface()) {
             return findSerializableConstructor();
         }
-        return null;
+        return Optional.empty();
     }
 
-    private Constructor<?> findExternalizableConstructor() {
+    private Optional<Constructor> findExternalizableConstructor() {
         try {
             Constructor<?> constructor = type.getDeclaredConstructor();
             constructor.setAccessible(true);
-            return constructor;
+            return Optional.of(constructor);
         } catch (NoSuchMethodException ex) {
             MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName() 
                     + " is not properly externalizable. It has no default constructor.");
-            return null;
+            return Optional.empty();
         }
     }
 
-    private Constructor<?> findSerializableConstructor() {
+    private Optional<Constructor> findSerializableConstructor() {
         Class<?> initClass = getFirstNonSerializableSuperclass();
 
         if (initClass == null) {
             MARSHAL_LOG.warning(() -> "Class " + type.getName() 
                     + " is not properly serializable. It has no non-serializable super-class");
-            return null;
+            return Optional.empty();
         }
 
         try {
             Constructor<?> initConstructor = initClass.getDeclaredConstructor();
 
             if (!isConstructorAccessible(initConstructor, initClass)) {
-                return null;
+                return Optional.empty();
             }
 
             Constructor<?> constructor = ReflectionFactory.getReflectionFactory()
@@ -338,11 +337,11 @@ class ValueDescriptor extends TypeDescriptor {
 
             if (constructor == null) {
                 MARSHAL_LOG.warning(() -> "Unable to get constructor for serialization for class " + java_name);
-                return null;
+                return Optional.empty();
             }
             
             constructor.setAccessible(true);
-            return constructor;
+            return Optional.of(constructor);
 
         } catch (NoSuchMethodException ex) {
             MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName() 
@@ -368,7 +367,8 @@ class ValueDescriptor extends TypeDescriptor {
         return true;
     }
 
-    private FieldDescriptor[] buildFieldDescriptors(ObjectStreamField[] serialPersistentFields) {
+    private FieldDescriptor[] buildFieldDescriptors() {
+        ObjectStreamField[] serialPersistentFields = findSerialPersistentFields();
         if (serialPersistentFields == null) {
             return buildFieldDescriptorsFromDeclaredFields();
         } else {
@@ -457,7 +457,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     public boolean isCustomMarshalled() {
-        return (_is_externalizable || (_write_object_method != null));
+        return (_is_externalizable || _write_object_method.isPresent());
     }
 
     public boolean isChunked() {
@@ -466,43 +466,31 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     public Serializable writeReplace(Serializable val) {
-        if (_write_replace_method != null) {
+        return _write_replace_method.map(method -> {
             try {
-                return (Serializable) _write_replace_method.invoke(val);
-
+                return (Serializable) method.invoke(val);
             } catch (IllegalAccessException ex) {
-                throw (MARSHAL) new MARSHAL("cannot call " + _write_replace_method).initCause(ex);
-
+                throw (MARSHAL) new MARSHAL("cannot call " + method).initCause(ex);
             } catch (IllegalArgumentException ex) {
                 throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-
             } catch (InvocationTargetException ex) {
                 throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
             }
-
-        }
-
-        return val;
+        }).orElse(val);
     }
 
     public Serializable readResolve(Serializable val) {
-        if (_read_resolve_method != null) {
+        return _read_resolve_method.map(method -> {
             try {
-                return (Serializable) _read_resolve_method.invoke(val);
-
+                return (Serializable) method.invoke(val);
             } catch (IllegalAccessException ex) {
-                throw (MARSHAL) new MARSHAL("cannot call " + _read_resolve_method).initCause(ex);
-
+                throw (MARSHAL) new MARSHAL("cannot call " + method).initCause(ex);
             } catch (IllegalArgumentException ex) {
                 throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-
             } catch (InvocationTargetException ex) {
                 throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
             }
-
-        }
-
-        return val;
+        }).orElse(val);
     }
 
     public void writeValue(final OutputStream out, final Serializable value) {
@@ -546,10 +534,10 @@ class ValueDescriptor extends TypeDescriptor {
             _super_descriptor.writeValue(writer, val);
         }
 
-        if (_write_object_method != null) {
+        if (_write_object_method.isPresent()) {
 
             try {
-                writer.invokeWriteObject(this, val, _write_object_method);
+                writer.invokeWriteObject(this, val, _write_object_method.get());
             } catch (IllegalAccessException | IllegalArgumentException ex) {
                 throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
             } catch (InvocationTargetException ex) {
@@ -563,13 +551,13 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Serializable createBlankInstance() {
-        if (_constructor != null) {
-
+        if (_constructor.isPresent()) {
+            Constructor constructor = _constructor.get();
             try {
-                return (Serializable) _constructor.newInstance();
+                return (Serializable) constructor.newInstance();
 
             } catch (IllegalAccessException ex) {
-                throw (MARSHAL) new MARSHAL("cannot call " + _constructor).initCause(ex);
+                throw (MARSHAL) new MARSHAL("cannot call " + constructor).initCause(ex);
 
             } catch (IllegalArgumentException | InstantiationException ex) {
                 throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
@@ -579,7 +567,7 @@ class ValueDescriptor extends TypeDescriptor {
 
             } catch (NullPointerException ex) {
                 MARSHAL_IN_LOG.log(WARNING, ex, () -> "unable to create instance of " + type.getName());
-                MARSHAL_IN_LOG.warning(() -> "constructor => " + _constructor);
+                MARSHAL_IN_LOG.warning(() -> "constructor => " + constructor);
 
                 throw ex;
             }
@@ -657,7 +645,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     }
 
-    protected void defaultReadValue(ObjectReader reader, Serializable value) throws IOException {
+    void defaultReadValue(ObjectReader reader, Serializable value) throws IOException {
         if (null == _fields) return;
 
         MARSHAL_IN_LOG.fine(() -> "reading fields for " + type.getName());
@@ -730,7 +718,7 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         // check whether the class (not its ancestors) does any custom marshalling
-        if (_write_object_method != null) {
+        if (_write_object_method.isPresent()) {
             // read custom marshalling value header
             byte cmsfVersion = reader.readByte(); // custom marshal stream format version
             boolean dwoCalled = reader.readBoolean(); // was defaultWriteObject() called?
@@ -739,7 +727,7 @@ class ValueDescriptor extends TypeDescriptor {
             if (cmsfVersion == 2) {
                 // use a wrapped reader to open the secondary custom valuetype
                 ObjectReader wrapper = CustomMarshaledObjectReader.wrap(reader);
-                readSerializable(_read_object_method == null ? reader : wrapper, value);
+                readSerializable(_read_object_method.isPresent() ? wrapper : reader, value);
                 // invoke close to skip to the end of the secondary custom valuetype
                 wrapper.close();
                 return;
@@ -751,18 +739,17 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private void readSerializable(ObjectReader reader, Serializable value) throws IOException {
-        if (_read_object_method != null) {
+        if (_read_object_method.isPresent()) {
+            Method method = _read_object_method.get();
             try {
                 reader.setCurrentValueDescriptor(this);
-                _read_object_method.invoke(value, reader);
+                method.invoke(value, reader);
                 reader.setCurrentValueDescriptor(null);
-
             } catch (IllegalAccessException | IllegalArgumentException ex) {
                 throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
             } catch (InvocationTargetException ex) {
                 throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
             }
-
         } else {
             defaultReadValue(reader, value);
         }
@@ -792,10 +779,7 @@ class ValueDescriptor extends TypeDescriptor {
                 out.writeLong(desc.getHashCode());
             }
 
-            if (_write_object_method == null)
-                out.writeInt(1);
-            else
-                out.writeInt(2);
+            out.writeInt(_write_object_method.isPresent() ? 2 : 1);
 
             FieldDescriptor[] fds = new FieldDescriptor[_fields.length];
             System.arraycopy(_fields, 0, fds, 0, _fields.length);
