@@ -368,7 +368,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private FieldDescriptor[] buildFieldDescriptors() {
-        ObjectStreamField[] serialPersistentFields = findSerialPersistentFields();
+        ObjectStreamField[] serialPersistentFields = isEnum() ? null : findSerialPersistentFields();
         if (serialPersistentFields == null) {
             return buildFieldDescriptorsFromDeclaredFields();
         } else {
