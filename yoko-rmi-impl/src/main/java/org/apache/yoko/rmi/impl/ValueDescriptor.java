@@ -821,23 +821,17 @@ class ValueDescriptor extends TypeDescriptor {
         return _hash_code;
     }
 
-    private volatile ValueMember[] valueMembers = null;
+    private final LazyReference<ValueMember[]> valueMembers = new LazyReference<>(this::genValueMembers);
+    
     protected ValueMember[] genValueMembers() {
-        final ValueMember[] members = new ValueMember[_fields.length];
-        for (int i = 0; i < _fields.length; i++) {
-            members[i] = _fields[i].getValueMember(repo);
-        }
-
-        return members;
+        return Arrays.stream(_fields)
+                .map(field -> field.getValueMember(repo))
+                .toArray(ValueMember[]::new);
     }
+    
     final ValueMember[] getValueMembers() {
         getTypeCode(); // ensure recursion through typecode
-        if (null == valueMembers) {
-            synchronized (repo) {
-                if (null == valueMembers) valueMembers = genValueMembers();
-            }
-        }
-        return valueMembers;
+        return valueMembers.get();
     }
 
     @Override
