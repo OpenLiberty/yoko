@@ -39,6 +39,7 @@ public enum Yasf {
     ENUM_FIXED(0),
     NON_SERIALIZABLE_FIELD_IS_ABSTRACT_VALUE(1),
     WRITE_UTF8_AS_UTF8(2),
+    FVD_SKIP_FIELDS_FIXED(3),
     ;
     // TODO - Get the OMG to assign this value to Yoko
     public static final int TAG_YOKO_AUXILIARY_STREAM_FORMAT = 0xeeeeeeee;

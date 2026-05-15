@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 package org.apache.yoko.rmi.impl;
+
+import org.apache.yoko.util.concurrent.LazyReference;
 
 abstract class ModelElement {
     final TypeRepository repo;
@@ -36,10 +38,9 @@ abstract class ModelElement {
 
     protected void init() { }
 
-    private volatile String idlName = null;   // fully resolved package name
+    private final LazyReference<String> idlName = new LazyReference<>(this::genIDLName);
     protected abstract String genIDLName();
     public final String getIDLName() {
-        if (null == idlName) idlName = genIDLName();
-        return idlName;
+        return idlName.get();
     }
 }

@@ -55,7 +55,7 @@ import static testify.iiop.annotation.ConfigureOrb.NameService.READ_WRITE;
 
 @ConfigureServer(serverOrb = @ConfigureOrb(nameService = READ_WRITE))
 @TraceTestify
-@Logging(value = "yoko.verbose.data", level = FINEST)
+@Logging(value = "yoko.verbose.giop", level = FINEST)
 @TestInstance(Lifecycle.PER_CLASS) // this allows @BeforeAll on an instance method
 public class FullValueDescriptorTest {
     static final Loader CLIENT_LOADER = Loader.V1;
