@@ -84,4 +84,21 @@ public final class RoflThreadLocal {
         LOGGER.finer(() -> "ROFL thread local stack reset");
         threadLocalStack.remove();
     }
+
+    /**
+     * Returns the current stack depth for testing purposes only.
+     * This method is package-private and should not be used in production code.
+     *
+     * @return the number of frames currently on the stack (0 means empty/clean state)
+     */
+    static int getStackDepth() {
+        final Stack info = threadLocalStack.get();
+        int depth = 0;
+        Frame current = info.head;
+        while (current != Frame.DEFAULT) {
+            depth++;
+            current = current.prev;
+        }
+        return depth;
+    }
 }
