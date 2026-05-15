@@ -52,12 +52,10 @@ import java.rmi.Remote;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.PrivilegedAction;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -122,7 +120,11 @@ class ValueDescriptor extends TypeDescriptor {
 
     @Override
     protected String genRepId() {
-        return String.format("RMI:%s:%016X:%016X", convertToValidIDLNames(type.getName()), _hash_code, getSerialVersionUID());
+        return genRepId(_hash_code);
+    }
+
+    final String genRepId(long hashCode) {
+        return String.format("RMI:%s:%016X:%016X", convertToValidIDLNames(type.getName()), hashCode, getSerialVersionUID());
     }
 
     private String genCustomRepId() {
@@ -200,162 +202,226 @@ class ValueDescriptor extends TypeDescriptor {
 
         }
 
-        doPrivileged(new PrivilegedAction<Object>() {
-            public Object run() {
+        doPrivileged((PrivilegedAction<Object>) () -> {
+            _write_replace_method = findWriteReplaceMethod();
+            _read_resolve_method = findReadResolveMethod();
+            _read_object_method = findReadObjectMethod();
+            _write_object_method = findWriteObjectMethod();
+            _serial_version_uid_field = findSerialVersionUIDField();
+            ObjectStreamField[] serialPersistentFields = findSerialPersistentFields();
+            _constructor = findConstructor();
+            _fields = buildFieldDescriptors(serialPersistentFields);
+            _hash_code = computeHashCode();
+            return null;
+        });
+    }
 
-                for (Class<?> curr = type; curr != null; curr = curr.getSuperclass()) {
-                    try {
-                        _write_replace_method = curr.getDeclaredMethod("writeReplace");
-                        _write_replace_method.setAccessible(true);
+    private Method findWriteReplaceMethod() {
+        for (Class<?> curr = type; curr != null; curr = curr.getSuperclass()) {
+            try {
+                Method method = curr.getDeclaredMethod("writeReplace");
+                method.setAccessible(true);
+                return method;
+            } catch (NoSuchMethodException ignored) {
+            }
+        }
+        return null;
+    }
 
-                        break;
-                    } catch (NoSuchMethodException ignored) {
-                    }
-                }
+    private Method findReadResolveMethod() {
+        try {
+            Method method = type.getDeclaredMethod("readResolve");
+            method.setAccessible(true);
+            return method;
+        } catch (NoSuchMethodException ignored) {
+            return null;
+        }
+    }
 
-                try {
-                    _read_resolve_method = type.getDeclaredMethod("readResolve");
-                    _read_resolve_method.setAccessible(true);
+    private Method findReadObjectMethod() {
+        try {
+            Method method = type.getDeclaredMethod("readObject", ObjectInputStream.class);
+            method.setAccessible(true);
+            
+            // Validate the method
+            int modifiers = method.getModifiers();
+            if (!Modifier.isPrivate(modifiers) || Modifier.isStatic(modifiers)) {
+                return null;
+            }
+            
+            return method;
+        } catch (NoSuchMethodException ignored) {
+            return null;
+        }
+    }
 
-                } catch (NoSuchMethodException ignored) {
-                }
+    private Method findWriteObjectMethod() {
+        try {
+            Method method = type.getDeclaredMethod("writeObject", ObjectOutputStream.class);
+            method.setAccessible(true);
+            
+            // Validate the method
+            int modifiers = method.getModifiers();
+            if (!Modifier.isPrivate(modifiers) 
+                    || Modifier.isStatic(modifiers) 
+                    || method.getDeclaringClass() != type) {
+                return null;
+            }
+            
+            return method;
+        } catch (NoSuchMethodException ignored) {
+            return null;
+        }
+    }
 
-                try {
-                    _read_object_method = type.getDeclaredMethod("readObject", ObjectInputStream.class);
-                    _read_object_method.setAccessible(true);
-                } catch (NoSuchMethodException ignored) {
-                }
+    private Field findSerialVersionUIDField() {
+        try {
+            Field field = type.getDeclaredField("serialVersionUID");
+            if (Modifier.isStatic(field.getModifiers())) {
+                field.setAccessible(true);
+                return field;
+            }
+        } catch (NoSuchFieldException ignored) {
+        }
+        return null;
+    }
 
-                try {
-                    _write_object_method = type.getDeclaredMethod("writeObject", ObjectOutputStream.class);
-                    _write_object_method.setAccessible(true);
-                } catch (NoSuchMethodException ignored) {
-                }
+    private ObjectStreamField[] findSerialPersistentFields() {
+        try {
+            Field field = type.getDeclaredField("serialPersistentFields");
+            field.setAccessible(true);
+            return (ObjectStreamField[]) field.get(null);
+        } catch (IllegalAccessException | NoSuchFieldException ignored) {
+            return null;
+        }
+    }
 
-                if ((_write_object_method == null) || !Modifier.isPrivate(_write_object_method.getModifiers())
-                        || Modifier.isStatic(_write_object_method.getModifiers()) || (_write_object_method.getDeclaringClass() != type)) {
+    private Constructor<?> findConstructor() {
+        if (_is_externalizable) {
+            return findExternalizableConstructor();
+        } else if (_is_serializable && !type.isInterface()) {
+            return findSerializableConstructor();
+        }
+        return null;
+    }
 
-                    _write_object_method = null;
+    private Constructor<?> findExternalizableConstructor() {
+        try {
+            Constructor<?> constructor = type.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return constructor;
+        } catch (NoSuchMethodException ex) {
+            MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName() 
+                    + " is not properly externalizable. It has no default constructor.");
+            return null;
+        }
+    }
 
-                }
+    private Constructor<?> findSerializableConstructor() {
+        Class<?> initClass = getFirstNonSerializableSuperclass();
 
-                if ((_read_object_method == null) || !Modifier.isPrivate(_read_object_method.getModifiers())
-                        || Modifier.isStatic(_read_object_method.getModifiers())) {
+        if (initClass == null) {
+            MARSHAL_LOG.warning(() -> "Class " + type.getName() 
+                    + " is not properly serializable. It has no non-serializable super-class");
+            return null;
+        }
 
-                    _read_object_method = null;
-                }
+        try {
+            Constructor<?> initConstructor = initClass.getDeclaredConstructor();
 
-                try {
-                    _serial_version_uid_field = type.getDeclaredField("serialVersionUID");
-                    if (Modifier.isStatic(_serial_version_uid_field.getModifiers())) {
-                        _serial_version_uid_field.setAccessible(true);
-                    } else {
-                        _serial_version_uid_field = null;
-                    }
-                } catch (NoSuchFieldException ex) {
-                }
-
-                ObjectStreamField[] serial_persistent_fields = null;
-                try {
-                    Field _serial_persistent_fields_field = type.getDeclaredField("serialPersistentFields");
-                    _serial_persistent_fields_field.setAccessible(true);
-
-                    serial_persistent_fields = (ObjectStreamField[]) _serial_persistent_fields_field.get(null);
-
-                } catch (IllegalAccessException | NoSuchFieldException ex) {
-                }
-
-                if (_is_externalizable) {
-                    try {
-                        _constructor = type.getDeclaredConstructor();
-                        _constructor.setAccessible(true);
-
-                    } catch (NoSuchMethodException ex) {
-                        MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName() + " is not properly externalizable. It has no default constructor.");
-                    }
-
-                } else if (_is_serializable && !type.isInterface()) {
-
-                    Class<?> initClass = getFirstNonSerializableSuperclass();
-
-                    if (initClass == null) {
-                        MARSHAL_LOG.warning(() -> "Class " + type.getName() + " is not properly serializable.  " + "It has no non-serializable super-class");
-                    } else {
-                        try {
-                            Constructor<?> init_cons = initClass.getDeclaredConstructor();
-
-                            if (Modifier.isPublic(init_cons.getModifiers()) || Modifier.isProtected(init_cons.getModifiers())) {
-                                // do nothing - it's accessible
-                            } else if (!samePackage(type, initClass)) {
-                                MARSHAL_LOG.warning(() -> "Class " + type.getName() + " is not properly serializable.  "
-                                        + "The default constructor of its first " + "non-serializable super-class (" + initClass.getName()
-                                        + ") is not accessible.");
-                            }
-
-                            _constructor = ReflectionFactory.getReflectionFactory().newConstructorForSerialization(type, init_cons);
-
-                            if (_constructor == null) {
-                                MARSHAL_LOG.warning(() -> "Unable to get constructor for serialization for class " + java_name);
-                            } else {
-                                _constructor.setAccessible(true);
-                            }
-
-                        } catch (NoSuchMethodException ex) {
-                            MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName() + " is not properly serializable.  "
-                                    + "First non-serializable super-class (" + initClass.getName() + ") has no default constructor.");
-                        }
-                    }
-                }
-
-                if (serial_persistent_fields == null) {
-                    Field[] ff = type.getDeclaredFields();
-
-                    if ((!Serializable.class.isAssignableFrom(type)) || (ff == null) || (ff.length == 0)) {
-                        _fields = new FieldDescriptor[0];
-
-                    } else {
-                        _fields = Arrays.stream(ff)
-                            .filter(ValueDescriptor.this::isSerializableField)
-                            .filter(ValueDescriptor.this::includeField)
-                            .peek(f -> f.setAccessible(true))
-                            .map(f -> FieldDescriptor.get(f, repo))
-                            .sorted()
-                            .toArray(FieldDescriptor[]::new);
-                    }
-                } else {
-                    _fields = new FieldDescriptor[serial_persistent_fields.length];
-
-                    for (int i = 0; i < serial_persistent_fields.length; i++) {
-                        ObjectStreamField f = serial_persistent_fields[i];
-
-                        FieldDescriptor fd = null;
-
-                        try {
-                            Field rf = type.getField(f.getName());
-                            rf.setAccessible(true);
-
-                            if (rf.getType() == f.getType()) {
-                                fd = FieldDescriptor.get(rf,repo);
-                            }
-                        } catch (SecurityException | NoSuchFieldException ignored) {
-                        }
-
-                        if (fd == null) {
-                            fd = FieldDescriptor.getForSerialPersistentField(type, f, repo);
-                        }
-                        _fields[i] = fd;
-                    }
-                    Arrays.sort(_fields);
-                }
-
-                _hash_code = computeHashCode();
-
-
-
+            if (!isConstructorAccessible(initConstructor, initClass)) {
                 return null;
             }
 
-        });
+            Constructor<?> constructor = ReflectionFactory.getReflectionFactory()
+                    .newConstructorForSerialization(type, initConstructor);
+
+            if (constructor == null) {
+                MARSHAL_LOG.warning(() -> "Unable to get constructor for serialization for class " + java_name);
+                return null;
+            }
+            
+            constructor.setAccessible(true);
+            return constructor;
+
+        } catch (NoSuchMethodException ex) {
+            MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName() 
+                    + " is not properly serializable. First non-serializable super-class (" 
+                    + initClass.getName() + ") has no default constructor.");
+            return null;
+        }
+    }
+
+    private boolean isConstructorAccessible(Constructor<?> constructor, Class<?> initClass) {
+        int modifiers = constructor.getModifiers();
+        if (Modifier.isPublic(modifiers) || Modifier.isProtected(modifiers)) {
+            return true;
+        }
+        
+        if (!samePackage(type, initClass)) {
+            MARSHAL_LOG.warning(() -> "Class " + type.getName() 
+                    + " is not properly serializable. The default constructor of its first "
+                    + "non-serializable super-class (" + initClass.getName() + ") is not accessible.");
+            return false;
+        }
+        
+        return true;
+    }
+
+    private FieldDescriptor[] buildFieldDescriptors(ObjectStreamField[] serialPersistentFields) {
+        if (serialPersistentFields == null) {
+            return buildFieldDescriptorsFromDeclaredFields();
+        } else {
+            return buildFieldDescriptorsFromSerialPersistentFields(serialPersistentFields);
+        }
+    }
+
+    private FieldDescriptor[] buildFieldDescriptorsFromDeclaredFields() {
+        Field[] declaredFields = type.getDeclaredFields();
+
+        if (!Serializable.class.isAssignableFrom(type) || declaredFields == null || declaredFields.length == 0) {
+            return new FieldDescriptor[0];
+        }
+        
+        return Arrays.stream(declaredFields)
+                .filter(this::isSerializableField)
+                .filter(this::includeField)
+                .peek(f -> f.setAccessible(true))
+                .map(f -> FieldDescriptor.get(f, repo))
+                .sorted()
+                .toArray(FieldDescriptor[]::new);
+    }
+
+    private FieldDescriptor[] buildFieldDescriptorsFromSerialPersistentFields(ObjectStreamField[] serialPersistentFields) {
+        FieldDescriptor[] fields = new FieldDescriptor[serialPersistentFields.length];
+
+        for (int i = 0; i < serialPersistentFields.length; i++) {
+            ObjectStreamField streamField = serialPersistentFields[i];
+            FieldDescriptor fieldDescriptor = findMatchingField(streamField);
+            
+            if (fieldDescriptor == null) {
+                fieldDescriptor = FieldDescriptor.getForSerialPersistentField(type, streamField, repo);
+            }
+            
+            fields[i] = fieldDescriptor;
+        }
+        
+        Arrays.sort(fields);
+        return fields;
+    }
+
+    private FieldDescriptor findMatchingField(ObjectStreamField streamField) {
+        try {
+            Field reflectionField = type.getField(streamField.getName());
+            reflectionField.setAccessible(true);
+
+            if (reflectionField.getType() == streamField.getType()) {
+                return FieldDescriptor.get(reflectionField, repo);
+            }
+        } catch (SecurityException | NoSuchFieldException ignored) {
+        }
+        
+        return null;
     }
 
     private Class<?> getFirstNonSerializableSuperclass() {
