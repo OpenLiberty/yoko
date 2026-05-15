@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 import static java.util.stream.IntStream.range;
 import static org.junit.jupiter.api.Assertions.*;
 
-class LazyInitializedFieldTest {
+class LazyReferenceTest {
     private static final int INITIALIZATION_DELAY_MS = 50;
     private static final int EXPENSIVE_INITIALIZATION_DELAY_MS = 10;
     private static final int CONCURRENT_THREAD_COUNT = 10;
@@ -43,20 +43,20 @@ class LazyInitializedFieldTest {
     @Test
     void testBasicInitialization() {
         AtomicInteger initCount = new AtomicInteger(0);
-        LazyInitializedField<String> field = new LazyInitializedField<>(() -> {
+        LazyReference<String> ref = new LazyReference<>(() -> {
             initCount.incrementAndGet();
             return "initialized";
         });
 
-        assertFalse(field.isInitialized(), "Field should not be initialized initially");
+        assertFalse(ref.isCompleted(), "Reference should not be initialized initially");
 
-        String value = field.get();
+        String value = ref.get();
         assertEquals("initialized", value, "Should return initialized value");
         assertEquals(1, initCount.get(), "Initializer should be called exactly once");
-        assertTrue(field.isInitialized(), "Field should be initialized after first get");
+        assertTrue(ref.isCompleted(), "Reference should be initialized after first get");
 
         // Second call should return cached value without re-initialization
-        String value2 = field.get();
+        String value2 = ref.get();
         assertEquals("initialized", value2, "Should return same value");
         assertEquals(1, initCount.get(), "Initializer should still be called only once");
     }
@@ -67,7 +67,7 @@ class LazyInitializedFieldTest {
         AtomicInteger maxConcurrentInits = new AtomicInteger(0);
         AtomicInteger currentConcurrentInits = new AtomicInteger(0);
 
-        LazyInitializedField<String> field = new LazyInitializedField<>(() -> {
+        LazyReference<String> ref = new LazyReference<>(() -> {
             initCount.incrementAndGet();
             int concurrent = currentConcurrentInits.incrementAndGet();
             maxConcurrentInits.updateAndGet(max -> Math.max(max, concurrent));
@@ -96,7 +96,7 @@ class LazyInitializedFieldTest {
                     startLatch.await();
 
                     // All threads try to get the value simultaneously
-                    String value = field.get();
+                    String value = ref.get();
                     assertEquals("initialized", value, "All threads should get the same value");
                 } catch (Throwable t) {
                     error.set(t);
@@ -124,7 +124,7 @@ class LazyInitializedFieldTest {
     void testHighContentionInitialization() throws InterruptedException {
         AtomicInteger initCount = new AtomicInteger(0);
 
-        LazyInitializedField<Integer> field = new LazyInitializedField<>(() -> {
+        LazyReference<Integer> ref = new LazyReference<>(() -> {
             int count = initCount.incrementAndGet();
             // Simulate expensive initialization
             try {
@@ -145,7 +145,7 @@ class LazyInitializedFieldTest {
             executor.submit(() -> {
                 try {
                     startLatch.await();
-                    Integer value = field.get();
+                    Integer value = ref.get();
                     assertEquals(1, value.intValue(), "All threads should get value 1");
                     successCount.incrementAndGet();
                 } catch (InterruptedException e) {
@@ -168,37 +168,93 @@ class LazyInitializedFieldTest {
 
     @Test
     void testInitializationWithException() {
-        LazyInitializedField<String> field = new LazyInitializedField<>(() -> {
+        LazyReference<String> ref = new LazyReference<>(() -> {
             throw new RuntimeException("Initialization failed");
         });
 
-        assertThrows(RuntimeException.class, field::get, "Should propagate initialization exception");
+        assertThrows(RuntimeException.class, ref::get, "Should propagate initialization exception");
     }
 
     @Test
     void testInitializationWithExceptionRetry() {
         AtomicInteger attemptCount = new AtomicInteger(0);
-        LazyInitializedField<String> field = new LazyInitializedField<>(() -> {
+        LazyReference<String> ref = new LazyReference<>(() -> {
             int attempt = attemptCount.incrementAndGet();
             if (attempt == 1) {
                 throw new RuntimeException("First attempt failed");
             }
             return "success-" + attempt;
-        });
+        }, true); // Enable retry
 
         // First attempt should fail
-        assertThrows(RuntimeException.class, field::get, "First attempt should throw exception");
-        assertFalse(field.isInitialized(), "Field should not be initialized after exception");
+        assertThrows(RuntimeException.class, ref::get, "First attempt should throw exception");
+        assertFalse(ref.isCompleted(), "Reference should not be initialized after exception");
 
         // Second attempt should succeed
-        String value = field.get();
+        String value = ref.get();
         assertEquals("success-2", value, "Second attempt should succeed");
-        assertTrue(field.isInitialized(), "Field should be initialized after successful retry");
+        assertTrue(ref.isCompleted(), "Reference should be initialized after successful retry");
         assertEquals(2, attemptCount.get(), "Should have attempted twice");
 
         // Subsequent calls should return cached value
-        assertEquals("success-2", field.get(), "Should return cached value");
+        assertEquals("success-2", ref.get(), "Should return cached value");
         assertEquals(2, attemptCount.get(), "Should not retry after success");
+    }
+
+    @Test
+    void testInitializationWithExceptionNoRetry() {
+        AtomicInteger attemptCount = new AtomicInteger(0);
+        RuntimeException originalException = new RuntimeException("Initialization failed");
+        LazyReference<String> ref = new LazyReference<>(() -> {
+            attemptCount.incrementAndGet();
+            throw originalException;
+        }, false); // Disable retry (default behavior)
+
+        // First attempt should fail with wrapped exception
+        LazyReference.InitializationException firstException = 
+            assertThrows(LazyReference.InitializationException.class, ref::get, 
+                "First attempt should throw InitializationException");
+        assertSame(originalException, firstException.getCause(), "Should wrap original exception");
+        assertTrue(ref.isCompleted(), "Reference should be in error state after exception");
+        assertEquals(1, attemptCount.get(), "Should have attempted once");
+
+        // Second attempt should throw new wrapped exception with same cause, without retrying
+        LazyReference.InitializationException secondException = 
+            assertThrows(LazyReference.InitializationException.class, ref::get, 
+                "Second attempt should throw wrapped exception");
+        assertSame(originalException, secondException.getCause(), "Should wrap same original exception");
+        assertEquals(1, attemptCount.get(), "Should not retry initialization");
+
+        // Subsequent calls should continue throwing new wrapped exceptions with same cause
+        LazyReference.InitializationException thirdException = 
+            assertThrows(LazyReference.InitializationException.class, ref::get);
+        assertSame(originalException, thirdException.getCause(), "Should still wrap same original exception");
+        assertEquals(1, attemptCount.get(), "Should still not retry");
+    }
+
+    @Test
+    void testInitializationWithErrorNoRetry() {
+        AtomicInteger attemptCount = new AtomicInteger(0);
+        OutOfMemoryError originalError = new OutOfMemoryError("Simulated OOM");
+        LazyReference<String> ref = new LazyReference<>(() -> {
+            attemptCount.incrementAndGet();
+            throw originalError;
+        }, false); // Disable retry
+
+        // First attempt should fail with wrapped exception (even for Error)
+        LazyReference.InitializationException firstException = 
+            assertThrows(LazyReference.InitializationException.class, ref::get, 
+                "First attempt should throw InitializationException");
+        assertSame(originalError, firstException.getCause(), "Should wrap original Error");
+        assertTrue(ref.isCompleted(), "Reference should be in error state after Error");
+        assertEquals(1, attemptCount.get(), "Should have attempted once");
+
+        // Second attempt should throw new wrapped exception with same cause, without retrying
+        LazyReference.InitializationException secondException = 
+            assertThrows(LazyReference.InitializationException.class, ref::get, 
+                "Second attempt should throw wrapped exception");
+        assertSame(originalError, secondException.getCause(), "Should wrap same original Error");
+        assertEquals(1, attemptCount.get(), "Should not retry initialization");
     }
 
     @Test
@@ -209,29 +265,29 @@ class LazyInitializedFieldTest {
             return "initialized-" + count;
         };
 
-        LazyInitializedField<String> field1 = new LazyInitializedField<>(supplier);
-        assertEquals("initialized-1", field1.get());
-        assertTrue(field1.isInitialized());
+        LazyReference<String> ref1 = new LazyReference<>(supplier);
+        assertEquals("initialized-1", ref1.get());
+        assertTrue(ref1.isCompleted());
 
-        LazyInitializedField<String> field2 = new LazyInitializedField<>(supplier);
-        assertEquals("initialized-2", field2.get());
-        assertTrue(field2.isInitialized());
+        LazyReference<String> ref2 = new LazyReference<>(supplier);
+        assertEquals("initialized-2", ref2.get());
+        assertTrue(ref2.isCompleted());
 
-        // Verify each field maintains its own value
-        assertEquals("initialized-1", field1.get());
-        assertEquals("initialized-2", field2.get());
-        assertEquals(2, initCount.get(), "Initializer should be called once per field");
+        // Verify each reference maintains its own value
+        assertEquals("initialized-1", ref1.get());
+        assertEquals("initialized-2", ref2.get());
+        assertEquals(2, initCount.get(), "Initializer should be called once per reference");
     }
 
     @Test
     void testNullValue() {
-        LazyInitializedField<String> field = new LazyInitializedField<>(() -> null);
+        LazyReference<String> ref = new LazyReference<>(() -> null);
 
-        assertNull(field.get(), "Should support null values");
-        assertTrue(field.isInitialized(), "Field should be initialized even with null value");
+        assertNull(ref.get(), "Should support null values");
+        assertTrue(ref.isCompleted(), "Reference should be initialized even with null value");
 
         // Second call should still return null without re-initialization
-        assertNull(field.get(), "Should return null on subsequent calls");
+        assertNull(ref.get(), "Should return null on subsequent calls");
     }
 
     @Test
@@ -247,13 +303,13 @@ class LazyInitializedFieldTest {
         }
 
         AtomicInteger counter = new AtomicInteger(0);
-        LazyInitializedField<ComplexObject> field = new LazyInitializedField<>(() -> {
+        LazyReference<ComplexObject> ref = new LazyReference<>(() -> {
             counter.incrementAndGet();
             return new ComplexObject("test", 42);
         });
 
-        ComplexObject obj1 = field.get();
-        ComplexObject obj2 = field.get();
+        ComplexObject obj1 = ref.get();
+        ComplexObject obj2 = ref.get();
 
         assertSame(obj1, obj2, "Should return the same instance");
         assertEquals("test", obj1.name);
@@ -264,16 +320,49 @@ class LazyInitializedFieldTest {
     @Test
     void testSequentialAccess() {
         AtomicInteger initCount = new AtomicInteger(0);
-        LazyInitializedField<String> field = new LazyInitializedField<>(() -> {
+        LazyReference<String> ref = new LazyReference<>(() -> {
             initCount.incrementAndGet();
             return "value";
         });
 
         // Multiple sequential accesses
         for (int i = 0; i < SEQUENTIAL_ACCESS_COUNT; i++) {
-            assertEquals("value", field.get());
+            assertEquals("value", ref.get());
         }
 
         assertEquals(1, initCount.get(), "Should initialize only once despite many accesses");
+    }
+
+    @Test
+    void testRecursiveInitializationDetection() {
+        // Use array to work around Java's effectively final requirement
+        LazyReference<String>[] refHolder = new LazyReference[1];
+        
+        // Create a LazyReference that tries to call get() during initialization
+        refHolder[0] = new LazyReference<>(() -> {
+            // This should throw IllegalStateException due to recursive call
+            return refHolder[0].get();
+        });
+
+        IllegalStateException exception = assertThrows(
+            IllegalStateException.class,
+            refHolder[0]::get,
+            "Should detect recursive initialization"
+        );
+        
+        assertEquals("Initialization failed due to recursive call", exception.getMessage(),
+            "Exception message should indicate recursive initialization failure");
+        
+        assertNotNull(exception.getCause(), "Should have a cause");
+        assertTrue(exception.getCause() instanceof LazyReference.RecursiveInitializationException,
+            "Cause should be RecursiveInitializationException");
+        assertTrue(
+            exception.getCause().getMessage().contains("Recursive initialization detected"),
+            "Cause message should indicate recursive initialization"
+        );
+        assertTrue(
+            exception.getCause().getMessage().contains(Thread.currentThread().getName()),
+            "Cause message should include thread name"
+        );
     }
 }
