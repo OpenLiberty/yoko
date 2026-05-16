@@ -85,7 +85,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private Optional<Method> _write_object_method;
 
-    private Optional<Method> _read_object_method;
+    private final LazyReference<Optional<Method>> _read_object_method = new LazyReference<>(this::findReadObjectMethod);
 
     private Optional<Field> _serial_version_uid_field;
 
@@ -203,7 +203,6 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         doPrivileged((PrivilegedAction<Object>) () -> {
-            _read_object_method = findReadObjectMethod();
             _write_object_method = findWriteObjectMethod();
             _serial_version_uid_field = findSerialVersionUIDField();
             _constructor = findConstructor();
@@ -240,20 +239,22 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Optional<Method> findReadObjectMethod() {
-        try {
-            Method method = type.getDeclaredMethod("readObject", ObjectInputStream.class);
-            
-            // Validate the method
-            int modifiers = method.getModifiers();
-            if (!Modifier.isPrivate(modifiers) || Modifier.isStatic(modifiers)) {
-                return Optional.empty();
+        return doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
+            try {
+                Method method = type.getDeclaredMethod("readObject", ObjectInputStream.class);
+                
+                // Validate the method
+                int modifiers = method.getModifiers();
+                if (!Modifier.isPrivate(modifiers) || Modifier.isStatic(modifiers)) {
+                    return Optional.empty();
+                }
+                
+                method.setAccessible(true);
+                return Optional.of(method);
+            } catch (NoSuchMethodException ignored) {
             }
-            
-            method.setAccessible(true);
-            return Optional.of(method);
-        } catch (NoSuchMethodException ignored) {
-        }
-        return Optional.empty();
+            return Optional.empty();
+        });
     }
 
     private Optional<Method> findWriteObjectMethod() {
@@ -469,6 +470,10 @@ class ValueDescriptor extends TypeDescriptor {
 
     Optional<Method> getReadResolveMethod() {
         return _read_resolve_method.get();
+    }
+
+    Optional<Method> getReadObjectMethod() {
+        return _read_object_method.get();
     }
 
     public Serializable writeReplace(Serializable val) {
@@ -733,7 +738,7 @@ class ValueDescriptor extends TypeDescriptor {
             if (cmsfVersion == 2) {
                 // use a wrapped reader to open the secondary custom valuetype
                 ObjectReader wrapper = CustomMarshaledObjectReader.wrap(reader);
-                readSerializable(_read_object_method.isPresent() ? wrapper : reader, value);
+                readSerializable(getReadObjectMethod().isPresent() ? wrapper : reader, value);
                 // invoke close to skip to the end of the secondary custom valuetype
                 wrapper.close();
                 return;
@@ -745,8 +750,8 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private void readSerializable(ObjectReader reader, Serializable value) throws IOException {
-        if (_read_object_method.isPresent()) {
-            Method method = _read_object_method.get();
+        if (getReadObjectMethod().isPresent()) {
+            Method method = getReadObjectMethod().get();
             try {
                 reader.setCurrentValueDescriptor(this);
                 method.invoke(value, reader);
