@@ -691,14 +691,14 @@ class ValueDescriptor extends TypeDescriptor {
         }
     }
 
-    Map readFields(ObjectReader reader) throws IOException {
+    Map<String, Object> readFields(ObjectReader reader) throws IOException {
         if ((_fields == null) || (_fields.length == 0)) {
             return EMPTY_MAP;
         }
 
         MARSHAL_IN_LOG.finer(() -> "reading fields for " + type.getName());
 
-        Map map = new HashMap();
+        Map<String, Object> map = new HashMap<>();
 
         for (FieldDescriptor _field : _fields) {
 
@@ -710,7 +710,7 @@ class ValueDescriptor extends TypeDescriptor {
         return map;
     }
 
-    void writeFields(ObjectWriter writer, Map fieldMap) throws IOException {
+    void writeFields(ObjectWriter writer, Map<String, Object> fieldMap) throws IOException {
         if ((_fields == null) || (_fields.length == 0)) {
             return;
         }

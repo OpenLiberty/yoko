@@ -143,10 +143,10 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
     abstract void write(ObjectWriter writer, Object obj)
             throws IOException;
 
-    abstract void readFieldIntoMap(ObjectReader reader, Map map)
+    abstract void readFieldIntoMap(ObjectReader reader, Map<String, Object> map)
             throws IOException;
 
-    abstract void writeFieldFromMap(ObjectWriter writer, Map map)
+    abstract void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map)
             throws IOException;
 
     abstract void copyState(Object orig, Object copy, CopyState state);
@@ -333,7 +333,7 @@ class RemoteFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         Remote value = (Remote) reader
                 .readRemoteObject(interfaceType);
         map.put(java_name, value);
@@ -342,7 +342,7 @@ class RemoteFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         Remote value = (Remote) map.get(java_name);
         writer.writeRemoteObject(value);
     }
@@ -420,7 +420,7 @@ class AnyFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         Object value = reader.readAny();
         map.put(java_name, value);
     }
@@ -428,7 +428,7 @@ class AnyFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         Object value = map.get(java_name);
         writer.writeAny(value);
     }
@@ -506,7 +506,7 @@ class ValueFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         Serializable value = (Serializable) reader
                 .readValueObject();
         map.put(java_name, value);
@@ -515,7 +515,7 @@ class ValueFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         Serializable value = (Serializable) map
                 .get(java_name);
         writer.writeValueObject(value);
@@ -560,7 +560,7 @@ class StringFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         String value = (String) reader.readValueObject();
         map.put(java_name, value);
     }
@@ -568,7 +568,7 @@ class StringFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         String value = (String) map.get(java_name);
         writer.writeValueObject(value);
     }
@@ -627,7 +627,7 @@ class ObjectFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         Object value = (Object) reader.readAbstractObject();
         map.put(java_name, value);
     }
@@ -635,7 +635,7 @@ class ObjectFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         Object value = (Object) map.get(java_name);
         writer.writeObject(value);
     }
@@ -690,14 +690,14 @@ class BooleanFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         map.put(java_name, Boolean.valueOf(reader.readBoolean()));
     }
 
     /**
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         Boolean value = (Boolean) map.get(java_name);
         if (value == null) {
             writer.writeBoolean(false);
@@ -756,14 +756,14 @@ class ByteFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         map.put(java_name, Byte.valueOf(reader.readByte()));
     }
 
     /**
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         Byte value = (Byte) map.get(java_name);
         if (value == null) {
             writer.writeByte(0);
@@ -822,14 +822,14 @@ class ShortFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         map.put(java_name, Short.valueOf(reader.readShort()));
     }
 
     /**
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         Short value = (Short) map.get(java_name);
         if (value == null) {
             writer.writeShort(0);
@@ -892,14 +892,14 @@ class CharFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         map.put(java_name, Character.valueOf(reader.readChar()));
     }
 
     /**
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         Character value = (Character) map.get(java_name);
         if (value == null) {
             writer.writeChar(0);
@@ -959,14 +959,14 @@ class IntFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         map.put(java_name, Integer.valueOf(reader.readInt()));
     }
 
     /**
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         Integer value = (Integer) map.get(java_name);
         if (value == null) {
             writer.writeInt(0);
@@ -1026,14 +1026,14 @@ class LongFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         map.put(java_name, Long.valueOf(reader.readLong()));
     }
 
     /**
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         Long value = (Long) map.get(java_name);
         if (value == null) {
             writer.writeLong(0);
@@ -1092,7 +1092,7 @@ class FloatFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         Float value = Float.valueOf(reader.readFloat());
         map.put(java_name, value);
     }
@@ -1100,7 +1100,7 @@ class FloatFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         Float value = (Float) map.get(java_name);
         if (value == null) {
             writer.writeFloat(0.0F);
@@ -1159,7 +1159,7 @@ class DoubleFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
      */
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         Double value = Double.valueOf(reader.readDouble());
         map.put(java_name, value);
     }
@@ -1167,7 +1167,7 @@ class DoubleFieldDescriptor extends FieldDescriptor {
     /**
      * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
      */
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         Double value = (Double) map.get(java_name);
         if (value == null) {
             writer.writeDouble(0.0D);
@@ -1217,7 +1217,7 @@ class CorbaObjectFieldDescriptor extends FieldDescriptor {
         }
     }
 
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
         Object value = reader.readCorbaObject(null);
         map.put(java_name, value);
 
@@ -1232,7 +1232,7 @@ class CorbaObjectFieldDescriptor extends FieldDescriptor {
         }
     }
 
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
         org.omg.CORBA.Object value = (org.omg.CORBA.Object) map.get(java_name);
         writer.writeCorbaObject(value);
 
