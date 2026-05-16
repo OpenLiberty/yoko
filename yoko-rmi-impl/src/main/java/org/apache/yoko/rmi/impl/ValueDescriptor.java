@@ -81,7 +81,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private final LazyReference<Optional<Method>> _read_resolve_method = new LazyReference<>(this::findReadResolveMethod);
 
-    private Optional<Constructor> _constructor;
+    private final LazyReference<Optional<Constructor>> _constructor = new LazyReference<>(this::findConstructor);
 
     private final LazyReference<Optional<Method>> _write_object_method = new LazyReference<>(this::findWriteObjectMethod);
 
@@ -203,7 +203,6 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         doPrivileged((PrivilegedAction<Object>) () -> {
-            _constructor = findConstructor();
             _fields = buildFieldDescriptors();
             _hash_code = computeHashCode();
             return null;
@@ -301,12 +300,14 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Optional<Constructor> findConstructor() {
-        if (_is_externalizable) {
-            return findExternalizableConstructor();
-        } else if (_is_serializable && !type.isInterface()) {
-            return findSerializableConstructor();
-        }
-        return Optional.empty();
+        return doPrivileged((PrivilegedAction<Optional<Constructor>>) () -> {
+            if (_is_externalizable) {
+                return findExternalizableConstructor();
+            } else if (_is_serializable && !type.isInterface()) {
+                return findSerializableConstructor();
+            }
+            return Optional.empty();
+        });
     }
 
     private Optional<Constructor> findExternalizableConstructor() {
@@ -486,6 +487,10 @@ class ValueDescriptor extends TypeDescriptor {
         return _serial_version_uid_field.get();
     }
 
+    Optional<Constructor> getConstructor() {
+        return _constructor.get();
+    }
+
     public Serializable writeReplace(Serializable val) {
         return getWriteReplaceMethod().map(method -> {
             try {
@@ -572,8 +577,8 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Serializable createBlankInstance() {
-        if (_constructor.isPresent()) {
-            Constructor constructor = _constructor.get();
+        if (getConstructor().isPresent()) {
+            Constructor constructor = getConstructor().get();
             try {
                 return (Serializable) constructor.newInstance();
 
