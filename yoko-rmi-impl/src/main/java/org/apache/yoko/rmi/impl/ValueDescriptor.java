@@ -79,7 +79,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private final LazyReference<Optional<Method>> _write_replace_method = new LazyReference<>(this::findWriteReplaceMethod);
 
-    private Optional<Method> _read_resolve_method;
+    private final LazyReference<Optional<Method>> _read_resolve_method = new LazyReference<>(this::findReadResolveMethod);
 
     private Optional<Constructor> _constructor;
 
@@ -203,7 +203,6 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         doPrivileged((PrivilegedAction<Object>) () -> {
-            _read_resolve_method = findReadResolveMethod();
             _read_object_method = findReadObjectMethod();
             _write_object_method = findWriteObjectMethod();
             _serial_version_uid_field = findSerialVersionUIDField();
@@ -229,13 +228,15 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Optional<Method> findReadResolveMethod() {
-        try {
-            Method method = type.getDeclaredMethod("readResolve");
-            method.setAccessible(true);
-            return Optional.of(method);
-        } catch (NoSuchMethodException ignored) {
-        }
-        return Optional.empty();
+        return doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
+            try {
+                Method method = type.getDeclaredMethod("readResolve");
+                method.setAccessible(true);
+                return Optional.of(method);
+            } catch (NoSuchMethodException ignored) {
+            }
+            return Optional.empty();
+        });
     }
 
     private Optional<Method> findReadObjectMethod() {
@@ -466,6 +467,10 @@ class ValueDescriptor extends TypeDescriptor {
         return _write_replace_method.get();
     }
 
+    Optional<Method> getReadResolveMethod() {
+        return _read_resolve_method.get();
+    }
+
     public Serializable writeReplace(Serializable val) {
         return getWriteReplaceMethod().map(method -> {
             try {
@@ -481,7 +486,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     public Serializable readResolve(Serializable val) {
-        return _read_resolve_method.map(method -> {
+        return getReadResolveMethod().map(method -> {
             try {
                 return (Serializable) method.invoke(val);
             } catch (IllegalAccessException ex) {
