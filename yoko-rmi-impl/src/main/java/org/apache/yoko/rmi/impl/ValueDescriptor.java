@@ -289,7 +289,7 @@ class ValueDescriptor extends TypeDescriptor {
         });
     }
 
-    private ObjectStreamField[] findSerialPersistentFields() {
+    ObjectStreamField[] findSerialPersistentFields() {
         try {
             Field field = type.getDeclaredField("serialPersistentFields");
             field.setAccessible(true);
@@ -376,7 +376,7 @@ class ValueDescriptor extends TypeDescriptor {
     private FieldDescriptor[] buildFieldDescriptors() {
         if (!_is_serializable) return FieldDescriptor.EMPTY_ARRAY;
 
-        ObjectStreamField[] serialPersistentFields = isEnum() ? null : findSerialPersistentFields();
+        ObjectStreamField[] serialPersistentFields = findSerialPersistentFields();
         if (serialPersistentFields == null) {
             return buildFieldDescriptorsFromDeclaredFields();
         } else {

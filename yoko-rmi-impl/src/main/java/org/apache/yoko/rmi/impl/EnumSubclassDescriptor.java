@@ -19,15 +19,16 @@ package org.apache.yoko.rmi.impl;
 
 import org.omg.CORBA.portable.IndirectionException;
 import org.omg.CORBA.portable.InputStream;
-import org.omg.CORBA.ValueMember;
 
 import java.io.IOException;
+import java.io.ObjectStreamField;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Optional;
 
 class EnumSubclassDescriptor extends ValueDescriptor {
+    private static final ObjectStreamField[] SERIAL_PERSISTENT_FIELDS = {};
     @SuppressWarnings("rawtypes")
     private final Class enumType;
 
@@ -99,10 +100,9 @@ class EnumSubclassDescriptor extends ValueDescriptor {
     }
 
     @Override
-    protected boolean includeField(java.lang.reflect.Field f) {
+    ObjectStreamField[] findSerialPersistentFields() {
         // Enum subclasses have no fields of their own - they delegate to the parent enum
-        // Exclude all fields so _fields is empty, which makes genValueMembers() return empty array
-        return false;
+        return SERIAL_PERSISTENT_FIELDS;
     }
 
     @Override

@@ -18,12 +18,16 @@
 package org.apache.yoko.rmi.impl;
 
 import java.io.IOException;
+import java.io.ObjectStreamField;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Optional;
 
 class EnumDescriptor extends ValueDescriptor {
+    private static final ObjectStreamField[] SERIAL_PERSISTENT_FIELDS = {
+        new ObjectStreamField("name", String.class)
+    };
     public EnumDescriptor(Class<?> type, TypeRepository repo) {
         super(type, repo);
     }
@@ -39,9 +43,9 @@ class EnumDescriptor extends ValueDescriptor {
     }
 
     @Override
-    protected boolean includeField(java.lang.reflect.Field f) {
-        // Only include the name field, exclude ordinal to match what's marshalled
-        return "name".equals(f.getName());
+    ObjectStreamField[] findSerialPersistentFields() {
+        // Use serialPersistentFields mechanism to declare only the name field should be marshalled
+        return SERIAL_PERSISTENT_FIELDS;
     }
 
     @Override
