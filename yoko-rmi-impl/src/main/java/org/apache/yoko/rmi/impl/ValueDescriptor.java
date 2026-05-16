@@ -77,7 +77,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private boolean _is_serializable;
 
-    private Optional<Method> _write_replace_method;
+    private final LazyReference<Optional<Method>> _write_replace_method = new LazyReference<>(this::findWriteReplaceMethod);
 
     private Optional<Method> _read_resolve_method;
 
@@ -203,7 +203,6 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         doPrivileged((PrivilegedAction<Object>) () -> {
-            _write_replace_method = findWriteReplaceMethod();
             _read_resolve_method = findReadResolveMethod();
             _read_object_method = findReadObjectMethod();
             _write_object_method = findWriteObjectMethod();
@@ -216,15 +215,17 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Optional<Method> findWriteReplaceMethod() {
-        for (Class<?> curr = type; curr != null; curr = curr.getSuperclass()) {
-            try {
-                Method method = curr.getDeclaredMethod("writeReplace");
-                method.setAccessible(true);
-                return Optional.of(method);
-            } catch (NoSuchMethodException ignored) {
+        return doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
+            for (Class<?> curr = type; curr != null; curr = curr.getSuperclass()) {
+                try {
+                    Method method = curr.getDeclaredMethod("writeReplace");
+                    method.setAccessible(true);
+                    return Optional.of(method);
+                } catch (NoSuchMethodException ignored) {
+                }
             }
-        }
-        return Optional.empty();
+            return Optional.empty();
+        });
     }
 
     private Optional<Method> findReadResolveMethod() {
@@ -461,8 +462,12 @@ class ValueDescriptor extends TypeDescriptor {
         return (_super_descriptor != null) && _super_descriptor.isChunked();
     }
 
+    Optional<Method> getWriteReplaceMethod() {
+        return _write_replace_method.get();
+    }
+
     public Serializable writeReplace(Serializable val) {
-        return _write_replace_method.map(method -> {
+        return getWriteReplaceMethod().map(method -> {
             try {
                 return (Serializable) method.invoke(val);
             } catch (IllegalAccessException ex) {
