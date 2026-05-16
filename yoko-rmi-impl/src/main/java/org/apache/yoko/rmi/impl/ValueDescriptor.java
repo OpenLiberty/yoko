@@ -83,7 +83,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private Optional<Constructor> _constructor;
 
-    private Optional<Method> _write_object_method;
+    private final LazyReference<Optional<Method>> _write_object_method = new LazyReference<>(this::findWriteObjectMethod);
 
     private final LazyReference<Optional<Method>> _read_object_method = new LazyReference<>(this::findReadObjectMethod);
 
@@ -203,7 +203,6 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         doPrivileged((PrivilegedAction<Object>) () -> {
-            _write_object_method = findWriteObjectMethod();
             _serial_version_uid_field = findSerialVersionUIDField();
             _constructor = findConstructor();
             _fields = buildFieldDescriptors();
@@ -258,22 +257,24 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Optional<Method> findWriteObjectMethod() {
-        try {
-            Method method = type.getDeclaredMethod("writeObject", ObjectOutputStream.class);
-            
-            // Validate the method
-            int modifiers = method.getModifiers();
-            if (!Modifier.isPrivate(modifiers) 
-                    || Modifier.isStatic(modifiers) 
-                    || method.getDeclaringClass() != type) {
-                return Optional.empty();
+        return doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
+            try {
+                Method method = type.getDeclaredMethod("writeObject", ObjectOutputStream.class);
+                
+                // Validate the method
+                int modifiers = method.getModifiers();
+                if (!Modifier.isPrivate(modifiers) 
+                        || Modifier.isStatic(modifiers) 
+                        || method.getDeclaringClass() != type) {
+                    return Optional.empty();
+                }
+                
+                method.setAccessible(true);
+                return Optional.of(method);
+            } catch (NoSuchMethodException ignored) {
             }
-            
-            method.setAccessible(true);
-            return Optional.of(method);
-        } catch (NoSuchMethodException ignored) {
-        }
-        return Optional.empty();
+            return Optional.empty();
+        });
     }
 
     private Optional<Field> findSerialVersionUIDField() {
@@ -456,7 +457,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     public boolean isCustomMarshalled() {
-        return (_is_externalizable || _write_object_method.isPresent());
+        return (_is_externalizable || getWriteObjectMethod().isPresent());
     }
 
     public boolean isChunked() {
@@ -474,6 +475,10 @@ class ValueDescriptor extends TypeDescriptor {
 
     Optional<Method> getReadObjectMethod() {
         return _read_object_method.get();
+    }
+
+    Optional<Method> getWriteObjectMethod() {
+        return _write_object_method.get();
     }
 
     public Serializable writeReplace(Serializable val) {
@@ -545,10 +550,10 @@ class ValueDescriptor extends TypeDescriptor {
             _super_descriptor.writeValue(writer, val);
         }
 
-        if (_write_object_method.isPresent()) {
+        if (getWriteObjectMethod().isPresent()) {
 
             try {
-                writer.invokeWriteObject(this, val, _write_object_method.get());
+                writer.invokeWriteObject(this, val, getWriteObjectMethod().get());
             } catch (IllegalAccessException | IllegalArgumentException ex) {
                 throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
             } catch (InvocationTargetException ex) {
@@ -729,7 +734,7 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         // check whether the class (not its ancestors) does any custom marshalling
-        if (_write_object_method.isPresent()) {
+        if (getWriteObjectMethod().isPresent()) {
             // read custom marshalling value header
             byte cmsfVersion = reader.readByte(); // custom marshal stream format version
             boolean dwoCalled = reader.readBoolean(); // was defaultWriteObject() called?
@@ -790,7 +795,7 @@ class ValueDescriptor extends TypeDescriptor {
                 out.writeLong(desc.getHashCode());
             }
 
-            out.writeInt(_write_object_method.isPresent() ? 2 : 1);
+            out.writeInt(getWriteObjectMethod().isPresent() ? 2 : 1);
 
             FieldDescriptor[] fds = new FieldDescriptor[_fields.length];
             System.arraycopy(_fields, 0, fds, 0, _fields.length);
