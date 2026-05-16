@@ -22,6 +22,8 @@ import static java.util.stream.Collectors.toUnmodifiableList;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectInputStream.GetField;
@@ -159,5 +161,46 @@ class ValueTypes extends SerialPersistentFieldsTest {
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         GetField fields = in.readFields();
         for (String name: FIELD_NAMES) assertEquals(name, ((StringValue) fields.get(name, null)).toString());
+    }
+}
+
+class DefaultSerialPersistentFields extends SerialPersistentFieldsTest {
+    private static final ObjectStreamField[] serialPersistentFields = {
+            new ObjectStreamField("name", String.class)
+    };
+
+    private final String name = "example";
+    private final int ordinal = 42;
+
+    @Override
+    @Test
+    public void marshalAndUnmarshal(ORB orb) {
+        YokoOutputStream out = (YokoOutputStream) orb.create_output_stream();
+        out.write_value(this);
+        System.out.println(out.getBufferReader().dumpAllData());
+        YokoInputStream in = out.create_input_stream();
+        DefaultSerialPersistentFields result = (DefaultSerialPersistentFields) in.read_value();
+        assertNotNull(result);
+        assertEquals(name, result.name);
+        assertEquals(42, result.ordinal);
+    }
+
+    @Test
+    public void javaSerializationUsesSerialPersistentFields() throws Exception {
+        final byte[] data;
+        try (
+                ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+                ObjectOutputStream out = new ObjectOutputStream(byteOut)
+        ) {
+            out.writeObject(this);
+            data = byteOut.toByteArray();
+        }
+
+        try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(data))) {
+            DefaultSerialPersistentFields result = (DefaultSerialPersistentFields) in.readObject();
+            assertNotNull(result);
+            assertEquals(name, result.name);
+            assertEquals(42, result.ordinal);
+        }
     }
 }
