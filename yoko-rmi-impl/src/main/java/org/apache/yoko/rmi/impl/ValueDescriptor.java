@@ -87,7 +87,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private final LazyReference<Optional<Method>> _read_object_method = new LazyReference<>(this::findReadObjectMethod);
 
-    private Optional<Field> _serial_version_uid_field;
+    private final LazyReference<Optional<Field>> _serial_version_uid_field = new LazyReference<>(this::findSerialVersionUIDField);
 
     protected ValueDescriptor _super_descriptor;
 
@@ -137,9 +137,9 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     protected long getSerialVersionUID() {
-        if (_serial_version_uid_field.isPresent()) {
+        if (getSerialVersionUIDField().isPresent()) {
             try {
-                return _serial_version_uid_field.get().getLong(null);
+                return getSerialVersionUIDField().get().getLong(null);
             } catch (IllegalAccessException ex) {
                 // skip //
             }
@@ -203,7 +203,6 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         doPrivileged((PrivilegedAction<Object>) () -> {
-            _serial_version_uid_field = findSerialVersionUIDField();
             _constructor = findConstructor();
             _fields = buildFieldDescriptors();
             _hash_code = computeHashCode();
@@ -278,15 +277,17 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Optional<Field> findSerialVersionUIDField() {
-        try {
-            Field field = type.getDeclaredField("serialVersionUID");
-            if (Modifier.isStatic(field.getModifiers())) {
-                field.setAccessible(true);
-                return Optional.of(field);
+        return doPrivileged((PrivilegedAction<Optional<Field>>) () -> {
+            try {
+                Field field = type.getDeclaredField("serialVersionUID");
+                if (Modifier.isStatic(field.getModifiers())) {
+                    field.setAccessible(true);
+                    return Optional.of(field);
+                }
+            } catch (NoSuchFieldException ignored) {
             }
-        } catch (NoSuchFieldException ignored) {
-        }
-        return Optional.empty();
+            return Optional.empty();
+        });
     }
 
     private ObjectStreamField[] findSerialPersistentFields() {
@@ -479,6 +480,10 @@ class ValueDescriptor extends TypeDescriptor {
 
     Optional<Method> getWriteObjectMethod() {
         return _write_object_method.get();
+    }
+
+    Optional<Field> getSerialVersionUIDField() {
+        return _serial_version_uid_field.get();
     }
 
     public Serializable writeReplace(Serializable val) {
