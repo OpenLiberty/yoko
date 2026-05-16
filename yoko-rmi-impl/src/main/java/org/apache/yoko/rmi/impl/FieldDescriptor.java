@@ -41,6 +41,7 @@ import static org.apache.yoko.util.yasf.Yasf.NON_SERIALIZABLE_FIELD_IS_ABSTRACT_
 abstract class FieldDescriptor extends ModelElement implements Comparable<FieldDescriptor> {
     static Logger logger = Logger.getLogger(FieldDescriptor.class.getName());
 
+    public static final FieldDescriptor[] EMPTY_ARRAY = {};
     /**
      * Represents the access level of a ValueMember field.
      */

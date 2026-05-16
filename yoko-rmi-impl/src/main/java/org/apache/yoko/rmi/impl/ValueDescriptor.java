@@ -368,6 +368,8 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private FieldDescriptor[] buildFieldDescriptors() {
+        if (!_is_serializable) return FieldDescriptor.EMPTY_ARRAY;
+
         ObjectStreamField[] serialPersistentFields = isEnum() ? null : findSerialPersistentFields();
         if (serialPersistentFields == null) {
             return buildFieldDescriptorsFromDeclaredFields();
@@ -377,13 +379,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private FieldDescriptor[] buildFieldDescriptorsFromDeclaredFields() {
-        Field[] declaredFields = type.getDeclaredFields();
-
-        if (!Serializable.class.isAssignableFrom(type) || declaredFields == null || declaredFields.length == 0) {
-            return new FieldDescriptor[0];
-        }
-        
-        return Arrays.stream(declaredFields)
+        return Arrays.stream(type.getDeclaredFields())
                 .filter(this::isSerializableField)
                 .filter(this::includeField)
                 .peek(f -> f.setAccessible(true))
