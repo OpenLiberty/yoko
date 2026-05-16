@@ -19,7 +19,9 @@ package org.apache.yoko.rmi.impl;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Optional;
 
 class EnumDescriptor extends ValueDescriptor {
     public EnumDescriptor(Class<?> type, TypeRepository repo) {
@@ -40,5 +42,25 @@ class EnumDescriptor extends ValueDescriptor {
     protected boolean includeField(java.lang.reflect.Field f) {
         // Only include the name field, exclude ordinal to match what's marshalled
         return "name".equals(f.getName());
+    }
+
+    @Override
+    Optional<Method> getReadObjectMethod() {
+        return Optional.empty();
+    }
+
+    @Override
+    Optional<Method> getReadResolveMethod() {
+        return Optional.empty();
+    }
+
+    @Override
+    Optional<Method> getWriteObjectMethod() {
+        return Optional.empty();
+    }
+
+    @Override
+    Optional<Method> getWriteReplaceMethod() {
+        return Optional.empty();
     }
 }

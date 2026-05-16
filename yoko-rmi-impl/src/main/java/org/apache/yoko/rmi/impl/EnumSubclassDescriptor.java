@@ -23,7 +23,9 @@ import org.omg.CORBA.ValueMember;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.Optional;
 
 class EnumSubclassDescriptor extends ValueDescriptor {
     @SuppressWarnings("rawtypes")
@@ -101,5 +103,25 @@ class EnumSubclassDescriptor extends ValueDescriptor {
         // Enum subclasses have no fields of their own - they delegate to the parent enum
         // Exclude all fields so _fields is empty, which makes genValueMembers() return empty array
         return false;
+    }
+
+    @Override
+    Optional<Method> getReadObjectMethod() {
+        return Optional.empty();
+    }
+
+    @Override
+    Optional<Method> getReadResolveMethod() {
+        return Optional.empty();
+    }
+
+    @Override
+    Optional<Method> getWriteObjectMethod() {
+        return Optional.empty();
+    }
+
+    @Override
+    Optional<Method> getWriteReplaceMethod() {
+        return Optional.empty();
     }
 }
