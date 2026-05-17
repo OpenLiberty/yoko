@@ -59,13 +59,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
 import static java.security.AccessController.doPrivileged;
 import static java.util.Arrays.asList;
-import static java.util.Collections.EMPTY_MAP;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.function.Function.identity;
 import static java.util.logging.Level.WARNING;
@@ -91,6 +92,8 @@ class ValueDescriptor extends TypeDescriptor {
     private final LazyReference<Optional<Method>> _read_object_method = new LazyReference<>(this::findReadObjectMethod);
 
     private final LazyReference<Optional<Field>> _serial_version_uid_field = new LazyReference<>(this::findSerialVersionUIDField);
+
+    private final LazyReference<BiConsumer<ObjectWriter, Serializable>> valueWriterRef = new LazyReference<>(this::genValueWriter);
 
     protected ValueDescriptor _super_descriptor;
 
@@ -536,59 +539,108 @@ class ValueDescriptor extends TypeDescriptor {
 
     public void writeValue(final OutputStream out, final Serializable value) {
         try {
-
             ObjectWriter writer = doPrivileged((PrivilegedAction<ObjectWriter>) () -> {
                 try {
                     return new CorbaObjectWriter(out, value);
                 } catch (IOException ex) {
-                    throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
+                    throw as(MARSHAL::new, ex, ex.getMessage());
                 }
             });
 
             writeValue(writer, value);
-
         } catch (IOException ex) {
-            throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
+            throw as(MARSHAL::new, ex, ex.getMessage());
         }
     }
 
     protected void defaultWriteValue(ObjectWriter writer, Serializable val) throws IOException {
         MARSHAL_OUT_LOG.finer(() -> "writing fields for " + type);
-        FieldDescriptor[] fields = _fields;
 
-        if (fields == null) return;
+        if (_fields == null) return;
 
-        for (FieldDescriptor field : fields) {
+        for (FieldDescriptor field : _fields) {
             MARSHAL_OUT_LOG.finer(() -> "writing field " + field.java_name);
             field.write(writer, val);
         }
     }
 
-    protected void writeValue(ObjectWriter writer, Serializable val) throws IOException {
+    private ValueWriter genValueWriter() {
+        return isExternalizable()
+                ? genExternalizableValueWriter()
+                : getWriteObjectMethod()
+                .map(this::genValueWriter)
+                .orElseGet(this::genDefaultValueWriter);
+    }
 
-        if (isExternalizable()) {
-            writer.invokeWriteExternal((Externalizable) val);
-            return;
-        }
-
-        if (_super_descriptor != null) {
-            _super_descriptor.writeValue(writer, val);
-        }
-
-        if (getWriteObjectMethod().isPresent()) {
-
+    private ValueWriter genExternalizableValueWriter() {
+        return (writer, val) -> {
             try {
-                writer.invokeWriteObject(this, val, getWriteObjectMethod().get());
-            } catch (IllegalAccessException | IllegalArgumentException ex) {
-                throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-            } catch (InvocationTargetException ex) {
-                throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
+                getSuperWriter().accept(writer, val);
+                writer.invokeWriteExternal((Externalizable) val);
+            } catch (IOException ex) {
+                throw as(UncheckedIOException::new, ex);
             }
+        };
+    }
 
-        } else {
-            defaultWriteValue(writer, val);
+    private ValueWriter genDefaultValueWriter() {
+        return (writer, val) -> {
+            try {
+                getSuperWriter().accept(writer, val);
+                defaultWriteValue(writer, val);
+            } catch (IOException ex) {
+                throw as(UncheckedIOException::new, ex);
+            }
+        };
+    }
+
+    private ValueWriter genValueWriter(Method method) {
+        return (writer, val) -> {
+            try {
+                getSuperWriter().accept(writer, val);
+                writer.invokeWriteObject(this, val, method);
+            } catch (IllegalAccessException | IllegalArgumentException ex) {
+                throw as(MARSHAL::new, ex, ex.getMessage());
+            } catch (InvocationTargetException ex) {
+                throw as(UnknownException::new, ex.getTargetException(), ex.getTargetException());
+            } catch (IOException ex) {
+                throw as(UncheckedIOException::new, ex);
+            }
+        };
+    }
+
+    @FunctionalInterface
+    private interface ValueWriter extends BiConsumer<ObjectWriter,Serializable> {}
+
+    private static class UncheckedIOException extends RuntimeException {
+        @Override
+        public IOException getCause() { return (IOException)super.getCause(); }
+    }
+
+    private final LazyReference<ValueWriter> superWriterRef = new LazyReference<>(this::genSuperWriter);
+
+    private ValueWriter getSuperWriter() {
+        return superWriterRef.get();
+    }
+
+    private ValueWriter genSuperWriter() {
+        return (_super_descriptor == null)
+                ? (writer, val) -> {} // no-op if no super descriptor
+                : (writer, val) -> {
+            try {
+                _super_descriptor.writeValue(writer, val);
+            } catch (IOException ex) {
+                throw as(UncheckedIOException::new, ex);
+            }
+        };
+    }
+
+    protected void writeValue(ObjectWriter writer, Serializable val) throws IOException {
+        try {
+            valueWriterRef.get().accept(writer, val);
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
         }
-
     }
 
     Serializable createBlankInstance() {
@@ -614,11 +666,9 @@ class ValueDescriptor extends TypeDescriptor {
                 offsetMap.put(offset, resolved);
             }
             return resolved;
-
         } catch (IOException ex) {
-            throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
+            throw as(MARSHAL::new, ex, ex.getMessage());
         }
-
     }
 
     void print(PrintWriter pw, Map<Object, Integer> recurse, Object val) {
@@ -676,14 +726,14 @@ class ValueDescriptor extends TypeDescriptor {
                     throw ex;
 
                 String msg = String.format("%s, while reading %s.%s", ex, java_name, _field.java_name);
-                throw (MARSHAL) new MARSHAL(msg, ex.minor, ex.completed).initCause(ex);
+                throw as(MARSHAL::new, ex, msg, ex.minor, ex.completed);
             }
         }
     }
 
     Map<String, Object> readFields(ObjectReader reader) throws IOException {
         if ((_fields == null) || (_fields.length == 0)) {
-            return EMPTY_MAP;
+            return emptyMap();
         }
 
         MARSHAL_IN_LOG.finer(() -> "reading fields for " + type.getName());
@@ -691,9 +741,7 @@ class ValueDescriptor extends TypeDescriptor {
         Map<String, Object> map = new HashMap<>();
 
         for (FieldDescriptor _field : _fields) {
-
             MARSHAL_IN_LOG.finer(() -> "reading field " + _field.java_name);
-
             _field.readFieldIntoMap(reader, map);
         }
 
@@ -708,9 +756,7 @@ class ValueDescriptor extends TypeDescriptor {
         MARSHAL_OUT_LOG.finer(() -> "writing fields for " + type.getName());
 
         for (FieldDescriptor _field : _fields) {
-
             MARSHAL_OUT_LOG.finer(() -> "writing field " + _field.java_name);
-
             _field.writeFieldFromMap(writer, fieldMap);
         }
 
