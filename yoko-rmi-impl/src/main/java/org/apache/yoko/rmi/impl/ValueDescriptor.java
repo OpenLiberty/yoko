@@ -152,7 +152,7 @@ class ValueDescriptor extends TypeDescriptor {
     /**
      * Filters out static and transient fields. This is the base filter that always applies.
      */
-    private final boolean isSerializableField(Field f) {
+    private boolean isSerializableField(Field f) {
         int mod = f.getModifiers();
         return !Modifier.isStatic(mod) && !Modifier.isTransient(mod);
     }
@@ -606,20 +606,18 @@ class ValueDescriptor extends TypeDescriptor {
     public Serializable readValue(final InputStream in, final Map<Integer, Serializable> offsetMap, final Integer offset) {
         final Serializable value = createBlankInstance();
 
-        offsetMap.put(offset, value);
+        if (null != value) offsetMap.put(offset, value);
 
         try {
             ObjectReader reader = doPrivileged((PrivilegedAction<ObjectReader>) () -> {
                 try {
                     return new CorbaObjectReader(in, offsetMap, value);
                 } catch (IOException ex) {
-                    throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
+                    throw as(MARSHAL::new, ex, ex.getMessage());
                 }
             });
 
-            readValue(reader, value);
-
-            final Serializable resolved = readResolve(value);
+            final Serializable resolved = readResolve(readValue(reader, value));
             if (value != resolved) {
                 offsetMap.put(offset, resolved);
             }
@@ -729,18 +727,18 @@ class ValueDescriptor extends TypeDescriptor {
     /**
      * This method reads the fields of a single class slice.
      */
-    protected void readValue(ObjectReader reader, Serializable value) throws IOException {
+    protected Serializable readValue(ObjectReader reader, Serializable value) throws IOException {
         if (_is_externalizable) {
             try {
                 reader.readExternal((Externalizable) value);
             } catch (ClassNotFoundException e) {
                 throw new IOException("cannot instantiate class", e);
             }
-            return;
+            return value;
         }
 
         if (_super_descriptor != null) {
-            _super_descriptor.readValue(reader, value);
+            value = _super_descriptor.readValue(reader, value);
         }
 
         // check whether the class (not its ancestors) does any custom marshalling
@@ -756,12 +754,12 @@ class ValueDescriptor extends TypeDescriptor {
                 readSerializable(getReadObjectMethod().isPresent() ? wrapper : reader, value);
                 // invoke close to skip to the end of the secondary custom valuetype
                 wrapper.close();
-                return;
+                return value;
             }
         }
 
         readSerializable(reader, value);
-
+        return value;
     }
 
     private void readSerializable(ObjectReader reader, Serializable value) throws IOException {

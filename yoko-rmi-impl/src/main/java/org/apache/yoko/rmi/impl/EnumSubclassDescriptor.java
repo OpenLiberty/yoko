@@ -17,24 +17,19 @@
  */
 package org.apache.yoko.rmi.impl;
 
-import org.omg.CORBA.portable.IndirectionException;
-import org.omg.CORBA.portable.InputStream;
-
 import java.io.IOException;
 import java.io.ObjectStreamField;
 import java.io.Serializable;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Optional;
 
 class EnumSubclassDescriptor extends ValueDescriptor {
     private static final ObjectStreamField[] SERIAL_PERSISTENT_FIELDS = {};
-    @SuppressWarnings("rawtypes")
-    private final Class enumType;
 
     EnumSubclassDescriptor(Class<?> type, TypeRepository repository) {
         super(type, repository);
-        enumType = type;
     }
 
     static Class<?> getEnumType(Class<?> type) {
@@ -54,31 +49,9 @@ class EnumSubclassDescriptor extends ValueDescriptor {
     }
 
     @Override
-    final public Serializable readValue(InputStream in, Map<Integer, Serializable> offsetMap, Integer offset) {
-        try {
-            // Shortcut to reading in just the 'name' field of java.lang.Enum
-            String name = null;
-            try {
-                name = (String) ((org.omg.CORBA_2_3.portable.InputStream) in).read_value(String.class);
-            } catch (org.omg.CORBA.MARSHAL e) {
-                // Problem probably due to ordinal field data being sent
-                // This should be resolved by the 'if (name == null) {' block below, so this
-                // exception can be safely discarded.
-            }
-            if (name == null) {
-                // ordinal field may have been sent, causing the read of the name field to fail
-                // If this is the case, the input stream cursor will now be at the start of where the
-                // name field is located (the 4 bytes of the ordinal having now been read in)
-                name = (String) ((org.omg.CORBA_2_3.portable.InputStream) in).read_value(String.class);
-            }
-
-            @SuppressWarnings("unchecked")
-            final Enum<?> value = (Enum<?>) Enum.valueOf(enumType, name);
-            offsetMap.put(offset, value);
-            return value;
-        } catch (IndirectionException ex) {
-            return (Serializable) offsetMap.get(ex.offset);
-        }
+    protected Serializable readValue(ObjectReader reader, Serializable val) throws IOException {
+        Map<String,Object> fields = _super_descriptor.readFields(reader);
+        return Enum.valueOf(type, (String)fields.get("name"));
     }
 
     @Override
@@ -122,6 +95,11 @@ class EnumSubclassDescriptor extends ValueDescriptor {
 
     @Override
     Optional<Method> getWriteReplaceMethod() {
+        return Optional.empty();
+    }
+
+    @Override
+    Optional<Constructor> getConstructor() {
         return Optional.empty();
     }
 }

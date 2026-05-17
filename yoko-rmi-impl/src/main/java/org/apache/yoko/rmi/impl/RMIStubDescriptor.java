@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 package org.apache.yoko.rmi.impl;
 
 import java.io.IOException;
+import java.io.Serializable;
 
 class RMIStubDescriptor extends ValueDescriptor {
     RMIStubDescriptor(Class type, TypeRepository repository) {
@@ -49,8 +50,8 @@ class RMIStubDescriptor extends ValueDescriptor {
     }
 
     @Override
-    protected void readValue(ObjectReader reader, java.io.Serializable value)
+    protected Serializable readValue(ObjectReader reader, java.io.Serializable value)
             throws IOException {
-        _super_descriptor.readValue(reader, value);
+        return _super_descriptor.readValue(reader, value);
     }
 }

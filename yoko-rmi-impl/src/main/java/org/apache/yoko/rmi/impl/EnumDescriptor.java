@@ -17,11 +17,9 @@
  */
 package org.apache.yoko.rmi.impl;
 
-import java.io.IOException;
 import java.io.ObjectStreamField;
-import java.io.Serializable;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.Optional;
 
 class EnumDescriptor extends ValueDescriptor {
@@ -65,6 +63,11 @@ class EnumDescriptor extends ValueDescriptor {
 
     @Override
     Optional<Method> getWriteReplaceMethod() {
+        return Optional.empty();
+    }
+
+    @Override
+    Optional<Constructor> getConstructor() {
         return Optional.empty();
     }
 }
