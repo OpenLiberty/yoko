@@ -80,7 +80,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private boolean _is_serializable;
 
-    private final LazyReference<Optional<Method>> _write_replace_method = new LazyReference<>(this::findWriteReplaceMethod);
+    private final LazyReference<Function<Serializable, Serializable>> writeReplacerRef = new LazyReference<>(this::genWriteReplacer);
 
     private final LazyReference<Function<Serializable, Serializable>> readResolverRef = new LazyReference<>(this::genReadResolver);
 
@@ -203,8 +203,8 @@ class ValueDescriptor extends TypeDescriptor {
         });
     }
 
-    private Optional<Method> findWriteReplaceMethod() {
-        return doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
+    private Function<Serializable, Serializable> genWriteReplacer() {
+        Optional<Method> methodOpt = doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
             for (Class<?> curr = type; curr != null; curr = curr.getSuperclass()) {
                 try {
                     Method method = curr.getDeclaredMethod("writeReplace");
@@ -215,6 +215,18 @@ class ValueDescriptor extends TypeDescriptor {
             }
             return Optional.empty();
         });
+        
+        return methodOpt.map(method -> (Function<Serializable, Serializable>) val -> {
+            try {
+                return (Serializable) method.invoke(val);
+            } catch (IllegalAccessException ex) {
+                throw as(MARSHAL::new, ex, "cannot call " + method);
+            } catch (IllegalArgumentException ex) {
+                throw as(MARSHAL::new, ex, ex.getMessage());
+            } catch (InvocationTargetException ex) {
+                throw as(UnknownException::new, ex.getTargetException(), ex.getTargetException());
+            }
+        }).orElse(identity());
     }
 
     private Function<Serializable, Serializable> genReadResolver() {
@@ -492,8 +504,8 @@ class ValueDescriptor extends TypeDescriptor {
         return (_super_descriptor != null) && _super_descriptor.isChunked();
     }
 
-    Optional<Method> getWriteReplaceMethod() {
-        return _write_replace_method.get();
+    Function<Serializable, Serializable> getWriteReplacer() {
+        return writeReplacerRef.get();
     }
 
     Function<Serializable, Serializable> getReadResolver() {
@@ -515,17 +527,7 @@ class ValueDescriptor extends TypeDescriptor {
 
 
     public Serializable writeReplace(Serializable val) {
-        return getWriteReplaceMethod().map(method -> {
-            try {
-                return (Serializable) method.invoke(val);
-            } catch (IllegalAccessException ex) {
-                throw (MARSHAL) new MARSHAL("cannot call " + method).initCause(ex);
-            } catch (IllegalArgumentException ex) {
-                throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-            } catch (InvocationTargetException ex) {
-                throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
-            }
-        }).orElse(val);
+        return getWriteReplacer().apply(val);
     }
 
     public Serializable readResolve(Serializable val) {

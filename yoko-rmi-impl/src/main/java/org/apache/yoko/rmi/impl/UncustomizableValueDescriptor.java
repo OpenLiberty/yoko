@@ -49,7 +49,7 @@ abstract class UncustomizableValueDescriptor extends ValueDescriptor {
     }
 
     @Override
-    final Optional<Method> getWriteReplaceMethod() { return Optional.empty(); }
+    final Function<Serializable, Serializable> getWriteReplacer() { return identity(); }
 
     @Override
     final Supplier<Serializable> genBlankInstanceSupplier() {
