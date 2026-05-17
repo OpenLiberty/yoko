@@ -17,30 +17,36 @@
  */
 package org.apache.yoko.rmi.impl;
 
-import java.io.ObjectStreamField;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.util.Optional;
 
-class EnumDescriptor extends UncustomizableValueDescriptor {
-    private static final ObjectStreamField[] SERIAL_PERSISTENT_FIELDS = {
-        new ObjectStreamField("name", String.class)
-    };
-
-    public EnumDescriptor(Class<?> type, TypeRepository repo) {
+abstract class UncustomizableValueDescriptor extends ValueDescriptor {
+    UncustomizableValueDescriptor(Class<?> type, TypeRepository repo) {
         super(type, repo);
     }
 
     @Override
-    protected final long getSerialVersionUID() {
-        return 0L;
+    final boolean isExternalizable() { return false; }
+
+    @Override
+    final Optional<Method> getReadObjectMethod() {
+        return Optional.empty();
     }
 
     @Override
-    protected final boolean isEnum() {
-        return true;
+    final Optional<Method> getReadResolveMethod() {
+        return Optional.empty();
     }
 
     @Override
-    ObjectStreamField[] findSerialPersistentFields() {
-        // Use serialPersistentFields mechanism to declare only the name field should be marshalled
-        return SERIAL_PERSISTENT_FIELDS;
+    final Optional<Method> getWriteObjectMethod() {
+        return Optional.empty();
     }
+
+    @Override
+    final Optional<Method> getWriteReplaceMethod() { return Optional.empty(); }
+
+    @Override
+    final Optional<Constructor> getConstructor() { return Optional.empty(); }
 }

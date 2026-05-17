@@ -112,6 +112,8 @@ class ValueDescriptor extends TypeDescriptor {
 
     protected boolean isEnum() { return false; }
 
+    boolean isExternalizable() { return _is_externalizable; }
+
     @Override
     protected final RemoteInterfaceDescriptor genRemoteInterface() {
         return Remote.class.isAssignableFrom(type) ?
@@ -301,7 +303,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private Optional<Constructor> findConstructor() {
         return doPrivileged((PrivilegedAction<Optional<Constructor>>) () -> {
-            if (_is_externalizable) {
+            if (isExternalizable()) {
                 return findExternalizableConstructor();
             } else if (_is_serializable && !type.isInterface()) {
                 return findSerializableConstructor();
@@ -459,7 +461,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     public boolean isCustomMarshalled() {
-        return (_is_externalizable || getWriteObjectMethod().isPresent());
+        return (isExternalizable() || getWriteObjectMethod().isPresent());
     }
 
     public boolean isChunked() {
@@ -551,7 +553,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     protected void writeValue(ObjectWriter writer, Serializable val) throws IOException {
 
-        if (_is_externalizable) {
+        if (isExternalizable()) {
             writer.invokeWriteExternal((Externalizable) val);
             return;
         }
@@ -728,7 +730,7 @@ class ValueDescriptor extends TypeDescriptor {
      * This method reads the fields of a single class slice.
      */
     protected Serializable readValue(ObjectReader reader, Serializable value) throws IOException {
-        if (_is_externalizable) {
+        if (isExternalizable()) {
             try {
                 reader.readExternal((Externalizable) value);
             } catch (ClassNotFoundException e) {
@@ -782,7 +784,7 @@ class ValueDescriptor extends TypeDescriptor {
     protected long computeHashCode() {
         Class type = this.type;
 
-        if (_is_externalizable) {
+        if (isExternalizable()) {
             return 1L;
         }
 

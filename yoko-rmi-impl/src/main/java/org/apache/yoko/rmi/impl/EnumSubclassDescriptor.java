@@ -20,12 +20,9 @@ package org.apache.yoko.rmi.impl;
 import java.io.IOException;
 import java.io.ObjectStreamField;
 import java.io.Serializable;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.util.Map;
-import java.util.Optional;
 
-class EnumSubclassDescriptor extends ValueDescriptor {
+class EnumSubclassDescriptor extends UncustomizableValueDescriptor {
     private static final ObjectStreamField[] SERIAL_PERSISTENT_FIELDS = {};
 
     EnumSubclassDescriptor(Class<?> type, TypeRepository repository) {
@@ -67,39 +64,8 @@ class EnumSubclassDescriptor extends ValueDescriptor {
     }
 
     @Override
-    public final Serializable writeReplace(Serializable val) {
-        // Never allow the honoring of writeReplace on an Enum subclass
-        return val;
-    }
-
-    @Override
     ObjectStreamField[] findSerialPersistentFields() {
         // Enum subclasses have no fields of their own - they delegate to the parent enum
         return SERIAL_PERSISTENT_FIELDS;
-    }
-
-    @Override
-    Optional<Method> getReadObjectMethod() {
-        return Optional.empty();
-    }
-
-    @Override
-    Optional<Method> getReadResolveMethod() {
-        return Optional.empty();
-    }
-
-    @Override
-    Optional<Method> getWriteObjectMethod() {
-        return Optional.empty();
-    }
-
-    @Override
-    Optional<Method> getWriteReplaceMethod() {
-        return Optional.empty();
-    }
-
-    @Override
-    Optional<Constructor> getConstructor() {
-        return Optional.empty();
     }
 }
