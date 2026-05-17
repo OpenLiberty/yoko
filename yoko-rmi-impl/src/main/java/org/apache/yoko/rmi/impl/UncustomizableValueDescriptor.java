@@ -21,7 +21,6 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static java.util.function.Function.identity;
 
@@ -52,7 +51,7 @@ abstract class UncustomizableValueDescriptor extends ValueDescriptor {
     final Function<Serializable, Serializable> getWriteReplacer() { return identity(); }
 
     @Override
-    final Supplier<Serializable> genBlankInstanceSupplier() {
-        return () -> null;
+    final Serializable createBlankInstance() {
+        return null;
     }
 }

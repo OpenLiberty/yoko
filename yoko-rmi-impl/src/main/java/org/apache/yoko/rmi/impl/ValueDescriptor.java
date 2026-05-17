@@ -591,7 +591,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     }
 
-    private Serializable createBlankInstance() {
+    Serializable createBlankInstance() {
         return blankInstanceSupplierRef.get().get();
     }
 
