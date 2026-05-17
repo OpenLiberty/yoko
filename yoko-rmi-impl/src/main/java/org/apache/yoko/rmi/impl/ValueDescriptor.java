@@ -59,6 +59,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 
 import static java.security.AccessController.doPrivileged;
@@ -81,7 +82,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private final LazyReference<Optional<Method>> _read_resolve_method = new LazyReference<>(this::findReadResolveMethod);
 
-    private final LazyReference<Optional<Constructor>> _constructor = new LazyReference<>(this::findConstructor);
+    private final LazyReference<Supplier<Serializable>> blankInstanceSupplierRef = new LazyReference<>(this::genBlankInstanceSupplier);
 
     private final LazyReference<Optional<Method>> _write_object_method = new LazyReference<>(this::findWriteObjectMethod);
 
@@ -290,6 +291,26 @@ class ValueDescriptor extends TypeDescriptor {
         return null;
     }
 
+    Supplier<Serializable> genBlankInstanceSupplier() {
+        return findConstructor()
+                .map(constructor -> (Supplier<Serializable>) () -> {
+                    try {
+                        return (Serializable) constructor.newInstance();
+                    } catch (IllegalAccessException ex) {
+                        throw as(MARSHAL::new, ex, "cannot call " + constructor);
+                    } catch (IllegalArgumentException | InstantiationException ex) {
+                        throw as(MARSHAL::new, ex, ex.getMessage());
+                    } catch (InvocationTargetException ex) {
+                        throw as(UnknownException::new, ex.getTargetException(), ex.getTargetException());
+                    } catch (NullPointerException ex) {
+                        MARSHAL_IN_LOG.log(WARNING, ex, () -> "unable to create instance of " + type.getName());
+                        MARSHAL_IN_LOG.warning(() -> "constructor => " + constructor);
+                        throw ex;
+                    }
+                })
+                .orElse(() -> null);
+    }
+
     private Optional<Constructor> findConstructor() {
         return doPrivileged((PrivilegedAction<Optional<Constructor>>) () -> {
             if (isExternalizable()) {
@@ -477,9 +498,7 @@ class ValueDescriptor extends TypeDescriptor {
         return _serial_version_uid_field.get();
     }
 
-    Optional<Constructor> getConstructor() {
-        return _constructor.get();
-    }
+
 
     public Serializable writeReplace(Serializable val) {
         return getWriteReplaceMethod().map(method -> {
@@ -567,30 +586,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Serializable createBlankInstance() {
-        if (getConstructor().isPresent()) {
-            Constructor constructor = getConstructor().get();
-            try {
-                return (Serializable) constructor.newInstance();
-
-            } catch (IllegalAccessException ex) {
-                throw (MARSHAL) new MARSHAL("cannot call " + constructor).initCause(ex);
-
-            } catch (IllegalArgumentException | InstantiationException ex) {
-                throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-
-            } catch (InvocationTargetException ex) {
-                throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
-
-            } catch (NullPointerException ex) {
-                MARSHAL_IN_LOG.log(WARNING, ex, () -> "unable to create instance of " + type.getName());
-                MARSHAL_IN_LOG.warning(() -> "constructor => " + constructor);
-
-                throw ex;
-            }
-
-        } else {
-            return null;
-        }
+        return blankInstanceSupplierRef.get().get();
     }
 
     public Serializable readValue(final InputStream in, final Map<Integer, Serializable> offsetMap, final Integer offset) {

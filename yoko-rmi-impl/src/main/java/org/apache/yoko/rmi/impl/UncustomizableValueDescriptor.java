@@ -17,9 +17,10 @@
  */
 package org.apache.yoko.rmi.impl;
 
-import java.lang.reflect.Constructor;
+import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 abstract class UncustomizableValueDescriptor extends ValueDescriptor {
     UncustomizableValueDescriptor(Class<?> type, TypeRepository repo) {
@@ -48,5 +49,7 @@ abstract class UncustomizableValueDescriptor extends ValueDescriptor {
     final Optional<Method> getWriteReplaceMethod() { return Optional.empty(); }
 
     @Override
-    final Optional<Constructor> getConstructor() { return Optional.empty(); }
+    final Supplier<Serializable> genBlankInstanceSupplier() {
+        return () -> null;
+    }
 }
