@@ -59,6 +59,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
@@ -66,6 +67,7 @@ import static java.security.AccessController.doPrivileged;
 import static java.util.Arrays.asList;
 import static java.util.Collections.EMPTY_MAP;
 import static java.util.Collections.unmodifiableSet;
+import static java.util.function.Function.identity;
 import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_IN_LOG;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
@@ -80,7 +82,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private final LazyReference<Optional<Method>> _write_replace_method = new LazyReference<>(this::findWriteReplaceMethod);
 
-    private final LazyReference<Optional<Method>> _read_resolve_method = new LazyReference<>(this::findReadResolveMethod);
+    private final LazyReference<Function<Serializable, Serializable>> readResolverRef = new LazyReference<>(this::genReadResolver);
 
     private final LazyReference<Supplier<Serializable>> blankInstanceSupplierRef = new LazyReference<>(this::genBlankInstanceSupplier);
 
@@ -215,8 +217,8 @@ class ValueDescriptor extends TypeDescriptor {
         });
     }
 
-    private Optional<Method> findReadResolveMethod() {
-        return doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
+    private Function<Serializable, Serializable> genReadResolver() {
+        Optional<Method> methodOpt = doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
             try {
                 Method method = type.getDeclaredMethod("readResolve");
                 method.setAccessible(true);
@@ -225,6 +227,18 @@ class ValueDescriptor extends TypeDescriptor {
             }
             return Optional.empty();
         });
+        
+        return methodOpt.map(method -> (Function<Serializable, Serializable>) val -> {
+            try {
+                return (Serializable) method.invoke(val);
+            } catch (IllegalAccessException ex) {
+                throw as(MARSHAL::new, ex, "cannot call " + method);
+            } catch (IllegalArgumentException ex) {
+                throw as(MARSHAL::new, ex, ex.getMessage());
+            } catch (InvocationTargetException ex) {
+                throw as(UnknownException::new, ex.getTargetException(), ex.getTargetException());
+            }
+        }).orElse(identity());
     }
 
     private Optional<Method> findReadObjectMethod() {
@@ -482,8 +496,8 @@ class ValueDescriptor extends TypeDescriptor {
         return _write_replace_method.get();
     }
 
-    Optional<Method> getReadResolveMethod() {
-        return _read_resolve_method.get();
+    Function<Serializable, Serializable> getReadResolver() {
+        return readResolverRef.get();
     }
 
     Optional<Method> getReadObjectMethod() {
@@ -515,17 +529,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     public Serializable readResolve(Serializable val) {
-        return getReadResolveMethod().map(method -> {
-            try {
-                return (Serializable) method.invoke(val);
-            } catch (IllegalAccessException ex) {
-                throw (MARSHAL) new MARSHAL("cannot call " + method).initCause(ex);
-            } catch (IllegalArgumentException ex) {
-                throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-            } catch (InvocationTargetException ex) {
-                throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
-            }
-        }).orElse(val);
+        return getReadResolver().apply(val);
     }
 
     public void writeValue(final OutputStream out, final Serializable value) {

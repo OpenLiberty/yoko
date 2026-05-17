@@ -20,7 +20,10 @@ package org.apache.yoko.rmi.impl;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
+
+import static java.util.function.Function.identity;
 
 abstract class UncustomizableValueDescriptor extends ValueDescriptor {
     UncustomizableValueDescriptor(Class<?> type, TypeRepository repo) {
@@ -36,8 +39,8 @@ abstract class UncustomizableValueDescriptor extends ValueDescriptor {
     }
 
     @Override
-    final Optional<Method> getReadResolveMethod() {
-        return Optional.empty();
+    final Function<Serializable, Serializable> getReadResolver() {
+        return identity();
     }
 
     @Override
