@@ -152,22 +152,11 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     /**
-     * Filters out static and transient fields. This is the base filter that always applies.
+     * Filters out static and transient fields.
      */
     private boolean isSerializableField(Field f) {
         int mod = f.getModifiers();
         return !Modifier.isStatic(mod) && !Modifier.isTransient(mod);
-    }
-
-    /**
-     * Additional filter for fields. Subclasses can override to exclude specific fields
-     * from _fields, FVD, and hash calculation (e.g., EnumDescriptor excludes the ordinal field).
-     *
-     * @param f the field to check
-     * @return true if the field should be included, false otherwise
-     */
-    protected boolean includeField(Field f) {
-        return true;
     }
 
     public void init() {
@@ -389,7 +378,6 @@ class ValueDescriptor extends TypeDescriptor {
     private FieldDescriptor[] buildFieldDescriptorsFromDeclaredFields() {
         return Arrays.stream(type.getDeclaredFields())
                 .filter(this::isSerializableField)
-                .filter(this::includeField)
                 .peek(f -> f.setAccessible(true))
                 .map(f -> FieldDescriptor.get(f, repo))
                 .sorted()
