@@ -92,7 +92,7 @@ final class FVDValueDescriptor extends ValueDescriptor {
     }
 
     @Override
-    protected String genRepId() {
+    String getRepositoryID() {
         return repid;
     }
 

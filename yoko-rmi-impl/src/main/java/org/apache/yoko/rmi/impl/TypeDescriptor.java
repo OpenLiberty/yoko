@@ -131,7 +131,7 @@ abstract class TypeDescriptor extends ModelElement {
     protected String genRepId() {
         return String.format("RMI:%s:%016X", type.getName(), 0);
     }
-    public final String getRepositoryID() {
+    String getRepositoryID() {
         return _repid.get();
     }
 

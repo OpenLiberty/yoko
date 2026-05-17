@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ class FVDEnumSubclassDescriptor extends EnumSubclassDescriptor {
     }
 
     @Override
-    protected String genRepId() {
+    String getRepositoryID() {
         return repid;
     }
 
