@@ -11,6 +11,13 @@ If you're new to this repository and want to use Bob Shell:
    chmod +x scripts/setup-bob-worktrees.sh
    ./scripts/setup-bob-worktrees.sh
    ```
+   
+   **Note:** If you already have a `.bob/` directory that isn't a worktree (e.g., from Bob Shell creating it automatically), the setup script will:
+   - Detect this situation and migrate it to a proper worktree
+   - Back up all existing content to `.bob-migration-backup/`
+   - Create the worktree from the `bob` branch
+   - Restore all your backed up content
+   - Keep the backup for you to verify and remove manually
 
 2. **Start using Bob Shell** - Bob will automatically load team preferences from `.bob/memory/AGENTS.md`
 
