@@ -181,8 +181,9 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
 
     @Override
     void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
-        Object value = readValueByTypeCode(reader);
-        map.put(java_name, value);
+        // Read the value from the stream based on TypeCode, but don't add it to the Map
+        // as it wasn't defined in serialPersistentFields
+        readValueByTypeCode(reader);
     }
 
     @Override
