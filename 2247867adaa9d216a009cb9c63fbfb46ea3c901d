@@ -1,1 +1,16 @@
 {"id":"2cedbcdd-a943-44f3-abbc-807d2ae1aeb5","ts":"2026-05-18T14:26:07.356Z","path":"/Volumes/git/liberty/yoko/scripts/cleanup-bob-worktrees.sh","version":"1.0.0","taskID":"40dd0b93-1ca9-4267-9401-a04db3ce91e4"}
+
+{"id":"c33dd92f-b554-4eb8-81e4-d7fd78d789ec","ts":"2026-05-18T14:23:10.180Z","path":"/Volumes/git/liberty/yoko/scripts/cleanup-bob-worktrees.sh","version":"1.0.0","taskID":"40dd0b93-1ca9-4267-9401-a04db3ce91e4"}
+{"id":"f184f807-f235-4629-b053-1be57922f8a2","ts":"2026-05-18T14:23:17.459Z","path":"/Volumes/git/liberty/yoko/scripts/setup-bob-worktrees.sh","version":"1.0.0","taskID":"40dd0b93-1ca9-4267-9401-a04db3ce91e4"}
+
+{"id":"c5f91605-7b84-4912-8d8f-3a57642e2311","ts":"2026-05-18T14:00:10.550Z","path":"/Volumes/git/liberty/yoko/.gitignore","version":"1.0.0","taskID":"ab3b649c-783c-42ea-b70e-baeb3d0532e5"}
+{"id":"380a981f-c699-4732-a54c-5897d9df70b2","ts":"2026-05-18T14:00:30.747Z","path":"/Volumes/git/liberty/yoko/setup-bob-worktrees.sh","version":"1.0.0","taskID":"ab3b649c-783c-42ea-b70e-baeb3d0532e5"}
+{"id":"e3f086b5-7db3-4555-9692-71c2d953f40b","ts":"2026-05-18T14:00:41.561Z","path":"/Volumes/git/liberty/yoko/cleanup-bob-worktrees.sh","version":"1.0.0","taskID":"ab3b649c-783c-42ea-b70e-baeb3d0532e5"}
+{"id":"8ffac234-63b3-42a6-af6f-10bf59527fca","ts":"2026-05-18T14:01:36.503Z","path":"/Volumes/git/liberty/yoko/AGENTS.md","version":"1.0.0","taskID":"ab3b649c-783c-42ea-b70e-baeb3d0532e5"}
+{"id":"5eeb2030-d743-42d7-a022-042cef314ae8","ts":"2026-05-18T14:03:29.396Z","path":"/Volumes/git/liberty/yoko/AGENTS.md","version":"1.0.0","taskID":"ab3b649c-783c-42ea-b70e-baeb3d0532e5"}
+{"id":"ef5e7069-845c-4a98-9587-644167c1d135","ts":"2026-05-18T14:03:40.402Z","path":"/Volumes/git/liberty/yoko/AGENTS.md","version":"1.0.0","taskID":"ab3b649c-783c-42ea-b70e-baeb3d0532e5"}
+{"id":"8cb9f283-b294-4b28-89a6-444081a84176","ts":"2026-05-18T14:03:51.155Z","path":"/Volumes/git/liberty/yoko/scripts/cleanup-bob-worktrees.sh","version":"1.0.0","taskID":"ab3b649c-783c-42ea-b70e-baeb3d0532e5"}
+{"id":"cdda1ab5-ae3a-4851-bf46-b5b9fe048708","ts":"2026-05-18T14:04:12.567Z","path":"/Volumes/git/liberty/yoko/.gitignore","version":"1.0.0","taskID":"ab3b649c-783c-42ea-b70e-baeb3d0532e5"}
+{"id":"9022ebf0-5155-48dd-8a97-72e9bb6b1a91","ts":"2026-05-18T14:04:19.185Z","path":"/Volumes/git/liberty/yoko/scripts/setup-bob-worktrees.sh","version":"1.0.0","taskID":"ab3b649c-783c-42ea-b70e-baeb3d0532e5"}
+{"id":"4dd5bbf8-3df1-4d10-95bf-1e0eff2afe0e","ts":"2026-05-18T14:04:24.948Z","path":"/Volumes/git/liberty/yoko/scripts/cleanup-bob-worktrees.sh","version":"1.0.0","taskID":"ab3b649c-783c-42ea-b70e-baeb3d0532e5"}
+{"id":"2385197e-570f-4bca-84aa-3766c72d6477","ts":"2026-05-18T14:05:52.018Z","path":"/Volumes/git/liberty/yoko/AGENTS.md","version":"1.0.0","taskID":"ab3b649c-783c-42ea-b70e-baeb3d0532e5"}
