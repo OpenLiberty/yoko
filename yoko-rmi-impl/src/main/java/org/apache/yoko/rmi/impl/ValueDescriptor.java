@@ -234,7 +234,8 @@ class ValueDescriptor extends TypeDescriptor {
             } catch (IllegalArgumentException ex) {
                 throw as(MARSHAL::new, ex, ex.getMessage());
             } catch (InvocationTargetException ex) {
-                throw as(UnknownException::new, ex.getTargetException(), ex.getTargetException());
+                final Throwable t = ex.getTargetException();
+                throw as(UnknownException::new, t, t);
             }
         }).orElse(identity());
     }
@@ -258,7 +259,8 @@ class ValueDescriptor extends TypeDescriptor {
             } catch (IllegalArgumentException ex) {
                 throw as(MARSHAL::new, ex, ex.getMessage());
             } catch (InvocationTargetException ex) {
-                throw as(UnknownException::new, ex.getTargetException(), ex.getTargetException());
+                final Throwable t = ex.getTargetException();
+                throw as(UnknownException::new, t, t);
             }
         }).orElse(identity());
     }
@@ -337,7 +339,8 @@ class ValueDescriptor extends TypeDescriptor {
                     } catch (IllegalArgumentException | InstantiationException ex) {
                         throw as(MARSHAL::new, ex, ex.getMessage());
                     } catch (InvocationTargetException ex) {
-                        throw as(UnknownException::new, ex.getTargetException(), ex.getTargetException());
+                        final Throwable t = ex.getTargetException();
+                        throw as(UnknownException::new, t, t);
                     } catch (NullPointerException ex) {
                         MARSHAL_IN_LOG.log(WARNING, ex, () -> "unable to create instance of " + type.getName());
                         MARSHAL_IN_LOG.warning(() -> "constructor => " + constructor);
@@ -622,7 +625,10 @@ class ValueDescriptor extends TypeDescriptor {
                 } catch (IllegalAccessException | IllegalArgumentException ex) {
                     throw as(MARSHAL::new, ex, ex.getMessage());
                 } catch (InvocationTargetException ex) {
-                    throw as(UnknownException::new, ex.getTargetException(), ex.getTargetException());
+                    final Throwable t = ex.getTargetException();
+                    throw (t instanceof IOException)
+                            ? as(UncheckedIOException::new, t)
+                            : as(UnknownException::new, t, t);
                 } catch (IOException ex) {
                     throw as(UncheckedIOException::new, ex);
                 }
@@ -691,10 +697,35 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         private ValueReader buildDefaultReader() {
+            return getReadObjectMethod()
+                    .map(this::buildDefaultReaderWithReadObject)
+                    .orElseGet(this::buildDefaultReaderWithoutReadObject);
+        }
+
+        private ValueReader buildDefaultReaderWithReadObject(Method readObjectMethod) {
             return (reader, value) -> {
                 Serializable val = getSuperReader().apply(reader, value);
                 try {
-                    readSerializable(reader, val);
+                    reader.setCurrentValueDescriptor(ValueDescriptor.this);
+                    readObjectMethod.invoke(val, reader);
+                    reader.setCurrentValueDescriptor(null);
+                    return val;
+                } catch (IllegalAccessException | IllegalArgumentException ex) {
+                    throw as(MARSHAL::new, ex, ex.getMessage());
+                } catch (InvocationTargetException ex) {
+                    final Throwable t = ex.getTargetException();
+                    throw (t instanceof IOException)
+                            ? as(UncheckedIOException::new, t)
+                            : as(UnknownException::new, t, t);
+                }
+            };
+        }
+
+        private ValueReader buildDefaultReaderWithoutReadObject() {
+            return (reader, value) -> {
+                Serializable val = getSuperReader().apply(reader, value);
+                try {
+                    defaultReadValue(reader, val);
                     return val;
                 } catch (IOException ex) {
                     throw as(UncheckedIOException::new, ex);
@@ -727,7 +758,10 @@ class ValueDescriptor extends TypeDescriptor {
                 } catch (IllegalAccessException | IllegalArgumentException ex) {
                     throw as(MARSHAL::new, ex, ex.getMessage());
                 } catch (InvocationTargetException ex) {
-                    throw as(UnknownException::new, ex.getTargetException(), ex.getTargetException());
+                    final Throwable t = ex.getTargetException();
+                    throw (t instanceof IOException)
+                            ? as(UncheckedIOException::new, t)
+                            : as(UnknownException::new, t, t);
                 } catch (IOException ex) {
                     throw as(UncheckedIOException::new, ex);
                 }
@@ -913,22 +947,7 @@ class ValueDescriptor extends TypeDescriptor {
         }
     }
 
-    private void readSerializable(ObjectReader reader, Serializable value) throws IOException {
-        if (getReadObjectMethod().isPresent()) {
-            Method method = getReadObjectMethod().get();
-            try {
-                reader.setCurrentValueDescriptor(this);
-                method.invoke(value, reader);
-                reader.setCurrentValueDescriptor(null);
-            } catch (IllegalAccessException | IllegalArgumentException ex) {
-                throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-            } catch (InvocationTargetException ex) {
-                throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
-            }
-        } else {
-            defaultReadValue(reader, value);
-        }
-    }
+
 
     protected long computeHashCode() {
         Class type = this.type;
