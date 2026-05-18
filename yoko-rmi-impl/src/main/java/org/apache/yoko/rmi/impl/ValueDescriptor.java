@@ -574,48 +574,78 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private ValueWriter genValueWriter() {
-        return isExternalizable()
-                ? genExternalizableValueWriter()
-                : getWriteObjectMethod()
-                .map(this::genValueWriter)
-                .orElseGet(this::genDefaultValueWriter);
+        return new ValueWriterBuilder().build();
     }
 
-    private ValueWriter genExternalizableValueWriter() {
-        return (writer, val) -> {
-            try {
-                getSuperWriter().accept(writer, val);
-                writer.invokeWriteExternal((Externalizable) val);
-            } catch (IOException ex) {
-                throw as(UncheckedIOException::new, ex);
-            }
-        };
-    }
+    /**
+     * Builder class for creating ValueWriter instances.
+     * Encapsulates the logic for determining the appropriate writer strategy
+     * based on the value descriptor's characteristics.
+     */
+    private class ValueWriterBuilder {
+        private final LazyReference<ValueWriter> superWriterRef = new LazyReference<>(this::genSuperWriter);
 
-    private ValueWriter genDefaultValueWriter() {
-        return (writer, val) -> {
-            try {
-                getSuperWriter().accept(writer, val);
-                defaultWriteValue(writer, val);
-            } catch (IOException ex) {
-                throw as(UncheckedIOException::new, ex);
+        ValueWriter build() {
+            if (isExternalizable()) {
+                return buildExternalizableWriter();
             }
-        };
-    }
+            
+            return getWriteObjectMethod()
+                    .map(this::buildCustomWriter)
+                    .orElseGet(this::buildDefaultWriter);
+        }
 
-    private ValueWriter genValueWriter(Method method) {
-        return (writer, val) -> {
-            try {
-                getSuperWriter().accept(writer, val);
-                writer.invokeWriteObject(this, val, method);
-            } catch (IllegalAccessException | IllegalArgumentException ex) {
-                throw as(MARSHAL::new, ex, ex.getMessage());
-            } catch (InvocationTargetException ex) {
-                throw as(UnknownException::new, ex.getTargetException(), ex.getTargetException());
-            } catch (IOException ex) {
-                throw as(UncheckedIOException::new, ex);
-            }
-        };
+        private ValueWriter buildExternalizableWriter() {
+            return (writer, val) -> {
+                try {
+                    writer.invokeWriteExternal((Externalizable) val);
+                } catch (IOException ex) {
+                    throw as(UncheckedIOException::new, ex);
+                }
+            };
+        }
+
+        private ValueWriter buildDefaultWriter() {
+            return (writer, val) -> {
+                try {
+                    getSuperWriter().accept(writer, val);
+                    defaultWriteValue(writer, val);
+                } catch (IOException ex) {
+                    throw as(UncheckedIOException::new, ex);
+                }
+            };
+        }
+
+        private ValueWriter buildCustomWriter(Method writeObjectMethod) {
+            return (writer, val) -> {
+                try {
+                    getSuperWriter().accept(writer, val);
+                    writer.invokeWriteObject(ValueDescriptor.this, val, writeObjectMethod);
+                } catch (IllegalAccessException | IllegalArgumentException ex) {
+                    throw as(MARSHAL::new, ex, ex.getMessage());
+                } catch (InvocationTargetException ex) {
+                    throw as(UnknownException::new, ex.getTargetException(), ex.getTargetException());
+                } catch (IOException ex) {
+                    throw as(UncheckedIOException::new, ex);
+                }
+            };
+        }
+
+        private ValueWriter getSuperWriter() {
+            return superWriterRef.get();
+        }
+
+        private ValueWriter genSuperWriter() {
+            return (_super_descriptor == null)
+                    ? (writer, val) -> {} // no-op if no super descriptor
+                    : (writer, val) -> {
+                try {
+                    _super_descriptor.writeValue(writer, val);
+                } catch (IOException ex) {
+                    throw as(UncheckedIOException::new, ex);
+                }
+            };
+        }
     }
 
     @FunctionalInterface
@@ -730,24 +760,6 @@ class ValueDescriptor extends TypeDescriptor {
             : getWriteObjectMethod()
                 .map(this::genCustomMarshalValueReader)
                 .orElseGet(this::genDefaultValueReader);
-    }
-
-    private final LazyReference<ValueWriter> superWriterRef = new LazyReference<>(this::genSuperWriter);
-
-    private ValueWriter getSuperWriter() {
-        return superWriterRef.get();
-    }
-
-    private ValueWriter genSuperWriter() {
-        return (_super_descriptor == null)
-                ? (writer, val) -> {} // no-op if no super descriptor
-                : (writer, val) -> {
-            try {
-                _super_descriptor.writeValue(writer, val);
-            } catch (IOException ex) {
-                throw as(UncheckedIOException::new, ex);
-            }
-        };
     }
 
     protected void writeValue(ObjectWriter writer, Serializable val) throws IOException {
