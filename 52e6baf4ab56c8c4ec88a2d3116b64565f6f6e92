@@ -1,1 +1,5 @@
 {"id":"5c2bf3cf-2f56-40f8-a852-b4ddcf573041","ts":"2026-05-18T15:14:35.045Z","path":"/Volumes/git/liberty/yoko/AGENTS.md","version":"1.0.0","taskID":"40dd0b93-1ca9-4267-9401-a04db3ce91e4"}
+
+{"id":"d7158872-d0ae-4ec7-b0b3-4bbcf088ee06","ts":"2026-05-18T14:37:42.842Z","path":"/Volumes/git/liberty/yoko/scripts/setup-bob-worktrees.sh","version":"1.0.0","taskID":"40dd0b93-1ca9-4267-9401-a04db3ce91e4"}
+{"id":"54be79be-92c9-48c8-a392-decdaf916189","ts":"2026-05-18T14:38:04.499Z","path":"/Volumes/git/liberty/yoko/scripts/cleanup-bob-worktrees.sh","version":"1.0.0","taskID":"40dd0b93-1ca9-4267-9401-a04db3ce91e4"}
+{"id":"ea3f2cd3-7cbe-4694-908f-e3520a1fb959","ts":"2026-05-18T14:38:46.411Z","path":"/Volumes/git/liberty/yoko/AGENTS.md","version":"1.0.0","taskID":"40dd0b93-1ca9-4267-9401-a04db3ce91e4"}
