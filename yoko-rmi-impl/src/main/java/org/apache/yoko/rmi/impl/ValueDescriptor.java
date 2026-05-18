@@ -60,6 +60,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -94,6 +95,14 @@ class ValueDescriptor extends TypeDescriptor {
     private final LazyReference<Optional<Field>> _serial_version_uid_field = new LazyReference<>(this::findSerialVersionUIDField);
 
     private final LazyReference<BiConsumer<ObjectWriter, Serializable>> valueWriterRef = new LazyReference<>(this::genValueWriter);
+
+
+    private final LazyReference<ValueReader> valueReaderRef = new LazyReference<>(this::genValueReader);
+
+    private final LazyReference<ValueReader> superReaderRef = new LazyReference<>(this::genSuperReader);
+
+    @FunctionalInterface
+    private interface ValueReader extends BiFunction<ObjectReader, Serializable, Serializable> {}
 
     protected ValueDescriptor _super_descriptor;
 
@@ -617,6 +626,112 @@ class ValueDescriptor extends TypeDescriptor {
         public IOException getCause() { return (IOException)super.getCause(); }
     }
 
+
+    private ValueReader getSuperReader() {
+        return superReaderRef.get();
+    }
+
+    private ValueReader genExternalizableValueReader() {
+        return (reader, value) -> {
+            try {
+                reader.readExternal((Externalizable) value);
+                return value;
+            } catch (ClassNotFoundException e) {
+                throw as(UncheckedIOException::new, new IOException("cannot instantiate class", e));
+            } catch (IOException ex) {
+                throw as(UncheckedIOException::new, ex);
+            }
+        };
+    }
+
+    private ValueReader genSuperReader() {
+        return (_super_descriptor == null)
+            ? (reader, val) -> val
+            : (reader, val) -> {
+                try {
+                    return _super_descriptor.readValue(reader, val);
+                } catch (IOException ex) {
+                    throw as(UncheckedIOException::new, ex);
+                }
+            };
+    }
+
+    private ValueReader genDefaultValueReader() {
+        return (reader, value) -> {
+            Serializable val = getSuperReader().apply(reader, value);
+            try {
+                readSerializable(reader, val);
+                return val;
+            } catch (IOException ex) {
+                throw as(UncheckedIOException::new, ex);
+            }
+        };
+    }
+
+    private ObjectReader wrapIfNeeded(ObjectReader reader, byte cmsfVersion) throws IOException {
+        return (cmsfVersion == 2) ? CustomMarshaledObjectReader.wrap(reader) : reader;
+    }
+
+    private ValueReader genCustomMarshalValueReaderWithReadObject(Method readMethod) {
+        return (reader, value) -> {
+            Serializable val = getSuperReader().apply(reader, value);
+            try {
+                byte cmsfVersion = reader.readByte();
+                boolean dwoCalled = reader.readBoolean();
+                MARSHAL_IN_LOG.log(Level.FINE, "Reading value in streamFormatVersion=" + cmsfVersion + " defaultWriteObject=" + dwoCalled);
+
+                ObjectReader wrappedReader = wrapIfNeeded(reader, cmsfVersion);
+                wrappedReader.setCurrentValueDescriptor(this);
+                readMethod.invoke(val, wrappedReader);
+                wrappedReader.setCurrentValueDescriptor(null);
+                if (wrappedReader != reader) {
+                    wrappedReader.close();
+                }
+                return val;
+            } catch (IllegalAccessException | IllegalArgumentException ex) {
+                throw as(MARSHAL::new, ex, ex.getMessage());
+            } catch (InvocationTargetException ex) {
+                throw as(UnknownException::new, ex.getTargetException(), ex.getTargetException());
+            } catch (IOException ex) {
+                throw as(UncheckedIOException::new, ex);
+            }
+        };
+    }
+
+    private ValueReader genCustomMarshalValueReaderWithoutReadObject() {
+        return (reader, value) -> {
+            Serializable val = getSuperReader().apply(reader, value);
+            try {
+                byte cmsfVersion = reader.readByte();
+                boolean dwoCalled = reader.readBoolean();
+                MARSHAL_IN_LOG.log(Level.FINE, "Reading value in streamFormatVersion=" + cmsfVersion + " defaultWriteObject=" + dwoCalled);
+
+                ObjectReader wrappedReader = wrapIfNeeded(reader, cmsfVersion);
+                defaultReadValue(reader, val);
+                if (wrappedReader != reader) {
+                    wrappedReader.close();
+                }
+                return val;
+            } catch (IOException ex) {
+                throw as(UncheckedIOException::new, ex);
+            }
+        };
+    }
+
+    private ValueReader genCustomMarshalValueReader(Method writeMethod) {
+        return getReadObjectMethod()
+            .map(this::genCustomMarshalValueReaderWithReadObject)
+            .orElseGet(this::genCustomMarshalValueReaderWithoutReadObject);
+    }
+
+    private ValueReader genValueReader() {
+        return isExternalizable()
+            ? genExternalizableValueReader()
+            : getWriteObjectMethod()
+                .map(this::genCustomMarshalValueReader)
+                .orElseGet(this::genDefaultValueReader);
+    }
+
     private final LazyReference<ValueWriter> superWriterRef = new LazyReference<>(this::genSuperWriter);
 
     private ValueWriter getSuperWriter() {
@@ -766,38 +881,11 @@ class ValueDescriptor extends TypeDescriptor {
      * This method reads the fields of a single class slice.
      */
     protected Serializable readValue(ObjectReader reader, Serializable value) throws IOException {
-        if (isExternalizable()) {
-            try {
-                reader.readExternal((Externalizable) value);
-            } catch (ClassNotFoundException e) {
-                throw new IOException("cannot instantiate class", e);
-            }
-            return value;
+        try {
+            return valueReaderRef.get().apply(reader, value);
+        } catch (UncheckedIOException ex) {
+            throw ex.getCause();
         }
-
-        if (_super_descriptor != null) {
-            value = _super_descriptor.readValue(reader, value);
-        }
-
-        // check whether the class (not its ancestors) does any custom marshalling
-        if (getWriteObjectMethod().isPresent()) {
-            // read custom marshalling value header
-            byte cmsfVersion = reader.readByte(); // custom marshal stream format version
-            boolean dwoCalled = reader.readBoolean(); // was defaultWriteObject() called?
-            MARSHAL_IN_LOG.log(Level.FINE, "Reading value in streamFormatVersion=" + cmsfVersion + " defaultWriteObject=" + dwoCalled);
-
-            if (cmsfVersion == 2) {
-                // use a wrapped reader to open the secondary custom valuetype
-                ObjectReader wrapper = CustomMarshaledObjectReader.wrap(reader);
-                readSerializable(getReadObjectMethod().isPresent() ? wrapper : reader, value);
-                // invoke close to skip to the end of the secondary custom valuetype
-                wrapper.close();
-                return value;
-            }
-        }
-
-        readSerializable(reader, value);
-        return value;
     }
 
     private void readSerializable(ObjectReader reader, Serializable value) throws IOException {
