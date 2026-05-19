@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ class AbstractObjectDescriptor extends ValueDescriptor {
     }
 
     @Override
-    protected String genRepId() {
+    String genRepId() {
         return String.format("IDL:%s:1.0", type.getName().replace('.', '/'));
     }
 
@@ -57,9 +57,7 @@ class AbstractObjectDescriptor extends ValueDescriptor {
     }
 
     @Override
-    public long computeHashCode() {
-        return 0L;
-    }
+    long getClassHash() { return 0L; }
 
     @Override
     Object copyObject(Object value, CopyState state) {

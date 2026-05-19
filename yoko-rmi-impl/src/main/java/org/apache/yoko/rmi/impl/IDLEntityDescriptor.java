@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ class IDLEntityDescriptor extends ValueDescriptor {
     }
 
     @Override
-    protected final String genIDLName() {
+    final String genIDLName() {
         return "org_omg_boxedIDL_" + super.genIDLName();
     }
 

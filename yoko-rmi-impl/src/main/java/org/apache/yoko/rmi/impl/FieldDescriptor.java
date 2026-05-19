@@ -88,9 +88,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
     }
 
     @Override
-    protected final String genIDLName() {
-        return java_name;
-    }
+    final String getIDLName() { return java_name; }
 
     ValueMember getValueMember(TypeRepository rep) {
         if (valueMember == null) {

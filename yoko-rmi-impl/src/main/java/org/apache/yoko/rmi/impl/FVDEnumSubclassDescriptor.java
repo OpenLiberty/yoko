@@ -20,8 +20,6 @@ package org.apache.yoko.rmi.impl;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.ValueDefPackage.FullValueDescription;
 
-import java.util.Objects;
-
 class FVDEnumSubclassDescriptor extends EnumSubclassDescriptor {
     private final FullValueDescription fvd;
     private final String repid;
@@ -52,9 +50,7 @@ class FVDEnumSubclassDescriptor extends EnumSubclassDescriptor {
     }
 
     @Override
-    protected final TypeCode genTypeCode() {
-        return fvd.type;
-    }
+    final TypeCode getTypeCode() { return fvd.type; }
 
     @Override
     public boolean isCustomMarshalled() {

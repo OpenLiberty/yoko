@@ -17,19 +17,16 @@
  */
 package org.apache.yoko.rmi.impl;
 
+import org.omg.CORBA.ORB;
+import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA.portable.UnknownException;
+
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.rmi.MarshalException;
 import java.rmi.RemoteException;
 import java.util.logging.Logger;
-import java.util.logging.Level;
-
-import javax.rmi.CORBA.Util;
-
-import org.omg.CORBA.ORB;
-import org.omg.CORBA.portable.OutputStream;
-import org.omg.CORBA.portable.UnknownException;
 
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
@@ -356,7 +353,7 @@ public final class MethodDescriptor extends ModelElement {
     }
 
     @Override
-    protected String genIDLName() {
+    String genIDLName() {
         String idl_name = null;
 
         if (isSetterMethod()) {

@@ -51,6 +51,7 @@ import java.lang.reflect.Modifier;
 import java.rmi.Remote;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -69,9 +70,11 @@ import static java.security.AccessController.doPrivileged;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableSet;
+import static java.util.Comparator.comparing;
 import static java.util.Optional.ofNullable;
 import static java.util.function.Function.identity;
 import static java.util.logging.Level.WARNING;
+import static org.apache.yoko.io.Buffer.createReadBuffer;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_IN_LOG;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_OUT_LOG;
@@ -101,8 +104,6 @@ class ValueDescriptor extends TypeDescriptor {
     private final LazyReference<ValueDescriptor> superDescriptor = new LazyReference<>(this::genSuperDescriptor);
 
     protected final LazyReference<FieldDescriptor[]> fields = new LazyReference<>(this::genFields);
-
-
 
     private final LazyReference<Boolean> immutableValue = new LazyReference<>(this::genImmutableValue);
 
@@ -139,11 +140,11 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     @Override
-    protected String genRepId() {
-        return genRepId(getHashCode());
+    String genRepId() {
+        return genRepId(getClassHash());
     }
 
-    final String genRepId(long hashCode) {
+    private String genRepId(long hashCode) {
         return String.format("RMI:%s:%016X:%016X", convertToValidIDLNames(type.getName()), hashCode, getSerialVersionUID());
     }
 
@@ -187,7 +188,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     ValueDescriptor genSuperDescriptor() {
-        return Optional.ofNullable(type.getSuperclass())
+        return ofNullable(type.getSuperclass())
                 .filter(sc -> sc != Object.class)
                 .map(repo::getDescriptor)
                 .filter(ValueDescriptor.class::isInstance)
@@ -200,7 +201,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private ValueReader genSuperReader() {
-        return Optional.ofNullable(getSuperDescriptor())
+        return ofNullable(getSuperDescriptor())
                 .map(this::createSuperValueReader)
                 .orElse((reader, val) -> val);
     }
@@ -250,8 +251,8 @@ class ValueDescriptor extends TypeDescriptor {
                 method.setAccessible(true);
                 return Optional.of(method);
             } catch (NoSuchMethodException ignored) {
+                return Optional.empty();
             }
-            return Optional.empty();
         });
         
         return methodOpt.map(method -> (Function<Serializable, Serializable>) val -> {
@@ -282,8 +283,8 @@ class ValueDescriptor extends TypeDescriptor {
                 method.setAccessible(true);
                 return Optional.of(method);
             } catch (NoSuchMethodException ignored) {
+                return Optional.empty();
             }
-            return Optional.empty();
         });
     }
 
@@ -303,8 +304,8 @@ class ValueDescriptor extends TypeDescriptor {
                 method.setAccessible(true);
                 return Optional.of(method);
             } catch (NoSuchMethodException ignored) {
+                return Optional.empty();
             }
-            return Optional.empty();
         });
     }
 
@@ -316,9 +317,10 @@ class ValueDescriptor extends TypeDescriptor {
                     field.setAccessible(true);
                     return Optional.of(field);
                 }
+                return Optional.empty();
             } catch (NoSuchFieldException ignored) {
+                return Optional.empty();
             }
-            return Optional.empty();
         });
     }
 
@@ -328,8 +330,8 @@ class ValueDescriptor extends TypeDescriptor {
             field.setAccessible(true);
             return (ObjectStreamField[]) field.get(null);
         } catch (IllegalAccessException | NoSuchFieldException ignored) {
+            return null;
         }
-        return null;
     }
 
     Supplier<Serializable> genBlankInstanceSupplier() {
@@ -407,7 +409,7 @@ class ValueDescriptor extends TypeDescriptor {
             MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName() 
                     + " is not properly serializable. First non-serializable super-class (" 
                     + initClass.getName() + ") has no default constructor.");
-            return null;
+            return Optional.empty();
         }
     }
 
@@ -512,7 +514,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     public boolean isChunked() {
         if (isCustomMarshalled()) return true;
-        return Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::isChunked).orElse(false);
+        return ofNullable(getSuperDescriptor()).map(ValueDescriptor::isChunked).orElse(false);
     }
 
     Function<Serializable, Serializable> getWriteReplacer() {
@@ -681,7 +683,7 @@ class ValueDescriptor extends TypeDescriptor {
             
             return getWriteObjectMethod()
                     .map(this::buildCustomMarshalReader)
-                    .orElseGet(this::buildDefaultReader);
+                    .orElseGet(this::buildSimpleReader);
         }
 
         private ValueReader buildExternalizableReader() {
@@ -697,13 +699,13 @@ class ValueDescriptor extends TypeDescriptor {
             };
         }
 
-        private ValueReader buildDefaultReader() {
+        private ValueReader buildSimpleReader() {
             return getReadObjectMethod()
-                    .map(this::buildDefaultReaderWithReadObject)
-                    .orElseGet(this::buildDefaultReaderWithoutReadObject);
+                    .map(this::buildReader)
+                    .orElseGet(this::buildDefaultReader);
         }
 
-        private ValueReader buildDefaultReaderWithReadObject(Method readObjectMethod) {
+        private ValueReader buildReader(Method readObjectMethod) {
             return (reader, value) -> {
                 Serializable val = getSuperReader().apply(reader, value);
                 try {
@@ -722,7 +724,7 @@ class ValueDescriptor extends TypeDescriptor {
             };
         }
 
-        private ValueReader buildDefaultReaderWithoutReadObject() {
+        private ValueReader buildDefaultReader() {
             return (reader, value) -> {
                 Serializable val = getSuperReader().apply(reader, value);
                 try {
@@ -734,7 +736,7 @@ class ValueDescriptor extends TypeDescriptor {
             };
         }
 
-        private ValueReader buildCustomMarshalReader(Method writeObjectMethod) {
+        private ValueReader buildCustomMarshalReader(Method ignored) {
             return getReadObjectMethod()
                     .map(this::buildCustomMarshalReaderWithReadObject)
                     .orElseGet(this::buildCustomMarshalReaderWithoutReadObject);
@@ -944,77 +946,80 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
 
+    private static final Comparator<FieldDescriptor> compareByName = comparing(f -> f.java_name);
 
-    protected long computeHashCode() {
-        Class type = this.type;
-
-        if (isExternalizable()) {
-            return 1L;
-        }
-
-        if (!Serializable.class.isAssignableFrom(type)) {
-            return 0;
-        }
-
-        long hash = 0L;
-        try {
-            ByteArrayOutputStream barr = new ByteArrayOutputStream(512);
-            MessageDigest md = MessageDigest.getInstance("SHA");
-            DigestOutputStream digestout = new DigestOutputStream(barr, md);
-            DataOutputStream out = new DataOutputStream(digestout);
-
-            Class superType = type.getSuperclass();
-            if (superType != null) {
-                TypeDescriptor desc = repo.getDescriptor(superType);
-                out.writeLong(desc.getHashCode());
-            }
-
-            out.writeInt(getWriteObjectMethod().isPresent() ? 2 : 1);
-
-            FieldDescriptor[] fields = getFields();
-
-            FieldDescriptor[] fds = new FieldDescriptor[fields.length];
-            System.arraycopy(fields, 0, fds, 0, fields.length);
-
-            if (fds.length > 1)
-                Arrays.sort(fds, compareByName);
-
-            for (FieldDescriptor f : fds) {
-                out.writeUTF(f.java_name);
-                out.writeUTF(makeSignature(f.getType()));
-            }
-
-            /*
-             * Field[] fields = type.getDeclaredFields (); if (fields.length >
-             * 1) java.util.Arrays.sort (fields, compareByName); for(int i = 0;
-             * i < fields.length; i++) { Field f = fields[i]; int mod =
-             * f.getModifiers (); if (!Modifier.isTransient(mod) &&
-             * !Modifier.isStatic (mod)) { out.writeUTF(f.getName());
-             * out.writeUTF( makeSignature (f.getType ())); } }
-             */
-
-            out.flush();
-
-            byte[] data = md.digest();
-            int end = Math.min(8, data.length);
-            for (int j = 0; j < end; j++) {
-                hash += (long) (data[j] & 0xff) << (j * 8);
-            }
-        } catch (Exception ex) {
-            throw new RuntimeException("cannot compute RMI hash code", ex);
-        }
-
-        return hash;
-    }
-
-    private static final Comparator<FieldDescriptor> compareByName = Comparator.comparing(f -> f.java_name);
-
-    long getHashCode() {
+    long getClassHash() {
         return classHash.get();
     }
 
     private long genClassHash() {
-        return doPrivileged((PrivilegedAction<Long>) this::computeHashCode);
+        return new ClassHashBuilder().build();
+    }
+
+    /**
+     * Builder class for computing the RMI class hash.
+     * Encapsulates the logic for generating a hash code based on class structure,
+     * following the RMI serialization specification.
+     */
+    private class ClassHashBuilder {
+        long build() {
+            if (isExternalizable()) return 1L;
+            if (!isSerializable()) return 0L;
+
+            try {
+                return computeHash();
+            } catch (NoSuchAlgorithmException | IOException ex) {
+                throw new RuntimeException("cannot compute RMI hash code", ex);
+            } catch (UncheckedIOException ex) {
+                throw new RuntimeException("cannot compute RMI hash code", ex.getCause());
+            }
+        }
+
+        private long computeHash() throws NoSuchAlgorithmException, IOException {
+            MessageDigest digest = MessageDigest.getInstance("SHA");
+            try (DataOutputStream out = new DataOutputStream(
+                    new DigestOutputStream(new ByteArrayOutputStream(512), digest))) {
+
+                writeSuperClassHash(out);
+                writeCustomMarshalFlag(out);
+                writeFieldSignatures(out);
+
+                out.flush();
+            }
+
+            byte[] data = digest.digest();
+            return createReadBuffer(data.length < 8 ? Arrays.copyOf(data, 8) : data).readLong_LE();
+        }
+
+        private void writeSuperClassHash(DataOutputStream out) {
+            ofNullable(type.getSuperclass())
+                    .map(repo::getDescriptor)
+                    .map(TypeDescriptor::getClassHash)
+                    .ifPresent(hash -> {
+                        try {
+                            out.writeLong(hash);
+                        } catch (IOException e) {
+                            throw as(UncheckedIOException::new, e);
+                        }
+                    });
+        }
+
+        private void writeCustomMarshalFlag(DataOutputStream out) throws IOException {
+            out.writeInt(getWriteObjectMethod().isPresent() ? 2 : 1);
+        }
+
+        private void writeFieldSignatures(DataOutputStream out) {
+            Arrays.stream(getFields())
+                    .sorted(compareByName)
+                    .forEach(field -> {
+                        try {
+                            out.writeUTF(field.java_name);
+                            out.writeUTF(makeSignature(field.getType()));
+                        } catch (IOException e) {
+                            throw as(UncheckedIOException::new, e);
+                        }
+                    });
+        }
     }
 
     private final LazyReference<ValueMember[]> valueMembers = new LazyReference<>(this::genValueMembers);
@@ -1033,9 +1038,7 @@ class ValueDescriptor extends TypeDescriptor {
     @Override
     protected TypeCode genTypeCode() {
         ORB orb = ORB.init();
-        setTypeCode(orb.create_recursive_tc(getRepositoryID()));
-
-        TypeCode _base = Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::getTypeCode).orElse(null);
+        TypeCode _base = ofNullable(getSuperDescriptor()).map(ValueDescriptor::getTypeCode).orElse(null);
 
         TypeCode tc;
         if (type.isArray()) {
@@ -1070,7 +1073,7 @@ class ValueDescriptor extends TypeDescriptor {
         fvd.supported_interfaces = ZERO_STRINGS;
         fvd.abstract_base_values = ZERO_STRINGS;
         fvd.is_truncatable = false;
-        fvd.base_value = Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::getRepositoryID).orElse("");
+        fvd.base_value = ofNullable(getSuperDescriptor()).map(ValueDescriptor::getRepositoryID).orElse("");
         fvd.type = getTypeCode();
         return fvd;
     }

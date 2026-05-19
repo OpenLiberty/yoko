@@ -39,8 +39,8 @@ abstract class ModelElement {
     protected void init() { }
 
     private final LazyReference<String> idlName = new LazyReference<>(this::genIDLName);
-    protected abstract String genIDLName();
-    public final String getIDLName() {
+    String genIDLName() { throw new UnsupportedOperationException(); }
+    String getIDLName() {
         return idlName.get();
     }
 }

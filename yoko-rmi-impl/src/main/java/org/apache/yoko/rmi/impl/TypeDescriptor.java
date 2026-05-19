@@ -18,6 +18,7 @@
 package org.apache.yoko.rmi.impl;
 
 import org.apache.yoko.util.concurrent.LazyReference;
+import org.omg.CORBA.ORB;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
@@ -37,20 +38,20 @@ abstract class TypeDescriptor extends ModelElement {
     private final LazyReference<String> _repid = new LazyReference<>(this::genRepId);
 
     private final LazyReference<String> packageName = new LazyReference<>(this::genPackageName);
-    protected String genPackageName() {
+    private String genPackageName() {
         int idx = java_name.lastIndexOf('.');
         return ((idx < 0) ? "" : java_name.substring(0, idx));
     }
-    public final String getPackageName() {
+    String getPackageName() {
         return packageName.get();
     }
 
     private final LazyReference<String> typeName = new LazyReference<>(this::genTypeName);
-    protected String genTypeName() {
+    private String genTypeName() {
         int idx = java_name.lastIndexOf('.');
         return ((idx < 0) ? java_name : java_name.substring(idx + 1));
     }
-    public final String getTypeName() {
+    String getTypeName() {
         return typeName.get();
     }
 
@@ -124,11 +125,11 @@ abstract class TypeDescriptor extends ModelElement {
     }
 
     @Override
-    protected String genIDLName() {
+    String genIDLName() {
         return java_name.replace('.', '_');
     }
 
-    protected String genRepId() {
+    String genRepId() {
         return String.format("RMI:%s:%016X", type.getName(), 0);
     }
     String getRepositoryID() {
@@ -155,50 +156,46 @@ abstract class TypeDescriptor extends ModelElement {
         return false;
     }
 
-    String makeSignature(Class type) {
-        if (type.isPrimitive()) {
-
-            if (type == Boolean.TYPE) {
-                return "Z";
-            } else if (type == Byte.TYPE) {
-                return "B";
-            } else if (type == Short.TYPE) {
-                return "S";
-            } else if (type == Character.TYPE) {
-                return "C";
-            } else if (type == Integer.TYPE) {
-                return "I";
-            } else if (type == Long.TYPE) {
-                return "J";
-            } else if (type == Float.TYPE) {
-                return "F";
-            } else if (type == Double.TYPE) {
-                return "D";
-            } else if (type == Void.TYPE) {
-                return "V";
-            } else
-                throw new RuntimeException("unknown primitive class" + type);
-
-        } else if (type.isArray()) {
-            int i = 0;
-            Class elem = type;
-            for (; elem.isArray(); elem = elem.getComponentType())
-                i += 1;
-
-            StringBuffer sb = new StringBuffer();
-            for (int j = 0; j < i; j++)
-                sb.append('[');
-
-            sb.append(makeSignature(elem));
-
-            return sb.toString();
-        } else {
-            return "L" + (type.getName()).replace('.', '/') + ";";
-        }
+    long getClassHash() {
+        return 0L;
     }
 
-    long getHashCode() {
-        return 0L;
+    /**
+     * Creates a JVM signature string for the given type.
+     * Used for computing RMI hash codes and method signatures.
+     *
+     * @param type the class to create a signature for
+     * @return the JVM signature string (e.g., "I" for int, "Ljava/lang/String;" for String)
+     */
+    static String makeSignature(Class<?> type) {
+        if (type.isPrimitive()) {
+            // Use switch for better readability and performance
+            if (boolean.class == type) return "Z";
+            if (byte.class == type) return "B";
+            if (short.class == type) return "S";
+            if (char.class == type) return "C";
+            if (int.class == type) return "I";
+            if (long.class == type) return "J";
+            if (float.class == type) return "F";
+            if (double.class == type) return "D";
+            if (void.class == type) return "V";
+            throw new RuntimeException("unknown primitive class: " + type);
+        }
+
+        if (type.isArray()) {
+            // Build signature while traversing to component type
+            StringBuilder sb = new StringBuilder();
+            Class<?> componentType = type;
+            while (componentType.isArray()) {
+                sb.append('[');
+                componentType = componentType.getComponentType();
+            }
+            sb.append(makeSignature(componentType));
+            return sb.toString();
+        }
+
+        // Object type signature
+        return "L" + type.getName().replace('.', '/') + ";";
     }
 
     @Override
@@ -206,19 +203,13 @@ abstract class TypeDescriptor extends ModelElement {
         getTypeCode();
     }
 
-    private volatile TypeCode typeCode = null;
+    private final LazyReference<TypeCode> typeCode = new LazyReference<>((p) -> this.genTypeCode(), this::genTypeCodePlaceholder);
     protected abstract TypeCode genTypeCode();
-    final TypeCode getTypeCode() {
-        if (null == typeCode) {
-            synchronized (repo) {
-                if (null == typeCode) typeCode = genTypeCode();
-            }
-        }
-        return typeCode;
+    TypeCode genTypeCodePlaceholder() {
+        ORB orb = ORB.init();
+        return orb.create_recursive_tc(getRepositoryID());
     }
-    protected final void setTypeCode(TypeCode tc) {
-        typeCode = tc;
-    }
+    TypeCode getTypeCode() { return typeCode.get(); }
 
     Object copyObject(Object value, CopyState state) {
         throw new InternalError("cannot copy " + value.getClass().getName());

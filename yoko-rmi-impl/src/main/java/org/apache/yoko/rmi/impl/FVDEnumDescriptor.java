@@ -50,9 +50,7 @@ class FVDEnumDescriptor extends EnumDescriptor {
     }
 
     @Override
-    protected TypeCode genTypeCode() {
-        return fvd.type;
-    }
+    TypeCode getTypeCode() { return fvd.type; }
 
     @Override
     public boolean isCustomMarshalled() {

@@ -38,8 +38,6 @@ import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static java.util.stream.IntStream.range;
 import static javax.rmi.CORBA.Util.writeAny;
@@ -73,7 +71,7 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
     }
 
     @Override
-    protected String genRepId() {
+    String genRepId() {
         if (elementType.isPrimitive() || elementType == Object.class)
             return String.format("RMI:%s:%016X", type.getName(), 0);
 
@@ -99,7 +97,7 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
     }
 
     @Override
-    protected final String genIDLName() {
+    final String genIDLName() {
         StringBuffer sb = new StringBuffer("org_omg_boxedRMI_");
 
         TypeDescriptor desc = repo.getDescriptor(basicType);

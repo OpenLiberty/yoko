@@ -94,9 +94,7 @@ final class FVDValueDescriptor extends ValueDescriptor {
     }
 
     @Override
-    protected final TypeCode genTypeCode() {
-        return fvd.type;
-    }
+    TypeCode getTypeCode() { return fvd.type; }
 
     @Override
     public boolean isCustomMarshalled() {
