@@ -46,12 +46,12 @@ class RMIStubDescriptor extends ValueDescriptor {
     @Override
     protected void writeValue(ObjectWriter writer, java.io.Serializable val)
             throws IOException {
-        _super_descriptor.writeValue(writer, val);
+        getSuperDescriptor().writeValue(writer, val);
     }
 
     @Override
     protected Serializable readValue(ObjectReader reader, java.io.Serializable value)
             throws IOException {
-        return _super_descriptor.readValue(reader, value);
+        return getSuperDescriptor().readValue(reader, value);
     }
 }

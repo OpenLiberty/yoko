@@ -47,14 +47,14 @@ class EnumSubclassDescriptor extends UncustomizableValueDescriptor {
 
     @Override
     protected Serializable readValue(ObjectReader reader, Serializable val) throws IOException {
-        Map<String,Object> fields = _super_descriptor.readFields(reader);
+        Map<String,Object> fields = getSuperDescriptor().readFields(reader);
         return Enum.valueOf(type, (String)fields.get("name"));
     }
 
     @Override
     protected final void writeValue(ObjectWriter writer, Serializable val) throws IOException {
         // Don't write out any fields in the Enum subclass
-        _super_descriptor.writeValue(writer, val);
+        getSuperDescriptor().writeValue(writer, val);
     }
 
     @Override

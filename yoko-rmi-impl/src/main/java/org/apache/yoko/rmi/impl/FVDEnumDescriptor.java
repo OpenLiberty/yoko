@@ -23,15 +23,20 @@ import org.omg.CORBA.ValueDefPackage.FullValueDescription;
 class FVDEnumDescriptor extends EnumDescriptor {
     private final FullValueDescription fvd;
     private final String repid;
+    private final ValueDescriptor superDesc;
 
     FVDEnumDescriptor(FullValueDescription fvd, Class clazz, TypeRepository rep, String repid, ValueDescriptor super_desc) {
         super(clazz, rep);
         this.fvd = fvd;
         this.repid = repid;
+        this.superDesc = super_desc;
 
         init();
+    }
 
-        _super_descriptor = super_desc;
+    @Override
+    ValueDescriptor getSuperDescriptor() {
+        return superDesc;
     }
 
     @Override

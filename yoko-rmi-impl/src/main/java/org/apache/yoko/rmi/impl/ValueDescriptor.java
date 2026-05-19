@@ -80,10 +80,6 @@ import static org.apache.yoko.rmi.util.StringUtil.convertToValidIDLNames;
 import static org.apache.yoko.util.Exceptions.as;
 
 class ValueDescriptor extends TypeDescriptor {
-    private boolean _is_externalizable;
-
-    private boolean _is_serializable;
-
     private final LazyReference<Function<Serializable, Serializable>> writeReplacerRef = new LazyReference<>(this::genWriteReplacer);
 
     private final LazyReference<Function<Serializable, Serializable>> readResolverRef = new LazyReference<>(this::genReadResolver);
@@ -96,30 +92,26 @@ class ValueDescriptor extends TypeDescriptor {
 
     private final LazyReference<Optional<Field>> _serial_version_uid_field = new LazyReference<>(this::findSerialVersionUIDField);
 
-    private final LazyReference<BiConsumer<ObjectWriter, Serializable>> valueWriterRef = new LazyReference<>(this::genValueWriter);
-
-
+    private final LazyReference<ValueWriter> valueWriterRef = new LazyReference<>(this::genValueWriter);
     private final LazyReference<ValueReader> valueReaderRef = new LazyReference<>(this::genValueReader);
 
     @FunctionalInterface
     private interface ValueReader extends BiFunction<ObjectReader, Serializable, Serializable> {}
 
-    protected ValueDescriptor _super_descriptor;
+    private final LazyReference<ValueDescriptor> superDescriptor = new LazyReference<>(this::genSuperDescriptor);
 
-    protected FieldDescriptor[] _fields;
+    protected final LazyReference<FieldDescriptor[]> fields = new LazyReference<>(this::genFields);
 
 
 
-    private boolean _is_immutable_value;
+    private final LazyReference<Boolean> immutableValue = new LazyReference<>(this::genImmutableValue);
 
-    private boolean _is_rmi_stub;
+    private final LazyReference<String> customRepId = new LazyReference<>(this::genCustomRepId);
 
-    private final LazyReference<String> _custom_repid = new LazyReference<>(this::genCustomRepId);
-
-    private static final Set<? extends Class<? extends Serializable>> _immutable_value_classes = unmodifiableSet(new HashSet<>(asList(Integer.class,
+    private static final Set<? extends Class<? extends Serializable>> IMMUTABLE_VALUE_CLASSES = unmodifiableSet(new HashSet<>(asList(Integer.class,
             Character.class, Boolean.class, Byte.class, Long.class, Float.class, Double.class, Short.class)));
 
-    private long _hash_code;
+    private final LazyReference<Long> classHash = new LazyReference<>(this::genClassHash);
 
     ValueDescriptor(Class type, TypeRepository repository) {
         super(type, repository);
@@ -127,7 +119,17 @@ class ValueDescriptor extends TypeDescriptor {
 
     protected boolean isEnum() { return false; }
 
-    boolean isExternalizable() { return _is_externalizable; }
+    boolean isExternalizable() { return Externalizable.class.isAssignableFrom(type); }
+
+    boolean isSerializable() { return Serializable.class.isAssignableFrom(type); }
+
+    boolean isRmiStub() { return RMIStub.class.isAssignableFrom(type); }
+
+    boolean isImmutableValue() { return immutableValue.get(); }
+
+    private boolean genImmutableValue() {
+        return IMMUTABLE_VALUE_CLASSES.contains(type);
+    }
 
     @Override
     protected final RemoteInterfaceDescriptor genRemoteInterface() {
@@ -138,7 +140,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     @Override
     protected String genRepId() {
-        return genRepId(_hash_code);
+        return genRepId(getHashCode());
     }
 
     final String genRepId(long hashCode) {
@@ -150,7 +152,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     public final String getCustomRepositoryID() {
-        return _custom_repid.get();
+        return customRepId.get();
     }
 
     protected long getSerialVersionUID() {
@@ -176,13 +178,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     public void init() {
         try {
-            init0();
             super.init();
-
-            if (_fields == null) {
-                throw new RuntimeException("fields==null after init!");
-            }
-
         } catch (INTERNAL internal) {
             throw internal;
         } catch (RuntimeException | Error ex) {
@@ -190,30 +186,35 @@ class ValueDescriptor extends TypeDescriptor {
         }
     }
 
-    private void init0() {
-        final Class<?> superClass = type.getSuperclass();
-
-        _is_rmi_stub = RMIStub.class.isAssignableFrom(type);
-        _is_externalizable = Externalizable.class.isAssignableFrom(type);
-        _is_serializable = Serializable.class.isAssignableFrom(type);
-
-        _is_immutable_value = _immutable_value_classes.contains(type);
-
-        if ((superClass != null) && (superClass != Object.class)) {
-            TypeDescriptor superDesc = repo.getDescriptor(superClass);
-
-            if (superDesc instanceof ValueDescriptor) {
-                _super_descriptor = (ValueDescriptor) superDesc;
-            }
-
-        }
-
-        doPrivileged((PrivilegedAction<Object>) () -> {
-            _fields = buildFieldDescriptors();
-            _hash_code = computeHashCode();
-            return null;
-        });
+    ValueDescriptor genSuperDescriptor() {
+        return Optional.ofNullable(type.getSuperclass())
+                .filter(sc -> sc != Object.class)
+                .map(repo::getDescriptor)
+                .filter(ValueDescriptor.class::isInstance)
+                .map(ValueDescriptor.class::cast)
+                .orElse(null);
     }
+
+    ValueDescriptor getSuperDescriptor() {
+        return superDescriptor.get();
+    }
+
+    private ValueReader genSuperReader() {
+        return Optional.ofNullable(getSuperDescriptor())
+                .map(this::createSuperValueReader)
+                .orElse((reader, val) -> val);
+    }
+
+    private ValueReader createSuperValueReader(ValueDescriptor superDesc) {
+        return (reader, val) -> {
+            try {
+                return superDesc.readValue(reader, val);
+            } catch (IOException ex) {
+                throw as(UncheckedIOException::new, ex);
+            }
+        };
+    }
+
 
     private Function<Serializable, Serializable> genWriteReplacer() {
         Optional<Method> methodOpt = doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
@@ -356,7 +357,7 @@ class ValueDescriptor extends TypeDescriptor {
         return doPrivileged((PrivilegedAction<Optional<Constructor>>) () -> {
             if (isExternalizable()) {
                 return findExternalizableConstructor();
-            } else if (_is_serializable && !type.isInterface()) {
+            } else if (isSerializable() && !type.isInterface()) {
                 return findSerializableConstructor();
             }
             return Optional.empty();
@@ -426,8 +427,16 @@ class ValueDescriptor extends TypeDescriptor {
         return true;
     }
 
+    protected FieldDescriptor[] getFields() {
+        return fields.get();
+    }
+
+    FieldDescriptor[] genFields() {
+        return doPrivileged((PrivilegedAction<FieldDescriptor[]>) this::buildFieldDescriptors);
+    }
+
     private FieldDescriptor[] buildFieldDescriptors() {
-        if (!_is_serializable) return FieldDescriptor.EMPTY_ARRAY;
+        if (!isSerializable()) return FieldDescriptor.EMPTY_ARRAY;
 
         return ofNullable(findSerialPersistentFields())
                 .map(this::buildFieldDescriptorsFromSerialPersistentFields)
@@ -503,7 +512,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     public boolean isChunked() {
         if (isCustomMarshalled()) return true;
-        return (_super_descriptor != null) && _super_descriptor.isChunked();
+        return Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::isChunked).orElse(false);
     }
 
     Function<Serializable, Serializable> getWriteReplacer() {
@@ -555,9 +564,11 @@ class ValueDescriptor extends TypeDescriptor {
     protected void defaultWriteValue(ObjectWriter writer, Serializable val) throws IOException {
         MARSHAL_OUT_LOG.finer(() -> "writing fields for " + type);
 
-        if (_fields == null) return;
+        FieldDescriptor[] fields = getFields();
 
-        for (FieldDescriptor field : _fields) {
+        if (fields == null) return;
+
+        for (FieldDescriptor field : fields) {
             MARSHAL_OUT_LOG.finer(() -> "writing field " + field.java_name);
             field.write(writer, val);
         }
@@ -629,11 +640,12 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         private ValueWriter genSuperWriter() {
-            return (_super_descriptor == null)
+            ValueDescriptor superDesc = getSuperDescriptor();
+            return (superDesc == null)
                     ? (writer, val) -> {} // no-op if no super descriptor
                     : (writer, val) -> {
                 try {
-                    _super_descriptor.writeValue(writer, val);
+                    superDesc.writeValue(writer, val);
                 } catch (IOException ex) {
                     throw as(UncheckedIOException::new, ex);
                 }
@@ -660,7 +672,7 @@ class ValueDescriptor extends TypeDescriptor {
      * based on the value descriptor's characteristics.
      */
     private class ValueReaderBuilder {
-        private final LazyReference<ValueReader> superReaderRef = new LazyReference<>(this::genSuperReader);
+        private final LazyReference<ValueReader> superReaderRef = new LazyReference<>(ValueDescriptor.this::genSuperReader);
 
         ValueReader build() {
             if (isExternalizable()) {
@@ -781,18 +793,6 @@ class ValueDescriptor extends TypeDescriptor {
             return superReaderRef.get();
         }
 
-        private ValueReader genSuperReader() {
-            return (_super_descriptor == null)
-                    ? (reader, val) -> val
-                    : (reader, val) -> {
-                try {
-                    return _super_descriptor.readValue(reader, val);
-                } catch (IOException ex) {
-                    throw as(UncheckedIOException::new, ex);
-                }
-            };
-        }
-
         private ObjectReader wrapIfNeeded(ObjectReader reader, byte cmsfVersion) throws IOException {
             return (cmsfVersion == 2) ? CustomMarshaledObjectReader.wrap(reader) : reader;
         }
@@ -857,29 +857,34 @@ class ValueDescriptor extends TypeDescriptor {
     void printFields(PrintWriter pw, Map recurse, Object val) {
         pw.print("(" + getClass().getName() + ")");
 
-        if (_super_descriptor != null) {
-            _super_descriptor.printFields(pw, recurse, val);
+        ValueDescriptor superDesc = getSuperDescriptor();
+
+        if (superDesc != null) {
+            superDesc.printFields(pw, recurse, val);
         }
 
-        if (_fields == null)
+        FieldDescriptor[] fields = getFields();
+
+        if (fields == null)
             return;
 
-        for (int i = 0; i < _fields.length; i++) {
+        for (int i = 0; i < fields.length; i++) {
             if (i != 0) {
                 pw.print("; ");
             }
 
-            _fields[i].print(pw, recurse, val);
+            fields[i].print(pw, recurse, val);
         }
 
     }
 
     void defaultReadValue(ObjectReader reader, Serializable value) throws IOException {
-        if (null == _fields) return;
+        FieldDescriptor[] fields = getFields();
+        if (null == fields) return;
 
         MARSHAL_IN_LOG.fine(() -> "reading fields for " + type.getName());
 
-        for (FieldDescriptor _field : _fields) {
+        for (FieldDescriptor _field : fields) {
             MARSHAL_IN_LOG.fine(() -> "reading field " + _field.java_name + " of type " + _field.getType().getName() + " using " + _field.getClass().getName());
 
             try {
@@ -895,7 +900,8 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     Map<String, Object> readFields(ObjectReader reader) throws IOException {
-        if ((_fields == null) || (_fields.length == 0)) {
+        FieldDescriptor[] fields = getFields();
+        if ((fields == null) || (fields.length == 0)) {
             return emptyMap();
         }
 
@@ -903,7 +909,7 @@ class ValueDescriptor extends TypeDescriptor {
 
         Map<String, Object> map = new HashMap<>();
 
-        for (FieldDescriptor _field : _fields) {
+        for (FieldDescriptor _field : fields) {
             MARSHAL_IN_LOG.finer(() -> "reading field " + _field.java_name);
             _field.readFieldIntoMap(reader, map);
         }
@@ -912,13 +918,14 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     void writeFields(ObjectWriter writer, Map<String, Object> fieldMap) throws IOException {
-        if ((_fields == null) || (_fields.length == 0)) {
+        FieldDescriptor[] fields = getFields();
+        if ((fields == null) || (fields.length == 0)) {
             return;
         }
 
         MARSHAL_OUT_LOG.finer(() -> "writing fields for " + type.getName());
 
-        for (FieldDescriptor _field : _fields) {
+        for (FieldDescriptor _field : fields) {
             MARSHAL_OUT_LOG.finer(() -> "writing field " + _field.java_name);
             _field.writeFieldFromMap(writer, fieldMap);
         }
@@ -964,8 +971,10 @@ class ValueDescriptor extends TypeDescriptor {
 
             out.writeInt(getWriteObjectMethod().isPresent() ? 2 : 1);
 
-            FieldDescriptor[] fds = new FieldDescriptor[_fields.length];
-            System.arraycopy(_fields, 0, fds, 0, _fields.length);
+            FieldDescriptor[] fields = getFields();
+
+            FieldDescriptor[] fds = new FieldDescriptor[fields.length];
+            System.arraycopy(fields, 0, fds, 0, fields.length);
 
             if (fds.length > 1)
                 Arrays.sort(fds, compareByName);
@@ -1001,13 +1010,17 @@ class ValueDescriptor extends TypeDescriptor {
     private static final Comparator<FieldDescriptor> compareByName = Comparator.comparing(f -> f.java_name);
 
     long getHashCode() {
-        return _hash_code;
+        return classHash.get();
+    }
+
+    private long genClassHash() {
+        return doPrivileged((PrivilegedAction<Long>) this::computeHashCode);
     }
 
     private final LazyReference<ValueMember[]> valueMembers = new LazyReference<>(this::genValueMembers);
     
     protected ValueMember[] genValueMembers() {
-        return Arrays.stream(_fields)
+        return Arrays.stream(getFields())
                 .map(field -> field.getValueMember(repo))
                 .toArray(ValueMember[]::new);
     }
@@ -1022,7 +1035,7 @@ class ValueDescriptor extends TypeDescriptor {
         ORB orb = ORB.init();
         setTypeCode(orb.create_recursive_tc(getRepositoryID()));
 
-        TypeCode _base = ((_super_descriptor == null) ? null : _super_descriptor.getTypeCode());
+        TypeCode _base = Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::getTypeCode).orElse(null);
 
         TypeCode tc;
         if (type.isArray()) {
@@ -1057,7 +1070,7 @@ class ValueDescriptor extends TypeDescriptor {
         fvd.supported_interfaces = ZERO_STRINGS;
         fvd.abstract_base_values = ZERO_STRINGS;
         fvd.is_truncatable = false;
-        fvd.base_value = ((_super_descriptor == null) ? "" : _super_descriptor.getRepositoryID());
+        fvd.base_value = Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::getRepositoryID).orElse("");
         fvd.type = getTypeCode();
         return fvd;
     }
@@ -1065,12 +1078,12 @@ class ValueDescriptor extends TypeDescriptor {
 
 
     public boolean copyWithinState() {
-        return !(_is_immutable_value | _is_rmi_stub);
+        return !(isImmutableValue() | isRmiStub());
     }
 
     Object copyObject(Object orig, CopyState state) {
 
-        if (_is_immutable_value || _is_rmi_stub) {
+        if (isImmutableValue() || isRmiStub()) {
             return orig;
         }
 
@@ -1178,8 +1191,10 @@ class ValueDescriptor extends TypeDescriptor {
             desc.addDependencies(classes);
         }
 
-        if (_fields != null) {
-            for (FieldDescriptor _field : _fields) {
+        FieldDescriptor[] fields = getFields();
+
+        if (fields != null) {
+            for (FieldDescriptor _field : fields) {
                 if (_field.isPrimitive())
                     continue;
 

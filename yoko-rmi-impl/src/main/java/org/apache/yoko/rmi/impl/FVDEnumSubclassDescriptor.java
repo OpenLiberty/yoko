@@ -25,15 +25,20 @@ import java.util.Objects;
 class FVDEnumSubclassDescriptor extends EnumSubclassDescriptor {
     private final FullValueDescription fvd;
     private final String repid;
+    private final ValueDescriptor superDesc;
 
     FVDEnumSubclassDescriptor(FullValueDescription fvd, Class clazz, TypeRepository rep, String repid, ValueDescriptor super_desc) {
         super(EnumSubclassDescriptor.getEnumType(clazz), rep);
         this.fvd = fvd;
         this.repid = repid;
+        this.superDesc = super_desc;
 
         init();
+    }
 
-        _super_descriptor = super_desc;
+    @Override
+    ValueDescriptor getSuperDescriptor() {
+        return superDesc;
     }
 
     @Override

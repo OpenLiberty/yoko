@@ -29,6 +29,7 @@ import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
 final class FVDValueDescriptor extends ValueDescriptor {
     final FullValueDescription fvd;
     final String repid;
+    private final ValueDescriptor superDesc;
 
     FVDValueDescriptor(FullValueDescription fvd, Class<?> clazz,
             TypeRepository rep, String repid, ValueDescriptor super_desc) {
@@ -36,24 +37,20 @@ final class FVDValueDescriptor extends ValueDescriptor {
 
         this.repid = repid;
         this.fvd = fvd;
+        this.superDesc = super_desc;
 
         init();
-
-        this._super_descriptor = super_desc;
     }
 
-    public void init() {
-        super.init();
+    @Override
+    ValueDescriptor getSuperDescriptor() {
+        return superDesc;
+    }
 
-        // don't override custom loading. Our local version could work differently.
-//        if (!fvd.is_custom) {
-//            _read_object_method = null;
-//            _write_object_method = null;
-//            _is_externalizable = false;
-//        }
-
+    @Override
+    protected FieldDescriptor[] genFields() {
         MARSHAL_LOG.finer(() -> "Computing field descriptors for " + fvd.name + " version " + fvd.version);
-        _fields = Arrays.stream(fvd.members)
+        return Arrays.stream(fvd.members)
                 .map(vm -> {
                     FieldDescriptor fd = findField(vm);
                     MARSHAL_LOG.finer(() -> String.format("\t%s -> %s", describe(vm), describe(fd)));
@@ -72,19 +69,14 @@ final class FVDValueDescriptor extends ValueDescriptor {
 
     private FieldDescriptor findField(ValueMember valueMember) {
         for (Class<?> c = type; c != null; c = c.getSuperclass()) {
-            TypeDescriptor td = repo.getDescriptor(c);
-            if (td instanceof ValueDescriptor) {
-                ValueDescriptor vd = (ValueDescriptor) td;
-                FieldDescriptor[] fds = vd._fields;
-
-                if (fds == null) {
-                    continue;
-                }
-
-                for (FieldDescriptor fd : fds) {
-                    if (fd.getIDLName().equals(valueMember.name)) return fd;
-                }
-            }
+            Optional<FieldDescriptor> result = Optional.of(repo.getDescriptor(c))
+                    .filter(ValueDescriptor.class::isInstance)
+                    .map(ValueDescriptor.class::cast)
+                    .map(ValueDescriptor::getFields)
+                    .flatMap(fields -> Arrays.stream(fields)
+                            .filter(fd -> fd.getIDLName().equals(valueMember.name))
+                            .findFirst());
+            if (result.isPresent()) return result.get();
         }
         // There was no matching field in the local implementation, so create a field descriptor
         // that will read from the stream but not assign to any local field
