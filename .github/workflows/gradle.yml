@@ -1,4 +1,4 @@
-# Copyright 2025 IBM Corporation and others.
+# Copyright 2026 IBM Corporation and others.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ jobs:
     - name: Testify unit tests
       run: ./gradlew testify:test
     - name: Testify-IIOP unit-tests
-      run: ./gradlew testify-iiop:test
+      run: ./gradlew testify-iiop:test -Dtest.excludeTags=interop
     - name: Yoko OSGi unit tests
       run: ./gradlew yoko-osgi:test
     - name: Yoko util unit-tests
@@ -57,7 +57,7 @@ jobs:
     - name: Yoko core unit tests
       run: ./gradlew yoko-core:test
     - name: Yoko verification tests
-      run: ./gradlew yoko-verify:test
+      run: ./gradlew yoko-verify:test -Dtest.excludeTags=interop
     - name: Aggregate test report
       run: ./gradlew testReport -x test
     - name: Upload test reports

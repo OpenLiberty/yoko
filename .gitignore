@@ -34,3 +34,6 @@ build
 
 # Bob Shell worktrees
 .bob/
+
+# ignore interop test worktrees
+worktrees

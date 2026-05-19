@@ -1,0 +1,489 @@
+/*
+ * Copyright 2026 IBM Corporation and others.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * Yoko Interoperability Testing Build Configuration
+ * 
+ * This file contains Gradle tasks for managing Yoko versions for interop testing.
+ * It supports two approaches:
+ * 1. fetchYokoVersion - Download pre-built JARs from GitHub releases
+ * 2. buildYokoVersion - Build a specific version from source using git worktrees
+ * 
+ * Both approaches automatically fetch transitive dependencies from Maven.
+ */
+
+// Task to build and cache a specific Yoko version for interop testing
+task buildYokoVersion {
+    description = 'Build and cache a specific Yoko version for interop testing'
+    group = 'interop'
+
+    doLast {
+        def version = project.findProperty('yokoVersion')
+        if (!version) {
+            throw new GradleException("Please specify -PyokoVersion=<version> (e.g., -PyokoVersion=1.5.3)")
+        }
+
+        def tag = "v${version}"
+        def cacheDir = file("${System.getProperty('user.home')}/.yoko-interop-cache/${version}")
+        def worktreeDir = file("${projectDir}/worktrees/${version}")
+
+        // Check if already cached
+        if (cacheDir.exists() && cacheDir.list().length > 0) {
+            println "Version ${version} is already cached in ${cacheDir}"
+            return
+        }
+
+        println "Building Yoko version ${version} (tag: ${tag})"
+
+        // Create worktree if it doesn't exist
+        if (!worktreeDir.exists()) {
+            println "Creating worktree for ${tag} in ${worktreeDir}"
+            exec {
+                commandLine 'git', 'worktree', 'add', worktreeDir.absolutePath, tag
+            }
+        } else {
+            println "Worktree already exists at ${worktreeDir}"
+            // Ensure it's on the correct tag
+            exec {
+                workingDir worktreeDir
+                commandLine 'git', 'checkout', tag
+            }
+        }
+
+        // Build the version (skip tests for speed)
+        println "Building Yoko ${version}..."
+        exec {
+            workingDir worktreeDir
+            commandLine './gradlew', 'build', '-x', 'test', '--no-daemon'
+        }
+
+        // Create cache directory
+        cacheDir.mkdirs()
+
+        // Collect all JARs from subprojects
+        println "Collecting JARs to ${cacheDir}..."
+        def jarCount = 0
+
+        // Copy only yoko-* JARs (not testify, test-osgi, artifact, etc.)
+        fileTree(worktreeDir) {
+            include '**/build/libs/yoko-*.jar'
+            exclude '**/build/libs/*-javadoc.jar'
+            exclude '**/build/libs/*-sources.jar'
+        }.each { jarFile ->
+            copy {
+                from jarFile
+                into cacheDir
+            }
+            println "  Copied: ${jarFile.name}"
+            jarCount++
+        }
+
+        // Parse POMs and fetch transitive dependencies (same logic as fetchYokoVersion)
+        println "Fetching transitive dependencies..."
+        def dependencies = [] as Set
+        fileTree(cacheDir) {
+            include '*.jar'
+        }.each { jarFile ->
+            def pomPath = "META-INF/maven/io.openliberty.yoko/${jarFile.name.replaceAll(/-\d+.*\.jar$/, '')}/pom.xml"
+            try {
+                def pomContent = new java.util.zip.ZipFile(jarFile).getInputStream(
+                    new java.util.zip.ZipEntry(pomPath)
+                ).text
+                def pom = new XmlSlurper().parseText(pomContent)
+                pom.dependencies.dependency.each { dep ->
+                    def groupId = dep.groupId.text()
+                    def artifactId = dep.artifactId.text()
+                    def depVersion = dep.version.text()
+                    // Only fetch external dependencies (not Yoko modules)
+                    if (!groupId.startsWith('io.openliberty.yoko')) {
+                        dependencies.add("${groupId}:${artifactId}:${depVersion}")
+                    }
+                }
+            } catch (Exception e) {
+                // POM not found or parse error - skip
+            }
+        }
+
+        // Helper function to fetch a dependency and its transitives recursively
+        def fetchDependency
+        fetchDependency = { String depCoord, Set<String> processed, File m2Repo ->
+            if (processed.contains(depCoord)) return
+            processed.add(depCoord)
+            
+            try {
+                def parts = depCoord.split(':')
+                def group = parts[0]
+                def name = parts[1]
+                def depVersion = parts[2]
+                
+                def jarName = "${name}-${depVersion}.jar"
+                def destFile = new File(cacheDir, jarName)
+                
+                if (destFile.exists()) {
+                    println "  Already cached: ${jarName}"
+                    jarCount++
+                } else {
+                    // Check local Maven cache first
+                    def localPath = new File(m2Repo, "${group.replace('.', '/')}/${name}/${depVersion}/${jarName}")
+                    if (localPath.exists()) {
+                        println "  Copying from local Maven cache: ${jarName}"
+                        copy {
+                            from localPath
+                            into cacheDir
+                        }
+                        jarCount++
+                    } else {
+                        // Download from Maven Central
+                        def groupPath = group.replace('.', '/')
+                        def url = "https://repo1.maven.org/maven2/${groupPath}/${name}/${depVersion}/${jarName}"
+                        
+                        println "  Downloading from Maven Central: ${jarName}..."
+                        def downloadCmd = System.getProperty('os.name').toLowerCase().contains('windows')
+                            ? ['powershell', '-Command', "Invoke-WebRequest -Uri '${url}' -OutFile '${destFile}'"]
+                            : ['curl', '-f', '-L', '-o', destFile.absolutePath, url]
+                        
+                        def proc = downloadCmd.execute()
+                        proc.waitFor()
+                        
+                        if (proc.exitValue() == 0 && destFile.exists()) {
+                            println "  Cached: ${jarName}"
+                            jarCount++
+                        } else {
+                            println "  Warning: Failed to download ${jarName}"
+                            destFile.delete()
+                            return
+                        }
+                    }
+                }
+                
+                // Now fetch transitive dependencies from this JAR's POM
+                def pomPath = "META-INF/maven/${group}/${name}/pom.xml"
+                try {
+                    def pomContent = new java.util.zip.ZipFile(destFile).getInputStream(
+                        new java.util.zip.ZipEntry(pomPath)
+                    ).text
+                    def pom = new XmlSlurper().parseText(pomContent)
+                    pom.dependencies.dependency.each { dep ->
+                        def scope = dep.scope.text()
+                        // Only fetch compile/runtime dependencies, skip test/provided
+                        if (!scope || scope == 'compile' || scope == 'runtime') {
+                            def transGroupId = dep.groupId.text()
+                            def transArtifactId = dep.artifactId.text()
+                            def transVersion = dep.version.text()
+                            if (transGroupId && transArtifactId && transVersion) {
+                                fetchDependency("${transGroupId}:${transArtifactId}:${transVersion}", processed, m2Repo)
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // POM not found or parse error - skip transitives
+                }
+            } catch (Exception e) {
+                println "  Warning: Could not fetch ${depCoord}: ${e.message}"
+            }
+        }
+        
+        // Fetch external dependencies from local Maven cache or Maven Central
+        if (!dependencies.isEmpty()) {
+            println "Fetching ${dependencies.size()} external dependencies..."
+            
+            def m2Repo = new File(System.getProperty('user.home'), '.m2/repository')
+            def processed = [] as Set
+            
+            dependencies.each { depCoord ->
+                fetchDependency(depCoord, processed, m2Repo)
+            }
+        }
+
+        println "Successfully cached ${jarCount} JARs for Yoko ${version}"
+        println "Cache location: ${cacheDir}"
+    }
+}
+
+// Task to fetch and cache a specific Yoko version from GitHub releases
+task fetchYokoVersion {
+    description = 'Fetch and cache a specific Yoko version from GitHub releases using gh CLI'
+    group = 'interop'
+
+    doLast {
+        def version = project.findProperty('yokoVersion')
+        if (!version) {
+            throw new GradleException("Please specify -PyokoVersion=<version> (e.g., -PyokoVersion=1.5.3)")
+        }
+
+        def cacheDir = file("${System.getProperty('user.home')}/.yoko-interop-cache/${version}")
+
+        // Check if already cached
+        if (cacheDir.exists() && cacheDir.list().length > 0) {
+            println "Version ${version} is already cached in ${cacheDir}"
+            return
+        }
+
+        println "Fetching Yoko version ${version} from GitHub releases..."
+
+        // Check if gh CLI is available
+        try {
+            exec {
+                commandLine 'gh', '--version'
+                standardOutput = new ByteArrayOutputStream()
+                errorOutput = new ByteArrayOutputStream()
+            }
+        } catch (Exception e) {
+            throw new GradleException("GitHub CLI (gh) is not installed. Install it from https://cli.github.com/")
+        }
+
+        // Create cache directory
+        cacheDir.mkdirs()
+
+        // Create a temporary directory for downloads
+        def tempDir = file("${buildDir}/tmp/yoko-fetch-${version}")
+        tempDir.mkdirs()
+
+        try {
+            // Download release assets
+            println "Downloading release assets for v${version}..."
+            exec {
+                workingDir tempDir
+                commandLine 'gh', 'release', 'download', "v${version}",
+                    '--repo', 'OpenLiberty/yoko',
+                    '--pattern', '*.jar',
+                    '--skip-existing'
+            }
+
+            // Copy downloaded JARs to cache
+            def jarCount = 0
+            fileTree(tempDir) {
+                include '*.jar'
+                exclude '*-javadoc.jar'
+                exclude '*-sources.jar'
+            }.each { jarFile ->
+                copy {
+                    from jarFile
+                    into cacheDir
+                }
+                println "  Cached: ${jarFile.name}"
+                jarCount++
+            }
+
+            if (jarCount == 0) {
+                throw new GradleException("No JARs found in release v${version}. The release may not contain JAR artifacts.")
+            }
+
+            // Parse POMs and fetch transitive dependencies
+            println "Fetching transitive dependencies..."
+            def dependencies = [] as Set
+            fileTree(cacheDir) {
+                include '*.jar'
+            }.each { jarFile ->
+                def pomPath = "META-INF/maven/io.openliberty.yoko/${jarFile.name.replaceAll(/-\d+.*\.jar$/, '')}/pom.xml"
+                try {
+                    def pomContent = new java.util.zip.ZipFile(jarFile).getInputStream(
+                        new java.util.zip.ZipEntry(pomPath)
+                    ).text
+                    def pom = new XmlSlurper().parseText(pomContent)
+                    pom.dependencies.dependency.each { dep ->
+                        def groupId = dep.groupId.text()
+                        def artifactId = dep.artifactId.text()
+                        def depVersion = dep.version.text()
+                        // Only fetch external dependencies (not Yoko modules)
+                        if (!groupId.startsWith('io.openliberty.yoko')) {
+                            dependencies.add("${groupId}:${artifactId}:${depVersion}")
+                        }
+                    }
+                } catch (Exception e) {
+                    // POM not found or parse error - skip
+                }
+            }
+
+            // Helper function to fetch a dependency and its transitives recursively
+            def fetchDependency
+            fetchDependency = { String depCoord, Set<String> processed, File m2Repo ->
+                if (processed.contains(depCoord)) return
+                processed.add(depCoord)
+                
+                try {
+                    def parts = depCoord.split(':')
+                    def group = parts[0]
+                    def name = parts[1]
+                    def depVersion = parts[2]
+                    
+                    def jarName = "${name}-${depVersion}.jar"
+                    def destFile = new File(cacheDir, jarName)
+                    
+                    if (destFile.exists()) {
+                        println "  Already cached: ${jarName}"
+                        jarCount++
+                    } else {
+                        // Check local Maven cache first
+                        def localPath = new File(m2Repo, "${group.replace('.', '/')}/${name}/${depVersion}/${jarName}")
+                        if (localPath.exists()) {
+                            println "  Copying from local Maven cache: ${jarName}"
+                            copy {
+                                from localPath
+                                into cacheDir
+                            }
+                            jarCount++
+                        } else {
+                            // Download from Maven Central
+                            def groupPath = group.replace('.', '/')
+                            def url = "https://repo1.maven.org/maven2/${groupPath}/${name}/${depVersion}/${jarName}"
+                            
+                            println "  Downloading from Maven Central: ${jarName}..."
+                            def downloadCmd = System.getProperty('os.name').toLowerCase().contains('windows')
+                                ? ['powershell', '-Command', "Invoke-WebRequest -Uri '${url}' -OutFile '${destFile}'"]
+                                : ['curl', '-f', '-L', '-o', destFile.absolutePath, url]
+                            
+                            def proc = downloadCmd.execute()
+                            proc.waitFor()
+                            
+                            if (proc.exitValue() == 0 && destFile.exists()) {
+                                println "  Cached: ${jarName}"
+                                jarCount++
+                            } else {
+                                println "  Warning: Failed to download ${jarName}"
+                                destFile.delete()
+                                return
+                            }
+                        }
+                    }
+                    
+                    // Now fetch transitive dependencies from this JAR's POM
+                    def pomPath = "META-INF/maven/${group}/${name}/pom.xml"
+                    try {
+                        def pomContent = new java.util.zip.ZipFile(destFile).getInputStream(
+                            new java.util.zip.ZipEntry(pomPath)
+                        ).text
+                        def pom = new XmlSlurper().parseText(pomContent)
+                        pom.dependencies.dependency.each { dep ->
+                            def scope = dep.scope.text()
+                            // Only fetch compile/runtime dependencies, skip test/provided
+                            if (!scope || scope == 'compile' || scope == 'runtime') {
+                                def transGroupId = dep.groupId.text()
+                                def transArtifactId = dep.artifactId.text()
+                                def transVersion = dep.version.text()
+                                if (transGroupId && transArtifactId && transVersion) {
+                                    fetchDependency("${transGroupId}:${transArtifactId}:${transVersion}", processed, m2Repo)
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        // POM not found or parse error - skip transitives
+                    }
+                } catch (Exception e) {
+                    println "  Warning: Could not fetch ${depCoord}: ${e.message}"
+                }
+            }
+            
+            // Fetch external dependencies from local Maven cache or Maven Central
+            if (!dependencies.isEmpty()) {
+                println "Fetching ${dependencies.size()} external dependencies..."
+                
+                def m2Repo = new File(System.getProperty('user.home'), '.m2/repository')
+                def processed = [] as Set
+                
+                dependencies.each { depCoord ->
+                    fetchDependency(depCoord, processed, m2Repo)
+                }
+            }
+
+            println "Successfully cached ${jarCount} JARs for Yoko ${version}"
+            println "Cache location: ${cacheDir}"
+        } finally {
+            // Clean up temp directory
+            tempDir.deleteDir()
+        }
+    }
+}
+
+// Task to list cached Yoko versions
+task listCachedYokoVersions {
+    description = 'List all cached Yoko versions for interop testing'
+    group = 'interop'
+
+    doLast {
+        def cacheRoot = file("${System.getProperty('user.home')}/.yoko-interop-cache")
+        if (!cacheRoot.exists()) {
+            println "No cached versions found. Cache directory does not exist: ${cacheRoot}"
+            return
+        }
+
+        println "Cached Yoko versions:"
+        cacheRoot.listFiles().each { versionDir ->
+            if (versionDir.isDirectory()) {
+                def jarCount = versionDir.listFiles().findAll { it.name.endsWith('.jar') }.size()
+                println "  ${versionDir.name} (${jarCount} JARs)"
+            }
+        }
+    }
+}
+
+// Task to clean cached Yoko JARs
+task cleanYokoCache {
+    description = 'Remove all cached Yoko version JARs'
+    group = 'interop'
+
+    doLast {
+        def cacheRoot = file("${System.getProperty('user.home')}/.yoko-interop-cache")
+        if (cacheRoot.exists()) {
+            println "Removing cache directory: ${cacheRoot}"
+            cacheRoot.deleteDir()
+            println "Cache cleared successfully"
+        } else {
+            println "Cache directory does not exist: ${cacheRoot}"
+        }
+    }
+}
+
+// Task to clean Yoko worktrees
+task cleanYokoWorktrees {
+    description = 'Remove all Yoko version worktrees'
+    group = 'interop'
+
+    doLast {
+        def worktreeRoot = file("${projectDir}/worktrees")
+
+        if (worktreeRoot.exists()) {
+            println "Removing worktrees..."
+            worktreeRoot.listFiles().each { worktreeDir ->
+                if (worktreeDir.isDirectory()) {
+                    println "  Removing worktree: ${worktreeDir.name}"
+                    try {
+                        exec {
+                            commandLine 'git', 'worktree', 'remove', worktreeDir.absolutePath, '--force'
+                            ignoreExitValue = true
+                        }
+                    } catch (Exception e) {
+                        println "  Warning: Could not remove worktree via git command: ${e.message}"
+                    }
+                }
+            }
+            // Remove the worktrees directory itself
+            worktreeRoot.deleteDir()
+            println "Worktrees cleared successfully"
+        } else {
+            println "Worktrees directory does not exist: ${worktreeRoot}"
+        }
+    }
+}
+
+// Task to clean both cache and worktrees
+task cleanCachedYokoVersions {
+    description = 'Remove all cached Yoko versions (JARs and worktrees)'
+    group = 'interop'
+    dependsOn cleanYokoCache, cleanYokoWorktrees
+}
