@@ -427,12 +427,9 @@ class ValueDescriptor extends TypeDescriptor {
     private FieldDescriptor[] buildFieldDescriptors() {
         if (!_is_serializable) return FieldDescriptor.EMPTY_ARRAY;
 
-        ObjectStreamField[] serialPersistentFields = findSerialPersistentFields();
-        if (serialPersistentFields == null) {
-            return buildFieldDescriptorsFromDeclaredFields();
-        } else {
-            return buildFieldDescriptorsFromSerialPersistentFields(serialPersistentFields);
-        }
+        return Optional.ofNullable(findSerialPersistentFields())
+                .map(this::buildFieldDescriptorsFromSerialPersistentFields)
+                .orElseGet(this::buildFieldDescriptorsFromDeclaredFields);
     }
 
     private FieldDescriptor[] buildFieldDescriptorsFromDeclaredFields() {
