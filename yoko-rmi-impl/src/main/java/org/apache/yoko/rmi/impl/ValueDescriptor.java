@@ -69,11 +69,13 @@ import static java.security.AccessController.doPrivileged;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableSet;
+import static java.util.Optional.ofNullable;
 import static java.util.function.Function.identity;
 import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_IN_LOG;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_OUT_LOG;
+import static org.apache.yoko.rmi.impl.FieldDescriptor.getForSerialPersistentField;
 import static org.apache.yoko.rmi.util.StringUtil.convertToValidIDLNames;
 import static org.apache.yoko.util.Exceptions.as;
 
@@ -427,7 +429,7 @@ class ValueDescriptor extends TypeDescriptor {
     private FieldDescriptor[] buildFieldDescriptors() {
         if (!_is_serializable) return FieldDescriptor.EMPTY_ARRAY;
 
-        return Optional.ofNullable(findSerialPersistentFields())
+        return ofNullable(findSerialPersistentFields())
                 .map(this::buildFieldDescriptorsFromSerialPersistentFields)
                 .orElseGet(this::buildFieldDescriptorsFromDeclaredFields);
     }
@@ -442,21 +444,11 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private FieldDescriptor[] buildFieldDescriptorsFromSerialPersistentFields(ObjectStreamField[] serialPersistentFields) {
-        FieldDescriptor[] fields = new FieldDescriptor[serialPersistentFields.length];
-
-        for (int i = 0; i < serialPersistentFields.length; i++) {
-            ObjectStreamField streamField = serialPersistentFields[i];
-            FieldDescriptor fieldDescriptor = findMatchingField(streamField);
-            
-            if (fieldDescriptor == null) {
-                fieldDescriptor = FieldDescriptor.getForSerialPersistentField(type, streamField, repo);
-            }
-            
-            fields[i] = fieldDescriptor;
-        }
-        
-        Arrays.sort(fields);
-        return fields;
+        return Arrays.stream(serialPersistentFields)
+                .map(streamField -> ofNullable(findMatchingField(streamField))
+                        .orElseGet(() -> getForSerialPersistentField(type, streamField, repo)))
+                .sorted()
+                .toArray(FieldDescriptor[]::new);
     }
 
     private FieldDescriptor findMatchingField(ObjectStreamField streamField) {
