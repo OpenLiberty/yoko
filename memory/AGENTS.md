@@ -20,3 +20,16 @@ This file contains shared team knowledge and preferences for the Yoko project.
 
 ### Project-Specific Notes
 - Add project-specific conventions and preferences here as the team discovers them
+
+### License Headers
+- **Copyright Year**: MUST use current year (2026) or range ending in current year (e.g., "2023-2026")
+- **Required Header**: Apache 2.0 with "IBM Corporation and others" as copyright holder
+- **SPDX Identifier**: Must include `SPDX-License-Identifier: Apache-2.0` at end of header
+- **Check Script**: Run `scripts/check-copyright.sh` to validate headers before commit
+- **Bob Enforcement**: When creating or modifying Java files, Bob MUST ensure copyright year includes current year
+
+### Code Review Checklist
+When reviewing code changes, Bob MUST verify:
+1. All modified `.java` files have copyright headers with current year (2026)
+2. New `.java` files have complete Apache 2.0 headers
+3. Run `scripts/check-copyright.sh` to validate compliance
