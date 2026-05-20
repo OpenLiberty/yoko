@@ -19,10 +19,12 @@ package org.apache.yoko.util.concurrent;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.Optional.ofNullable;
 
 /**
  * A thread-safe lazy reference using atomic function pointer swapping.
@@ -65,7 +67,7 @@ public class LazyReference<T> {
      */
     public static class RecursiveInitializationException extends IllegalStateException {
         private RecursiveInitializationException(String threadName) {
-            super("Recursive initialization detected: Thread " + threadName + 
+            super("Recursive initialization detected: Thread " + threadName +
                   " attempted to call get() while already initializing");
         }
     }
@@ -78,19 +80,35 @@ public class LazyReference<T> {
 
     /**
      * Waiting function that carries its own latch for coordinating threads.
+     * <p>
+     * This class handles both waiting threads and recursive initialization detection.
+     * When the initializing thread recursively calls get(), it returns a placeholder
+     * value instead of deadlocking or throwing an exception (if a placeholder generator
+     * was provided).
      */
-    private class Waiter implements Supplier<T> {
+    private final class Waiter implements Supplier<T> {
         public final CountDownLatch latch = new CountDownLatch(1);
         private final Thread initializingThread = Thread.currentThread();
+        private T placeholder;
 
+        /**
+         * Gets the value, either by waiting for initialization or returning a placeholder.
+         * <p>
+         * If called by the initializing thread (recursive call), returns a placeholder value.
+         * If called by a different thread, waits for initialization to complete.
+         *
+         * @return the initialized value or placeholder for recursive calls
+         * @throws InitializationInterruptedException if interrupted while waiting
+         */
         @Override
         public T get() {
             final Thread currentThread = Thread.currentThread();
             // Detect recursive call from the initializing thread
             if (initializingThread == currentThread) {
-                throw new RecursiveInitializationException(currentThread.getName());
+                if (null == placeholder) placeholder = genPlaceholder.get();
+                return placeholder;
             }
-            
+
             LOGGER.fine(() -> "Thread " + currentThread.getName() + " waiting for initialization");
             try {
                 latch.await();
@@ -101,6 +119,27 @@ public class LazyReference<T> {
             LOGGER.fine(() -> "Thread " + currentThread.getName() + " resuming after initialization");
             return functionPointer.get().get();
         }
+
+        /**
+         * Returns the placeholder value that was generated for recursive initialization.
+         * <p>
+         * This method is used by the initializer function to access the placeholder
+         * that was created when a recursive call was detected.
+         *
+         * @return the placeholder value, or null if no recursive call occurred yet
+         */
+        public T getPlaceholder() {
+            return placeholder;
+        }
+
+        /**
+         * Clears the placeholder value after initialization completes.
+         * <p>
+         * This method is called in the finally block of initialization. The placeholder
+         * is only meaningful during initialization; after initialization completes,
+         * it should no longer be retrievable.
+         */
+        void clearPlaceholder() { placeholder = null; }
     }
 
     /**
@@ -110,9 +149,19 @@ public class LazyReference<T> {
     private final AtomicReference<Supplier<T>> functionPointer;
 
     /**
-     * The supplier that performs the actual lazy initialization.
+     * The function that performs the actual lazy initialization.
+     * <p>
+     * This function receives a supplier that can provide a placeholder value
+     * in case of recursive initialization attempts.
      */
-    private final Supplier<T> initializer;
+    private final Function<Supplier<T>,T> initializer;
+
+    /**
+     * Supplier that generates a placeholder value for recursive initialization scenarios.
+     * <p>
+     * If null or not provided, recursive initialization will throw {@link RecursiveInitializationException}.
+     */
+    private final Supplier<T> genPlaceholder;
 
     /**
      * Whether to allow retry on initialization failure.
@@ -140,9 +189,49 @@ public class LazyReference<T> {
      * @param allowRetry whether to allow retry on initialization failure
      */
     public LazyReference(Supplier<T> initializer, boolean allowRetry) {
+        this((p) -> requireNonNull(initializer, "initializer must not be null").get(),
+                null,
+                allowRetry);
+    }
+
+    /**
+     * Creates a new lazy reference with placeholder support and retry disabled.
+     * <p>
+     * This constructor allows handling recursive initialization by providing a placeholder
+     * value instead of throwing an exception.
+     *
+     * @param initializer the function that will compute the value on first access,
+     *                    receiving a supplier for placeholder values
+     * @param genPlaceholder supplier that generates a placeholder value when recursive
+     *                       initialization is detected; if null, recursive calls will
+     *                       throw {@link RecursiveInitializationException}
+     */
+    public LazyReference(Function<Supplier<T>,T> initializer, Supplier<T> genPlaceholder) {
+        this(initializer, genPlaceholder, false);
+    }
+
+    /**
+     * Creates a new lazy reference with placeholder support.
+     * <p>
+     * This constructor allows handling recursive initialization by providing a placeholder
+     * value instead of throwing an exception.
+     *
+     * @param initializer the function that will compute the value on first access,
+     *                    receiving a supplier for placeholder values
+     * @param genPlaceholder supplier that generates a placeholder value when recursive
+     *                       initialization is detected; if null, recursive calls will
+     *                       throw {@link RecursiveInitializationException}
+     * @param allowRetry whether to allow retry on initialization failure
+     */
+    public LazyReference(Function<Supplier<T>,T> initializer, Supplier<T> genPlaceholder, boolean allowRetry) {
         this.initializer = requireNonNull(initializer, "initializer must not be null");
+        this.genPlaceholder = ofNullable(genPlaceholder).orElse(this::throwRecursiveException);
         this.allowRetry = allowRetry;
         this.functionPointer = new AtomicReference<>(initializationFunctionRef);
+    }
+
+    private T throwRecursiveException() {
+        throw new RecursiveInitializationException(Thread.currentThread().getName());
     }
 
     /**
@@ -227,7 +316,7 @@ public class LazyReference<T> {
         try {
             LOGGER.fine(() -> "Thread " + Thread.currentThread().getName() + " performing initialization");
 
-            T result = initializer.get();
+            T result = initializer.apply(waiter::getPlaceholder);
             Getter<T> getter = () -> result;
             functionPointer.set(getter);
 
@@ -257,6 +346,7 @@ public class LazyReference<T> {
                 throw new InitializationException("Initialization failed and retry is not allowed", e);
             }
         } finally {
+            waiter.clearPlaceholder();
             waiter.latch.countDown();
             LOGGER.fine(() -> "Thread " + Thread.currentThread().getName() + " released initialization latch");
         }
