@@ -98,6 +98,9 @@ def validateGradleVersions() {
 // Run validation during configuration phase
 validateGradleVersions()
 
+// Apply interop testing tasks
+apply from: 'build-interop.gradle'
+
 // Apply release configuration
 apply from: 'build-release.gradle'
 
@@ -187,7 +190,15 @@ subprojects { sp ->
     jvmArgs '--add-opens=java.base/java.io=ALL-UNNAMED'
     jvmArgs '--add-opens=java.base/java.util=ALL-UNNAMED'
     jvmArgs '--add-opens=java.rmi/java.rmi=ALL-UNNAMED'
-    useJUnitPlatform()
+    useJUnitPlatform {
+      // Support excluding tags via system property (e.g., -Dtest.excludeTags=interop)
+      def tagsToExclude = System.getProperty('test.excludeTags')
+      if (tagsToExclude) {
+        tagsToExclude.split(',').each { tag ->
+          excludeTags tag.trim()
+        }
+      }
+    }
     workingDir = "$buildDir/testWorkingDir"
     doFirst {workingDir.mkdirs()}
 

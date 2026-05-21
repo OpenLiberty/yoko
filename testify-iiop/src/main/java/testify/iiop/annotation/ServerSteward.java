@@ -28,10 +28,18 @@ import testify.bus.Bus;
 import testify.parts.PartRunner;
 
 import javax.rmi.PortableRemoteObject;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.rmi.Remote;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,14 +48,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toSet;
 import static javax.rmi.PortableRemoteObject.narrow;
 import static org.hamcrest.CoreMatchers.anyOf;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
 import static testify.annotation.runner.PartRunners.requirePartRunner;
 import static testify.bus.key.MemberKey.getMemberEvaluationType;
@@ -72,13 +84,23 @@ class ServerSteward {
     private final List<Method> beforeMethods;
     private final List<Method> afterMethods;
     private final ConfigureServer config;
+    private final InteropTest.YokoVersion yokoVersion;
     private final ExtensionContext context;
     private final ServerComms serverComms;
     private final ServerController serverControl;
     private ServerSteward(ConfigureServer config, ExtensionContext context) {
-        this.config = config;
         this.context = context;
         Class<?> testClass = context.getRequiredTestClass();
+
+        // Check for @InteropTest annotation to get Yoko version
+        this.yokoVersion = findAnnotation(testClass, InteropTest.class).map(InteropTest::value).orElse(null);
+
+        // If @InteropTest is present, validate that separation is INTER_PROCESS
+        if (null != yokoVersion && config.separation() != INTER_PROCESS) {
+            throw new Error("@InteropTest requires @ConfigureServer(separation = INTER_PROCESS)");
+        }
+
+        this.config = config;
         this.controlFields = AnnotationButler.forClass(ConfigureServer.Control.class)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
@@ -186,8 +208,7 @@ class ServerSteward {
 
         // blow up if jvm args specified unnecessarily
         if (config.separation() != INTER_PROCESS && config.jvmArgs().length > 0)
-            throw new Error("The annotation @" + ConfigureServer.class.getSimpleName()
-                    + " must not include JVM arguments unless it is configured as " + INTER_PROCESS);
+            throw new Error("@ConfigureServer must not include JVM arguments unless separation = INTER_PROCESS");
 
         boolean colloc = isCollocated();
         ConfigureOrb cfg = colloc ? combineClientAndServerOrbConfig() : config.serverOrb();
@@ -204,17 +225,76 @@ class ServerSteward {
     }
 
     void beforeAll(ExtensionContext ctx) {
-        // Configure the PartRunner now that all extensions have had a chance to configure it
+        // Check if a specific Yoko version is required and if it's available
+        if (null != yokoVersion) {
+            Path cacheDir = Paths.get(System.getProperty("user.home"), ".yoko-interop-cache", yokoVersion.version);
+            assumeTrue(assertDoesNotThrow(() -> Files.isDirectory(cacheDir) && Files.list(cacheDir).findAny().isPresent()),
+                "Yoko version " + yokoVersion.version + " is not cached. Run: ./gradlew buildYokoVersion -PyokoVersion=" + yokoVersion.version);
+        }
+
+        // Configure the PartRunner
         PartRunner runner = requirePartRunner(ctx);
-        // does this part run in a thread or a new process?
-        if (this.config.separation() == INTER_PROCESS) runner.useNewJVMWhenForking(this.config.jvmArgs());
-        else runner.useNewThreadWhenForking();
+        if (config.separation() == INTER_PROCESS) {
+            runner.useNewJVMWhenForking(buildJvmArgs());
+        } else {
+            runner.useNewThreadWhenForking();
+        }
 
         // Launch the server now that the PartRunner is configured
         serverComms.launch(runner);
 
         populateControlFields(ctx);
         serverControl.start();
+    }
+
+    private String[] buildJvmArgs() {
+        List<String> args = new ArrayList<>(Arrays.asList(config.jvmArgs()));
+
+        // If a specific Yoko version is requested, prepend cached JARs to classpath
+        if (null != yokoVersion) {
+            // Build classpath: old Yoko JARs + old dependencies + test classes only
+            String versionClasspath = buildClasspathForVersion(yokoVersion.version);
+            Set<String> allowedPaths = loadTestDependencies();
+
+            // Filter current classpath to only include test dependencies and build classes
+            String filteredClasspath = Arrays.stream(System.getProperty("java.class.path").split(File.pathSeparator))
+                .filter(path -> allowedPaths.contains(path) || path.contains("/build/classes/"))
+                .collect(joining(File.pathSeparator));
+
+            // Add classpath and module access to JVM args
+            args.add("-cp");
+            args.add(versionClasspath + File.pathSeparator + filteredClasspath);
+            args.add("--add-opens");
+            args.add("java.base/java.lang=ALL-UNNAMED");
+        }
+
+        return args.toArray(new String[0]);
+    }
+
+    private String buildClasspathForVersion(String version) {
+        Path cacheDir = Paths.get(System.getProperty("user.home"), ".yoko-interop-cache", version);
+        if (!Files.exists(cacheDir)) {
+            throw new RuntimeException("Cache directory does not exist for version " + version + ": " + cacheDir);
+        }
+
+        try (var cachedFiles = Files.list(cacheDir)) {
+            // Only include yoko-* JARs, exclude testify (we want old Yoko, current testify)
+            return cachedFiles
+                .map(Path::toString)
+                .filter(p -> p.endsWith(".jar") && p.contains("/yoko-") && !p.contains("testify"))
+                .collect(joining(File.pathSeparator));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to build classpath for version " + version, e);
+        }
+    }
+
+    private Set<String> loadTestDependencies() {
+        try (InputStream is = getClass().getResourceAsStream("/testify/iiop/test-dependencies.txt")) {
+            if (null == is) throw new RuntimeException("Test dependencies file not found. Run './gradlew :testify-iiop:generateTestDependencies'");
+            return new BufferedReader(new InputStreamReader(is)).lines().collect(toSet());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load test dependencies", e);
+        }
     }
 
     void afterAll(ExtensionContext ctx) {
