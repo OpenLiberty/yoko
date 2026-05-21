@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.rmi.impl;
 
+import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.SystemException;
 import org.omg.CORBA.ValueMember;
@@ -28,12 +29,13 @@ import java.io.ObjectStreamField;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.rmi.Remote;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+import static java.lang.reflect.Modifier.isFinal;
+import static java.lang.reflect.Modifier.isPublic;
 import static java.util.logging.Level.FINER;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.yasf.Yasf.NON_SERIALIZABLE_FIELD_IS_ABSTRACT_VALUE;
@@ -64,7 +66,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
 
     final boolean isFinal;
 
-    ValueMember valueMember;
+    private final LazyReference<ValueMember> valueMember = new LazyReference<>(this::genValueMember);
 
     private final ValueMemberAccess valueMemberAccess;
 
@@ -75,32 +77,31 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         init();
         declaringClass = owner;
 
-        if (f != null) {
-            boolean isPublicField = Modifier.isPublic(f.getModifiers());
-            this.valueMemberAccess = isPublicField ? ValueMemberAccess.PUBLIC : ValueMemberAccess.PRIVATE;
-            this.field = Optional.of(new org.apache.yoko.rmi.util.corba.Field(f));
-            isFinal = Modifier.isFinal(f.getModifiers());
-        } else {
+        if (null == f) {
             this.valueMemberAccess = ValueMemberAccess.PRIVATE;
             this.field = Optional.empty();
             isFinal = false;
+        } else {
+            int modifiers = f.getModifiers();
+            this.valueMemberAccess = isPublic(modifiers) ? ValueMemberAccess.PUBLIC : ValueMemberAccess.PRIVATE;
+            this.field = Optional.of(new org.apache.yoko.rmi.util.corba.Field(f));
+            isFinal = isFinal(modifiers);
         }
     }
 
     @Override
-    final String getIDLName() { return java_name; }
+    final String genIDLName() { return java_name; }
 
-    ValueMember getValueMember(TypeRepository rep) {
-        if (valueMember == null) {
-            TypeDescriptor desc = rep.getDescriptor(type);
-            TypeDescriptor owner = rep.getDescriptor(declaringClass);
+    ValueMember genValueMember() {
+        TypeDescriptor desc = repo.getDescriptor(type);
+        TypeDescriptor owner = repo.getDescriptor(declaringClass);
+        return new ValueMember(getIDLName(), desc.getRepositoryID(),
+                owner.getRepositoryID(), "1.0", desc.getTypeCode(), null,
+                valueMemberAccess.value);
+    }
 
-            valueMember = new ValueMember(getIDLName(), desc.getRepositoryID(),
-                    owner.getRepositoryID(), "1.0", desc.getTypeCode(), null,
-                    valueMemberAccess.value);
-        }
-
-        return valueMember;
+    final ValueMember getValueMember() {
+        return valueMember.get();
     }
 
     public Class getType() {

@@ -31,17 +31,17 @@ class StringDescriptor extends ValueDescriptor {
     }
 
     @Override
-    final String getIDLName() {
+    final String genIDLName() {
         return "CORBA_WStringValue";
     }
 
     @Override
-    String getPackageName() {
+    String genPackageName() {
         return "CORBA";
     }
 
     @Override
-    String getTypeName() { return "WStringValue"; }
+    String genTypeName() { return "WStringValue"; }
 
     /** Read an instance of this value from a CDR stream */
     @Override

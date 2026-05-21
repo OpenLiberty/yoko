@@ -31,17 +31,17 @@ abstract class SimpleDescriptor extends TypeDescriptor {
     }
 
     @Override
-    final String getIDLName() {
+    final String genIDLName() {
         return idl_name;
     }
 
     @Override
-    String getPackageName() {
+    String genPackageName() {
         return "";
     }
 
     @Override
-    String getTypeName() {
+    String genTypeName() {
         return idl_name;
     }
 

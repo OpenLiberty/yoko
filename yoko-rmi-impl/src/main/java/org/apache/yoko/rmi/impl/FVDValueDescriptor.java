@@ -84,7 +84,7 @@ final class FVDValueDescriptor extends ValueDescriptor {
     }
 
     @Override
-    String getRepositoryID() {
+    String genRepId() {
         return repid;
     }
 
@@ -94,7 +94,7 @@ final class FVDValueDescriptor extends ValueDescriptor {
     }
 
     @Override
-    TypeCode getTypeCode() { return fvd.type; }
+    TypeCode genTypeCode() { return fvd.type; }
 
     @Override
     public boolean isCustomMarshalled() {

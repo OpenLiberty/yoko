@@ -112,8 +112,6 @@ class ValueDescriptor extends TypeDescriptor {
     private static final Set<? extends Class<? extends Serializable>> IMMUTABLE_VALUE_CLASSES = unmodifiableSet(new HashSet<>(asList(Integer.class,
             Character.class, Boolean.class, Byte.class, Long.class, Float.class, Double.class, Short.class)));
 
-    private final LazyReference<Long> classHash = new LazyReference<>(this::genClassHash);
-
     ValueDescriptor(Class type, TypeRepository repository) {
         super(type, repository);
     }
@@ -148,7 +146,7 @@ class ValueDescriptor extends TypeDescriptor {
         return String.format("RMI:%s:%016X:%016X", convertToValidIDLNames(type.getName()), hashCode, getSerialVersionUID());
     }
 
-    private String genCustomRepId() {
+    String genCustomRepId() {
         return String.format("RMI:org.omg.custom.%s", getRepositoryID().substring(4));
     }
 
@@ -800,9 +798,13 @@ class ValueDescriptor extends TypeDescriptor {
         }
     }
 
+    private ValueWriter getValueWriter() {
+        return valueWriterRef.get();
+    }
+
     protected void writeValue(ObjectWriter writer, Serializable val) throws IOException {
         try {
-            valueWriterRef.get().accept(writer, val);
+            getValueWriter().accept(writer, val);
         } catch (UncheckedIOException e) {
             throw e.getCause();
         }
@@ -937,22 +939,22 @@ class ValueDescriptor extends TypeDescriptor {
     /**
      * This method reads the fields of a single class slice.
      */
+    private ValueReader getValueReader() {
+        return valueReaderRef.get();
+    }
+
+    /**
+     * This method reads the fields of a single class slice.
+     */
     protected Serializable readValue(ObjectReader reader, Serializable value) throws IOException {
         try {
-            return valueReaderRef.get().apply(reader, value);
+            return getValueReader().apply(reader, value);
         } catch (UncheckedIOException ex) {
             throw ex.getCause();
         }
     }
 
-
-    private static final Comparator<FieldDescriptor> compareByName = comparing(f -> f.java_name);
-
-    long getClassHash() {
-        return classHash.get();
-    }
-
-    private long genClassHash() {
+    long genClassHash() {
         return new ClassHashBuilder().build();
     }
 
@@ -1022,11 +1024,13 @@ class ValueDescriptor extends TypeDescriptor {
         }
     }
 
+    private static final Comparator<FieldDescriptor> compareByName = comparing(f -> f.java_name);
+
     private final LazyReference<ValueMember[]> valueMembers = new LazyReference<>(this::genValueMembers);
     
     protected ValueMember[] genValueMembers() {
         return Arrays.stream(getFields())
-                .map(field -> field.getValueMember(repo))
+                .map(FieldDescriptor::getValueMember)
                 .toArray(ValueMember[]::new);
     }
     
@@ -1036,7 +1040,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     @Override
-    protected TypeCode genTypeCode() {
+    TypeCode genTypeCode() {
         ORB orb = ORB.init();
         TypeCode _base = ofNullable(getSuperDescriptor()).map(ValueDescriptor::getTypeCode).orElse(null);
 

@@ -38,28 +38,28 @@ abstract class TypeDescriptor extends ModelElement {
     private final LazyReference<String> _repid = new LazyReference<>(this::genRepId);
 
     private final LazyReference<String> packageName = new LazyReference<>(this::genPackageName);
-    private String genPackageName() {
+    String genPackageName() {
         int idx = java_name.lastIndexOf('.');
         return ((idx < 0) ? "" : java_name.substring(0, idx));
     }
-    String getPackageName() {
+    final String getPackageName() {
         return packageName.get();
     }
 
     private final LazyReference<String> typeName = new LazyReference<>(this::genTypeName);
-    private String genTypeName() {
+    String genTypeName() {
         int idx = java_name.lastIndexOf('.');
         return ((idx < 0) ? java_name : java_name.substring(idx + 1));
     }
-    String getTypeName() {
+    final String getTypeName() {
         return typeName.get();
     }
 
     private final LazyReference<FullKey> key = new LazyReference<>(this::genKey);
-    private FullKey genKey() {
+    FullKey genKey() {
         return new FullKey(getRepositoryID(), type);
     }
-    public final FullKey getKey() {
+    final FullKey getKey() {
         return key.get();
     }
 
@@ -132,7 +132,7 @@ abstract class TypeDescriptor extends ModelElement {
     String genRepId() {
         return String.format("RMI:%s:%016X", type.getName(), 0);
     }
-    String getRepositoryID() {
+    final String getRepositoryID() {
         return _repid.get();
     }
 
@@ -156,7 +156,13 @@ abstract class TypeDescriptor extends ModelElement {
         return false;
     }
 
-    long getClassHash() {
+    private final LazyReference<Long> classHash = new LazyReference<>(this::genClassHash);
+
+    final long getClassHash() {
+        return classHash.get();
+    }
+
+    long genClassHash() {
         return 0L;
     }
 
@@ -204,12 +210,12 @@ abstract class TypeDescriptor extends ModelElement {
     }
 
     private final LazyReference<TypeCode> typeCode = new LazyReference<>((p) -> this.genTypeCode(), this::genTypeCodePlaceholder);
-    protected abstract TypeCode genTypeCode();
+    abstract TypeCode genTypeCode();
     TypeCode genTypeCodePlaceholder() {
         ORB orb = ORB.init();
         return orb.create_recursive_tc(getRepositoryID());
     }
-    TypeCode getTypeCode() { return typeCode.get(); }
+    final TypeCode getTypeCode() { return typeCode.get(); }
 
     Object copyObject(Object value, CopyState state) {
         throw new InternalError("cannot copy " + value.getClass().getName());

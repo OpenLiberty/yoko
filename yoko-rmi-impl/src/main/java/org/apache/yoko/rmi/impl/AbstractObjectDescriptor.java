@@ -57,7 +57,7 @@ class AbstractObjectDescriptor extends ValueDescriptor {
     }
 
     @Override
-    long getClassHash() { return 0L; }
+    long genClassHash() { return 0L; }
 
     @Override
     Object copyObject(Object value, CopyState state) {

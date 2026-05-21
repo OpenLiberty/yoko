@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.rmi.impl;
 
+import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.portable.InputStream;
@@ -27,10 +28,14 @@ import javax.rmi.CORBA.Util;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import static java.security.AccessController.doPrivileged;
+import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.PrivilegedActions.getClassLoader;
 
 class IDLEntityDescriptor extends ValueDescriptor {
@@ -55,65 +60,88 @@ class IDLEntityDescriptor extends ValueDescriptor {
         return "org_omg_boxedIDL_" + super.genIDLName();
     }
 
-    private volatile Method readMethod = null;
-    private Method getReadMethod() {
-        if (null == readMethod) readMethod = genHelperMethod("read");
-        return readMethod;
+    private Method findMethod(String methodName, Class<?>... parameterTypes) {
+        try {
+            return doPrivileged((PrivilegedExceptionAction<Method>) () ->
+                helperType.getDeclaredMethod(methodName, parameterTypes)
+            );
+        } catch (PrivilegedActionException ex) {
+            throw new RuntimeException("Unable to find " + methodName + " method for " + helperType.getName(), ex.getCause());
+        }
     }
 
-    private volatile Method writeMethod = null;
-    private Method getWriteMethod() {
-        if (null == writeMethod) writeMethod = genHelperMethod("write");
-        return writeMethod;
+    @FunctionalInterface
+    private interface ObjectReader extends Function<InputStream, Object> {}
+
+    private final LazyReference<ObjectReader> objectReader = new LazyReference<>(this::genObjectReader);
+
+    ObjectReader genObjectReader() {
+        // Capture the logic at build time
+        if (isCorba) {
+            return in -> ((org.omg.CORBA_2_3.portable.InputStream) in).read_Object(type);
+        } else {
+            final String repositoryID = getRepositoryID();
+            return in -> ((org.omg.CORBA_2_3.portable.InputStream) in).read_value(repositoryID);
+        }
     }
 
-    private volatile Method typeMethod = null;
-    private Method getTypeMethod() {
-        if (null == typeMethod) typeMethod = genHelperMethod("type");
-        return typeMethod;
+    private ObjectReader getObjectReader() {
+        return objectReader.get();
     }
 
-    private Method genHelperMethod(final String name) {
-        return doPrivileged(new PrivilegedAction<Method>() {
-            @Override
-            public Method run() {
-                for (Method m: helperType.getDeclaredMethods()) {
-                    if (m.getName().equals(name)) return m;
-                }
-                throw new RuntimeException("Unable to find " + name + " method for " + helperType.getName());
+    @FunctionalInterface
+    private interface Reader extends Function<InputStream, Serializable> {}
+
+    private final LazyReference<Reader> reader = new LazyReference<>(this::genReader);
+
+    private Reader genReader() {
+        Method readMethod = findMethod("read", InputStream.class);
+        return in -> {
+            try {
+                return (Serializable) readMethod.invoke(null, in);
+            } catch (InvocationTargetException | IllegalAccessException ex) {
+                throw as(MARSHAL::new, ex);
             }
-        });
+        };
     }
+
+    private Reader getReader() {
+        return reader.get();
+    }
+
+    @FunctionalInterface
+    private interface Writer extends BiConsumer<OutputStream, Serializable> {}
+
+    private final LazyReference<Writer> writer = new LazyReference<>(this::genWriter);
+
+    private Writer genWriter() {
+        Method writeMethod = findMethod("write", OutputStream.class, type);
+        return (out, val) -> {
+            try {
+                writeMethod.invoke(null, out, val);
+            } catch (InvocationTargetException | IllegalAccessException ex) {
+                throw as(MARSHAL::new, ex);
+            }
+        };
+    }
+
+    private Writer getWriter() {
+        return writer.get();
+    }
+
+
 
     /** Read an instance of this value from a CDR stream */
     @Override
     public Object read(InputStream in) {
-        org.omg.CORBA_2_3.portable.InputStream _in = (org.omg.CORBA_2_3.portable.InputStream) in;
-        
-        // there are two ways we need to deal with IDLEntity classes.  Ones that also implement 
-        // the CORBA Object interface are actual corba objects, and must be handled that way. 
-        // Other IDLEntity classes are just transmitted by value. 
-        if (isCorba) {
-            return _in.read_Object(type);
-        } else {
-            // we directly call read_value() on the stream here, with the explicitly specified
-            // repository ID.  The input stream will handle validating the value tag for us, and eventually
-            // will call our readValue() method to deserialize the object.
-            return _in.read_value(getRepositoryID());
-        }
+        return getObjectReader().apply(in);
     }
 
     @Override
     public Serializable readValue(final InputStream in, final Map<Integer, Serializable> offsetMap, final Integer offset) {
-        try {
-            Serializable value = (Serializable) getReadMethod().invoke(null, new Object[]{in});
-            offsetMap.put(offset, value);
-            return value;
-        } catch (InvocationTargetException ex) {
-            throw (MARSHAL)new MARSHAL(""+ex.getCause()).initCause(ex.getCause());
-        } catch (IllegalAccessException ex) {
-            throw (MARSHAL)new MARSHAL(ex.getMessage()).initCause(ex);
-        }
+        Serializable value = getReader().apply(in);
+        offsetMap.put(offset, value);
+        return value;
     }
 
     /** Write an instance of this value to a CDR stream */
@@ -121,12 +149,11 @@ class IDLEntityDescriptor extends ValueDescriptor {
     public void write(OutputStream out, Object val) {
         org.omg.CORBA_2_3.portable.OutputStream _out = (org.omg.CORBA_2_3.portable.OutputStream) out;
 
-        
-        // there are two ways we need to deal with IDLEntity classes.  Ones that also implement 
-        // the CORBA Object interface are actual corba objects, and must be handled that way. 
-        // Other IDLEntity classes are just transmitted by value. 
+        // there are two ways we need to deal with IDLEntity classes.  Ones that also implement
+        // the CORBA Object interface are actual corba objects, and must be handled that way.
+        // Other IDLEntity classes are just transmitted by value.
         if (val instanceof ObjectImpl) {
-            _out.write_Object((org.omg.CORBA.Object)val); 
+            _out.write_Object((org.omg.CORBA.Object)val);
         } else {
             // we directly call write_value() on the stream here, with the explicitly specified
             // repository ID.  the output stream will handle writing the value tag for us, and eventually
@@ -137,23 +164,16 @@ class IDLEntityDescriptor extends ValueDescriptor {
 
     @Override
     public void writeValue(OutputStream out, Serializable val) {
-        try {
-            getWriteMethod().invoke(null, new Object[] { out, val });
-        } catch (InvocationTargetException ex) {
-            throw (MARSHAL)new MARSHAL(""+ ex.getCause()).initCause(ex.getCause());
-        } catch (IllegalAccessException ex) {
-            throw (MARSHAL)new MARSHAL(ex.getMessage()).initCause(ex);
-        }
+        getWriter().accept(out, val);
     }
 
     @Override
     protected TypeCode genTypeCode() {
+        Method typeMethod = findMethod("type");
         try {
-            return (TypeCode) getTypeMethod().invoke(null, new Object[0]);
-        } catch (InvocationTargetException ex) {
-            throw (MARSHAL)new MARSHAL(""+ex.getCause()).initCause(ex.getCause());
-        } catch (IllegalAccessException ex) {
-            throw (MARSHAL)new MARSHAL(ex.getMessage()).initCause(ex);
+            return (TypeCode) typeMethod.invoke(null);
+        } catch (InvocationTargetException | IllegalAccessException ex) {
+            throw as(MARSHAL::new, ex);
         }
     }
 }

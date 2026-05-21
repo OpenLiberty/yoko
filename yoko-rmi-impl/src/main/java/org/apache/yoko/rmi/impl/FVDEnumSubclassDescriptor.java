@@ -40,7 +40,7 @@ class FVDEnumSubclassDescriptor extends EnumSubclassDescriptor {
     }
 
     @Override
-    String getRepositoryID() {
+    String genRepId() {
         return repid;
     }
 
@@ -50,7 +50,7 @@ class FVDEnumSubclassDescriptor extends EnumSubclassDescriptor {
     }
 
     @Override
-    final TypeCode getTypeCode() { return fvd.type; }
+    TypeCode genTypeCode() { return fvd.type; }
 
     @Override
     public boolean isCustomMarshalled() {
