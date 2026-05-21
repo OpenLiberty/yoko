@@ -24,7 +24,7 @@ Testify provides some annotations, two of which are:
 
 - **@ConfigurePartRunner**
     
-    >The `@ConfigurePartRunner` annotation allows you to get a part runner in your setup and your test methods. Having the `@ConfigurePartRunner` annotation is simply a shorthand for including `@ExtendWith(PartRunnerExtension.class)` without making that class available. This essentially tells JUnit to load up the `PartRunnerExtension` upon running the class, and to use any extension points that are in this class in the course of running any tests. The `@ConfigurePartRunner `annotation is further explained in the [ConfigurePartRunner](/pages/annotations/part-runner) section.
+    >The `@ConfigurePartRunner` annotation allows you to get a part runner in your setup and your test methods. Having the `@ConfigurePartRunner` annotation is simply a shorthand for including `@ExtendWith(PartRunnerExtension.class)` without making that class available. This essentially tells JUnit to load up the `PartRunnerExtension` upon running the class, and to use any extension points that are in this class in the course of running any tests. The `@ConfigurePartRunner `annotation is further explained in the [ConfigurePartRunner](part-runner.md) section.
 
 - **@RetriedTest**
     

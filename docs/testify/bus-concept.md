@@ -7,6 +7,3 @@ The bus concept is used within Testify to help write JUnit tests for a test that
 ### Bus vs Java Concurrency Synchronisation Utilities
 
 The reason why the bus was created instead of using one of the many utilities that Java has for concurrency synchronisation is that the utilities Java has usually only works with multiple threads. However, Testify needs to be capable of working with multiple processes as well as multiple threads. This is why the bus concept was implemented within Testify.
-
-
-![Bus Diagram](../../images/bus_diagram.png)
