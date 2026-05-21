@@ -197,7 +197,7 @@ task updateChangelog {
     description = 'Updates CHANGELOG.md using git-cliff'
     
     def changelogFile = file('CHANGELOG.md')
-    def cliffConfig = file('cliff.toml')
+    def cliffConfig = file('config/git-cliff/cliff.toml')
     
     inputs.file cliffConfig
     outputs.file changelogFile
@@ -644,7 +644,7 @@ task prepareReleaseBranch {
         // Update CHANGELOG using git-cliff, preserving existing entries
         println "Updating CHANGELOG.md..."
         exec {
-            commandLine 'git-cliff', '--config', 'cliff.toml', '--tag', versionTag, '--unreleased', '--prepend', 'CHANGELOG.md'
+            commandLine 'git-cliff', '--config', 'config/git-cliff/cliff.toml', '--tag', versionTag, '--unreleased', '--prepend', 'CHANGELOG.md'
         }
         
         // Commit CHANGELOG if changed

@@ -1,0 +1,22 @@
+site_name: Yoko Documentation
+site_description: Yoko ORB used by OpenLiberty, derived from Apache Geronimo
+repo_name: OpenLiberty/yoko
+repo_url: https://github.com/OpenLiberty/yoko
+
+theme:
+    name: material
+
+nav:
+  - Testify Framework:
+    - Guide: "testify/guide.md"
+    - Bus Concept: "testify/bus-concept.md"
+    - Bus Processes: "testify/bus-processes.md"
+    - Annotations: "testify/annotations.md"
+    - ConfigurePartRunner: "testify/part-runner.md"
+    - JUL Logging: "testify/jul-logging.md"
+  - Contributing:
+    - Coding Standards: "contribution/coding-standards.md"
+    - Release Process: "contribution/release-process.md"
+    - Interop Testing: "contribution/interop-testing.md"
+
+# Made with Bob
