@@ -37,3 +37,6 @@ build
 
 # ignore interop test worktrees
 worktrees
+
+# MkDocs generated site
+site/

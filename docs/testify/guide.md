@@ -114,9 +114,9 @@ This guide will explain and allow you to implement Testify to a Remote Method In
         import testify.jupiter.annotation.ConfigurePartRunner;
         import testify.parts.PartRunner;
 
-These imports enable Testify in your testing. The annotation you are using from Testify is `@ConfigurePartRunner`. This annotation allows us to make use of `runner.useNewJVMWhenForking()` and `runner.fork()`. These runners allow you to run methods from your app/project within the testing. The `@ConfigurePartRunner `annotation is further explained in the [ConfigurePartRunner](/pages/annotations/part-runner) section.
+These imports enable Testify in your testing. The annotation you are using from Testify is `@ConfigurePartRunner`. This annotation allows us to make use of `runner.useNewJVMWhenForking()` and `runner.fork()`. These runners allow you to run methods from your app/project within the testing. The `@ConfigurePartRunner `annotation is further explained in the [ConfigurePartRunner](part-runner.md) section.
 
-In `IntitialTest.java` the tests are sending and getting events from methods using the [bus](/pages/bus/bus-concept). Thanks to these events you are making sure that a new instruction is not run until the previous one complete and the correct values are shared across processes/threads. This is done using TypeSpecs which are Testify specific. TypeSpecs are enums that you can call. In this case these are the events. Thanks to these TypeSpecs you are able to know:
+In `IntitialTest.java` the tests are sending and getting events from methods using the [bus](bus-concept.md). Thanks to these events you are making sure that a new instruction is not run until the previous one complete and the correct values are shared across processes/threads. This is done using TypeSpecs which are Testify specific. TypeSpecs are enums that you can call. In this case these are the events. Thanks to these TypeSpecs you are able to know:
 
 - How long a server took to start (SERVER_STARTED)
 - When the client starts to interact with the server

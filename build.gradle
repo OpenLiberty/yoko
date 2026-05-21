@@ -99,10 +99,10 @@ def validateGradleVersions() {
 validateGradleVersions()
 
 // Apply interop testing tasks
-apply from: 'build-interop.gradle'
+apply from: 'config/gradle/interop-testing.gradle'
 
 // Apply release configuration
-apply from: 'build-release.gradle'
+apply from: 'config/gradle/build-release.gradle'
 
 // compute git hash
 
