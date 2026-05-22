@@ -78,7 +78,8 @@ This test plan covers comprehensive testing of CORBA Portable Interceptors with 
 
 ### 4.1 Client-Side Exception Tests
 
-#### TC-CLIENT-001: Exception in send_request()
+#### TC-CLIENT-001: Exception in send_request() see `org.omg.PortableInterceptor.ClientExceptionFlowTest`
+
 **Objective**: Verify exception thrown in send_request() prevents request transmission
 
 **Setup**:
