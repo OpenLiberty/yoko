@@ -31,6 +31,7 @@ nav:
     - Bus Processes: "testify/bus-processes.md"
     - Annotations: "testify/annotations.md"
     - ConfigurePartRunner: "testify/part-runner.md"
+    - IIOP Testcases: "testify/iiop-testcases.md"
     - JUL Logging: "testify/jul-logging.md"
   - Contributing:
     - Coding Standards: "contribution/coding-standards.md"
