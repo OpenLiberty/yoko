@@ -144,6 +144,9 @@ Testify is our internal testing framework for JUnit 5, supporting:
 
 See [Testify documentation](https://openliberty.github.io/yoko/) for usage details.
 
+For creating or simplifying Yoko IIOP testcases, see the
+[testify-iiop testcase guide](https://openliberty.github.io/yoko/testify/iiop-testcases/).
+
 ## Documentation
 
 ### Testing Documentation Locally
