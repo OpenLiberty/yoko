@@ -58,6 +58,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Arrays.copyOf;
+import static org.apache.yoko.logging.VerboseLogging.REQ_OUT_LOG;
 import static org.apache.yoko.util.CollectionExtras.newSynchronizedList;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidComponentId;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidPICall;
@@ -277,6 +278,11 @@ final public class ClientRequestInfo_impl extends RequestInfo_impl implements Cl
                     this.interceptors.add(interceptor);
                 } catch (SystemException ex) {
                     replyStatus = SYSTEM_EXCEPTION.value;
+                    // correct completion status
+                    if (COMPLETED_NO != ex.completed) {
+                        REQ_OUT_LOG.warning(() -> "Correcting completion status on new exception from interceptor " + interceptor.getClass() + ": was " + ex.completed + " and is: " + COMPLETED_NO);
+                        ex.completed = COMPLETED_NO;
+                    }
                     receivedException = ex;
                     _OB_reply();
                 } catch (ForwardRequest ex) {
