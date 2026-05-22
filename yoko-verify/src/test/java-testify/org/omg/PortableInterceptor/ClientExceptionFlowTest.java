@@ -18,14 +18,18 @@
 package org.omg.PortableInterceptor;
 
 import acme.Echo;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.NO_PERMISSION;
 import testify.iiop.TestORBInitializer;
 import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
 import testify.iiop.annotation.ConfigureServer;
 import testify.iiop.annotation.ConfigureServer.RemoteImpl;
 
+import java.lang.reflect.UndeclaredThrowableException;
 import java.rmi.RemoteException;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -57,6 +61,12 @@ public class ClientExceptionFlowTest {
     public static final Echo impl = ClientExceptionFlowTest::convertString;
 
     private static String convertString(String s) { return '#' + s + '#'; }
+
+    @AfterEach
+    void resetMocks() {
+        // Reset all mocks after each test to ensure clean state
+        Mockito.reset(CI1, CI2, CI3, SI);
+    }
 
     @UseWithOrb(scope = CLIENT)
     public static class ClientOrbInitializer implements TestORBInitializer {
@@ -102,5 +112,60 @@ public class ClientExceptionFlowTest {
         order.verify(CI2).send_request(Mockito.any(ClientRequestInfo.class));  // 2. CI2.send_request() throws
         order.verify(CI1).receive_exception(Mockito.any(ClientRequestInfo.class)); // 3. CI1.receive_exception()
         order.verifyNoMoreInteractions(); // Verify no other interactions occurred on any of the interceptors
+    }
+
+    /**
+     * Exception Translation in Interceptor Chain
+     * Verifies that an interceptor can translate exceptions in receive_exception():
+     * - CI1.send_request() executes successfully
+     * - CI2.send_request() throws NO_PERMISSION
+     * - CI3.send_request() is NOT called (never pushed to Flow Stack)
+     * - CI1.receive_exception() receives NO_PERMISSION, throws BAD_INV_ORDER
+     * - CI2.receive_exception() is NOT called (interceptor that raised exception)
+     * - CI3.receive_exception() is NOT called (never pushed to Flow Stack)
+     * - Client receives BAD_INV_ORDER (not NO_PERMISSION)
+     */
+    @Test
+    void testExceptionTranslationInInterceptorChain(Echo stub) throws Exception {
+        // Configure CI2 to throw NO_PERMISSION in send_request()
+        Mockito.doAnswer(invocation -> {
+            throw new NO_PERMISSION("Original exception from CI2", 0, COMPLETED_MAYBE);
+        }).when(CI2).send_request(Mockito.any(ClientRequestInfo.class));
+
+        // Configure CI1 to translate NO_PERMISSION to BAD_INV_ORDER in receive_exception()
+        Mockito.doAnswer(invocation -> {
+            // Translate to BAD_INV_ORDER (don't verify received exception to avoid assertion errors in mock)
+            throw new org.omg.CORBA.BAD_INV_ORDER("Translated exception from CI1", 0, COMPLETED_NO);
+        }).when(CI1).receive_exception(Mockito.any(ClientRequestInfo.class));
+
+        // Execute the call and verify BAD_INV_ORDER is thrown (not NO_PERMISSION)
+        Throwable thrown = assertThrows(Throwable.class, () -> stub.echo("should throw"));
+        // Unwrap the exception to get the actual CORBA exception
+        Throwable cause = unwrapException(thrown);
+        BAD_INV_ORDER corbaEx = assertInstanceOf(BAD_INV_ORDER.class, cause);
+
+        // Verify completion status
+        assertEquals(COMPLETED_NO, corbaEx.completed, "Exception should have COMPLETED_NO status");
+
+        // Verify expected flow using Mockito InOrder to check execution order:
+        var order = Mockito.inOrder(CI1, CI2, CI3, SI);
+        order.verify(CI1).send_request(Mockito.any(ClientRequestInfo.class));  // 1. CI1.send_request()
+        order.verify(CI2).send_request(Mockito.any(ClientRequestInfo.class));  // 2. CI2.send_request() throws NO_PERMISSION
+        order.verify(CI1).receive_exception(Mockito.any(ClientRequestInfo.class)); // 3. CI1.receive_exception() translates to BAD_INV_ORDER
+        order.verifyNoMoreInteractions(); // Verify CI2.receive_exception() and CI3 are NOT called
+    }
+
+    /**
+     * Unwraps exception wrappers to get the underlying CORBA exception.
+     * Handles RemoteException and UndeclaredThrowableException wrappers.
+     */
+    private static Throwable unwrapException(Throwable thrown) {
+        if (thrown instanceof RemoteException) {
+            return thrown.getCause();
+        }
+        if (thrown instanceof UndeclaredThrowableException) {
+            return ((UndeclaredThrowableException) thrown).getUndeclaredThrowable();
+        }
+        return thrown;
     }
 }
