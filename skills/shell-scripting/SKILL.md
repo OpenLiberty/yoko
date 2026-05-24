@@ -13,11 +13,6 @@ modes:
   - advanced
 ---
 
-# Shell Scripting Skill
-
-## Description
-Expert knowledge in writing clean, maintainable, and Bourne shell-compliant scripts following best practices.
-
 ## When to Use
 - Writing new shell scripts
 - Modifying existing shell scripts
