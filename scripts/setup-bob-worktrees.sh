@@ -17,46 +17,39 @@
 
 set -e
 
+# Die function for error handling
+die() { echo "Error: $*" >&2; exit 1; }
+
 echo "Setting up Bob Shell worktree..."
 
-# Ensure we're in the repository root
-if [ ! -d ".git" ]; then
-    echo "Error: Must be run from the repository root directory"
-    exit 1
-fi
+# Ensure we're in a git repository and change to root
+git rev-parse --git-dir >/dev/null 2>&1 || die "Not in a git repository"
+cd "$(git rev-parse --show-toplevel)"
 
 # Check if .bob is already a registered worktree
-if git worktree list | grep -q "\.bob"; then
-    echo "✓ Bob Shell worktree already set up"
-    exit 0
-fi
+git worktree list | grep -q "\.bob" && { echo "✓ Bob Shell worktree already set up"; exit 0; } || true
 
-# Check if .bob directory exists but is not a worktree
-if [ -d ".bob" ]; then
+# Backup .bob if it exists and is not a worktree
+[ ! -d ".bob" ] || {
     echo "Found existing .bob/ directory (not a worktree)"
-    echo "Migrating to worktree structure..."
-    
-    # Backup existing content
-    echo "Backing up existing .bob/ content..."
-    rm -rf .bob-migration-backup
-    cp -r .bob .bob-migration-backup
-    echo "✓ Backed up to .bob-migration-backup/"
-    
-    # Remove the directory
+    mkdir -p .bob-migration-backup
+    echo "Merging .bob/ into .bob-migration-backup/"
+    rsync -a .bob/ .bob-migration-backup/
     rm -rf .bob
-    echo "✓ Removed old .bob/ directory"
-fi
+    echo "✓ Backed up .bob/ to .bob-migration-backup/"
+}
 
-# Fetch the bob branch if it doesn't exist locally
-if ! git show-ref --verify --quiet refs/heads/bob; then
-    if git show-ref --verify --quiet refs/remotes/origin/bob; then
-        echo "Creating local bob branch from origin/bob..."
-        git branch bob origin/bob
-        echo "✓ Created local bob branch"
+# Fetch the bob branch from origin if it doesn't exist locally
+if ! git fetch origin bob:bob 2>&1; then
+    # Check if local bob branch exists
+    if git show-ref --verify --quiet refs/heads/bob; then
+        echo "⚠ Warning: Could not update local bob branch from origin (likely diverged)" >&2
+        echo "⚠ Using existing local bob branch" >&2
+        echo "⚠ Please sync your bob branch:" >&2
+        echo "    git checkout bob && git pull --rebase origin bob && git push origin bob && git checkout -" >&2
+        echo "" >&2
     else
-        echo "Error: bob branch not found locally or on origin"
-        echo "Please ensure the bob branch exists before running this script"
-        exit 1
+        die "bob branch not found on origin and does not exist locally"
     fi
 fi
 
@@ -66,41 +59,34 @@ git worktree add .bob bob
 echo "✓ bob worktree created at .bob/"
 
 # Restore backed up content if it exists
-if [ -d ".bob-migration-backup" ]; then
+[ ! -d ".bob-migration-backup" ] || {
     echo "Restoring backed up content..."
-    echo ""
-    
-    # Copy everything except .git directory, with verbose output
-    (cd .bob-migration-backup && find . -mindepth 1 -maxdepth 1 ! -name '.git' -print0) | while IFS= read -r -d '' item; do
-        item_name=$(basename "$item")
-        echo "  Restoring: $item_name"
-        cp -r ".bob-migration-backup/$item_name" ".bob/" 2>/dev/null || true
-    done
-    
-    echo ""
+    rsync -av --exclude='.git' .bob-migration-backup/ .bob/
     echo "✓ Restored all content from backup"
-    echo ""
-    echo "Migration complete! All backed up content restored."
-    echo "Original backup kept at: .bob-migration-backup/"
-    echo "You can remove it after verifying: rm -rf .bob-migration-backup"
-fi
 
-# Create notes directory (not tracked in git)
-if [ ! -d ".bob/notes" ]; then
-    mkdir -p .bob/notes
-    echo "✓ Created .bob/notes/ for personal notes (not tracked in git)"
-fi
+    # Clean up the migration backup
+    rm -rf .bob-migration-backup
+    echo "✓ Removed .bob-migration-backup/"
+    echo ""
+    echo "Migration complete!"
+}
+
+# Create notes directory if it doesn't exist (not tracked in git)
+[ ! -d .bob/notes ] || { mkdir -p .bob/notes; echo "✓ Created .bob/notes/ for personal notes (not tracked in git)"; }
+
 
 echo ""
 echo "Bob Shell worktree setup complete!"
 echo ""
 echo "Directory structure:"
-echo "  .bob/              (worktree → bob branch)"
-echo "  ├── .gitignore     (ignores notes/)"
-echo "  ├── config/        (Bob configuration)"
-echo "  ├── docs/          (Shared documentation)"
-echo "  ├── memory/        (Team memories)"
-echo "  └── notes/         (Personal notes, not tracked)"
+printf "  %-24s (worktree → bob branch)\n" ".bob/"
+# List contents, marking git-ignored ones
+cd .bob
+for item in *; do
+    [ -e "$item" ] || continue
+    git check-ignore -q "$item" 2>/dev/null && pattern="  %-30s (not tracked in git)\n" || pattern="  %s\n"
+    printf "$pattern" "├── $(ls -Fd "$item")"
+done
 echo ""
 echo "To update from remote:"
 echo "  cd .bob && git pull"

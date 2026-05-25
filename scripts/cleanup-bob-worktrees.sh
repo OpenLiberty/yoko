@@ -17,64 +17,43 @@
 
 set -e
 
+die() { echo "Error: $*" >&2; exit 1; }
+
 echo "Cleaning up Bob Shell worktree..."
 
-# Ensure we're in the repository root
-if [ ! -d ".git" ]; then
-    echo "Error: Must be run from the repository root directory"
-    exit 1
-fi
+# Ensure we're in a git repository and change to root
+git rev-parse --git-dir >/dev/null 2>&1 || die "Not in a git repository"
+cd "$(git rev-parse --show-toplevel)"
 
-# First, prune any orphaned worktree entries
+# Prune any orphaned worktree entries
 git worktree prune 2>/dev/null || true
 
-# Check if .bob worktree is registered
-if git worktree list | grep -q "\.bob"; then
-    echo "Removing registered bob worktree..."
+# Check if .bob is a registered worktree
+git worktree list | grep -q "\.bob" || { echo "✓ Bob Shell worktree not found (nothing to clean up)"; exit 0; }
 
-    # Backup notes if they exist and directory is accessible
-    if [ -d ".bob/notes" ] && [ "$(ls -A .bob/notes 2>/dev/null)" ]; then
-        echo "Backing up .bob/notes/..."
-        rm -rf .bob-notes-backup
-        cp -r .bob/notes .bob-notes-backup
-        echo "✓ Backed up to .bob-notes-backup/"
-    fi
+# Check for uncommitted changes
+git -C .bob diff-index --quiet HEAD -- 2>/dev/null || die "You have uncommitted changes in .bob/. Please commit or stash them first."
 
-    # Remove the worktree (force in case directory is missing)
-    git worktree remove .bob --force 2>/dev/null || true
-    echo "✓ Removed bob worktree"
+BACKUP_DIR="$PWD/.bob-migration-backup"
+[ -d "$BACKUP_DIR" ] || { echo "Creating backup directory at $BACKUP_DIR"; mkdir -p "$BACKUP_DIR"; }
 
-    # Show backup message if notes were backed up
-    if [ -d ".bob-notes-backup" ]; then
-        echo ""
-        echo "Personal notes backed up to: .bob-notes-backup/"
-        echo "To restore after running setup script:"
-        echo "  cp -r .bob-notes-backup .bob/notes"
-        echo "  rm -rf .bob-notes-backup"
-    fi
-elif [ -d ".bob" ]; then
-    # Directory exists but not registered as worktree
-    echo "Found .bob/ directory but not registered as worktree"
-    echo "Removing directory..."
+# Change to .bob worktree
+cd .bob
 
-    # Backup notes if they exist
-    if [ -d ".bob/notes" ] && [ "$(ls -A .bob/notes 2>/dev/null)" ]; then
-        echo "Backing up .bob/notes/..."
-        rm -rf .bob-notes-backup
-        cp -r .bob/notes .bob-notes-backup
-        echo "✓ Backed up to .bob-notes-backup/"
-    fi
+# Backup git-ignored content from .bob before cleanup
+echo "Backing up git-ignored content in .bob ..."
 
-    rm -rf .bob
-    echo "✓ Removed .bob/ directory"
-else
-    echo "✓ bob worktree not found (already removed)"
-fi
+# backup ignored files
+git ls-files --others --ignored --exclude-standard | rsync -avR --files-from=- . "$BACKUP_DIR/"
 
-# Final prune to clean up any remaining references
-git worktree prune 2>/dev/null || true
+# remove the git worktree
+cd ..
+git worktree remove .bob
+
+# restore the backup
+mv .bob-migration-backup/ .bob 
 
 echo ""
 echo "Bob Shell worktree cleanup complete!"
 echo ""
-echo "To set up worktree again, run: ./scripts/setup-bob-worktrees.sh"
+echo "To set up worktree again, run: scripts/setup-bob-worktrees.sh"
