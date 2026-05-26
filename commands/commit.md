@@ -9,9 +9,9 @@ description: Conventionally commit the changes with optional AI attribution
 5. Produce a Conventional Commit with:
    - a subject line in the form `type(scope): description`, or `type: description` if there is no component
    - a detailed body explaining the substantive changes
-   - a short summary of lines added and removed
+   - a short summary of lines added and removed (ignoring whitespace)
 6. If AI contributed to the change, add a footer using:
-   `Co-authored-by-AI: IBM Bob <bob version>`
+   `Co-authored-by-AI: IBM Bob bob version`
 7. If the Bob version is not already known, ask the user for it explicitly before finalizing the commit message.
 8. Before running `git commit`, present the full proposed commit message to the user for confirmation.
 9. When approved, run the commit command.
@@ -28,6 +28,6 @@ type(scope): short description
 - first concrete change
 - second concrete change
 - third concrete change
-- lines added: <n>, lines removed: <n>
+- substantive lines added: n, lines removed: n
 
-Co-authored-by-AI: IBM Bob <bob version> (GPT-5)
+Co-authored-by-AI: IBM Bob n.n.n
