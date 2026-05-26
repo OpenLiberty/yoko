@@ -18,18 +18,22 @@
 package org.apache.yoko;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import testify.iiop.annotation.ConfigureServer.RemoteImpl;
+import testify.iiop.annotation.ConfigureServer.RemoteStub;
 import testify.iiop.annotation.InteropTest;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static testify.iiop.annotation.InteropTest.YokoVersion.V1_5_0;
 import static testify.iiop.annotation.InteropTest.YokoVersion.V1_6_1;
 
 /**
- * Enum interoperability tests against Yoko 1.6.1.
- * Server runs with Yoko 1.6.1, client with current version.
+ * Enum interoperability tests against Yoko 1.5.0.
+ * Server runs with Yoko 1.5.0, client with current version.
  *
  * Tests marshalling of:
  * - Simple enums
@@ -37,18 +41,15 @@ import static testify.iiop.annotation.InteropTest.YokoVersion.V1_6_1;
  * - Enums with anonymous classes
  * - Complex enums (fields + anonymous classes)
  *
- * This test may be skipped if Yoko 1.6.1 is not cached.
+ * This test may be skipped if Yoko 1.5.0 is not cached.
  */
-@InteropTest(V1_6_1)
-public class EnumInteropV1_6_1Test {
+abstract class EnumInteropTest {
 
     // 1. Simple Enum - basic enum with no additional fields or methods
-    enum SimpleColor {
-        RED, GREEN, BLUE
-    }
+    public enum Color { RED, GREEN, BLUE }
 
     // 2. Enum with Fields - enum with instance fields and constructor
-    enum Planet {
+    public enum Planet {
         MERCURY(3.303e+23, 2.4397e6),
         VENUS(4.869e+24, 6.0518e6),
         EARTH(5.976e+24, 6.37814e6);
@@ -66,7 +67,7 @@ public class EnumInteropV1_6_1Test {
     }
 
     // 3. Enum with Anonymous Classes - enum where some members override methods
-    enum Operation {
+    public enum Operation {
         PLUS {
             public int apply(int x, int y) { return x + y; }
         },
@@ -81,7 +82,7 @@ public class EnumInteropV1_6_1Test {
     }
 
     // 4. Complex Enum - enum with both fields AND anonymous subclasses
-    enum Vehicle {
+    public enum Vehicle {
         CAR(4) {
             public String getDescription() {
                 return "A car with " + getWheels() + " wheels";
@@ -110,64 +111,51 @@ public class EnumInteropV1_6_1Test {
 
     // Remote Interface for testing enum marshalling
     public interface EnumTestService extends Remote {
-        SimpleColor echoSimpleColor(SimpleColor color) throws RemoteException;
-        Planet echoPlanet(Planet planet) throws RemoteException;
-        Operation echoOperation(Operation op) throws RemoteException;
-        Vehicle echoVehicle(Vehicle vehicle) throws RemoteException;
-    }
-
-    // Service Implementation
-    static class EnumTestServiceImpl implements EnumTestService {
-        public SimpleColor echoSimpleColor(SimpleColor color) { return color; }
-        public Planet echoPlanet(Planet planet) { return planet; }
-        public Operation echoOperation(Operation op) { return op; }
-        public Vehicle echoVehicle(Vehicle vehicle) { return vehicle; }
+        default <T extends Enum<T>> T echo(T t) { return Enum.valueOf(t.getDeclaringClass(), t.name()); }
     }
 
     @RemoteImpl
-    public static final EnumTestService service = new EnumTestServiceImpl();
+    public static final EnumTestService service = new EnumTestService() {};
 
-    @Test
-    void testSimpleEnum(EnumTestService remote) throws Exception {
-        // Test all simple enum values
-        for (SimpleColor color : SimpleColor.values()) {
-            SimpleColor result = remote.echoSimpleColor(color);
-            assertEquals(color, result, "Simple enum value should match");
-        }
+    @RemoteStub
+    public static EnumTestService remote;
+
+    @ParameterizedTest
+    @EnumSource(Color.class)
+    void testSimpleEnum(Color color) throws Exception {
+        Color result = remote.echo(color);
+        assertEquals(color, result, "Simple enum value should match");
     }
 
-    @Test
-    void testEnumWithFields(EnumTestService remote) throws Exception {
-        // Test enum with fields - verify both identity and field values
-        for (Planet planet : Planet.values()) {
-            Planet result = remote.echoPlanet(planet);
-            assertEquals(planet, result, "Enum with fields should match");
-            assertEquals(planet.getMass(), result.getMass(), "Planet mass should match");
-            assertEquals(planet.getRadius(), result.getRadius(), "Planet radius should match");
-        }
+    @ParameterizedTest
+    @EnumSource(Planet.class)
+    void testEnumWithFields(Planet planet) throws Exception {
+        Planet result = remote.echo(planet);
+        assertEquals(planet, result, "Enum with fields should match");
+        assertEquals(planet.getMass(), result.getMass(), "Planet mass should match");
+        assertEquals(planet.getRadius(), result.getRadius(), "Planet radius should match");
     }
 
-    @Test
-    void testEnumWithAnonymousClasses(EnumTestService remote) throws Exception {
-        // Test enum with anonymous classes - verify both identity and method behavior
-        for (Operation op : Operation.values()) {
-            Operation result = remote.echoOperation(op);
-            assertEquals(op, result, "Enum with anonymous classes should match");
-            assertEquals(op.apply(5, 3), result.apply(5, 3), 
-                "Operation behavior should match for " + op);
-        }
+    @ParameterizedTest
+    @EnumSource(Operation.class)
+    void testEnumWithAnonymousClasses(Operation op) throws Exception {
+        Operation result = remote.echo(op);
+        assertEquals(op, result, "Enum with anonymous classes should match");
+        assertEquals(op.apply(5, 3), result.apply(5, 3), "Operation behavior should match for " + op);
     }
 
-    @Test
-    void testComplexEnum(EnumTestService remote) throws Exception {
-        // Test complex enum with both fields and anonymous classes
-        for (Vehicle vehicle : Vehicle.values()) {
-            Vehicle result = remote.echoVehicle(vehicle);
+    @ParameterizedTest
+    @EnumSource(Vehicle.class)
+    void testComplexEnum(Vehicle vehicle) throws Exception {
+            Vehicle result = remote.echo(vehicle);
             assertEquals(vehicle, result, "Complex enum should match");
-            assertEquals(vehicle.getWheels(), result.getWheels(), 
-                "Vehicle wheels should match for " + vehicle);
-            assertEquals(vehicle.getDescription(), result.getDescription(), 
-                "Vehicle description should match for " + vehicle);
-        }
+            assertEquals(vehicle.getWheels(), result.getWheels(), "Vehicle wheels should match for " + vehicle);
+            assertEquals(vehicle.getDescription(), result.getDescription(), "Vehicle description should match for " + vehicle);
     }
 }
+
+@InteropTest(V1_5_0)
+class EnumInteropV150Test extends EnumInteropTest{}
+
+@InteropTest(V1_6_1)
+class EnumInteropV161Test extends EnumInteropTest{}
