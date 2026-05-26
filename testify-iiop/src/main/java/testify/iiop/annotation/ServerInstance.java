@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,41 +17,38 @@
  */
 package testify.iiop.annotation;
 
-import static org.apache.yoko.io.AlignmentBoundary.FOUR_BYTE_BOUNDARY;
-import static org.apache.yoko.io.AlignmentBoundary.TWO_BYTE_BOUNDARY;
-import static org.apache.yoko.io.Buffer.createReadBuffer;
-import static testify.bus.TestLogLevel.WARN;
-import static testify.hex.HexParser.HEX_STRING;
-
-import java.util.Map;
-import java.util.Properties;
-import java.util.stream.IntStream;
-
 import org.apache.yoko.io.ReadBuffer;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.COMM_FAILURE;
 import org.omg.CORBA.ORB;
-import org.omg.CORBA.Policy;
 import org.omg.CORBA.ORBPackage.InvalidName;
+import org.omg.CORBA.Policy;
 import org.omg.PortableServer.IdAssignmentPolicyValue;
 import org.omg.PortableServer.IdUniquenessPolicyValue;
 import org.omg.PortableServer.ImplicitActivationPolicyValue;
 import org.omg.PortableServer.LifespanPolicyValue;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAManager;
-import org.omg.PortableServer.RequestProcessingPolicyValue;
-import org.omg.PortableServer.ServantRetentionPolicyValue;
-import org.omg.PortableServer.ThreadPolicyValue;
 import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 import org.omg.PortableServer.POAPackage.AdapterAlreadyExists;
 import org.omg.PortableServer.POAPackage.InvalidPolicy;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
+import org.omg.PortableServer.RequestProcessingPolicyValue;
+import org.omg.PortableServer.ServantRetentionPolicyValue;
+import org.omg.PortableServer.ThreadPolicyValue;
 import org.opentest4j.AssertionFailedError;
-
 import testify.bus.Bus;
 import testify.iiop.annotation.ConfigureServer.ServerName;
 import testify.util.Maps;
 import testify.util.Throw;
+
+import java.util.Map;
+import java.util.Properties;
+import java.util.stream.IntStream;
+
+import static org.apache.yoko.io.Buffer.createReadBuffer;
+import static testify.bus.TestLogLevel.WARN;
+import static testify.hex.HexParser.HEX_STRING;
 
 class ServerInstance {
     final Bus bus;
@@ -61,70 +58,81 @@ class ServerInstance {
     final int port;
     final String host;
 
-    
+
     /**
      * To avoid using the internals of the POA Manager implementation
      * just create an IOR and fish out the host and port from that.
      */
     private final static class AddressIntrospector {
-    	final String host;
-    	final int port;
-    	
-    	public AddressIntrospector(ORB orb, POA poa) {
-    		final byte[] iiopProfile = getIiopProfile(getIor(orb, poa));
-			ReadBuffer rb = createReadBuffer(iiopProfile);
-			rb.skipBytes(2); // skip iiop_Version
-			// read the host name
-			rb.align(FOUR_BYTE_BOUNDARY);
-			int len = rb.readInt(); // host string length
-			StringBuilder sb = new StringBuilder(len);
-			// read all but last byte, since strings are null-terminated in the IOR
-			IntStream.range(0, len - 1).forEach(i -> sb.append(rb.readByteAsChar()));
-    		this.host = sb.toString();
-    		rb.skipBytes(1); // consume the null terminator
-    		// read the port number
-    		rb.align(TWO_BYTE_BOUNDARY);
-    		this.port = rb.readShort() & 0xffff;
-		}
+        final String host;
+        final int port;
 
-    	static String getIor(ORB orb, POA poa) {
-			try {
-				org.omg.CORBA.Object o = poa.create_reference("IDL:Special.ID.Object:1.0");
-				return orb.object_to_string(o);
-			} catch (WrongPolicy e) {
-				throw new AssertionFailedError("internal test framework error", e);
-			}
+        // Helper method to align without calling ReadBuffer.align() for version compatibility
+        // Yoko 1.5.0: align() returns ReadBuffer
+        // Current: align() returns Buffer<T extends ReadBuffer>
+        private static void alignBuffer(ReadBuffer rb, int boundary) {
+            int pos = rb.getPosition();
+            int rem = pos % boundary;
+            if (rem != 0) {
+                rb.setPosition(pos + boundary - rem);
+            }
+        }
+
+        public AddressIntrospector(ORB orb, POA poa) {
+            final byte[] iiopProfile = getIiopProfile(getIor(orb, poa));
+            ReadBuffer rb = createReadBuffer(iiopProfile);
+            rb.skipBytes(2); // skip iiop_Version
+            // read the host name
+            alignBuffer(rb, 4);
+            int len = rb.readInt(); // host string length
+            StringBuilder sb = new StringBuilder(len);
+            // read all but last byte, since strings are null-terminated in the IOR
+            IntStream.range(0, len - 1).forEach(i -> sb.append(rb.readByteAsChar()));
+            this.host = sb.toString();
+            rb.skipBytes(1); // consume the null terminator
+            // read the port number
+            alignBuffer(rb, 2);
+            this.port = rb.readShort() & 0xffff;
+        }
+
+        static String getIor(ORB orb, POA poa) {
+            try {
+                org.omg.CORBA.Object o = poa.create_reference("IDL:Special.ID.Object:1.0");
+                return orb.object_to_string(o);
+            } catch (WrongPolicy e) {
+                throw new AssertionFailedError("internal test framework error", e);
+            }
         }
 
         static byte[] getIiopProfile(String ior) {
-        	System.out.println("fake ior to discover server endpoint:" + ior);
-        	String hex = ior.substring("IOR:".length()); // strip leading "IOR:"
-        	byte[] binary = HEX_STRING.parse(hex);
-			ReadBuffer rb = createReadBuffer(binary); // parse IOR
-			try {
-				//skip the BOM
-				rb.skipBytes(1);
-	        	//skip past the type_id
-				rb.align(FOUR_BYTE_BOUNDARY);
-	        	int len = rb.readInt(); 
-	        	rb.skipBytes(len);
-	        	rb.align(FOUR_BYTE_BOUNDARY);
-	        	// read how many profiles there are (typically 1)
-	        	rb.readInt();
-	        	// leaf through the profiles looking for the one with an ID of zero (i.e. the TAG_INTERNET_IOP profile)
-	        	for (;;) {
-	        		int profileId = rb.readInt();
-	        		int dataLen = rb.readInt();
-	        		if (0 == profileId) return rb.readBytes(new byte[dataLen]);
-	        		rb.skipBytes(dataLen);
-	        		rb.align(FOUR_BYTE_BOUNDARY);
-	        	}
-			} finally {
-				System.out.println(rb.dumpAllDataWithPosition());
-			}
+            System.out.println("fake ior to discover server endpoint:" + ior);
+            String hex = ior.substring("IOR:".length()); // strip leading "IOR:"
+            byte[] binary = HEX_STRING.parse(hex);
+            ReadBuffer rb = createReadBuffer(binary); // parse IOR
+            try {
+                //skip the BOM
+                rb.skipBytes(1);
+                //skip past the type_id
+                alignBuffer(rb, 4);
+                int len = rb.readInt();
+                rb.skipBytes(len);
+                alignBuffer(rb, 4);
+                // read how many profiles there are (typically 1)
+                rb.readInt();
+                // leaf through the profiles looking for the one with an ID of zero (i.e. the TAG_INTERNET_IOP profile)
+                for (;;) {
+                    int profileId = rb.readInt();
+                    int dataLen = rb.readInt();
+                    if (0 == profileId) return rb.readBytes(new byte[dataLen]);
+                    rb.skipBytes(dataLen);
+                    alignBuffer(rb, 4);
+                }
+            } finally {
+                System.out.println(rb.dumpAllDataWithPosition());
+            }
         }
     }
-    
+
     ServerInstance(Bus bus, ServerName name, String[] args, Properties props) {
         this.bus = bus;
         this.orb = ORB.init(args, props);

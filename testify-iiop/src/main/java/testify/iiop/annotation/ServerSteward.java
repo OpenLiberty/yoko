@@ -262,10 +262,16 @@ class ServerSteward {
                 .collect(joining(File.pathSeparator));
 
             // Add classpath and module access to JVM args
+            String fullClasspath = versionClasspath + File.pathSeparator + filteredClasspath;
+            System.out.println("=== Server Classpath for " + yokoVersion.version + " ===");
+            System.out.println(fullClasspath.replace(File.pathSeparator, "\n"));
+            System.out.println("=== End Server Classpath ===");
             args.add("-cp");
-            args.add(versionClasspath + File.pathSeparator + filteredClasspath);
+            args.add(fullClasspath);
             args.add("--add-opens");
             args.add("java.base/java.lang=ALL-UNNAMED");
+            args.add("--add-opens");
+            args.add("java.base/java.util=ALL-UNNAMED");
         }
 
         return args.toArray(new String[0]);
