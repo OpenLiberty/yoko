@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,9 +91,14 @@ public class ProcessRunner implements Runner<Process>{
         catch (IOException e) { throw new IOError(e); }
         List<String> argList = new ArrayList<>();
         argList.add(pathToJava);
-        // Add the classpath to argument list
-        argList.add("-classpath");
-        argList.add(System.getProperty("java.class.path"));
+        // Check if custom JVM args already contain classpath
+        boolean hasCustomClasspath = Arrays.stream(jvmArgs)
+                .anyMatch(arg -> arg.equals("-cp") || arg.equals("-classpath"));
+        // Add the classpath to argument list only if not provided in jvmArgs
+        if (!hasCustomClasspath) {
+            argList.add("-classpath");
+            argList.add(System.getProperty("java.class.path"));
+        }
         // Add required properties from current process
         PROPERTIES_TO_COPY
                 .stream()

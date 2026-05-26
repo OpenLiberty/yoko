@@ -256,9 +256,12 @@ class ServerSteward {
             String versionClasspath = buildClasspathForVersion(yokoVersion.version);
             Set<String> allowedPaths = loadTestDependencies();
 
-            // Filter current classpath to only include test dependencies and build classes
+            // Filter current classpath to only include test dependencies, build classes, and testify modules
             String filteredClasspath = Arrays.stream(System.getProperty("java.class.path").split(File.pathSeparator))
-                .filter(path -> allowedPaths.contains(path) || path.contains("/build/classes/"))
+                .filter(path -> allowedPaths.contains(path)
+                    || path.contains("/build/classes/")
+                    || path.contains("/testify/build/")
+                    || path.contains("/testify-iiop/build/"))
                 .collect(joining(File.pathSeparator));
 
             // Add classpath and module access to JVM args
