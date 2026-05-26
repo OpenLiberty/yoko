@@ -101,7 +101,7 @@ class ServerSteward {
         }
 
         this.config = config;
-        this.controlFields = AnnotationButler.forClass(ConfigureServer.Control.class)
+        this.controlFields = AnnotationButler.forClass(ConfigureServer.Control.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()
@@ -109,7 +109,7 @@ class ServerSteward {
                 .filter(anno -> anno.serverName().equals(config.serverName()))
                 .recruit()
                 .findFields(testClass);
-        this.nameServiceFields = AnnotationButler.forClass(ConfigureServer.NameServiceStub.class)
+        this.nameServiceFields = AnnotationButler.forClass(ConfigureServer.NameServiceStub.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class,
                         "the test server must have its name service configured",
                         cfg -> cfg.serverOrb().nameService(),
@@ -120,7 +120,7 @@ class ServerSteward {
                 .filter(anno -> anno.serverName().equals(config.serverName()))
                 .recruit()
                 .findFields(testClass);
-        this.nameServiceUrlFields = AnnotationButler.forClass(ConfigureServer.NameServiceUrl.class)
+        this.nameServiceUrlFields = AnnotationButler.forClass(ConfigureServer.NameServiceUrl.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class,
                         "the test server must have its name service configured",
                         cfg -> cfg.serverOrb().nameService(),
@@ -131,7 +131,7 @@ class ServerSteward {
                 .filter(anno -> anno.serverName().equals(config.serverName()))
                 .recruit()
                 .findFields(testClass);
-        this.corbanameUrlFields = AnnotationButler.forClass(ConfigureServer.CorbanameUrl.class)
+        this.corbanameUrlFields = AnnotationButler.forClass(ConfigureServer.CorbanameUrl.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class,
                         "the test server must have its name service configured",
                         cfg -> cfg.serverOrb().nameService(),
@@ -142,7 +142,7 @@ class ServerSteward {
                 .filter(anno -> anno.serverName().equals(config.serverName()))
                 .recruit()
                 .findFields(testClass);
-        this.clientStubFields = AnnotationButler.forClass(ConfigureServer.ClientStub.class)
+        this.clientStubFields = AnnotationButler.forClass(ConfigureServer.ClientStub.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()
@@ -150,7 +150,7 @@ class ServerSteward {
                 .filter(anno -> anno.serverName().equals(config.serverName()))
                 .recruit()
                 .findFields(testClass);
-        this.remoteStubFields = AnnotationButler.forClass(ConfigureServer.RemoteStub.class)
+        this.remoteStubFields = AnnotationButler.forClass(ConfigureServer.RemoteStub.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()
@@ -160,7 +160,7 @@ class ServerSteward {
                 .findFields(testClass);
         // Create a map with null values and initialize after server startup
         this.remoteImplMembers = new HashMap<>();
-        this.remoteImplMembers.putAll(AnnotationButler.forClass(ConfigureServer.RemoteImpl.class)
+        this.remoteImplMembers.putAll(AnnotationButler.forClass(ConfigureServer.RemoteImpl.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()
@@ -169,7 +169,7 @@ class ServerSteward {
                 .filter(anno1 -> anno1.serverName().equals(config.serverName()))
                 .recruit()
                 .findFieldsAsMap(testClass));
-        this.remoteImplMembers.putAll(AnnotationButler.forClass(ConfigureServer.RemoteImpl.class)
+        this.remoteImplMembers.putAll(AnnotationButler.forClass(ConfigureServer.RemoteImpl.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()
@@ -177,7 +177,7 @@ class ServerSteward {
                 .filter(anno1 -> anno1.serverName().equals(config.serverName()))
                 .recruit()
                 .findMethodsAsMap(testClass));
-        this.beforeMethods = AnnotationButler.forClass(ConfigureServer.BeforeServer.class)
+        this.beforeMethods = AnnotationButler.forClass(ConfigureServer.BeforeServer.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()
@@ -185,7 +185,7 @@ class ServerSteward {
                 .filter(anno -> anno.value().equals(config.serverName()))
                 .recruit()
                 .findMethods(testClass);
-        this.afterMethods = AnnotationButler.forClass(ConfigureServer.AfterServer.class)
+        this.afterMethods = AnnotationButler.forClass(ConfigureServer.AfterServer.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,6 +61,7 @@ public enum Reflect {
 
     public static void setStaticField(Field f, Object object) {
         try {
+            f.setAccessible(true);
             f.set(null, object);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
