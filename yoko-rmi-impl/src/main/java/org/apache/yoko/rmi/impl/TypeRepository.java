@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 public class TypeRepository {
@@ -201,17 +202,13 @@ public class TypeRepository {
         }
 
         private final Raw rawValues;
-        private final TypeDescriptorCache repIdDescriptors;
 
-        LocalDescriptors(TypeRepository repo, TypeDescriptorCache repIdDescriptors) {
+        LocalDescriptors(TypeRepository repo) {
             rawValues = new Raw(repo);
-            this.repIdDescriptors = repIdDescriptors;
         }
         @Override
         protected synchronized TypeDescriptor computeValue(Class<?> type) {
-            final TypeDescriptor desc = rawValues.get(type);
-            if (desc.doInitOnce()) repIdDescriptors.put(desc);
-            return desc;
+            return rawValues.get(type).getInitialized();
         }
 
     }
@@ -243,13 +240,15 @@ public class TypeRepository {
 
     private TypeRepository() {
         repIdDescriptors = new TypeDescriptorCache();
-        localDescriptors = new LocalDescriptors(this, repIdDescriptors);
+        addToRepIdDescriptors = repIdDescriptors::put;
+        localDescriptors = new LocalDescriptors(this);
 
         for (Class<?> type: initTypes) {
             localDescriptors.get(type);
         }
     }
 
+    final Consumer<TypeDescriptor> addToRepIdDescriptors;
     private static enum RepoHolder {
         ;
         static final TypeRepository value = new TypeRepository();

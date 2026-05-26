@@ -349,7 +349,6 @@ public final class MethodDescriptor extends ModelElement {
         }
 
         parameter_count = param_types.length;
-        super.init();
     }
 
     @Override

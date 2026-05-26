@@ -19,7 +19,6 @@ package org.apache.yoko.rmi.impl;
 
 import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.AttributeDescription;
-import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.Initializer;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.ORB;
@@ -173,16 +172,6 @@ class ValueDescriptor extends TypeDescriptor {
     private boolean isSerializableField(Field f) {
         int mod = f.getModifiers();
         return !Modifier.isStatic(mod) && !Modifier.isTransient(mod);
-    }
-
-    public void init() {
-        try {
-            super.init();
-        } catch (INTERNAL internal) {
-            throw internal;
-        } catch (RuntimeException | Error ex) {
-            throw as(INTERNAL::new, ex);
-        }
     }
 
     ValueDescriptor genSuperDescriptor() {

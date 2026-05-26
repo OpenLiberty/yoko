@@ -74,7 +74,6 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
             Field f, TypeRepository repo) {
         super(repo, name);
         this.type = type;
-        init();
         declaringClass = owner;
 
         if (null == f) {
@@ -169,7 +168,6 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
     static FieldDescriptor get(Class<?> owner, Class<?> type, String name,
                                Field f, TypeRepository repository) {
         FieldDescriptor desc = get0(owner, type, name, f, repository);
-        desc.init();
         return desc;
     }
 

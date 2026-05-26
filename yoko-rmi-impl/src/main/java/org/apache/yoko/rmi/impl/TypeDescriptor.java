@@ -18,6 +18,7 @@
 package org.apache.yoko.rmi.impl;
 
 import org.apache.yoko.util.concurrent.LazyReference;
+import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.portable.InputStream;
@@ -28,7 +29,10 @@ import java.rmi.Remote;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
+
+import static org.apache.yoko.util.Exceptions.as;
 
 abstract class TypeDescriptor extends ModelElement {
     protected static final Logger logger = Logger.getLogger(TypeDescriptor.class.getName());
@@ -61,6 +65,18 @@ abstract class TypeDescriptor extends ModelElement {
     }
     final FullKey getKey() {
         return key.get();
+    }
+
+    private final LazyReference<TypeDescriptor> initialized = new LazyReference<>(this::firstInit, () -> this);
+
+    final TypeDescriptor getInitialized() {
+        return initialized.get();
+    }
+
+    private TypeDescriptor firstInit(Supplier<TypeDescriptor> unused) {
+        init();
+        repo.addToRepIdDescriptors.accept(this);
+        return this;
     }
 
     public static class SimpleKey {
@@ -204,9 +220,14 @@ abstract class TypeDescriptor extends ModelElement {
         return "L" + type.getName().replace('.', '/') + ";";
     }
 
-    @Override
-    protected void init() {
-        getTypeCode();
+    void init() {
+        try {
+            getTypeCode();
+        } catch (INTERNAL internal) {
+            throw internal;
+        } catch (RuntimeException | Error ex) {
+            throw as(INTERNAL::new, ex);
+        }
     }
 
     private final LazyReference<TypeCode> typeCode = new LazyReference<>((p) -> this.genTypeCode(), this::genTypeCodePlaceholder);
