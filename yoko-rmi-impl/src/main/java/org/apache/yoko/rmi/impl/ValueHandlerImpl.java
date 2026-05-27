@@ -74,7 +74,7 @@ public class ValueHandlerImpl implements ValueHandler {
         return HandlerHolder.value;
     }
 
-    private ValueDescriptor desc(Class clz) {
+    private ValueDescriptor desc(Class<?> clz) {
         return (ValueDescriptor) repo.getDescriptor(clz);
     }
 
@@ -182,7 +182,7 @@ public class ValueHandlerImpl implements ValueHandler {
     public Serializable writeReplace(Serializable val) {
         if (val instanceof RMIStub) {
             RMIStub stub = (RMIStub) val;
-            Class type = stub._descriptor.type;
+            Class<?> type = stub._descriptor.type;
             RMIState state = RMIState.current();
             Stub result = state.getStaticStub(stub._get_codebase(), type);
             if (null == result) return new RMIPersistentStub(stub, type);
@@ -222,7 +222,7 @@ public class ValueHandlerImpl implements ValueHandler {
     String getImplementation(String id) {
         try {
             final String result;
-            Class clz = getClassFromRepositoryID(id);
+            Class<?> clz = getClassFromRepositoryID(id);
             if (clz == null) {
                 result = "";
             } else {
@@ -252,7 +252,7 @@ public class ValueHandlerImpl implements ValueHandler {
         try {
             ValueDescriptor desc = desc(repId);
             if (null == desc) {
-                Class clz = getClassFromRepositoryID(repId);
+            Class<?> clz = getClassFromRepositoryID(repId);
                 if (clz == null) {
                     logger.warning(() -> "class not found: " + repId);
                     throw new MARSHAL(0x4f4d0001, COMPLETED_MAYBE);
@@ -268,11 +268,11 @@ public class ValueHandlerImpl implements ValueHandler {
 
     String[] getBases(String id) {
         try {
-            Class clz = getClassFromRepositoryID(id);
+            Class<?> clz = getClassFromRepositoryID(id);
             if (clz == null) return new String[0];
 
-            Class[] ifaces = clz.getInterfaces();
-            Class superClz = clz.getSuperclass();
+            Class<?>[] ifaces = clz.getInterfaces();
+            Class<?> superClz = clz.getSuperclass();
 
             ArrayList supers = new ArrayList();
 
@@ -295,7 +295,7 @@ public class ValueHandlerImpl implements ValueHandler {
         }
     }
 
-    private void addIfRMIClass(List list, Class clz) {
+    private void addIfRMIClass(List list, Class<?> clz) {
         TypeDescriptor desc = repo.getDescriptor(clz);
 
         if (desc instanceof RemoteDescriptor) list.add(desc);

@@ -54,7 +54,7 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
         this.elementType = elemType;
 
         int order = 1;
-        Class basicType = elemType;
+        Class<?> basicType = elemType;
         while (basicType.isArray()) {
             basicType = basicType.getComponentType();
             order++;
@@ -139,7 +139,7 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
             throw new IllegalArgumentException("type is not an array");
         }
 
-        Class elemType = type.getComponentType();
+        Class<?> elemType = type.getComponentType();
 
         if (elemType.isPrimitive()) {
             if (elemType == Boolean.TYPE) {
@@ -213,7 +213,7 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
     }
 
     @Override
-    void addDependencies(Set classes) {
+    void addDependencies(Set<Class<?>> classes) {
         repo.getDescriptor(basicType).addDependencies(classes);
     }
 

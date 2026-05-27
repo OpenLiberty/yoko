@@ -111,7 +111,7 @@ class ValueDescriptor extends TypeDescriptor {
     private static final Set<? extends Class<? extends Serializable>> IMMUTABLE_VALUE_CLASSES = unmodifiableSet(new HashSet<>(asList(Integer.class,
             Character.class, Boolean.class, Byte.class, Long.class, Float.class, Double.class, Short.class)));
 
-    ValueDescriptor(Class type, TypeRepository repository) {
+    ValueDescriptor(Class<?> type, TypeRepository repository) {
         super(type, repository);
     }
 
@@ -1169,7 +1169,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     @Override
     void addDependencies(Set<Class<?>> classes) {
-        Class c = type;
+        Class<?> c = type;
 
         if ((c == Object.class) || classes.contains(c))
             return;
@@ -1181,8 +1181,8 @@ class ValueDescriptor extends TypeDescriptor {
             desc.addDependencies(classes);
         }
 
-        Class[] ifaces = c.getInterfaces();
-        for (Class iface : ifaces) {
+        Class<?>[] ifaces = c.getInterfaces();
+        for (Class<?> iface : ifaces) {
             TypeDescriptor desc = repo.getDescriptor(iface);
             desc.addDependencies(classes);
         }

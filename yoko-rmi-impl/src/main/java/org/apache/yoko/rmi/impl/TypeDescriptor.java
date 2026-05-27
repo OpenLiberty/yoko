@@ -36,7 +36,7 @@ import static org.apache.yoko.util.Exceptions.as;
 abstract class TypeDescriptor extends ModelElement {
     protected static final Logger logger = Logger.getLogger(TypeDescriptor.class.getName());
 
-    final Class type;
+    final Class<?> type;
 
     private final LazyReference<String> _repid = new LazyReference<>(this::genRepId);
 
@@ -134,7 +134,7 @@ abstract class TypeDescriptor extends ModelElement {
                 getRepositoryID());
     }
 
-    protected TypeDescriptor(Class type, TypeRepository repository) {
+    protected TypeDescriptor(Class<?> type, TypeRepository repository) {
         super(repository, type.getName());
         this.type = type;
     }
@@ -262,7 +262,6 @@ abstract class TypeDescriptor extends ModelElement {
     }
 
     void addDependencies(Set<Class<?>> classes) {
-        return;
     }
 
     boolean copyInStub() {

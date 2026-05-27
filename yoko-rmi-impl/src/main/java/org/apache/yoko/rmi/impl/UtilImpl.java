@@ -161,7 +161,7 @@ public class UtilImpl implements UtilDelegate {
         @SuppressWarnings({"rawtypes", "unchecked"})
         Class<? extends RemoteException> loadClass(String name) {
             try {
-                Class clazz = Util.loadClass(name, null, null);
+            Class<?> clazz = Util.loadClass(name, null, null);
                 if (RemoteException.class.isAssignableFrom(clazz)) {
                     return (Class<? extends RemoteException>)clazz;
                 }

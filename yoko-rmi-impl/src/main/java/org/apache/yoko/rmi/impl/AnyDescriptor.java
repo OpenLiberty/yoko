@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
 
 class AnyDescriptor extends TypeDescriptor {
-    AnyDescriptor(Class type, TypeRepository rep) {
+    AnyDescriptor(Class<?> type, TypeRepository rep) {
         super(type, rep);
     }
 

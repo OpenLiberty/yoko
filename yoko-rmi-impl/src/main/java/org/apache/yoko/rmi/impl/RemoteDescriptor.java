@@ -51,18 +51,18 @@ abstract class RemoteDescriptor extends TypeDescriptor {
 
     private MethodDescriptor[] operations;
 
-    private Class[] remote_interfaces;
+    private Class<?>[] remote_interfaces;
 
     protected List super_descriptors;
 
     @Override
     protected abstract RemoteInterfaceDescriptor genRemoteInterface();
 
-    private static final Class REMOTE_CLASS = Remote.class;
+    private static final Class<?> REMOTE_CLASS = Remote.class;
 
-    private static final Class OBJECT_CLASS = java.lang.Object.class;
+    private static final Class<?> OBJECT_CLASS = java.lang.Object.class;
 
-    private static final java.lang.Class REMOTE_EXCEPTION = java.rmi.RemoteException.class;
+    private static final java.lang.Class<?> REMOTE_EXCEPTION = java.rmi.RemoteException.class;
 
     private final LazyReference<String[]> ids = new LazyReference<>(this::genIds);
     String[] genIds() {
@@ -100,7 +100,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
             while (it.hasNext()) {
                 String idl_name = (String) it.next();
                 MethodDescriptor desc = (MethodDescriptor) method_map.get(idl_name);
-                logger.finer(() -> "IDL " + idl_name + " -> " + desc.reflected_method);
+                logger.finer(() -> "IDL " + idl_name + " -> " + desc.reflectedMethod);
             }
         }
     }
@@ -120,7 +120,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
         return (MethodDescriptor) refl_method_map.get(refl_method);
     }
 
-    RemoteDescriptor(Class type, TypeRepository repository) {
+    RemoteDescriptor(Class<?> type, TypeRepository repository) {
         super(type, repository);
     }
 
@@ -149,13 +149,13 @@ abstract class RemoteDescriptor extends TypeDescriptor {
         ArrayList method_list = new ArrayList();
 
         // first step is to build the helpers for any super classes
-        Class[] supers = type.getInterfaces();
+        Class<?>[] supers = type.getInterfaces();
         super_descriptors = new ArrayList();
 
         Map all_methods = new HashMap();
         Map lower_case_names = new HashMap();
         for (int i = 0; i < supers.length; i++) {
-            Class iface = supers[i];
+            Class<?> iface = supers[i];
 
             if (!REMOTE_CLASS.equals(iface) && !OBJECT_CLASS.equals(iface)
                     && REMOTE_CLASS.isAssignableFrom(iface)
@@ -203,13 +203,13 @@ abstract class RemoteDescriptor extends TypeDescriptor {
             // is there another method that differs only in case?
             Set same_case_names = (Set) lower_case_names.get(mname.toLowerCase());
             if (same_case_names.size() > 1) {
-                op.setCaseSensitive(true);
+                op.setCaseSensitive();
             }
 
             // is this method overloaded?
             Set overload_names = (Set) all_methods.get(mname);
             if (overload_names.size() > 1) {
-                op.setOverloaded(true);
+                op.setOverloaded();
             }
 
             op.init();
@@ -273,7 +273,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
             result.add(methods[j]);
         }
 
-        Class[] ifaces = clz.getInterfaces();
+        Class<?>[] ifaces = clz.getInterfaces();
         for (int i = 0; i < ifaces.length; i++) {
             if (!REMOTE_CLASS.isAssignableFrom(ifaces[i])) {
                 addNonRemoteInterfaceMethods(ifaces[i], result);
@@ -282,7 +282,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
     }
 
     boolean isRemoteMethod(Method m) {
-        Class[] ex = m.getExceptionTypes();
+        Class<?>[] ex = m.getExceptionTypes();
 
         for (int i = 0; i < ex.length; i++) {
             if (REMOTE_EXCEPTION.isAssignableFrom(ex[i]))
@@ -295,7 +295,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
     private static String createMethodSelector(java.lang.reflect.Method m) {
         StringBuffer sb = new StringBuffer(m.getName());
         sb.append('(');
-        Class[] parameterTypes = m.getParameterTypes();
+        Class<?>[] parameterTypes = m.getParameterTypes();
         for (int n = 0; n < parameterTypes.length; n++) {
             sb.append(parameterTypes[n].getName());
             if (n < parameterTypes.length - 1) {
@@ -417,7 +417,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
         return null;
     }
 
-    static String stubClassName(Class c) {
+    static String stubClassName(Class<?> c) {
 
         String cname = c.getName();
 
@@ -436,7 +436,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
 
     void writeStubClass(PrintWriter pw) {
 
-        Class c = type;
+        Class<?> c = type;
         String cname = c.getName();
         String fullname = stubClassName(c);
         //String stubname = fullname.substring(fullname.lastIndexOf('.') + 1);
@@ -481,7 +481,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
     }
 
     String getStubClassName() {
-        Class c = type;
+        Class<?> c = type;
         String cname = c.getName();
 
         String pkgname = null;
@@ -498,8 +498,8 @@ abstract class RemoteDescriptor extends TypeDescriptor {
     }
 
     @Override
-    void addDependencies(Set classes) {
-        Class c = type;
+    void addDependencies(Set<Class<?>> classes) {
+        Class<?> c = type;
 
         if (c == Remote.class || classes.contains(c))
             return;
@@ -511,7 +511,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
             desc.addDependencies(classes);
         }
 
-        Class[] ifaces = c.getInterfaces();
+        Class<?>[] ifaces = c.getInterfaces();
         for (int i = 0; i < ifaces.length; i++) {
             TypeDescriptor desc = repo.getDescriptor(ifaces[i]);
             desc.addDependencies(classes);

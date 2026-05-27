@@ -46,9 +46,10 @@ class EnumSubclassDescriptor extends UncustomizableValueDescriptor {
     }
 
     @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
     protected Serializable readValue(ObjectReader reader, Serializable val) throws IOException {
         Map<String,Object> fields = getSuperDescriptor().readFields(reader);
-        return Enum.valueOf(type, (String)fields.get("name"));
+        return Enum.valueOf((Class)type, (String)fields.get("name"));
     }
 
     @Override

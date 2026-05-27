@@ -24,7 +24,7 @@ import org.omg.CORBA.TypeCode;
 abstract class SimpleDescriptor extends TypeDescriptor {
     private final String idl_name;
     private final TCKind tc;
-    SimpleDescriptor(Class type, TypeRepository repository, String idl_name, TCKind tc) {
+    SimpleDescriptor(Class<?> type, TypeRepository repository, String idl_name, TCKind tc) {
         super(type, repository);
         this.idl_name = idl_name;
         this.tc = tc;
