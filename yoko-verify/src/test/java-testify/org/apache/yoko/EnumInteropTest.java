@@ -20,19 +20,31 @@ package org.apache.yoko;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.omg.PortableInterceptor.ClientRequestInfo;
+import org.omg.PortableInterceptor.RequestInfo;
+import org.omg.PortableInterceptor.ServerRequestInfo;
 import testify.annotation.Logging;
+import testify.iiop.TestClientRequestInterceptor;
+import testify.iiop.TestServerRequestInterceptor;
+import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
 import testify.iiop.annotation.ConfigureServer.RemoteImpl;
 import testify.iiop.annotation.ConfigureServer.RemoteStub;
 import testify.iiop.annotation.InteropTest;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.joining;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.CLIENT;
+import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.SERVER;
 import static testify.iiop.annotation.InteropTest.YokoVersion.V1_5_0;
 import static testify.iiop.annotation.InteropTest.YokoVersion.V1_6_1;
 
@@ -49,6 +61,32 @@ import static testify.iiop.annotation.InteropTest.YokoVersion.V1_6_1;
  * This test may be skipped if Yoko 1.5.0 is not cached.
  */
 abstract class EnumInteropTest {
+
+    @UseWithOrb(scope = CLIENT)
+    public static class MetaOperationInterceptor implements TestClientRequestInterceptor, TestServerRequestInterceptor {
+        AtomicInteger metaRequestCount = new AtomicInteger(0);
+
+        public void send_request(ClientRequestInfo ri) {
+            // latest version of yoko is the client, so it should short-circuit the meta() call to yoko 1.5.0 and above
+            if (ri.operation().startsWith("meta")) System.err.println("META REQUEST #" + metaRequestCount.incrementAndGet() + " sent from client: " + ri.operation() + stringArgs(ri));
+            assertNotEquals("meta", ri.operation(), "Client should not invoke 'meta' operation, but attempted: " + ri.operation());
+            assertNotEquals("metas", ri.operation(), "Client should not invoke 'metas' operation, but attempted: " + ri.operation());
+        }
+
+        @Override
+        public void receive_request(ServerRequestInfo ri) {
+            // server is an older version of yoko and will send meta() requests
+            if (ri.operation().startsWith("meta")) System.err.println("META REQUEST #" + metaRequestCount.incrementAndGet() + " received on client: " + ri.operation() + stringArgs(ri));
+        }
+
+        private static String stringArgs(RequestInfo ri) {
+            try {
+                return Stream.of(ri.arguments()).map(p -> p.argument.extract_string()).collect(joining(",", "(", ")"));
+            } catch (Exception e) {
+                return "Failed to retrieve args: " + e.getMessage();
+            }
+        }
+    }
 
     // 1. Simple Enum - basic enum with no additional fields or methods
     public enum Color { RED, GREEN, BLUE }
