@@ -349,6 +349,14 @@ final public class ClientRequestInfo_impl extends RequestInfo_impl implements Cl
                                 ex.completed = originalEx.completed;
                             }
                         }
+                    } else {
+                        // CORBA spec v3.0.3 - 21.3.6.3: Compliant Interceptors shall properly follow completion_status semantics
+                        // if they raise a system exception from receive_reply(). The completion_status shall be COMPLETED_YES
+                        if (COMPLETED_YES != ex.completed) {
+                            REQ_OUT_LOG.warning(() -> "Correcting completion status on new exception from receive_reply interceptor "
+                                    + i.getClass() + ": was " + ex.completed + " and is: " + COMPLETED_YES);
+                            ex.completed = COMPLETED_YES;
+                        }
                     }
                     receivedException = ex;
                     receivedId = null;
