@@ -29,7 +29,6 @@ import java.rmi.Remote;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import static org.apache.yoko.util.Exceptions.as;
@@ -73,7 +72,7 @@ abstract class TypeDescriptor extends ModelElement {
         return initialized.get();
     }
 
-    private TypeDescriptor firstInit(Supplier<TypeDescriptor> unused) {
+    private TypeDescriptor firstInit() {
         init();
         repo.addToRepIdDescriptors.accept(this);
         return this;
@@ -230,7 +229,7 @@ abstract class TypeDescriptor extends ModelElement {
         }
     }
 
-    private final LazyReference<TypeCode> typeCode = new LazyReference<>((p) -> this.genTypeCode(), this::genTypeCodePlaceholder);
+    private final LazyReference<TypeCode> typeCode = new LazyReference<>(this::genTypeCode, this::genTypeCodePlaceholder);
     abstract TypeCode genTypeCode();
     TypeCode genTypeCodePlaceholder() {
         ORB orb = ORB.init();

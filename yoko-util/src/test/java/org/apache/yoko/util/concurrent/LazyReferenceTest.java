@@ -320,6 +320,68 @@ class LazyReferenceTest {
     }
 
     /**
+     * Tests the Supplier/Supplier constructor with recursive initialization.
+     * Verifies that the supplier-based overload supports placeholders without
+     * requiring the Function-based initializer signature.
+     */
+    @Test
+    void testSupplierConstructorWithPlaceholder() {
+        LazyReference<String>[] refHolder = new LazyReference[1];
+        AtomicInteger placeholderCallCount = new AtomicInteger(0);
+
+        refHolder[0] = new LazyReference<>(
+            () -> "final-" + refHolder[0].get(),
+            () -> {
+                placeholderCallCount.incrementAndGet();
+                return "placeholder";
+            }
+        );
+
+        assertEquals("final-placeholder", refHolder[0].get(),
+            "Supplier/Supplier constructor should use placeholder during recursion");
+        assertEquals(1, placeholderCallCount.get(),
+            "Placeholder generator should be called exactly once");
+        assertTrue(refHolder[0].isCompleted(), "Reference should be initialized");
+    }
+
+    /**
+     * Tests the Supplier/Supplier/boolean constructor with retry enabled.
+     * Verifies that the supplier-based overload honours allowRetry and succeeds
+     * after an initial failure.
+     */
+    @Test
+    void testSupplierConstructorWithPlaceholderAndRetry() {
+        AtomicInteger attemptCount = new AtomicInteger(0);
+        AtomicInteger placeholderCallCount = new AtomicInteger(0);
+        LazyReference<String>[] refHolder = new LazyReference[1];
+
+        refHolder[0] = new LazyReference<>(
+            () -> {
+                int attempt = attemptCount.incrementAndGet();
+                if (attempt == 1) throw new RuntimeException("First attempt failed");
+                return "final-" + refHolder[0].get();
+            },
+            () -> {
+                placeholderCallCount.incrementAndGet();
+                return "placeholder";
+            },
+            true
+        );
+
+        assertThrows(RuntimeException.class, refHolder[0]::get,
+            "First attempt should fail");
+        assertFalse(refHolder[0].isCompleted(),
+            "Reference should not be completed after retryable failure");
+
+        assertEquals("final-placeholder", refHolder[0].get(),
+            "Second attempt should succeed using the placeholder");
+        assertEquals(2, attemptCount.get(), "Initializer should be attempted twice");
+        assertEquals(1, placeholderCallCount.get(),
+            "Placeholder generator should be called only during successful recursive initialization");
+        assertTrue(refHolder[0].isCompleted(), "Reference should be initialized after retry");
+    }
+
+    /**
      * Tests that null values are properly supported.
      * Verifies that null can be returned from initialization and is cached
      * like any other value.
