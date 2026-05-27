@@ -19,7 +19,6 @@ package org.omg.PortableInterceptor;
 
 import acme.Echo;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.omg.CORBA.BAD_INV_ORDER;
@@ -38,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.omg.CORBA.CompletionStatus.*;
 import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.CLIENT;
+import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.SERVER;
 
 /**
  * Test client-side interceptor exception handling with Flow Stack verification.
@@ -74,6 +74,14 @@ public class ClientExceptionFlowTest {
             assertDoesNotThrow(() -> info.add_client_request_interceptor(CI1));
             assertDoesNotThrow(() -> info.add_client_request_interceptor(CI2));
             assertDoesNotThrow(() -> info.add_client_request_interceptor(CI3));
+        }
+    }
+
+    @UseWithOrb(scope = SERVER)
+    public static class ServerOrbInitializer implements TestORBInitializer {
+        @Override
+        public void pre_init(ORBInitInfo info) {
+            assertDoesNotThrow(() -> info.add_server_request_interceptor(SI));
         }
     }
 
@@ -176,4 +184,55 @@ public class ClientExceptionFlowTest {
         }
         return thrown;
     }
+
+    /**
+     * Exception in receive_reply()
+     * Verifies that when CI2 throws an exception in receive_reply():
+     * - Request completes successfully on server
+     * - receive_reply() called in reverse order: CI3, CI2, CI1
+     * - CI3.receive_reply() executes successfully
+     * - CI2.receive_reply() throws NO_PERMISSION with COMPLETED_YES
+     * - CI1.receive_reply() is NOT called
+     * - receive_exception() called on remaining Flow Stack: CI1
+     * - CI1.receive_exception() called with NO_PERMISSION
+     * - CI2.receive_exception() is NOT called (interceptor that raised exception)
+     * - CI3.receive_exception() is NOT called (already completed successfully)
+     * - Exception reaches client
+     */
+    @Test
+    void testExceptionInReceiveReply(Echo stub) throws Exception {
+        // Configure CI2 to throw NO_PERMISSION in receive_reply()
+        Mockito.doAnswer(invocation -> {
+            // A well-behaved interceptor would throw with COMPLETED_YES in receive_reply(),
+            // but Yoko should also *ensure* the status is COMPLETED_YES.
+            throw new NO_PERMISSION("Test exception in receive_reply", 0, COMPLETED_MAYBE);
+        }).when(CI2).receive_reply(Mockito.any(ClientRequestInfo.class));
+
+        // Execute the call and verify exception is thrown
+        RemoteException remoteEx = assertThrows(RemoteException.class, () -> stub.echo("test"));
+        NO_PERMISSION corbaEx = assertInstanceOf(NO_PERMISSION.class, remoteEx.getCause());
+
+        // Verify completion status - should be COMPLETED_YES since server completed successfully
+        assertEquals(COMPLETED_YES, corbaEx.completed, "Exception should have COMPLETED_YES status");
+
+        // Verify expected flow using Mockito InOrder to check execution order:
+        var order = Mockito.inOrder(CI1, CI2, CI3, SI);
+        // 1. Client send_request() called in forward order
+        order.verify(CI1).send_request(Mockito.any(ClientRequestInfo.class));
+        order.verify(CI2).send_request(Mockito.any(ClientRequestInfo.class));
+        order.verify(CI3).send_request(Mockito.any(ClientRequestInfo.class));
+        // 2. Server interceptor processes request successfully
+        order.verify(SI).receive_request_service_contexts(Mockito.any(ServerRequestInfo.class));
+        order.verify(SI).receive_request(Mockito.any(ServerRequestInfo.class));
+        // 3. Server sends reply successfully
+        order.verify(SI).send_reply(Mockito.any(ServerRequestInfo.class));
+        // 4. Client receive_reply() called in reverse order until CI2 throws
+        order.verify(CI3).receive_reply(Mockito.any(ClientRequestInfo.class));
+        order.verify(CI2).receive_reply(Mockito.any(ClientRequestInfo.class)); // throws here
+        // 5. CI1.receive_reply() is NOT called
+        // 6. receive_exception() called on remaining Flow Stack (only CI1)
+        order.verify(CI1).receive_exception(Mockito.any(ClientRequestInfo.class));
+        order.verifyNoMoreInteractions(); // Verify CI1.receive_reply(), CI2.receive_exception(), CI3.receive_exception(), and SI.send_exception() are NOT called
+    }
+
 }
