@@ -17,9 +17,10 @@
  */
 package org.apache.yoko;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import testify.annotation.Logging;
 import testify.iiop.annotation.ConfigureServer.RemoteImpl;
 import testify.iiop.annotation.ConfigureServer.RemoteStub;
 import testify.iiop.annotation.InteropTest;
@@ -27,7 +28,11 @@ import testify.iiop.annotation.InteropTest;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
+import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static testify.iiop.annotation.InteropTest.YokoVersion.V1_5_0;
 import static testify.iiop.annotation.InteropTest.YokoVersion.V1_6_1;
 
@@ -111,50 +116,69 @@ abstract class EnumInteropTest {
 
     // Remote Interface for testing enum marshalling
     public interface EnumTestService extends Remote {
-        default <T extends Enum<T>> T echo(T t) { return Enum.valueOf(t.getDeclaringClass(), t.name()); }
+        default <E extends Enum<E>> E echo(E e) throws RemoteException { return e; }
+        default <E extends Enum<E>> E[] echo(E[] values) throws RemoteException {
+            assertNotNull(values);
+            assertTrue(0 < values.length);
+            Class<E> enumClass = values[0].getDeclaringClass();
+            assertEnumClassValues(enumClass, values);
+            return values;
+        }
     }
 
     @RemoteImpl
-    public static final EnumTestService service = new EnumTestService() {};
+    public static final EnumInteropTest.EnumTestService service = new EnumTestService() {};
 
     @RemoteStub
-    public static EnumTestService remote;
+    public static EnumInteropTest.EnumTestService remote;
 
     @ParameterizedTest
     @EnumSource(Color.class)
     void testSimpleEnum(Color color) throws Exception {
         Color result = remote.echo(color);
-        assertEquals(color, result, "Simple enum value should match");
+        assertSame(result, color, "Simple enum should be the same instance");
     }
 
     @ParameterizedTest
-    @EnumSource(Planet.class)
-    void testEnumWithFields(Planet planet) throws Exception {
+    @EnumSource(EnumInteropTest.Planet.class)
+    void testEnumWithFields(EnumInteropTest.Planet planet) throws Exception {
         Planet result = remote.echo(planet);
-        assertEquals(planet, result, "Enum with fields should match");
-        assertEquals(planet.getMass(), result.getMass(), "Planet mass should match");
-        assertEquals(planet.getRadius(), result.getRadius(), "Planet radius should match");
+        assertSame(planet, result, "Enum with fields should be the same instance");
     }
 
     @ParameterizedTest
     @EnumSource(Operation.class)
     void testEnumWithAnonymousClasses(Operation op) throws Exception {
         Operation result = remote.echo(op);
-        assertEquals(op, result, "Enum with anonymous classes should match");
-        assertEquals(op.apply(5, 3), result.apply(5, 3), "Operation behavior should match for " + op);
+        assertSame(op, result, "Enum with anonymous classes should be the same instance");
     }
 
     @ParameterizedTest
-    @EnumSource(Vehicle.class)
+    @EnumSource(EnumInteropTest.Vehicle.class)
     void testComplexEnum(Vehicle vehicle) throws Exception {
-            Vehicle result = remote.echo(vehicle);
-            assertEquals(vehicle, result, "Complex enum should match");
-            assertEquals(vehicle.getWheels(), result.getWheels(), "Vehicle wheels should match for " + vehicle);
-            assertEquals(vehicle.getDescription(), result.getDescription(), "Vehicle description should match for " + vehicle);
+        Vehicle result = remote.echo(vehicle);
+        assertSame(vehicle, result, "Complex enum should be the same instance");
+    }
+
+    @ParameterizedTest
+    @ValueSource(classes = {Color.class, Planet.class, Operation.class, EnumInteropTest.Vehicle.class})
+    <E extends Enum<E>> void testEnumValues(Class<E> enumClass) throws Exception {
+        E[] values = remote.echo(enumClass.getEnumConstants());
+        assertEnumClassValues(enumClass, values);
+    }
+
+    private static <E extends Enum<E>> void assertEnumClassValues(Class<E> enumClass, E[] result) {
+        // verify the received array has same instances as local values
+        E[] localValues = enumClass.getEnumConstants();
+        assertEquals(asList(localValues), asList(result));
+        for (int i = 0; i < localValues.length; i++) {
+            assertSame(localValues[i], result[i], "Enum at index " + i + " should be the same instance for " + enumClass.getSimpleName());
+        }
     }
 }
 
 @InteropTest(V1_5_0)
+@Logging("yoko.verbose.giop")
 class EnumInteropV150Test extends EnumInteropTest{}
 
 @InteropTest(V1_6_1)
