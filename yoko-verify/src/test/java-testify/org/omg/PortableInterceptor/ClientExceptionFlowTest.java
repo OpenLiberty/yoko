@@ -235,4 +235,75 @@ public class ClientExceptionFlowTest {
         order.verifyNoMoreInteractions(); // Verify CI1.receive_reply(), CI2.receive_exception(), CI3.receive_exception(), and SI.send_exception() are NOT called
     }
 
+    /**
+     * Exception in receive_exception()
+     * Objective: Verify exception handling in receive_exception()
+     *
+     * Setup:
+     * - Server throws user exception
+     * - CI2 throws system exception in receive_exception()
+     *
+     * Expected Results:
+     * - Original exception replaced by new exception
+     * - CI1.receive_exception() receives new exception
+     * - Client receives new exception
+     *
+     * Verifies that when CI2 throws an exception in receive_exception():
+     * - CI1.send_request() executes successfully
+     * - CI2.send_request() executes successfully
+     * - CI3.send_request() executes successfully
+     * - Server throws user exception
+     * - receive_exception() called in reverse order: CI3, CI2, CI1
+     * - CI3.receive_exception() executes successfully
+     * - CI2.receive_exception() throws BAD_INV_ORDER (system exception)
+     * - CI1.receive_exception() is called with BAD_INV_ORDER (not original exception)
+     * - Client receives BAD_INV_ORDER (not original exception)
+     */
+    @Test
+    void testExceptionInReceiveException(Echo stub) throws Exception {
+        // Configure server to throw a user exception
+        Mockito.doAnswer(invocation -> {
+            throw new NO_PERMISSION("Original exception from server", 0, COMPLETED_YES);
+        }).when(SI).receive_request(Mockito.any(ServerRequestInfo.class));
+
+        // Configure CI2 to throw BAD_INV_ORDER in receive_exception()
+        Mockito.doAnswer(invocation -> {
+            // CI2 throws a new system exception, replacing the original exception
+            throw new BAD_INV_ORDER("New exception from CI2 in receive_exception", 0, COMPLETED_YES);
+        }).when(CI2).receive_exception(Mockito.any(ClientRequestInfo.class));
+
+        // Execute the call and verify BAD_INV_ORDER is thrown (not NO_PERMISSION)
+        Throwable thrown = assertThrows(Throwable.class, () -> stub.echo("test"));
+        // Unwrap the exception to get the actual CORBA exception
+        Throwable cause = unwrapException(thrown);
+        BAD_INV_ORDER corbaEx = assertInstanceOf(BAD_INV_ORDER.class, cause);
+
+        // Verify completion status - should be COMPLETED_YES since server completed
+        assertEquals(COMPLETED_YES, corbaEx.completed, "Exception should have COMPLETED_YES status");
+
+        // Verify the original NO_PERMISSION is suppressed
+        Throwable[] suppressed = corbaEx.getSuppressed();
+        assertEquals(1, suppressed.length, "BAD_INV_ORDER should have exactly one suppressed exception");
+        NO_PERMISSION suppressedEx = assertInstanceOf(NO_PERMISSION.class, suppressed[0],
+            "Suppressed exception should be the original NO_PERMISSION");
+        assertEquals(COMPLETED_YES, suppressedEx.completed, "Original NO_PERMISSION should have COMPLETED_YES status");
+
+        // Verify expected flow using Mockito InOrder to check execution order:
+        var order = Mockito.inOrder(CI1, CI2, CI3, SI);
+        // 1. Client send_request() called in forward order
+        order.verify(CI1).send_request(Mockito.any(ClientRequestInfo.class));
+        order.verify(CI2).send_request(Mockito.any(ClientRequestInfo.class));
+        order.verify(CI3).send_request(Mockito.any(ClientRequestInfo.class));
+        // 2. Server interceptor processes request
+        order.verify(SI).receive_request_service_contexts(Mockito.any(ServerRequestInfo.class));
+        order.verify(SI).receive_request(Mockito.any(ServerRequestInfo.class)); // throws NO_PERMISSION
+        // 3. Server sends exception
+        order.verify(SI).send_exception(Mockito.any(ServerRequestInfo.class));
+        // 4. Client receive_exception() called in reverse order
+        order.verify(CI3).receive_exception(Mockito.any(ClientRequestInfo.class)); // receives NO_PERMISSION
+        order.verify(CI2).receive_exception(Mockito.any(ClientRequestInfo.class)); // throws BAD_INV_ORDER
+        order.verify(CI1).receive_exception(Mockito.any(ClientRequestInfo.class)); // receives BAD_INV_ORDER
+        order.verifyNoMoreInteractions(); // Verify no other interactions
+    }
+
 }
