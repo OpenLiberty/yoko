@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,15 @@
  */
 package org.apache.yoko.rmi.impl;
 
+import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.MARSHAL;
 
 import javax.rmi.CORBA.ClassDesc;
 import java.lang.reflect.Field;
-import java.security.AccessController;
 import java.security.PrivilegedAction;
+
+import static java.security.AccessController.doPrivileged;
+import static org.apache.yoko.util.Exceptions.as;
 
 abstract class ClassBaseDescriptor extends ValueDescriptor {
 
@@ -30,34 +33,30 @@ abstract class ClassBaseDescriptor extends ValueDescriptor {
         super(type, repository);
     }
 
-    private volatile Field repidField = null;
-    private Field genRepIdField() {
+    private final LazyReference<Field> repidField = new LazyReference<>(this::genRepIdField);
+    Field genRepIdField() {
         return findField("repid");
     }
     final Field getRepidField() {
-        if (null == repidField) repidField = genRepIdField();
-        return repidField;
+        return repidField.get();
     }
 
-    private volatile Field cobebaseField = null;
-    private Field genCodebaseField() {
+    private final LazyReference<Field> codebaseField = new LazyReference<>(this::genCodebaseField);
+    Field genCodebaseField() {
         return findField("codebase");
     }
-    final Field getCobebaseField() {
-        if (null == cobebaseField) cobebaseField = genCodebaseField();
-        return cobebaseField;
+    final Field getCodebaseField() {
+        return codebaseField.get();
     }
 
     private Field findField(final String fieldName) {
-        return AccessController.doPrivileged(new PrivilegedAction<Field>() {
-            public Field run() {
-                try {
-                    Field f = ClassDesc.class.getDeclaredField(fieldName);
-                    f.setAccessible(true);
-                    return f;
-                } catch (NoSuchFieldException e) {
-                    throw (MARSHAL)new MARSHAL("no such field: " + e).initCause(e);
-                }
+        return doPrivileged((PrivilegedAction<Field>) () -> {
+            try {
+                Field f = ClassDesc.class.getDeclaredField(fieldName);
+                f.setAccessible(true);
+                return f;
+            } catch (NoSuchFieldException e) {
+                throw as(MARSHAL::new, e, "no such field: " + e);
             }
         });
     }

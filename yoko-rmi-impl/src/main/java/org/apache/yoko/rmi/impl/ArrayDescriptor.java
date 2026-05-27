@@ -18,6 +18,7 @@
 package org.apache.yoko.rmi.impl;
 
 import org.apache.yoko.rmi.util.SerialFilterHelper;
+import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TypeCode;
@@ -82,8 +83,8 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
     }
 
     // repository ID for the contained elements
-    private volatile String _elementRepid = null;
-    private final String genElemRepId() {
+    private final LazyReference<String> elementRepId = new LazyReference<>(this::genElementRepId);
+    String genElementRepId() {
         if (elementType.isPrimitive() || elementType == Object.class) {
             // use the descriptor type past the array type marker
             return String.format("RMI:%s:%016X", type.getName().substring(1), 0);
@@ -91,9 +92,8 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
         return repo.getDescriptor(elementType).getRepositoryID();
     }
 
-    public String getElementRepositoryID() {
-        if (_elementRepid == null) _elementRepid = genElemRepId();
-        return _elementRepid;
+    final String getElementRepositoryID() {
+        return elementRepId.get();
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,16 @@
  */
 package org.apache.yoko.rmi.impl;
 
+import org.apache.yoko.util.concurrent.LazyReference;
+
 class ExceptionDescriptor extends ValueDescriptor {
     ExceptionDescriptor(Class type, TypeRepository repository) {
         super(type, repository);
     }
 
-    private volatile String ex_repid = null;
+    private final LazyReference<String> exRepId = new LazyReference<>(this::genExceptionRepId);
 
-    private String genExceptionRepId() {
+    String genExceptionRepId() {
         String name = type.getName();
         final String encname;
 
@@ -38,7 +40,6 @@ class ExceptionDescriptor extends ValueDescriptor {
     }
 
     final String getExceptionRepositoryID() {
-        if (ex_repid == null) ex_repid = genExceptionRepId();
-        return ex_repid;
+        return exRepId.get();
     }
 }
