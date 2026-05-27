@@ -2,7 +2,7 @@
 description: Conventionally commit the changes with optional AI attribution
 ---
 
-1. Figure out what changed using `git status` and `git diff`.
+1. Figure out what changed using `git status` and `git diff`. Do this at the repo root, even if other recent work has been in a worktree.
 2. Figure out the scope for the changes. Verify it with the user and allow them to select an alternative, or no component at all.
 3. Figure out whether the changes included anything created or substantially modified by you (AI).
 4. Figure out whether there were any human co-authors. Ask the user to identify them, and offer likely suggestions from recent git logs when available.

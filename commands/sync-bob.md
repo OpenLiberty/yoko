@@ -2,6 +2,7 @@
 description: Sync the .bob worktree by committing, rebasing, and pushing its changes
 ---
 
+0. Re-read this command definition in case it changed.
 1. Inspect the `.bob` worktree changes first using:
    - `git -C .bob status --short`
    - `git -C .bob diff --stat`
