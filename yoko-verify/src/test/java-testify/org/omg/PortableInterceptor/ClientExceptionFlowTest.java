@@ -36,8 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
-import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+import static org.omg.CORBA.CompletionStatus.*;
 import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.CLIENT;
 
 /**
@@ -135,7 +134,7 @@ public class ClientExceptionFlowTest {
         // Configure CI1 to translate NO_PERMISSION to BAD_INV_ORDER in receive_exception()
         Mockito.doAnswer(invocation -> {
             // Translate to BAD_INV_ORDER (don't verify received exception to avoid assertion errors in mock)
-            throw new org.omg.CORBA.BAD_INV_ORDER("Translated exception from CI1", 0, COMPLETED_NO);
+            throw new org.omg.CORBA.BAD_INV_ORDER("Translated exception from CI1", 0, COMPLETED_MAYBE);
         }).when(CI1).receive_exception(Mockito.any(ClientRequestInfo.class));
 
         // Execute the call and verify BAD_INV_ORDER is thrown (not NO_PERMISSION)
@@ -144,8 +143,17 @@ public class ClientExceptionFlowTest {
         Throwable cause = unwrapException(thrown);
         BAD_INV_ORDER corbaEx = assertInstanceOf(BAD_INV_ORDER.class, cause);
 
-        // Verify completion status
-        assertEquals(COMPLETED_NO, corbaEx.completed, "Exception should have COMPLETED_NO status");
+        // Test the BAD_INV_ORDER has COMPLETED_NO status
+        assertEquals(COMPLETED_NO, corbaEx.completed, "BAD_INV_ORDER should have COMPLETED_NO status");
+
+        // Test the BAD_INV_ORDER has NO_PERMISSION as a suppressed exception
+        Throwable[] suppressed = corbaEx.getSuppressed();
+        assertEquals(1, suppressed.length, "BAD_INV_ORDER should have exactly one suppressed exception");
+        NO_PERMISSION suppressedEx = assertInstanceOf(NO_PERMISSION.class, suppressed[0],
+            "Suppressed exception should be NO_PERMISSION");
+
+        // Test the NO_PERMISSION from CI2 has COMPLETED_NO status - corrected from by send_request exception handling
+        assertEquals(COMPLETED_NO, suppressedEx.completed, "Original NO_PERMISSION from CI2 should have COMPLETED_NO status");
 
         // Verify expected flow using Mockito InOrder to check execution order:
         var order = Mockito.inOrder(CI1, CI2, CI3, SI);
