@@ -27,12 +27,15 @@ import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.rmi.MarshalException;
 import java.rmi.RemoteException;
+import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static java.security.AccessController.doPrivileged;
+import static java.util.function.Predicate.isEqual;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
 import static javax.rmi.CORBA.Util.mapSystemException;
@@ -41,25 +44,71 @@ import static org.apache.yoko.util.Streams.concatStreams;
 public final class MethodDescriptor extends ModelElement {
     static final Logger logger = Logger.getLogger(MethodDescriptor.class.getName());
 
-    /** The refleced method object for this method */
+    /** The reflected method object for this method */
     final java.lang.reflect.Method reflectedMethod;
     final LazyReference<Boolean> responseExpected = new LazyReference<>(this::genResponseExpected);
+    final LazyReference<TypeDescriptor> returnType = new LazyReference<>(this::genReturnType);
+    final LazyReference<TypeDescriptor[]> parameterTypes = new LazyReference<>(this::genParameterTypes);
+    final LazyReference<ExceptionDescriptor[]> exceptionTypes = new LazyReference<>(this::genExceptionTypes);
+    final LazyReference<Boolean> copyWithinStateRef = new LazyReference<>(this::genCopyWithinState);
 
     private static boolean notRemoteException(Class<?> aClass) {
         return !RemoteException.class.isAssignableFrom(aClass);
     }
 
     private Boolean genResponseExpected() {
-        if (!reflectedMethod.getReturnType().equals(Void.TYPE)) {
+        if (!getReturnType().type.equals(Void.class)) {
             return true;
         }
 
-        return Arrays.stream(reflectedMethod.getExceptionTypes())
-                .noneMatch(Predicate.isEqual(RemoteOnewayException.class));
+        return Arrays.stream(getExceptionTypes())
+                .map(desc -> desc.type)
+                .noneMatch(isEqual(RemoteOnewayException.class));
     }
 
     public boolean getResponseExpected() {
         return responseExpected.get();
+    }
+
+    TypeDescriptor genReturnType() {
+        Class<?> returnType = doPrivileged((PrivilegedAction<Class<?>>) reflectedMethod::getReturnType);
+        return repo.getDescriptor(returnType);
+    }
+
+    private TypeDescriptor getReturnType() {
+        return returnType.get();
+    }
+
+    TypeDescriptor[] genParameterTypes() {
+        Class<?>[] paramTypes = doPrivileged((PrivilegedAction<Class<?>[]>) reflectedMethod::getParameterTypes);
+        return Arrays.stream(paramTypes)
+                .map(repo::getDescriptor)
+                .toArray(TypeDescriptor[]::new);
+    }
+
+    private TypeDescriptor[] getParameterTypes() {
+        return parameterTypes.get();
+    }
+
+    ExceptionDescriptor[] genExceptionTypes() {
+        Class<?>[] exceptionTypes = doPrivileged((PrivilegedAction<Class<?>[]>) reflectedMethod::getExceptionTypes);
+        return Arrays.stream(exceptionTypes)
+                .map(repo::getDescriptor)
+                .map(ExceptionDescriptor.class::cast)
+                .toArray(ExceptionDescriptor[]::new);
+    }
+
+    private ExceptionDescriptor[] getExceptionTypes() {
+        return exceptionTypes.get();
+    }
+
+    Boolean genCopyWithinState() {
+        return Arrays.stream(getParameterTypes())
+                .anyMatch(TypeDescriptor::copyWithinState);
+    }
+
+    private boolean getCopyWithinState() {
+        return copyWithinStateRef.get();
     }
 
     public java.lang.reflect.Method getReflectedMethod() {
@@ -70,20 +119,6 @@ public final class MethodDescriptor extends ModelElement {
         super(repository, method.getName());
         reflectedMethod = method;
     }
-
-    /** The number of arguments */
-    int parameter_count;
-
-    /** The argument's type descriptors */
-    TypeDescriptor[] parameter_types;
-
-    /** The return value's type descriptor */
-    TypeDescriptor return_type;
-
-    /** The declared exception's type descriptors */
-    ExceptionDescriptor[] exception_types;
-
-    boolean copyWithinState;
 
     /**
      * Copy a set of arguments. If sameState=true, then we're invoking on the
@@ -97,44 +132,41 @@ public final class MethodDescriptor extends ModelElement {
                 org.omg.CORBA_2_3.portable.OutputStream out = (org.omg.CORBA_2_3.portable.OutputStream) orb
                         .create_output_stream();
 
-                for (int i = 0; i < args.length; i++) {
-                    if (parameter_types[i].copyBetweenStates()) {
-                        parameter_types[i].write(out, args[i]);
-                    }
-                }
+                TypeDescriptor[] paramTypes = getParameterTypes();
+                IntStream.range(0, args.length)
+                        .filter(i -> paramTypes[i].copyBetweenStates())
+                        .forEach(i -> paramTypes[i].write(out, args[i]));
 
                 org.omg.CORBA_2_3.portable.InputStream in = (org.omg.CORBA_2_3.portable.InputStream) out
                         .create_input_stream();
 
-                for (int i = 0; i < args.length; i++) {
-                    if (parameter_types[i].copyBetweenStates()) {
-                        args[i] = parameter_types[i].read(in);
-                    }
-                }
-
+                IntStream.range(0, args.length)
+                        .filter(i -> paramTypes[i].copyBetweenStates())
+                        .forEach(i -> args[i] = paramTypes[i].read(in));
             } catch (org.omg.CORBA.SystemException ex) {
                 logger.log(FINE, ex, () -> "Exception occurred copying arguments");
                 throw mapSystemException(ex);
             }
 
-        } else if (copyWithinState) {
+        } else if (getCopyWithinState()) {
             CopyState state = new CopyState(repo);
-            for (int i = 0; i < args.length; i++) {
-                if (parameter_types[i].copyWithinState()) {
-                    try {
-                        args[i] = state.copy(args[i]);
-                    } catch (CopyRecursionException e) {
-                        final int idx = i;
-                        final Object[] args_arr = args;
-                        state.registerRecursion(new CopyRecursionResolver(
-                                args[i]) {
-                            public void resolve(Object value) {
-                                args_arr[idx] = value;
-                            }
-                        });
-                    }
+            TypeDescriptor[] paramTypes = getParameterTypes();
+            IntStream.range(0, args.length)
+                    .filter(i -> paramTypes[i].copyWithinState())
+                    .forEach(i -> {
+                try {
+                    args[i] = state.copy(args[i]);
+                } catch (CopyRecursionException e) {
+                    final int idx = i;
+                    final Object[] args_arr = args;
+                    state.registerRecursion(new CopyRecursionResolver(
+                            args[i]) {
+                        public void resolve(Object value) {
+                            args_arr[idx] = value;
+                        }
+                    });
                 }
-            }
+            });
         }
 
         return args;
@@ -146,24 +178,24 @@ public final class MethodDescriptor extends ModelElement {
             return null;
         }
         if (!sameState) {
-            if (return_type.copyBetweenStates()) {
+            if (getReturnType().copyBetweenStates()) {
                 try {
                     org.omg.CORBA_2_3.portable.OutputStream out = (org.omg.CORBA_2_3.portable.OutputStream) orb
                             .create_output_stream();
 
-                    return_type.write(out, result);
+                    getReturnType().write(out, result);
 
                     org.omg.CORBA_2_3.portable.InputStream in = (org.omg.CORBA_2_3.portable.InputStream) out
                             .create_input_stream();
 
-                    return return_type.read(in);
+                    return getReturnType().read(in);
                 } catch (org.omg.CORBA.SystemException ex) {
                     logger.log(FINE, ex, () -> "Exception occurred copying result");
                     throw mapSystemException(ex);
                 }
             }
 
-        } else if (copyWithinState) {
+        } else if (getCopyWithinState()) {
             CopyState state = new CopyState(repo);
             try {
                 return state.copy(result);
@@ -179,11 +211,9 @@ public final class MethodDescriptor extends ModelElement {
      * read the arguments to this method, and return them as an array of objects
      */
     public Object[] readArguments(org.omg.CORBA.portable.InputStream in) {
-        Object[] args = new Object[parameter_count];
-        for (int i = 0; i < parameter_count; i++) {
-            args[i] = parameter_types[i].read(in);
-        }
-        return args;
+        return Arrays.stream(getParameterTypes())
+                .map(desc -> desc.read(in))
+                .toArray();
     }
 
     public void writeArguments(org.omg.CORBA.portable.OutputStream out,
@@ -201,27 +231,26 @@ public final class MethodDescriptor extends ModelElement {
          * desc;
          * 
          * try { desc = getTypeRepository ().getDescriptor (args[i].getClass
-         * ()); } catch (RuntimeException ex) { desc = parameter_types[i]; }
+         * ()); } catch (RuntimeException ex) { desc = getParameterTypes()[i]; }
          * 
          * desc.print (pw, recurse, args[i]); } }
          * 
          * pw.close (); log.debug (cw.toString ()); }
          */
 
-        for (int i = 0; i < parameter_count; i++) {
-            parameter_types[i].write(out, args[i]);
-        }
+        TypeDescriptor[] paramTypes = getParameterTypes();
+        IntStream.range(0, paramTypes.length).forEach(i -> paramTypes[i].write(out, args[i]));
     }
 
     /** write the result of this method */
     public void writeResult(org.omg.CORBA.portable.OutputStream out,
             Object value) {
-        return_type.write(out, value);
+        getReturnType().write(out, value);
     }
 
     public org.omg.CORBA.portable.OutputStream writeException(
             org.omg.CORBA.portable.ResponseHandler response, Throwable ex) {
-        for (ExceptionDescriptor exceptionType : exception_types) {
+        for (ExceptionDescriptor exceptionType : getExceptionTypes()) {
             if (exceptionType.type.isInstance(ex)) {
                 OutputStream out = response.createExceptionReply();
                 org.omg.CORBA_2_3.portable.OutputStream out2 = (org.omg.CORBA_2_3.portable.OutputStream) out;
@@ -244,7 +273,7 @@ public final class MethodDescriptor extends ModelElement {
         String ex_id = in.read_string();
         Throwable ex;
 
-        for (ExceptionDescriptor exceptionType : exception_types) {
+        for (ExceptionDescriptor exceptionType : getExceptionTypes()) {
             if (ex_id.equals(exceptionType.getExceptionRepositoryID())) {
                 ex = (Throwable) in2.read_value();
                 throw ex;
@@ -277,23 +306,24 @@ public final class MethodDescriptor extends ModelElement {
          * TypeDescriptor desc;
          * 
          * try { desc = getTypeRepository ().getDescriptor (result.getClass ()); }
-         * catch (RuntimeException ex) { desc = return_type; }
+         * catch (RuntimeException ex) { desc = getReturnType(); }
          * 
          * desc.print (pw, recurse, result); }
          * 
          * pw.close (); log.debug (cw.toString ()); }
          */
 
-        return return_type.read(in);
+        return getReturnType().read(in);
     }
 
     String transformOverloading(String mname) {
         StringBuilder buf = new StringBuilder(mname);
 
-        if (parameter_types.length == 0) {
+        TypeDescriptor[] paramTypes = getParameterTypes();
+        if (paramTypes.length == 0) {
             buf.append("__");
         } else {
-            for (TypeDescriptor parameterType : parameter_types) {
+            for (TypeDescriptor parameterType : paramTypes) {
                 buf.append("__");
                 buf.append(parameterType.getIDLName());
             }
@@ -315,25 +345,6 @@ public final class MethodDescriptor extends ModelElement {
     }
 
     public void init() {
-        Class<?>[] param_types = reflectedMethod.getParameterTypes();
-        parameter_types = new TypeDescriptor[param_types.length];
-
-        for (int i = 0; i < param_types.length; i++) {
-            parameter_types[i] = repo.getDescriptor(param_types[i]);
-            copyWithinState |= parameter_types[i].copyWithinState();
-
-        }
-
-        Class<?> result_type = reflectedMethod.getReturnType();
-        return_type = repo.getDescriptor(result_type);
-
-        Class<?>[] exc_types = reflectedMethod.getExceptionTypes();
-        exception_types = new ExceptionDescriptor[exc_types.length];
-        for (int i = 0; i < exc_types.length; i++) {
-            exception_types[i] = (ExceptionDescriptor) repo.getDescriptor(exc_types[i]);
-        }
-
-        parameter_count = param_types.length;
     }
 
     @Override
