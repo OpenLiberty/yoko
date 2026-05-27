@@ -278,7 +278,9 @@ final public class ClientRequestInfo_impl extends RequestInfo_impl implements Cl
                     this.interceptors.add(interceptor);
                 } catch (SystemException ex) {
                     replyStatus = SYSTEM_EXCEPTION.value;
-                    // correct completion status
+                    // CORBA spec v3.0.3 - 21.3.6.1: Compliant Interceptors shall properly follow completion_status
+                    // semantics if they raise a system exception from this interception point. The completion_status
+                    // shall be COMPLETED_NO
                     if (COMPLETED_NO != ex.completed) {
                         REQ_OUT_LOG.warning(() -> "Correcting completion status on new exception from interceptor " + interceptor.getClass() + ": was " + ex.completed + " and is: " + COMPLETED_NO);
                         ex.completed = COMPLETED_NO;
@@ -337,6 +339,16 @@ final public class ClientRequestInfo_impl extends RequestInfo_impl implements Cl
                     replyStatus = SYSTEM_EXCEPTION.value;
                     if (null != receivedException) {
                         ex.addSuppressed(receivedException);
+                        // CORBA spec v3.0.3 - 21.3.6.4: if the original exception is a system exception,
+                        // the completion_status of the new exception shall be the same as on the original
+                        if (receivedException instanceof SystemException) {
+                            SystemException originalEx = (SystemException) receivedException;
+                            if (ex.completed != originalEx.completed) {
+                                REQ_OUT_LOG.warning(() -> "Correcting completion status on new exception from receive_exception interceptor: was "
+                                    + ex.completed + " and should be " + originalEx.completed + " (from original exception)");
+                                ex.completed = originalEx.completed;
+                            }
+                        }
                     }
                     receivedException = ex;
                     receivedId = null;
