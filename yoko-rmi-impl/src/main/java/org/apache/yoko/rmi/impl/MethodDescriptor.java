@@ -20,13 +20,17 @@ package org.apache.yoko.rmi.impl;
 import org.apache.yoko.rmi.api.RemoteOnewayException;
 import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.SystemException;
+import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA.portable.ResponseHandler;
 import org.omg.CORBA.portable.UnknownException;
 
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.rmi.MarshalException;
 import java.rmi.RemoteException;
+import java.rmi.UnexpectedException;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Set;
@@ -34,18 +38,21 @@ import java.util.logging.Logger;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static java.lang.Character.isUpperCase;
+import static java.lang.Character.toLowerCase;
 import static java.security.AccessController.doPrivileged;
 import static java.util.function.Predicate.isEqual;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
 import static javax.rmi.CORBA.Util.mapSystemException;
+import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.Streams.concatStreams;
 
 public final class MethodDescriptor extends ModelElement {
     static final Logger logger = Logger.getLogger(MethodDescriptor.class.getName());
 
     /** The reflected method object for this method */
-    final java.lang.reflect.Method reflectedMethod;
+    final Method reflectedMethod;
     final LazyReference<Boolean> responseExpectedRef = new LazyReference<>(this::genResponseExpected);
     final LazyReference<TypeDescriptor> returnTypeRef = new LazyReference<>(this::genReturnType);
     final LazyReference<TypeDescriptor[]> parameterTypesRef = new LazyReference<>(this::genParameterTypes);
@@ -111,11 +118,11 @@ public final class MethodDescriptor extends ModelElement {
         return copyWithinStateRef.get();
     }
 
-    public java.lang.reflect.Method getReflectedMethod() {
+    public Method getReflectedMethod() {
         return reflectedMethod;
     }
 
-    MethodDescriptor(java.lang.reflect.Method method, TypeRepository repository) {
+    MethodDescriptor(Method method, TypeRepository repository) {
         super(repository, method.getName());
         reflectedMethod = method;
     }
@@ -124,26 +131,21 @@ public final class MethodDescriptor extends ModelElement {
      * Copy a set of arguments. If sameState=true, then we're invoking on the
      * same RMIState, i.e. an environment with the same context class loader.
      */
-    Object[] copyArguments(Object[] args, boolean sameState, ORB orb)
-            throws RemoteException {
+    Object[] copyArguments(Object[] args, boolean sameState, ORB orb) throws RemoteException {
         if (!sameState) {
 
             try {
-                org.omg.CORBA_2_3.portable.OutputStream out = (org.omg.CORBA_2_3.portable.OutputStream) orb
-                        .create_output_stream();
-
+                OutputStream out = orb.create_output_stream();
                 TypeDescriptor[] paramTypes = getParameterTypes();
                 IntStream.range(0, args.length)
                         .filter(i -> paramTypes[i].copyBetweenStates())
                         .forEach(i -> paramTypes[i].write(out, args[i]));
 
-                org.omg.CORBA_2_3.portable.InputStream in = (org.omg.CORBA_2_3.portable.InputStream) out
-                        .create_input_stream();
-
+                InputStream in = out.create_input_stream();
                 IntStream.range(0, args.length)
                         .filter(i -> paramTypes[i].copyBetweenStates())
                         .forEach(i -> args[i] = paramTypes[i].read(in));
-            } catch (org.omg.CORBA.SystemException ex) {
+            } catch (SystemException ex) {
                 logger.log(FINE, ex, () -> "Exception occurred copying arguments");
                 throw mapSystemException(ex);
             }
@@ -172,35 +174,28 @@ public final class MethodDescriptor extends ModelElement {
         return args;
     }
 
-    Object copyResult(Object result, boolean sameState, ORB orb)
-            throws RemoteException {
-        if (result == null) {
-            return null;
-        }
+    Object copyResult(Object result, boolean sameState, ORB orb) throws RemoteException {
+        if (null == result) return null;
+
         if (!sameState) {
             if (getReturnType().copyBetweenStates()) {
                 try {
-                    org.omg.CORBA_2_3.portable.OutputStream out = (org.omg.CORBA_2_3.portable.OutputStream) orb
-                            .create_output_stream();
-
+                    OutputStream out = orb.create_output_stream();
                     getReturnType().write(out, result);
 
-                    org.omg.CORBA_2_3.portable.InputStream in = (org.omg.CORBA_2_3.portable.InputStream) out
-                            .create_input_stream();
-
+                    InputStream in = out.create_input_stream();
                     return getReturnType().read(in);
-                } catch (org.omg.CORBA.SystemException ex) {
+                } catch (SystemException ex) {
                     logger.log(FINE, ex, () -> "Exception occurred copying result");
                     throw mapSystemException(ex);
                 }
             }
-
         } else if (getCopyWithinState()) {
             CopyState state = new CopyState(repo);
             try {
                 return state.copy(result);
             } catch (CopyRecursionException e) {
-                throw new MarshalException("cannot copy recursive value?");
+                throw as(MarshalException::new, e, "cannot copy recursive value?");
             }
         }
 
@@ -210,14 +205,13 @@ public final class MethodDescriptor extends ModelElement {
     /**
      * read the arguments to this method, and return them as an array of objects
      */
-    public Object[] readArguments(org.omg.CORBA.portable.InputStream in) {
+    public Object[] readArguments(InputStream in) {
         return Arrays.stream(getParameterTypes())
                 .map(desc -> desc.read(in))
                 .toArray();
     }
 
-    public void writeArguments(org.omg.CORBA.portable.OutputStream out,
-            Object[] args) {
+    public void writeArguments(OutputStream out, Object[] args) {
         /*
          * if (log.isDebugEnabled ()) { java.util.Map recurse = new
          * org.apache.yoko.rmi.util.IdentityHashMap (); java.io.CharArrayWriter cw = new
@@ -243,20 +237,17 @@ public final class MethodDescriptor extends ModelElement {
     }
 
     /** write the result of this method */
-    public void writeResult(org.omg.CORBA.portable.OutputStream out,
-            Object value) {
+    public void writeResult(OutputStream out, Object value) {
         getReturnType().write(out, value);
     }
 
-    public org.omg.CORBA.portable.OutputStream writeException(
-            org.omg.CORBA.portable.ResponseHandler response, Throwable ex) {
+    public OutputStream writeException(ResponseHandler response, Throwable ex) {
         for (ExceptionDescriptor exceptionType : getExceptionTypes()) {
             if (exceptionType.getType().isInstance(ex)) {
-                OutputStream out = response.createExceptionReply();
-                org.omg.CORBA_2_3.portable.OutputStream out2 = (org.omg.CORBA_2_3.portable.OutputStream) out;
+                org.omg.CORBA_2_3.portable.OutputStream out = (org.omg.CORBA_2_3.portable.OutputStream) response.createExceptionReply();
 
-                out2.write_string(exceptionType.getExceptionRepositoryID());
-                out2.write_value(ex);
+                out.write_string(exceptionType.getExceptionRepositoryID());
+                out.write_value(ex);
                 return out;
             }
         }
@@ -266,8 +257,7 @@ public final class MethodDescriptor extends ModelElement {
         throw new UnknownException(ex);
     }
 
-    public void readException(org.omg.CORBA.portable.InputStream in)
-            throws Throwable {
+    public void readException(InputStream in) throws Throwable {
         org.omg.CORBA_2_3.portable.InputStream in2 = (org.omg.CORBA_2_3.portable.InputStream) in;
 
         String ex_id = in.read_string();
@@ -283,14 +273,13 @@ public final class MethodDescriptor extends ModelElement {
         ex = (Throwable) in2.read_value();
 
         if (ex instanceof Exception) {
-            throw new java.rmi.UnexpectedException(ex.getMessage(),
-                    (Exception) ex);
+            throw as(UnexpectedException::new, ex, ex.getMessage());
         } else if (ex instanceof Error) {
             throw ex;
         }
     }
 
-    public Object readResult(org.omg.CORBA.portable.InputStream in) {
+    public Object readResult(InputStream in) {
 
         /*
          * if (log.isDebugEnabled ()) { java.util.Map recurse = new
@@ -336,16 +325,11 @@ public final class MethodDescriptor extends ModelElement {
 
     boolean isCaseSensitive = false;
 
-    void setOverloaded() {
-        isOverloaded = true;
-    }
+    void setOverloaded() { isOverloaded = true; }
 
-    void setCaseSensitive() {
-        isCaseSensitive = true;
-    }
+    void setCaseSensitive() { isCaseSensitive = true; }
 
-    public void init() {
-    }
+    public void init() { }
 
     @Override
     String genIDLName() {
@@ -381,16 +365,15 @@ public final class MethodDescriptor extends ModelElement {
         else if (methodName.startsWith("set"))
             pfxLen = 3;
         else
-            throw new RuntimeException("methodName " + methodName
-                    + " is not attribute");
+            throw new RuntimeException("methodName " + methodName + " is not attribute");
 
         if (methodName.length() >= (pfxLen + 2)
-                && Character.isUpperCase(methodName.charAt(pfxLen))
-                && Character.isUpperCase(methodName.charAt(pfxLen + 1))) {
+                && isUpperCase(methodName.charAt(pfxLen))
+                && isUpperCase(methodName.charAt(pfxLen + 1))) {
             return methodName.substring(pfxLen);
         }
 
-        buf.append(Character.toLowerCase(methodName.charAt(pfxLen)));
+        buf.append(toLowerCase(methodName.charAt(pfxLen)));
         buf.append(methodName.substring(pfxLen + 1));
         return buf.toString();
     }
@@ -405,7 +388,7 @@ public final class MethodDescriptor extends ModelElement {
         if (name.length() == 3)
             return false;
 
-        if (!Character.isUpperCase(name.charAt(3)))
+        if (!isUpperCase(name.charAt(3)))
             return false;
 
         if (!m.getReturnType().equals(Void.TYPE))
@@ -431,7 +414,7 @@ public final class MethodDescriptor extends ModelElement {
         if (name.length() == pfxLen)
             return false;
 
-        if (!Character.isUpperCase(name.charAt(pfxLen)))
+        if (!isUpperCase(name.charAt(pfxLen)))
             return false;
 
         if (m.getReturnType().equals(Void.TYPE))
@@ -488,7 +471,7 @@ public final class MethodDescriptor extends ModelElement {
             char ch = name.charAt(i);
 
             // basic identifier elements
-            if (Character.isUpperCase(ch)) {
+            if (isUpperCase(ch)) {
                 buf.append('_');
                 buf.append(i);
             }
