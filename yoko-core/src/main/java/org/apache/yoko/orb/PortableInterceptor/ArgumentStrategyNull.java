@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026, 2021 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,12 +37,12 @@ final class ArgumentStrategyNull extends ArgumentStrategy {
                     MinorCodes.MinorInvalidPICall,
                     org.omg.CORBA.CompletionStatus.COMPLETED_NO);
 
-        throw new org.omg.CORBA.NO_RESOURCES(
-                MinorCodes
-                        .describeNoResources(MinorCodes.MinorInvalidBinding)
-                        + ": arguments unavailable",
-                MinorCodes.MinorInvalidBinding,
-                org.omg.CORBA.CompletionStatus.COMPLETED_NO);
+        // When arguments are marked as available but we don't have type information,
+        // return an empty array. This allows portable interceptors to function even
+        // when using invocation styles that don't provide detailed type metadata.
+        // This is compliant with CORBA spec which states arguments() should not throw
+        // when called at appropriate interception points.
+        return new org.omg.Dynamic.Parameter[0];
     }
 
     //
