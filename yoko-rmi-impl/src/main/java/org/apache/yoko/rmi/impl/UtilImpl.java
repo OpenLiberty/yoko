@@ -594,7 +594,7 @@ public class UtilImpl implements UtilDelegate {
     static Object copyRMIStub(RMIStub stub) throws RemoteException {
         ClassLoader loader = doPrivileged(GET_CONTEXT_CLASS_LOADER);
 
-        if (doPrivileged(PrivilegedActions.getClassLoader(stub._descriptor.type)) == loader) {
+        if (doPrivileged(PrivilegedActions.getClassLoader(stub._descriptor.getType())) == loader) {
             return stub;
         }
 
@@ -603,7 +603,7 @@ public class UtilImpl implements UtilDelegate {
         Class<?> targetClass;
 
         try {
-            targetClass = Util.loadClass(desc.type.getName(), stub._get_codebase(), loader);
+            targetClass = Util.loadClass(desc.getType().getName(), stub._get_codebase(), loader);
         } catch (ClassNotFoundException ex) {
             logger.log(FINER, ex, () -> "copyRMIStub exception (current loader is: " + loader + ") " + ex.getMessage());
             throw new RemoteException("Class not found", ex);

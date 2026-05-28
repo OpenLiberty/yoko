@@ -68,7 +68,7 @@ final class FVDValueDescriptor extends ValueDescriptor {
     }
 
     private FieldDescriptor findField(ValueMember valueMember) {
-        for (Class<?> c = type; c != null; c = c.getSuperclass()) {
+        for (Class<?> c = getType(); c != null; c = c.getSuperclass()) {
             Optional<FieldDescriptor> result = Optional.of(repo.getDescriptor(c))
                     .filter(ValueDescriptor.class::isInstance)
                     .map(ValueDescriptor.class::cast)
@@ -80,7 +80,7 @@ final class FVDValueDescriptor extends ValueDescriptor {
         }
         // There was no matching field in the local implementation, so create a field descriptor
         // that will read from the stream but not assign to any local field
-        return new ValueMemberFieldDescriptor(type, valueMember, repo);
+        return new ValueMemberFieldDescriptor(getType(), valueMember, repo);
     }
 
     @Override

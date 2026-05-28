@@ -57,12 +57,12 @@ public final class MethodDescriptor extends ModelElement {
     }
 
     private Boolean genResponseExpected() {
-        if (!getReturnType().type.equals(Void.class)) {
+        if (!getReturnType().getType().equals(Void.class)) {
             return true;
         }
 
         return Arrays.stream(getExceptionTypes())
-                .map(desc -> desc.type)
+                .map(TypeDescriptor::getType)
                 .noneMatch(isEqual(RemoteOnewayException.class));
     }
 
@@ -251,7 +251,7 @@ public final class MethodDescriptor extends ModelElement {
     public org.omg.CORBA.portable.OutputStream writeException(
             org.omg.CORBA.portable.ResponseHandler response, Throwable ex) {
         for (ExceptionDescriptor exceptionType : getExceptionTypes()) {
-            if (exceptionType.type.isInstance(ex)) {
+            if (exceptionType.getType().isInstance(ex)) {
                 OutputStream out = response.createExceptionReply();
                 org.omg.CORBA_2_3.portable.OutputStream out2 = (org.omg.CORBA_2_3.portable.OutputStream) out;
 
@@ -619,9 +619,9 @@ public final class MethodDescriptor extends ModelElement {
             pw.println("\t\t\tif (exname.equals(\""
                     + desc.getExceptionRepositoryID() + "\"))");
             pw.print("\t\t\t\tthrow (");
-            writeJavaType(pw, desc.type);
+            writeJavaType(pw, desc.getType());
             pw.print(")exin.read_value(");
-            writeJavaType(pw, desc.type);
+            writeJavaType(pw, desc.getType());
             pw.println(".class);");
         });
 

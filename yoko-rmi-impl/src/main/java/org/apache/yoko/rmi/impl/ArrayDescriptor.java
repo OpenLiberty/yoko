@@ -65,7 +65,7 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
 
     protected final ARR createArray(InputStream in, Map<Integer, Serializable> offsetMap, Integer key) {
         int len = in.read_long();
-        SerialFilterHelper.checkArrayInput(type, len, in);
+        SerialFilterHelper.checkArrayInput(getType(), len, in);
         final ARR arr = (ARR)Array.newInstance(elementType, len);
         offsetMap.put(key, arr);
         return arr;
@@ -74,12 +74,12 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
     @Override
     String genRepId() {
         if (elementType.isPrimitive() || elementType == Object.class)
-            return String.format("RMI:%s:%016X", type.getName(), 0);
+            return String.format("RMI:%s:%016X", getType().getName(), 0);
 
         TypeDescriptor desc = repo.getDescriptor(elementType);
         String elemRep = desc.getRepositoryID();
         String hash = elemRep.substring(elemRep.indexOf(':', 4));
-        return String.format("RMI:%s:%s", type.getName(), hash);
+        return String.format("RMI:%s:%s", getType().getName(), hash);
     }
 
     // repository ID for the contained elements
@@ -87,7 +87,7 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
     String genElementRepId() {
         if (elementType.isPrimitive() || elementType == Object.class) {
             // use the descriptor type past the array type marker
-            return String.format("RMI:%s:%016X", type.getName().substring(1), 0);
+            return String.format("RMI:%s:%016X", getType().getName().substring(1), 0);
         }
         return repo.getDescriptor(elementType).getRepositoryID();
     }
@@ -181,10 +181,11 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
     @Override
     public Object read(InputStream in) {
         org.omg.CORBA_2_3.portable.InputStream _in = (org.omg.CORBA_2_3.portable.InputStream) in;
-        logger.fine(() -> "Reading an array value with repository id " + getRepositoryID() + " java class is " + type);
+        logger.fine(() -> "Reading an array value with repository id " + getRepositoryID() + " java class is " + getType());
 
         // if we have a resolved class, read using that, otherwise fall back on the
         // repository id.
+        Class<?> type = getType();
         return ((null == type) ? _in.read_value(getRepositoryID()) : _in.read_value(type));
     }
 
@@ -246,7 +247,7 @@ class ObjectArrayDescriptor extends ArrayDescriptor<Object[]> {
         Object[] arr = (Object[]) value;
         out.write_long(arr.length);
 
-        logger.finer(() -> "writing " + type.getName() + " size="
+        logger.finer(() -> "writing " + getType().getName() + " size="
                 + arr.length);
 
         for (int i = 0; i < arr.length; i++) {
@@ -260,7 +261,7 @@ class ObjectArrayDescriptor extends ArrayDescriptor<Object[]> {
             Object[] arr = createArray(in, offsetMap, key);
             ObjectReader reader = makeCorbaObjectReader(in, offsetMap, null);
 
-            logger.fine(() -> "reading " + type.getName() + " size=" + arr.length);
+            logger.fine(() -> "reading " + getType().getName() + " size=" + arr.length);
 
             range(0, arr.length).forEach(i -> {
                 try {

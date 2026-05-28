@@ -52,7 +52,7 @@ public class RMIServant extends org.omg.PortableServer.Servant implements javax.
     private InvokeHandler proxyInvokeHandler;
 
     Class getJavaClass() {
-        return _descriptor.type;
+        return _descriptor.getType();
     }
 
     RMIState getRMIState() {

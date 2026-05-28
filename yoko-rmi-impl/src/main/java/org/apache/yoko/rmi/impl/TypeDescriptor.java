@@ -36,9 +36,11 @@ import static org.apache.yoko.util.Exceptions.as;
 abstract class TypeDescriptor extends ModelElement {
     protected static final Logger logger = Logger.getLogger(TypeDescriptor.class.getName());
 
-    final Class<?> type;
+    private final Class<?> type;
 
-    private final LazyReference<String> _repid = new LazyReference<>(this::genRepId);
+    final Class<?> getType() { return type; }
+
+    private final LazyReference<String> repId = new LazyReference<>(this::genRepId);
 
     private final LazyReference<String> packageName = new LazyReference<>(this::genPackageName);
     String genPackageName() {
@@ -60,7 +62,7 @@ abstract class TypeDescriptor extends ModelElement {
 
     private final LazyReference<FullKey> key = new LazyReference<>(this::genKey);
     FullKey genKey() {
-        return new FullKey(getRepositoryID(), type);
+        return new FullKey(getRepositoryID(), getType());
     }
     final FullKey getKey() {
         return key.get();
@@ -130,7 +132,7 @@ abstract class TypeDescriptor extends ModelElement {
     @Override
     public String toString() {
         return String.format("%s{class=\"%s\",repId=\"%s\"}",
-                this.getClass().getName(), type,
+                this.getClass().getName(), getType(),
                 getRepositoryID());
     }
 
@@ -145,15 +147,15 @@ abstract class TypeDescriptor extends ModelElement {
     }
 
     String genRepId() {
-        return String.format("RMI:%s:%016X", type.getName(), 0);
+        return String.format("RMI:%s:%016X", getType().getName(), 0);
     }
     final String getRepositoryID() {
-        return _repid.get();
+        return repId.get();
     }
 
     private final LazyReference<RemoteInterfaceDescriptor> remoteInterface = new LazyReference<>(this::genRemoteInterface);
     protected RemoteInterfaceDescriptor genRemoteInterface() {
-        throw new UnsupportedOperationException("class " + type + " does not implement " + Remote.class.getName());
+        throw new UnsupportedOperationException("class " + getType() + " does not implement " + Remote.class.getName());
     }
     final RemoteInterfaceDescriptor getRemoteInterface() {
         return remoteInterface.get();
@@ -277,7 +279,7 @@ abstract class TypeDescriptor extends ModelElement {
         if (old != null) {
             pw.print("^" + old);
         } else {
-            pw.println(type.getName() + "@"
+            pw.println(getType().getName() + "@"
                     + Integer.toHexString(System.identityHashCode(val)));
         }
     }

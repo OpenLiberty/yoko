@@ -66,7 +66,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
 
     private final LazyReference<String[]> ids = new LazyReference<>(this::genIds);
     String[] genIds() {
-        final SortedSet<Class<?>> allRemoteInterfaces = genAllRemoteInterfaces(type);
+        final SortedSet<Class<?>> allRemoteInterfaces = genAllRemoteInterfaces(getType());
         final List<String> ids = new ArrayList<>(allRemoteInterfaces.size());
         for (Class<?> i: allRemoteInterfaces) {
             ids.add(repo.getDescriptor(i).getRepositoryID());
@@ -94,7 +94,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
 
     void debugMethodMap() {
         if (logger.isLoggable(Level.FINER)) {
-            logger.finer(() -> "METHOD MAP FOR " + type.getName());
+            logger.finer(() -> "METHOD MAP FOR " + getType().getName());
 
             Iterator it = method_map.keySet().iterator();
             while (it.hasNext()) {
@@ -149,7 +149,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
         ArrayList method_list = new ArrayList();
 
         // first step is to build the helpers for any super classes
-        Class<?>[] supers = type.getInterfaces();
+        Class<?>[] supers = getType().getInterfaces();
         super_descriptors = new ArrayList();
 
         Map all_methods = new HashMap();
@@ -250,7 +250,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
     Method[] getLocalMethods() {
         ArrayList result = new ArrayList();
 
-        addNonRemoteInterfaceMethods(type, result);
+        addNonRemoteInterfaceMethods(getType(), result);
 
         Method[] out = new Method[result.size()];
         result.toArray(out);
@@ -360,7 +360,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
     @Override
     public Object read(InputStream in) {
         return PortableRemoteObject.narrow(in.read_Object(),
-                type);
+                getType());
     }
 
     /** Write an instance of this value to a CDR stream */
@@ -372,7 +372,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
     @Override
     protected final TypeCode genTypeCode() {
         ORB orb = ORB.init();
-        return orb.create_interface_tc(getRepositoryID(), type.getName());
+        return orb.create_interface_tc(getRepositoryID(), getType().getName());
     }
 
     @Override
@@ -388,14 +388,14 @@ abstract class RemoteDescriptor extends TypeDescriptor {
     @Override
     void writeUnmarshalValue(PrintWriter pw, String inName) {
         pw.print('(');
-        pw.print(type.getName());
+        pw.print(getType().getName());
         pw.print(')');
         pw.print(PortableRemoteObject.class.getName());
         pw.print(".narrow(");
         pw.print(inName);
         pw.print('.');
         pw.print("read_Object(),");
-        pw.print(type.getName());
+        pw.print(getType().getName());
         pw.print(".class)");
     }
 
@@ -436,7 +436,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
 
     void writeStubClass(PrintWriter pw) {
 
-        Class<?> c = type;
+        Class<?> c = getType();
         String cname = c.getName();
         String fullname = stubClassName(c);
         //String stubname = fullname.substring(fullname.lastIndexOf('.') + 1);
@@ -481,7 +481,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
     }
 
     String getStubClassName() {
-        Class<?> c = type;
+        Class<?> c = getType();
         String cname = c.getName();
 
         String pkgname = null;
@@ -499,7 +499,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
 
     @Override
     void addDependencies(Set<Class<?>> classes) {
-        Class<?> c = type;
+        Class<?> c = getType();
 
         if (c == Remote.class || classes.contains(c))
             return;

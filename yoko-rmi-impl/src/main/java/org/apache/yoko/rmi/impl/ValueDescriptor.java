@@ -30,7 +30,6 @@ import org.omg.CORBA.ValueMember;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
 import org.omg.CORBA.portable.UnknownException;
-import sun.reflect.ReflectionFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -80,6 +79,7 @@ import static org.apache.yoko.logging.VerboseLogging.MARSHAL_OUT_LOG;
 import static org.apache.yoko.rmi.impl.FieldDescriptor.getForSerialPersistentField;
 import static org.apache.yoko.rmi.util.StringUtil.convertToValidIDLNames;
 import static org.apache.yoko.util.Exceptions.as;
+import static sun.reflect.ReflectionFactory.getReflectionFactory;
 
 class ValueDescriptor extends TypeDescriptor {
     private final LazyReference<Function<Serializable, Serializable>> writeReplacerRef = new LazyReference<>(this::genWriteReplacer);
@@ -117,20 +117,21 @@ class ValueDescriptor extends TypeDescriptor {
 
     protected boolean isEnum() { return false; }
 
-    boolean isExternalizable() { return Externalizable.class.isAssignableFrom(type); }
+    boolean isExternalizable() { return Externalizable.class.isAssignableFrom(getType()); }
 
-    boolean isSerializable() { return Serializable.class.isAssignableFrom(type); }
+    boolean isSerializable() { return Serializable.class.isAssignableFrom(getType()); }
 
-    boolean isRmiStub() { return RMIStub.class.isAssignableFrom(type); }
+    boolean isRmiStub() { return RMIStub.class.isAssignableFrom(getType()); }
 
     boolean isImmutableValue() { return immutableValue.get(); }
 
     private boolean genImmutableValue() {
-        return IMMUTABLE_VALUE_CLASSES.contains(type);
+        return IMMUTABLE_VALUE_CLASSES.contains(getType());
     }
 
     @Override
     protected final RemoteInterfaceDescriptor genRemoteInterface() {
+        Class<?> type = getType();
         return Remote.class.isAssignableFrom(type) ?
                 RemoteDescriptor.genMostSpecificRemoteInterface(type, repo) :
                 super.genRemoteInterface();
@@ -142,7 +143,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private String genRepId(long hashCode) {
-        return String.format("RMI:%s:%016X:%016X", convertToValidIDLNames(type.getName()), hashCode, getSerialVersionUID());
+        return String.format("RMI:%s:%016X:%016X", convertToValidIDLNames(getType().getName()), hashCode, getSerialVersionUID());
     }
 
     String genCustomRepId() {
@@ -161,7 +162,7 @@ class ValueDescriptor extends TypeDescriptor {
                 // skip //
             }
         }
-        ObjectStreamClass serialForm = ObjectStreamClass.lookup(type);
+        ObjectStreamClass serialForm = ObjectStreamClass.lookup(getType());
 
         return (serialForm != null) ? serialForm.getSerialVersionUID() : 0L;
     }
@@ -175,7 +176,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     ValueDescriptor genSuperDescriptor() {
-        return ofNullable(type.getSuperclass())
+        return ofNullable(getType().getSuperclass())
                 .filter(sc -> sc != Object.class)
                 .map(repo::getDescriptor)
                 .filter(ValueDescriptor.class::isInstance)
@@ -206,7 +207,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private Function<Serializable, Serializable> genWriteReplacer() {
         Optional<Method> methodOpt = doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
-            for (Class<?> curr = type; curr != null; curr = curr.getSuperclass()) {
+            for (Class<?> curr = getType(); curr != null; curr = curr.getSuperclass()) {
                 try {
                     Method method = curr.getDeclaredMethod("writeReplace");
                     method.setAccessible(true);
@@ -234,7 +235,7 @@ class ValueDescriptor extends TypeDescriptor {
     private Function<Serializable, Serializable> genReadResolver() {
         Optional<Method> methodOpt = doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
             try {
-                Method method = type.getDeclaredMethod("readResolve");
+                Method method = getType().getDeclaredMethod("readResolve");
                 method.setAccessible(true);
                 return Optional.of(method);
             } catch (NoSuchMethodException ignored) {
@@ -259,7 +260,7 @@ class ValueDescriptor extends TypeDescriptor {
     private Optional<Method> findReadObjectMethod() {
         return doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
             try {
-                Method method = type.getDeclaredMethod("readObject", ObjectInputStream.class);
+                Method method = getType().getDeclaredMethod("readObject", ObjectInputStream.class);
                 
                 // Validate the method
                 int modifiers = method.getModifiers();
@@ -276,6 +277,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Optional<Method> findWriteObjectMethod() {
+        Class<?> type = getType();
         return doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
             try {
                 Method method = type.getDeclaredMethod("writeObject", ObjectOutputStream.class);
@@ -299,7 +301,7 @@ class ValueDescriptor extends TypeDescriptor {
     private Optional<Field> findSerialVersionUIDField() {
         return doPrivileged((PrivilegedAction<Optional<Field>>) () -> {
             try {
-                Field field = type.getDeclaredField("serialVersionUID");
+                Field field = getType().getDeclaredField("serialVersionUID");
                 if (Modifier.isStatic(field.getModifiers())) {
                     field.setAccessible(true);
                     return Optional.of(field);
@@ -313,7 +315,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     ObjectStreamField[] findSerialPersistentFields() {
         try {
-            Field field = type.getDeclaredField("serialPersistentFields");
+            Field field = getType().getDeclaredField("serialPersistentFields");
             field.setAccessible(true);
             return (ObjectStreamField[]) field.get(null);
         } catch (IllegalAccessException | NoSuchFieldException ignored) {
@@ -334,7 +336,7 @@ class ValueDescriptor extends TypeDescriptor {
                         final Throwable t = ex.getTargetException();
                         throw as(UnknownException::new, t, t);
                     } catch (NullPointerException ex) {
-                        MARSHAL_IN_LOG.log(WARNING, ex, () -> "unable to create instance of " + type.getName());
+                        MARSHAL_IN_LOG.log(WARNING, ex, () -> "unable to create instance of " + getType().getName());
                         MARSHAL_IN_LOG.warning(() -> "constructor => " + constructor);
                         throw ex;
                     }
@@ -346,7 +348,7 @@ class ValueDescriptor extends TypeDescriptor {
         return doPrivileged((PrivilegedAction<Optional<Constructor>>) () -> {
             if (isExternalizable()) {
                 return findExternalizableConstructor();
-            } else if (isSerializable() && !type.isInterface()) {
+            } else if (isSerializable() && !getType().isInterface()) {
                 return findSerializableConstructor();
             }
             return Optional.empty();
@@ -354,12 +356,13 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Optional<Constructor> findExternalizableConstructor() {
+        Class<?> type = getType();
         try {
             Constructor<?> constructor = type.getDeclaredConstructor();
             constructor.setAccessible(true);
             return Optional.of(constructor);
         } catch (NoSuchMethodException ex) {
-            MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName() 
+            MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName()
                     + " is not properly externalizable. It has no default constructor.");
             return Optional.empty();
         }
@@ -367,6 +370,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private Optional<Constructor> findSerializableConstructor() {
         Class<?> initClass = getFirstNonSerializableSuperclass();
+        Class<?> type = getType();
 
         if (initClass == null) {
             MARSHAL_LOG.warning(() -> "Class " + type.getName() 
@@ -381,8 +385,7 @@ class ValueDescriptor extends TypeDescriptor {
                 return Optional.empty();
             }
 
-            Constructor<?> constructor = ReflectionFactory.getReflectionFactory()
-                    .newConstructorForSerialization(type, initConstructor);
+            Constructor<?> constructor = getReflectionFactory().newConstructorForSerialization(type, initConstructor);
 
             if (constructor == null) {
                 MARSHAL_LOG.warning(() -> "Unable to get constructor for serialization for class " + java_name);
@@ -405,7 +408,8 @@ class ValueDescriptor extends TypeDescriptor {
         if (Modifier.isPublic(modifiers) || Modifier.isProtected(modifiers)) {
             return true;
         }
-        
+
+        Class<?> type = getType();
         if (!samePackage(type, initClass)) {
             MARSHAL_LOG.warning(() -> "Class " + type.getName() 
                     + " is not properly serializable. The default constructor of its first "
@@ -433,7 +437,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private FieldDescriptor[] buildFieldDescriptorsFromDeclaredFields() {
-        return Arrays.stream(type.getDeclaredFields())
+        return Arrays.stream(getType().getDeclaredFields())
                 .filter(this::isSerializableField)
                 .peek(f -> f.setAccessible(true))
                 .map(f -> FieldDescriptor.get(f, repo))
@@ -444,14 +448,14 @@ class ValueDescriptor extends TypeDescriptor {
     private FieldDescriptor[] buildFieldDescriptorsFromSerialPersistentFields(ObjectStreamField[] serialPersistentFields) {
         return Arrays.stream(serialPersistentFields)
                 .map(streamField -> ofNullable(findMatchingField(streamField))
-                        .orElseGet(() -> getForSerialPersistentField(type, streamField, repo)))
+                        .orElseGet(() -> getForSerialPersistentField(getType(), streamField, repo)))
                 .sorted()
                 .toArray(FieldDescriptor[]::new);
     }
 
     private FieldDescriptor findMatchingField(ObjectStreamField streamField) {
         try {
-            Field reflectionField = type.getField(streamField.getName());
+            Field reflectionField = getType().getField(streamField.getName());
             reflectionField.setAccessible(true);
 
             if (reflectionField.getType() == streamField.getType()) {
@@ -464,7 +468,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Class<?> getFirstNonSerializableSuperclass() {
-        Class<?> initClass = type;
+        Class<?> initClass = getType();
 
         while ((initClass != null) && Serializable.class.isAssignableFrom(initClass)) {
             initClass = initClass.getSuperclass();
@@ -551,7 +555,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     protected void defaultWriteValue(ObjectWriter writer, Serializable val) throws IOException {
-        MARSHAL_OUT_LOG.finer(() -> "writing fields for " + type);
+        MARSHAL_OUT_LOG.finer(() -> "writing fields for " + getType());
 
         FieldDescriptor[] fields = getFields();
 
@@ -839,7 +843,7 @@ class ValueDescriptor extends TypeDescriptor {
             int key = System.identityHashCode(val);
             recurse.put(val, key);
 
-            pw.println(type.getName() + "@" + Integer.toHexString(key) + "[");
+            pw.println(getType().getName() + "@" + Integer.toHexString(key) + "[");
 
             printFields(pw, recurse, val);
 
@@ -875,7 +879,7 @@ class ValueDescriptor extends TypeDescriptor {
         FieldDescriptor[] fields = getFields();
         if (null == fields) return;
 
-        MARSHAL_IN_LOG.fine(() -> "reading fields for " + type.getName());
+        MARSHAL_IN_LOG.fine(() -> "reading fields for " + getType().getName());
 
         for (FieldDescriptor _field : fields) {
             MARSHAL_IN_LOG.fine(() -> "reading field " + _field.java_name + " of type " + _field.getType().getName() + " using " + _field.getClass().getName());
@@ -898,7 +902,7 @@ class ValueDescriptor extends TypeDescriptor {
             return emptyMap();
         }
 
-        MARSHAL_IN_LOG.finer(() -> "reading fields for " + type.getName());
+        MARSHAL_IN_LOG.finer(() -> "reading fields for " + getType().getName());
 
         Map<String, Object> map = new HashMap<>();
 
@@ -916,7 +920,7 @@ class ValueDescriptor extends TypeDescriptor {
             return;
         }
 
-        MARSHAL_OUT_LOG.finer(() -> "writing fields for " + type.getName());
+        MARSHAL_OUT_LOG.finer(() -> "writing fields for " + getType().getName());
 
         for (FieldDescriptor _field : fields) {
             MARSHAL_OUT_LOG.finer(() -> "writing field " + _field.java_name);
@@ -983,7 +987,7 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         private void writeSuperClassHash(DataOutputStream out) {
-            ofNullable(type.getSuperclass())
+            ofNullable(getType().getSuperclass())
                     .map(repo::getDescriptor)
                     .map(TypeDescriptor::getClassHash)
                     .ifPresent(hash -> {
@@ -1033,6 +1037,7 @@ class ValueDescriptor extends TypeDescriptor {
         ORB orb = ORB.init();
         TypeCode _base = ofNullable(getSuperDescriptor()).map(ValueDescriptor::getTypeCode).orElse(null);
 
+        Class<?> type = getType();
         TypeCode tc;
         if (type.isArray()) {
             TypeDescriptor desc = repo.getDescriptor(type.getComponentType());
@@ -1053,7 +1058,7 @@ class ValueDescriptor extends TypeDescriptor {
     
     FullValueDescription getFullValueDescription() {
         FullValueDescription fvd = new FullValueDescription();
-        fvd.name = type.getName();
+        fvd.name = getType().getName();
         fvd.id = getRepositoryID();
         fvd.is_abstract = false;
         fvd.is_custom = isCustomMarshalled();
@@ -1095,7 +1100,7 @@ class ValueDescriptor extends TypeDescriptor {
         } else {
             wdesc = (ValueDescriptor) repo.getDescriptor(oorig.getClass());
 
-            MARSHAL_OUT_LOG.finer(() -> "writeReplace -> " + type.getName());
+            MARSHAL_OUT_LOG.finer(() -> "writeReplace -> " + getType().getName());
         }
 
         return wdesc.copyObject2(oorig, state);
@@ -1124,7 +1129,7 @@ class ValueDescriptor extends TypeDescriptor {
             writeValue(writer, oorig);
             return writer;
         } catch (IOException ex) {
-            String msg = String.format("%s writing %s", ex, type.getName());
+            String msg = String.format("%s writing %s", ex, getType().getName());
             throw (MARSHAL) new MARSHAL(msg).initCause(ex);
         }
     }
@@ -1135,7 +1140,7 @@ class ValueDescriptor extends TypeDescriptor {
             readValue(reader, copy);
             return readResolve(copy);
         } catch (IOException ex) {
-            String msg = String.format("%s reading instance of %s", ex, type.getName());
+            String msg = String.format("%s reading instance of %s", ex, getType().getName());
             throw (MARSHAL) new MARSHAL(msg).initCause(ex);
         }
     }
@@ -1154,7 +1159,7 @@ class ValueDescriptor extends TypeDescriptor {
 
         pw.print(paramName);
         pw.print(',');
-        MethodDescriptor.writeJavaType(pw, type);
+        MethodDescriptor.writeJavaType(pw, getType());
         pw.print(".class)");
     }
 
@@ -1163,13 +1168,13 @@ class ValueDescriptor extends TypeDescriptor {
         pw.print('.');
         pw.print("read_value");
         pw.print('(');
-        MethodDescriptor.writeJavaType(pw, type);
+        MethodDescriptor.writeJavaType(pw, getType());
         pw.print(".class)");
     }
 
     @Override
     void addDependencies(Set<Class<?>> classes) {
-        Class<?> c = type;
+        Class<?> c = getType();
 
         if ((c == Object.class) || classes.contains(c))
             return;
@@ -1194,7 +1199,7 @@ class ValueDescriptor extends TypeDescriptor {
                 if (_field.isPrimitive())
                     continue;
 
-                TypeDescriptor desc = repo.getDescriptor(_field.type);
+                TypeDescriptor desc = repo.getDescriptor(_field.getType());
                 desc.addDependencies(classes);
             }
         }

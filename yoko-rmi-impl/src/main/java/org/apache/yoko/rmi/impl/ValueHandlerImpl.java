@@ -182,7 +182,7 @@ public class ValueHandlerImpl implements ValueHandler {
     public Serializable writeReplace(Serializable val) {
         if (val instanceof RMIStub) {
             RMIStub stub = (RMIStub) val;
-            Class<?> type = stub._descriptor.type;
+            Class<?> type = stub._descriptor.getType();
             RMIState state = RMIState.current();
             Stub result = state.getStaticStub(stub._get_codebase(), type);
             if (null == result) return new RMIPersistentStub(stub, type);

@@ -27,7 +27,7 @@ class RMIStubDescriptor extends ValueDescriptor {
 
     @Override
     String genRepId() {
-        final Class<?>[] ifaces = type.getInterfaces();
+        final Class<?>[] ifaces = getType().getInterfaces();
         if (ifaces.length != 2 || ifaces[1] != org.apache.yoko.rmi.util.stub.Stub.class) {
             throw new RuntimeException("Unexpected RMIStub structure");
         }

@@ -31,7 +31,7 @@ class AbstractObjectDescriptor extends ValueDescriptor {
 
     @Override
     String genRepId() {
-        return String.format("IDL:%s:1.0", type.getName().replace('.', '/'));
+        return String.format("IDL:%s:1.0", getType().getName().replace('.', '/'));
     }
 
     /** Read an instance of this value from a CDR stream */
@@ -53,7 +53,7 @@ class AbstractObjectDescriptor extends ValueDescriptor {
     @Override
     protected TypeCode genTypeCode() {
         ORB orb = ORB.init();
-        return orb.create_abstract_interface_tc(getRepositoryID(), type.getName());
+        return orb.create_abstract_interface_tc(getRepositoryID(), getType().getName());
     }
 
     @Override

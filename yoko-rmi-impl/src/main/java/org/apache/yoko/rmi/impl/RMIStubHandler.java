@@ -53,7 +53,7 @@ public class RMIStubHandler implements StubHandler, Serializable {
     static final RMIStubHandler instance = new RMIStubHandler();
 
     public Object stubWriteReplace(RMIStub stub) {
-        return new RMIPersistentStub(stub, stub._descriptor.type);
+        return new RMIPersistentStub(stub, stub._descriptor.getType());
     }
 
 

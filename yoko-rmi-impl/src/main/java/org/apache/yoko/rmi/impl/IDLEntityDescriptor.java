@@ -78,7 +78,7 @@ class IDLEntityDescriptor extends ValueDescriptor {
     ObjectReader genObjectReader() {
         // Capture the logic at build time
         if (isCorba) {
-            return in -> ((org.omg.CORBA_2_3.portable.InputStream) in).read_Object(type);
+            return in -> ((org.omg.CORBA_2_3.portable.InputStream) in).read_Object(getType());
         } else {
             final String repositoryID = getRepositoryID();
             return in -> ((org.omg.CORBA_2_3.portable.InputStream) in).read_value(repositoryID);
@@ -115,7 +115,7 @@ class IDLEntityDescriptor extends ValueDescriptor {
     private final LazyReference<Writer> writer = new LazyReference<>(this::genWriter);
 
     private Writer genWriter() {
-        Method writeMethod = findMethod("write", OutputStream.class, type);
+        Method writeMethod = findMethod("write", OutputStream.class, getType());
         return (out, val) -> {
             try {
                 writeMethod.invoke(null, out, val);

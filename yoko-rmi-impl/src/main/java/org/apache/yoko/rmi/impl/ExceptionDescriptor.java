@@ -27,7 +27,7 @@ class ExceptionDescriptor extends ValueDescriptor {
     private final LazyReference<String> exRepId = new LazyReference<>(this::genExceptionRepId);
 
     String genExceptionRepId() {
-        String name = type.getName();
+        String name = getType().getName();
         final String encname;
 
         if (name.endsWith("Exception")) {
