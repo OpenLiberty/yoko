@@ -46,10 +46,10 @@ public final class MethodDescriptor extends ModelElement {
 
     /** The reflected method object for this method */
     final java.lang.reflect.Method reflectedMethod;
-    final LazyReference<Boolean> responseExpected = new LazyReference<>(this::genResponseExpected);
-    final LazyReference<TypeDescriptor> returnType = new LazyReference<>(this::genReturnType);
-    final LazyReference<TypeDescriptor[]> parameterTypes = new LazyReference<>(this::genParameterTypes);
-    final LazyReference<ExceptionDescriptor[]> exceptionTypes = new LazyReference<>(this::genExceptionTypes);
+    final LazyReference<Boolean> responseExpectedRef = new LazyReference<>(this::genResponseExpected);
+    final LazyReference<TypeDescriptor> returnTypeRef = new LazyReference<>(this::genReturnType);
+    final LazyReference<TypeDescriptor[]> parameterTypesRef = new LazyReference<>(this::genParameterTypes);
+    final LazyReference<ExceptionDescriptor[]> exceptionTypesRef = new LazyReference<>(this::genExceptionTypes);
     final LazyReference<Boolean> copyWithinStateRef = new LazyReference<>(this::genCopyWithinState);
 
     private static boolean notRemoteException(Class<?> aClass) {
@@ -67,7 +67,7 @@ public final class MethodDescriptor extends ModelElement {
     }
 
     public boolean getResponseExpected() {
-        return responseExpected.get();
+        return responseExpectedRef.get();
     }
 
     TypeDescriptor genReturnType() {
@@ -76,7 +76,7 @@ public final class MethodDescriptor extends ModelElement {
     }
 
     private TypeDescriptor getReturnType() {
-        return returnType.get();
+        return returnTypeRef.get();
     }
 
     TypeDescriptor[] genParameterTypes() {
@@ -87,7 +87,7 @@ public final class MethodDescriptor extends ModelElement {
     }
 
     private TypeDescriptor[] getParameterTypes() {
-        return parameterTypes.get();
+        return parameterTypesRef.get();
     }
 
     ExceptionDescriptor[] genExceptionTypes() {
@@ -99,7 +99,7 @@ public final class MethodDescriptor extends ModelElement {
     }
 
     private ExceptionDescriptor[] getExceptionTypes() {
-        return exceptionTypes.get();
+        return exceptionTypesRef.get();
     }
 
     Boolean genCopyWithinState() {

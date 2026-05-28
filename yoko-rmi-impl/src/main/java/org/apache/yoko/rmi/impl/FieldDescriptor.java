@@ -66,7 +66,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
 
     final boolean isFinal;
 
-    private final LazyReference<ValueMember> valueMember = new LazyReference<>(this::genValueMember);
+    private final LazyReference<ValueMember> valueMemberRef = new LazyReference<>(this::genValueMember);
 
     private final ValueMemberAccess valueMemberAccess;
 
@@ -100,7 +100,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
     }
 
     final ValueMember getValueMember() {
-        return valueMember.get();
+        return valueMemberRef.get();
     }
 
     public Class getType() {

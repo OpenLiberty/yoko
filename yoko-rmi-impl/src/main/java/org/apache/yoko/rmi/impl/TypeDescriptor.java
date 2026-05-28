@@ -40,38 +40,38 @@ abstract class TypeDescriptor extends ModelElement {
 
     final Class<?> getType() { return type; }
 
-    private final LazyReference<String> repId = new LazyReference<>(this::genRepId);
+    private final LazyReference<String> repIdRef = new LazyReference<>(this::genRepId);
 
-    private final LazyReference<String> packageName = new LazyReference<>(this::genPackageName);
+    private final LazyReference<String> packageNameRef = new LazyReference<>(this::genPackageName);
     String genPackageName() {
         int idx = java_name.lastIndexOf('.');
         return ((idx < 0) ? "" : java_name.substring(0, idx));
     }
     final String getPackageName() {
-        return packageName.get();
+        return packageNameRef.get();
     }
 
-    private final LazyReference<String> typeName = new LazyReference<>(this::genTypeName);
+    private final LazyReference<String> typeNameRef = new LazyReference<>(this::genTypeName);
     String genTypeName() {
         int idx = java_name.lastIndexOf('.');
         return ((idx < 0) ? java_name : java_name.substring(idx + 1));
     }
     final String getTypeName() {
-        return typeName.get();
+        return typeNameRef.get();
     }
 
-    private final LazyReference<FullKey> key = new LazyReference<>(this::genKey);
+    private final LazyReference<FullKey> keyRef = new LazyReference<>(this::genKey);
     FullKey genKey() {
         return new FullKey(getRepositoryID(), getType());
     }
     final FullKey getKey() {
-        return key.get();
+        return keyRef.get();
     }
 
-    private final LazyReference<TypeDescriptor> initialized = new LazyReference<>(this::firstInit, () -> this);
+    private final LazyReference<TypeDescriptor> initializedRef = new LazyReference<>(this::firstInit, () -> this);
 
     final TypeDescriptor getInitialized() {
-        return initialized.get();
+        return initializedRef.get();
     }
 
     private TypeDescriptor firstInit() {
@@ -150,15 +150,15 @@ abstract class TypeDescriptor extends ModelElement {
         return String.format("RMI:%s:%016X", getType().getName(), 0);
     }
     final String getRepositoryID() {
-        return repId.get();
+        return repIdRef.get();
     }
 
-    private final LazyReference<RemoteInterfaceDescriptor> remoteInterface = new LazyReference<>(this::genRemoteInterface);
+    private final LazyReference<RemoteInterfaceDescriptor> remoteInterfaceRef = new LazyReference<>(this::genRemoteInterface);
     protected RemoteInterfaceDescriptor genRemoteInterface() {
         throw new UnsupportedOperationException("class " + getType() + " does not implement " + Remote.class.getName());
     }
     final RemoteInterfaceDescriptor getRemoteInterface() {
-        return remoteInterface.get();
+        return remoteInterfaceRef.get();
     }
 
 
@@ -173,10 +173,10 @@ abstract class TypeDescriptor extends ModelElement {
         return false;
     }
 
-    private final LazyReference<Long> classHash = new LazyReference<>(this::genClassHash);
+    private final LazyReference<Long> classHashRef = new LazyReference<>(this::genClassHash);
 
     final long getClassHash() {
-        return classHash.get();
+        return classHashRef.get();
     }
 
     long genClassHash() {
@@ -231,13 +231,13 @@ abstract class TypeDescriptor extends ModelElement {
         }
     }
 
-    private final LazyReference<TypeCode> typeCode = new LazyReference<>(this::genTypeCode, this::genTypeCodePlaceholder);
+    private final LazyReference<TypeCode> typeCodeRef = new LazyReference<>(this::genTypeCode, this::genTypeCodePlaceholder);
     abstract TypeCode genTypeCode();
     TypeCode genTypeCodePlaceholder() {
         ORB orb = ORB.init();
         return orb.create_recursive_tc(getRepositoryID());
     }
-    final TypeCode getTypeCode() { return typeCode.get(); }
+    final TypeCode getTypeCode() { return typeCodeRef.get(); }
 
     Object copyObject(Object value, CopyState state) {
         throw new InternalError("cannot copy " + value.getClass().getName());

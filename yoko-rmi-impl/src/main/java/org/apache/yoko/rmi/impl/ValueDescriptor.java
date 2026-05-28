@@ -88,11 +88,11 @@ class ValueDescriptor extends TypeDescriptor {
 
     private final LazyReference<Supplier<Serializable>> blankInstanceSupplierRef = new LazyReference<>(this::genBlankInstanceSupplier);
 
-    private final LazyReference<Optional<Method>> _write_object_method = new LazyReference<>(this::findWriteObjectMethod);
+    private final LazyReference<Optional<Method>> writeObjectMethodRef = new LazyReference<>(this::findWriteObjectMethod);
 
-    private final LazyReference<Optional<Method>> _read_object_method = new LazyReference<>(this::findReadObjectMethod);
+    private final LazyReference<Optional<Method>> readObjectMethodRef = new LazyReference<>(this::findReadObjectMethod);
 
-    private final LazyReference<Optional<Field>> _serial_version_uid_field = new LazyReference<>(this::findSerialVersionUIDField);
+    private final LazyReference<Optional<Field>> serialVersionUidFieldRef = new LazyReference<>(this::findSerialVersionUIDField);
 
     private final LazyReference<ValueWriter> valueWriterRef = new LazyReference<>(this::genValueWriter);
     private final LazyReference<ValueReader> valueReaderRef = new LazyReference<>(this::genValueReader);
@@ -100,13 +100,13 @@ class ValueDescriptor extends TypeDescriptor {
     @FunctionalInterface
     private interface ValueReader extends BiFunction<ObjectReader, Serializable, Serializable> {}
 
-    private final LazyReference<ValueDescriptor> superDescriptor = new LazyReference<>(this::genSuperDescriptor);
+    private final LazyReference<ValueDescriptor> superDescriptorRef = new LazyReference<>(this::genSuperDescriptor);
 
-    protected final LazyReference<FieldDescriptor[]> fields = new LazyReference<>(this::genFields);
+    protected final LazyReference<FieldDescriptor[]> fieldsRef = new LazyReference<>(this::genFields);
 
-    private final LazyReference<Boolean> immutableValue = new LazyReference<>(this::genImmutableValue);
+    private final LazyReference<Boolean> immutableValueRef = new LazyReference<>(this::genImmutableValue);
 
-    private final LazyReference<String> customRepId = new LazyReference<>(this::genCustomRepId);
+    private final LazyReference<String> customRepIdRef = new LazyReference<>(this::genCustomRepId);
 
     private static final Set<? extends Class<? extends Serializable>> IMMUTABLE_VALUE_CLASSES = unmodifiableSet(new HashSet<>(asList(Integer.class,
             Character.class, Boolean.class, Byte.class, Long.class, Float.class, Double.class, Short.class)));
@@ -123,7 +123,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     boolean isRmiStub() { return RMIStub.class.isAssignableFrom(getType()); }
 
-    boolean isImmutableValue() { return immutableValue.get(); }
+    boolean isImmutableValue() { return immutableValueRef.get(); }
 
     private boolean genImmutableValue() {
         return IMMUTABLE_VALUE_CLASSES.contains(getType());
@@ -151,7 +151,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     public final String getCustomRepositoryID() {
-        return customRepId.get();
+        return customRepIdRef.get();
     }
 
     protected long getSerialVersionUID() {
@@ -185,7 +185,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     ValueDescriptor getSuperDescriptor() {
-        return superDescriptor.get();
+        return superDescriptorRef.get();
     }
 
     private ValueReader genSuperReader() {
@@ -421,7 +421,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     protected FieldDescriptor[] getFields() {
-        return fields.get();
+        return fieldsRef.get();
     }
 
     FieldDescriptor[] genFields() {
@@ -517,15 +517,15 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     Optional<Method> getReadObjectMethod() {
-        return _read_object_method.get();
+        return readObjectMethodRef.get();
     }
 
     Optional<Method> getWriteObjectMethod() {
-        return _write_object_method.get();
+        return writeObjectMethodRef.get();
     }
 
     Optional<Field> getSerialVersionUIDField() {
-        return _serial_version_uid_field.get();
+        return serialVersionUidFieldRef.get();
     }
 
 
@@ -1019,7 +1019,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private static final Comparator<FieldDescriptor> compareByName = comparing(f -> f.java_name);
 
-    private final LazyReference<ValueMember[]> valueMembers = new LazyReference<>(this::genValueMembers);
+    private final LazyReference<ValueMember[]> valueMembersRef = new LazyReference<>(this::genValueMembers);
     
     protected ValueMember[] genValueMembers() {
         return Arrays.stream(getFields())
@@ -1029,7 +1029,7 @@ class ValueDescriptor extends TypeDescriptor {
     
     final ValueMember[] getValueMembers() {
         getTypeCode(); // ensure recursion through typecode
-        return valueMembers.get();
+        return valueMembersRef.get();
     }
 
     @Override

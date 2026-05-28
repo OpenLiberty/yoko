@@ -64,7 +64,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
 
     private static final java.lang.Class<?> REMOTE_EXCEPTION = java.rmi.RemoteException.class;
 
-    private final LazyReference<String[]> ids = new LazyReference<>(this::genIds);
+    private final LazyReference<String[]> idsRef = new LazyReference<>(this::genIds);
     String[] genIds() {
         final SortedSet<Class<?>> allRemoteInterfaces = genAllRemoteInterfaces(getType());
         final List<String> ids = new ArrayList<>(allRemoteInterfaces.size());
@@ -74,7 +74,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
         return ids.toArray(new String[ids.size()]);
     }
     public String[] all_interfaces() {
-        return ids.get();
+        return idsRef.get();
     }
 
     public MethodDescriptor getMethod(String idl_name) {
