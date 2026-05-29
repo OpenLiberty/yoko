@@ -92,7 +92,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private final LazyReference<Optional<Method>> readObjectMethodRef = new LazyReference<>(this::findReadObjectMethod);
 
-    private final LazyReference<Optional<Field>> serialVersionUidFieldRef = new LazyReference<>(this::findSerialVersionUIDField);
+    private final LazyReference<Long> serialVersionUidRef = new LazyReference<>(this::genSerialVersionUid);
 
     private final LazyReference<ValueWriter> valueWriterRef = new LazyReference<>(this::genValueWriter);
     private final LazyReference<ValueReader> valueReaderRef = new LazyReference<>(this::genValueReader);
@@ -143,28 +143,33 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private String genRepId(long hashCode) {
-        return String.format("RMI:%s:%016X:%016X", convertToValidIDLNames(getType().getName()), hashCode, getSerialVersionUID());
+        return String.format("RMI:%s:%016X:%016X", convertToValidIDLNames(getType().getName()), hashCode, getSerialVersionUid());
     }
 
     String genCustomRepId() {
         return String.format("RMI:org.omg.custom.%s", getRepositoryID().substring(4));
     }
 
-    public final String getCustomRepositoryID() {
+    final String getCustomRepositoryID() {
         return customRepIdRef.get();
     }
 
-    protected long getSerialVersionUID() {
-        if (getSerialVersionUIDField().isPresent()) {
-            try {
-                return getSerialVersionUIDField().get().getLong(null);
-            } catch (IllegalAccessException ex) {
-                // skip //
-            }
-        }
-        ObjectStreamClass serialForm = ObjectStreamClass.lookup(getType());
+    final long getSerialVersionUid() {
+        return serialVersionUidRef.get();
+    }
 
-        return (serialForm != null) ? serialForm.getSerialVersionUID() : 0L;
+    long genSerialVersionUid() {
+        return ofNullable(findSerialVersionUIDField())
+                .map(field -> {
+                    try {
+                        return field.getLong(null);
+                    } catch (IllegalAccessException ex) {
+                        return null;
+                    }
+                })
+                .orElseGet(() -> ofNullable(ObjectStreamClass.lookup(getType()))
+                        .map(ObjectStreamClass::getSerialVersionUID)
+                        .orElse(0L));
     }
 
     /**
@@ -184,7 +189,7 @@ class ValueDescriptor extends TypeDescriptor {
                 .orElse(null);
     }
 
-    ValueDescriptor getSuperDescriptor() {
+    final ValueDescriptor getSuperDescriptor() {
         return superDescriptorRef.get();
     }
 
@@ -298,17 +303,17 @@ class ValueDescriptor extends TypeDescriptor {
         });
     }
 
-    private Optional<Field> findSerialVersionUIDField() {
-        return doPrivileged((PrivilegedAction<Optional<Field>>) () -> {
+    private Field findSerialVersionUIDField() {
+        return doPrivileged((PrivilegedAction<Field>) () -> {
             try {
                 Field field = getType().getDeclaredField("serialVersionUID");
                 if (Modifier.isStatic(field.getModifiers())) {
                     field.setAccessible(true);
-                    return Optional.of(field);
+                    return field;
                 }
-                return Optional.empty();
+                return null;
             } catch (NoSuchFieldException ignored) {
-                return Optional.empty();
+                return null;
             }
         });
     }
@@ -420,7 +425,7 @@ class ValueDescriptor extends TypeDescriptor {
         return true;
     }
 
-    protected FieldDescriptor[] getFields() {
+    final FieldDescriptor[] getFields() {
         return fieldsRef.get();
     }
 
@@ -524,9 +529,7 @@ class ValueDescriptor extends TypeDescriptor {
         return writeObjectMethodRef.get();
     }
 
-    Optional<Field> getSerialVersionUIDField() {
-        return serialVersionUidFieldRef.get();
-    }
+
 
 
 

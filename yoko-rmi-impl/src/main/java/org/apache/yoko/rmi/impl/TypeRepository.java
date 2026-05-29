@@ -21,6 +21,7 @@ import org.apache.yoko.rmi.impl.TypeDescriptor.FullKey;
 import org.apache.yoko.rmi.impl.TypeDescriptor.SimpleKey;
 import org.apache.yoko.rmi.util.SearchKey;
 import org.apache.yoko.rmi.util.WeakKey;
+import org.apache.yoko.util.yasf.Yasf;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.ValueDefPackage.FullValueDescription;
 import org.omg.CORBA.portable.IDLEntity;
@@ -306,6 +307,12 @@ public class TypeRepository {
                 return (ValueDescriptor) localDescriptors.get(clz);
             }
             clzdesc = (ValueDescriptor) getDescriptor(clz);
+            if (clzdesc.isEnum() && Yasf.ENUM_FIX_1.isSupported() && !Yasf.ENUM_TRUE_HASH_AND_FVD.isSupported()) {
+                // The FVD from the other end say it sends 'name' and 'ordinal', but will _actually_
+                // only send 'name'.
+                // So just use the local descriptor, which only expects to read 'name'.
+                return clzdesc;
+            }
             String localID = clzdesc.getRepositoryID();
 
             if (repid.equals(localID)) {

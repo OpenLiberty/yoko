@@ -29,7 +29,7 @@ class EnumDescriptor extends UncustomizableValueDescriptor {
     }
 
     @Override
-    protected final long getSerialVersionUID() {
+    final long genSerialVersionUid() {
         return 0L;
     }
 

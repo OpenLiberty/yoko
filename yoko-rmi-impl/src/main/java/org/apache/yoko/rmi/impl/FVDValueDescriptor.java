@@ -43,9 +43,7 @@ final class FVDValueDescriptor extends ValueDescriptor {
     }
 
     @Override
-    ValueDescriptor getSuperDescriptor() {
-        return superDesc;
-    }
+    ValueDescriptor genSuperDescriptor() { return superDesc; }
 
     @Override
     protected FieldDescriptor[] genFields() {

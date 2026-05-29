@@ -30,20 +30,18 @@ class EnumSubclassDescriptor extends UncustomizableValueDescriptor {
     }
 
     static Class<?> getEnumType(Class<?> type) {
-        if (!!!Enum.class.isAssignableFrom(type)) throw new IllegalArgumentException(type.getName() + " is not an Enum");
-        while (!!!type.isEnum()) type = type.getSuperclass();
+        if (!Enum.class.isAssignableFrom(type)) throw new IllegalArgumentException(type.getName() + " is not an Enum");
+        while (!type.isEnum()) type = type.getSuperclass();
         return type;
     }
 
     @Override
-    protected final long getSerialVersionUID() {
+    final long genSerialVersionUid() {
         return 0L;
     }
 
     @Override
-    protected final boolean isEnum() {
-        return true;
-    }
+    protected final boolean isEnum() { return true; }
 
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})

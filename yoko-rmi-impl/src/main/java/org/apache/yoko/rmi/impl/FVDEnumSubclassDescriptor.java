@@ -35,7 +35,7 @@ class FVDEnumSubclassDescriptor extends EnumSubclassDescriptor {
     }
 
     @Override
-    ValueDescriptor getSuperDescriptor() {
+    final ValueDescriptor genSuperDescriptor() {
         return superDesc;
     }
 
