@@ -172,20 +172,6 @@ public class ClientExceptionFlowTest {
     }
 
     /**
-     * Unwraps exception wrappers to get the underlying CORBA exception.
-     * Handles RemoteException and UndeclaredThrowableException wrappers.
-     */
-    private static Throwable unwrapException(Throwable thrown) {
-        if (thrown instanceof RemoteException) {
-            return thrown.getCause();
-        }
-        if (thrown instanceof UndeclaredThrowableException) {
-            return ((UndeclaredThrowableException) thrown).getUndeclaredThrowable();
-        }
-        return thrown;
-    }
-
-    /**
      * Exception in receive_reply()
      * Verifies that when CI2 throws an exception in receive_reply():
      * - Request completes successfully on server
@@ -306,4 +292,17 @@ public class ClientExceptionFlowTest {
         order.verifyNoMoreInteractions(); // Verify no other interactions
     }
 
+    /**
+     * Unwraps exception wrappers to get the underlying CORBA exception.
+     * Handles RemoteException and UndeclaredThrowableException wrappers.
+     */
+    private static Throwable unwrapException(Throwable thrown) {
+        if (thrown instanceof RemoteException) {
+            return thrown.getCause();
+        }
+        if (thrown instanceof UndeclaredThrowableException) {
+            return ((UndeclaredThrowableException) thrown).getUndeclaredThrowable();
+        }
+        return thrown;
+    }
 }
