@@ -154,7 +154,7 @@ abstract class TypeDescriptor extends ModelElement {
     }
 
     private final LazyReference<RemoteInterfaceDescriptor> remoteInterfaceRef = new LazyReference<>(this::genRemoteInterface);
-    protected RemoteInterfaceDescriptor genRemoteInterface() {
+    RemoteInterfaceDescriptor genRemoteInterface() {
         throw new UnsupportedOperationException("class " + getType() + " does not implement " + Remote.class.getName());
     }
     final RemoteInterfaceDescriptor getRemoteInterface() {

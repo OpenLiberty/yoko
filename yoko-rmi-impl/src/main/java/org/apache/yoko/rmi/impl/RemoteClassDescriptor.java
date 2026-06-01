@@ -20,16 +20,16 @@ package org.apache.yoko.rmi.impl;
 final class RemoteClassDescriptor extends RemoteDescriptor {
 
     @Override
-    protected String genRepId() {
+    String genRepId() {
         return String.format("IDL:%s:1.0", getType().getName().replace('.', '/'));
     }
 
-    RemoteClassDescriptor(Class type, TypeRepository repository) {
+    RemoteClassDescriptor(Class<?> type, TypeRepository repository) {
         super(type, repository);
     }
 
     @Override
-    protected RemoteInterfaceDescriptor genRemoteInterface() {
-        return RemoteDescriptor.genMostSpecificRemoteInterface(getType(), repo);
+    RemoteInterfaceDescriptor genRemoteInterface() {
+        return genMostSpecificRemoteInterface(getType(), repo);
     }
 }

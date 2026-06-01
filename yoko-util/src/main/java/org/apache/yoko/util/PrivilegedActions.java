@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,6 +54,14 @@ public enum PrivilegedActions {
 
     public static PrivilegedExceptionAction<Method> getDeclaredMethod(Class<?> type, String name, Class<?>...parameterTypes) {
         return () -> type.getDeclaredMethod(name, parameterTypes);
+    }
+
+    public static PrivilegedAction<Method[]> getDeclaredMethods(Class<?> type) {
+        return type::getDeclaredMethods;
+    }
+
+    public static PrivilegedAction<Class<?>[]> getInterfaces(Class<?> type) {
+        return type::getInterfaces;
     }
 
     public static <T> PrivilegedAction<T> action(PrivilegedAction<T> action) { return action; }

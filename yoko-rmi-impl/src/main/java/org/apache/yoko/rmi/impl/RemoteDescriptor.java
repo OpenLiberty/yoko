@@ -27,97 +27,113 @@ import javax.rmi.PortableRemoteObject;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.rmi.Remote;
-import java.security.PrivilegedAction;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.security.AccessController.doPrivileged;
+import static java.util.Collections.unmodifiableCollection;
+import static java.util.Collections.unmodifiableList;
+import static java.util.function.Function.identity;
 import static java.util.logging.Level.FINER;
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toCollection;
+import static javax.rmi.CORBA.Util.writeRemoteObject;
+import static org.apache.yoko.util.Predicates.not;
 import static org.apache.yoko.util.PrivilegedActions.getClassLoader;
+import static org.apache.yoko.util.PrivilegedActions.getDeclaredMethods;
+import static org.apache.yoko.util.PrivilegedActions.getInterfaces;
 
 abstract class RemoteDescriptor extends TypeDescriptor {
-    private java.util.Map method_map;
+    private final LazyReference<Map<String, MethodDescriptor>> methodMapRef = new LazyReference<>(this::genMethodMap);
 
-    private java.util.Map refl_method_map;
+    private final LazyReference<Map<Method, MethodDescriptor>> reflMethodMapRef = new LazyReference<>(this::genReflMethodMap);
 
-    private MethodDescriptor[] operations;
+    private final LazyReference<Collection<MethodDescriptor>> operationsRef = new LazyReference<>(this::genOperations);
 
-    private Class<?>[] remote_interfaces;
-
-    protected List super_descriptors;
+    private final LazyReference<List<RemoteDescriptor>> superDescriptorsRef = new LazyReference<>(this::genSuperDescriptors);
 
     @Override
-    protected abstract RemoteInterfaceDescriptor genRemoteInterface();
+    abstract RemoteInterfaceDescriptor genRemoteInterface();
 
-    private static final Class<?> REMOTE_CLASS = Remote.class;
 
-    private static final Class<?> OBJECT_CLASS = java.lang.Object.class;
+    private final LazyReference<List<String>> idsRef = new LazyReference<>(this::genIds);
 
-    private static final java.lang.Class<?> REMOTE_EXCEPTION = java.rmi.RemoteException.class;
-
-    private final LazyReference<String[]> idsRef = new LazyReference<>(this::genIds);
-    String[] genIds() {
-        final SortedSet<Class<?>> allRemoteInterfaces = genAllRemoteInterfaces(getType());
-        final List<String> ids = new ArrayList<>(allRemoteInterfaces.size());
-        for (Class<?> i: allRemoteInterfaces) {
-            ids.add(repo.getDescriptor(i).getRepositoryID());
-        }
-        return ids.toArray(new String[ids.size()]);
+    private Map<String, MethodDescriptor> getMethodMap() {
+        return methodMapRef.get();
     }
-    public String[] all_interfaces() {
+
+    private Map<Method, MethodDescriptor> getReflMethodMap() {
+        return reflMethodMapRef.get();
+    }
+
+    private Collection<MethodDescriptor> getOperations() {
+        return operationsRef.get();
+    }
+
+    private List<RemoteDescriptor> getSuperDescriptors() {
+        return superDescriptorsRef.get();
+    }
+
+    private List<String> getIds() {
         return idsRef.get();
     }
 
-    public MethodDescriptor getMethod(String idl_name) {
-        if (operations == null) {
-            init_methods();
-        }
+    List<String> genIds() {
+        return genAllRemoteInterfaces(getType()).stream()
+                .map(repo::getDescriptor)
+                .map(TypeDescriptor::getRepositoryID)
+                .collect(collectingAndThen(
+                        Collectors.toList(),
+                        Collections::unmodifiableList));
+    }
+    public String[] all_interfaces() {
+        return getIds().toArray(new String[0]);
+    }
 
-        if (method_map == null) {
-            method_map = new HashMap();
-            for (int i = 0; i < operations.length; i++) {
-                method_map.put(operations[i].getIDLName(), operations[i]);
-            }
-        }
+    private Map<String, MethodDescriptor> genMethodMap() {
+        return getOperations().stream()
+                .collect(collectingAndThen(
+                        Collectors.toMap(MethodDescriptor::getIDLName, identity()),
+                        Collections::unmodifiableMap));
+    }
 
-        return (MethodDescriptor) method_map.get(idl_name);
+    public MethodDescriptor getMethod(String idlName) {
+        return getMethodMap().get(idlName);
     }
 
     void debugMethodMap() {
         if (logger.isLoggable(Level.FINER)) {
             logger.finer(() -> "METHOD MAP FOR " + getType().getName());
-
-            Iterator it = method_map.keySet().iterator();
-            while (it.hasNext()) {
-                String idl_name = (String) it.next();
-                MethodDescriptor desc = (MethodDescriptor) method_map.get(idl_name);
-                logger.finer(() -> "IDL " + idl_name + " -> " + desc.reflectedMethod);
-            }
+            getMethodMap().forEach((idlName, desc) ->
+                logger.finer(() -> "IDL " + idlName + " -> " + desc.reflectedMethod));
         }
     }
 
-    public MethodDescriptor getMethod(Method refl_method) {
-        if (operations == null) {
-            init_methods();
-        }
+    private Map<Method, MethodDescriptor> genReflMethodMap() {
+        return getOperations().stream()
+                .collect(collectingAndThen(
+                        Collectors.toMap(MethodDescriptor::getReflectedMethod, identity()),
+                        Collections::unmodifiableMap));
+    }
 
-        if (refl_method_map == null) {
-            refl_method_map = new HashMap();
-            for (int i = 0; i < operations.length; i++) {
-                refl_method_map.put(operations[i].getReflectedMethod(), operations[i]);
-            }
-        }
-
-        return (MethodDescriptor) refl_method_map.get(refl_method);
+    public MethodDescriptor getMethod(Method reflMethod) {
+        return getReflMethodMap().get(reflMethod);
     }
 
     RemoteDescriptor(Class<?> type, TypeRepository repository) {
@@ -125,142 +141,108 @@ abstract class RemoteDescriptor extends TypeDescriptor {
     }
 
     public MethodDescriptor[] getMethods() {
-        if (operations == null) {
-            init_methods();
-        }
-        return operations;
+        return getOperations().toArray(new MethodDescriptor[0]);
     }
 
-    public synchronized void init_methods() {
-        if (operations != null) {
-            return;
-        }
+    private List<RemoteDescriptor> genSuperDescriptors() {
+        Class<?>[] supers = doPrivileged(getInterfaces(getType()));
 
-        doPrivileged(new PrivilegedAction() {
-            public Object run() {
-                init_methods0();
-                return null;
-            }
-        });
+        return Arrays.stream(supers)
+                .filter(not(Remote.class::equals))
+                .filter(not(Object.class::equals))
+                .filter(Remote.class::isAssignableFrom)
+                .filter(Class::isInterface)
+                .map(repo::getDescriptor)
+                .map(RemoteDescriptor.class::cast)
+                .collect(collectingAndThen(
+                        Collectors.toList(),
+                        Collections::unmodifiableList));
     }
 
-    private void init_methods0() {
-
-        ArrayList method_list = new ArrayList();
-
+    private Collection<MethodDescriptor> genOperations() {
         // first step is to build the helpers for any super classes
-        Class<?>[] supers = getType().getInterfaces();
-        super_descriptors = new ArrayList();
-
-        Map all_methods = new HashMap();
-        Map lower_case_names = new HashMap();
-        for (int i = 0; i < supers.length; i++) {
-            Class<?> iface = supers[i];
-
-            if (!REMOTE_CLASS.equals(iface) && !OBJECT_CLASS.equals(iface)
-                    && REMOTE_CLASS.isAssignableFrom(iface)
-                    && iface.isInterface()) {
-                RemoteDescriptor superHelper = (RemoteDescriptor)repo.getDescriptor(iface);
-
-                super_descriptors.add(superHelper);
-
-                MethodDescriptor[] superOps = superHelper.getMethods();
-                for (int j = 0; j < superOps.length; j++) {
-                    MethodDescriptor op = superOps[j];
-
-                    method_list.add(op);
-                    addMethodOverloading(all_methods, op.getReflectedMethod());
-                    addMethodCaseSensitive(lower_case_names, op.getReflectedMethod());
-                }
-            }
-        }
+        ArrayList<MethodDescriptor> methodList = getSuperDescriptors().stream()
+                .flatMap(superHelper -> superHelper.getOperations().stream())
+                .collect(toCollection(ArrayList::new));
 
         // next, build the method helpers for this class
-        Method[] methods = getLocalMethods();
+        List<Method> localMethods = getLocalMethods();
 
-        // register methods
-        for (int i = 0; i < methods.length; i++) {
-            addMethodOverloading(all_methods, methods[i]);
-            addMethodCaseSensitive(lower_case_names, methods[i]);
-        }
+        // Collect all methods (super + local) for overload and case-sensitivity detection
+        List<Method> allMethods = Stream.concat(
+                methodList.stream().map(MethodDescriptor::getReflectedMethod),
+                localMethods.stream()
+        ).collect(collectingAndThen(
+                Collectors.toList(),
+                Collections::unmodifiableList));
 
-        Set overloaded_names = new HashSet();
-        Iterator it = all_methods.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry entry = (Map.Entry) it.next();
-            String mname = (String) entry.getKey();
-            Set s = (Set) entry.getValue();
-            if (s.size() > 1) {
-                overloaded_names.add(mname);
-            }
-        }
+        // Calculate overloadedMethodNames - methods with same name but different signatures
+        Set<String> overloadedMethodNames = getOverloadedMethodNames(allMethods);
 
-        for (int i = 0; i < methods.length; i++) {
-            MethodDescriptor op = new MethodDescriptor(methods[i], repo);
+        // Calculate caseSensitiveMethodNames - methods that differ only in case
+        Set<String> caseSensitiveMethodNames = getCaseSensitiveMethodNames(allMethods);
 
+        localMethods.forEach(method -> {
+            MethodDescriptor op = new MethodDescriptor(method, repo);
             String mname = op.java_name;
 
             // is there another method that differs only in case?
-            Set same_case_names = (Set) lower_case_names.get(mname.toLowerCase());
-            if (same_case_names.size() > 1) {
-                op.setCaseSensitive();
-            }
+            if (caseSensitiveMethodNames.contains(mname)) op.setCaseSensitive();
 
             // is this method overloaded?
-            Set overload_names = (Set) all_methods.get(mname);
-            if (overload_names.size() > 1) {
-                op.setOverloaded();
-            }
+            if (overloadedMethodNames.contains(mname)) op.setOverloaded();
 
             op.init();
+            methodList.add(op);
+        });
 
-            method_list.add(op);
-        }
-
-        // init method map...
-        method_map = new HashMap();
-        for (int i = 0; i < method_list.size(); i++) {
-            MethodDescriptor desc = (MethodDescriptor) method_list.get(i);
-            logger.finer(() -> "Adding method " + desc.java_name + " to method map under " + desc.getIDLName());
-            method_map.put(desc.getIDLName(), desc);
-        }
-
-        //
-        // initialize "operations" from the values of the map, such
-        // that repeat methods are eliminated.
-        //
-        operations = (MethodDescriptor[]) method_map.values().toArray(
-                new MethodDescriptor[0]);
-
-        debugMethodMap();
+        // Remove duplicates by using a map keyed by IDL name
+        return unmodifiableCollection(
+                methodList.stream()
+                        .peek(desc -> logger.finer(() -> "Adding method " + desc.java_name + " under " + desc.getIDLName()))
+                        .collect(Collectors.toMap(MethodDescriptor::getIDLName, identity(), (current, updated) -> updated))
+                        .values());
     }
 
-    private void addMethodOverloading(Map map, Method m) {
-        String mname = m.getName();
-        Set entry = (Set) map.get(mname);
-
-        if (entry == null) {
-            entry = new HashSet();
-            map.put(mname, entry);
-        }
-
-        entry.add(createMethodSelector(m));
+    private static Set<String> getOverloadedMethodNames(List<Method> allMethods) {
+        return allMethods.stream()
+                .collect(groupingBy(Method::getName, mapping(RemoteDescriptor::createMethodSelector, Collectors.toSet())))
+                .entrySet().stream()
+                .filter(entry -> entry.getValue().size() > 1)
+                .map(Map.Entry::getKey)
+                .collect(collectingAndThen(
+                        Collectors.toSet(),
+                        Collections::unmodifiableSet));
     }
 
-    Method[] getLocalMethods() {
-        ArrayList result = new ArrayList();
-
-        addNonRemoteInterfaceMethods(getType(), result);
-
-        Method[] out = new Method[result.size()];
-        result.toArray(out);
-        return out;
+    private static Set<String> getCaseSensitiveMethodNames(List<Method> allMethods) {
+        return allMethods.stream()
+                .map(Method::getName)
+                .collect(groupingBy(String::toLowerCase, Collectors.toSet()))
+                .entrySet().stream()
+                .filter(entry -> entry.getValue().size() > 1)
+                .flatMap(entry -> entry.getValue().stream())
+                .collect(collectingAndThen(
+                        Collectors.toSet(),
+                        Collections::unmodifiableSet));
     }
 
-    void addNonRemoteInterfaceMethods(Class clz, ArrayList result) {
+    private static String createMethodSelector(Method m) {
+        String params = Arrays.stream(m.getParameterTypes())
+                .map(Class::getName)
+                .collect(joining(", "));
+        return m.getName() + "(" + params + ")";
+    }
+
+
+    private List<Method> getLocalMethods() {
+        return unmodifiableList(addNonRemoteInterfaceMethods(getType(), new ArrayList<>()));
+    }
+
+    private ArrayList<Method> addNonRemoteInterfaceMethods(Class<?> clz, ArrayList<Method> result) {
         Method[] methods;
         try {
-            methods = clz.getDeclaredMethods();
+            methods = doPrivileged(getDeclaredMethods(clz));
         } catch (NoClassDefFoundError e) {
             ClassLoader clzClassLoader = doPrivileged(getClassLoader(clz));
             logger.log(FINER, e, () -> "cannot find class " + e.getMessage() + " from "
@@ -268,58 +250,21 @@ abstract class RemoteDescriptor extends TypeDescriptor {
                     + e.getMessage());
             throw e;
         }
-        for (int j = 0; j < methods.length; j++) {
-            // since this is a remote interface, we need to add everything
-            result.add(methods[j]);
-        }
+        // since this is a remote interface, we need to add everything
+        Collections.addAll(result, methods);
 
-        Class<?>[] ifaces = clz.getInterfaces();
-        for (int i = 0; i < ifaces.length; i++) {
-            if (!REMOTE_CLASS.isAssignableFrom(ifaces[i])) {
-                addNonRemoteInterfaceMethods(ifaces[i], result);
-            }
-        }
+        Arrays.stream(clz.getInterfaces())
+                .filter(not(Remote.class::isAssignableFrom))
+                .forEach(iface -> addNonRemoteInterfaceMethods(iface, result));
+        return result;
     }
 
     boolean isRemoteMethod(Method m) {
-        Class<?>[] ex = m.getExceptionTypes();
-
-        for (int i = 0; i < ex.length; i++) {
-            if (REMOTE_EXCEPTION.isAssignableFrom(ex[i]))
-                return true;
-        }
-
-        return false;
+        return Arrays.stream(m.getExceptionTypes())
+                .anyMatch(RemoteException.class::isAssignableFrom);
     }
 
-    private static String createMethodSelector(java.lang.reflect.Method m) {
-        StringBuffer sb = new StringBuffer(m.getName());
-        sb.append('(');
-        Class<?>[] parameterTypes = m.getParameterTypes();
-        for (int n = 0; n < parameterTypes.length; n++) {
-            sb.append(parameterTypes[n].getName());
-            if (n < parameterTypes.length - 1) {
-                sb.append(", ");
-            }
-        }
-        sb.append(')');
-        return sb.toString().intern();
-    }
-
-    private void addMethodCaseSensitive(Map map, Method m) {
-        String mname = m.getName();
-        String lowname = mname.toLowerCase();
-        Set entry = (Set) map.get(lowname);
-
-        if (entry == null) {
-            entry = new HashSet();
-            map.put(lowname, entry);
-        }
-
-        entry.add(mname);
-    }
-
-    static RemoteInterfaceDescriptor genMostSpecificRemoteInterface(Class type, TypeRepository repo) {
+    static RemoteInterfaceDescriptor genMostSpecificRemoteInterface(Class<?> type, TypeRepository repo) {
         final SortedSet<Class<?>> remoteInterfaces = genAllRemoteInterfaces(type);
         if (remoteInterfaces.isEmpty()) {
             throw new RuntimeException(type.getName() + " has no remote interfaces");
@@ -328,56 +273,49 @@ abstract class RemoteDescriptor extends TypeDescriptor {
         return repo.getDescriptor(remoteInterfaces.first()).getRemoteInterface();
     }
 
-    private enum InterfaceComparator implements Comparator<Class<?>> {
-        INSTANCE;
-
-        public int compare(Class<?> c1, Class<?> c2) {
-            if (c1.equals(c2)) return 0;
-            if (c1.isAssignableFrom(c2)) return 1;
-            if (c2.isAssignableFrom(c1)) return -1;
-            //classes are unrelated, so sort on class name
-            return c1.getName().compareTo(c2.getName());
-        }
-    }
+    private static final Comparator<Class<?>> INTERFACE_COMPARATOR = (c1, c2) -> {
+        if (c1.equals(c2)) return 0;
+        if (c1.isAssignableFrom(c2)) return 1;
+        if (c2.isAssignableFrom(c1)) return -1;
+        //classes are unrelated, so sort on class name
+        return c1.getName().compareTo(c2.getName());
+    };
 
     private static SortedSet<Class<?>> genAllRemoteInterfaces(Class<?> type) {
-        final SortedSet<Class<?>> remoteInterfaces = new TreeSet(InterfaceComparator.INSTANCE);
-        addRemoteInterfacesToSet(type, remoteInterfaces);
-        return remoteInterfaces;
+        return addRemoteInterfacesToSet(type, new TreeSet<>(INTERFACE_COMPARATOR));
     }
 
-    private static void addRemoteInterfacesToSet(Class<?> type, Set<Class<?>> interfaces) {
-        if (REMOTE_CLASS.equals(type)) return;
+    private static SortedSet<Class<?>> addRemoteInterfacesToSet(Class<?> type, SortedSet<Class<?>> interfaces) {
+        if (Remote.class.equals(type)) return interfaces;
         if (type.isInterface()) interfaces.add(type);
-        Class<?> parent = type.getSuperclass();
-        if ((parent != null) && !OBJECT_CLASS.equals(parent)) addRemoteInterfacesToSet(parent, interfaces);
-        for (Class<?> i: type.getInterfaces()) {
-            if (REMOTE_CLASS.isAssignableFrom(i)) addRemoteInterfacesToSet(i, interfaces);
-        }
+        Optional.ofNullable(type.getSuperclass())
+                .filter(not(Object.class::equals))
+                .ifPresent(parent -> addRemoteInterfacesToSet(parent, interfaces));
+        Arrays.stream(type.getInterfaces())
+                .filter(Remote.class::isAssignableFrom)
+                .forEach(i -> addRemoteInterfacesToSet(i, interfaces));
+        return interfaces;
     }
 
     /** Read an instance of this value from a CDR stream */
     @Override
     public Object read(InputStream in) {
-        return PortableRemoteObject.narrow(in.read_Object(),
-                getType());
+        return PortableRemoteObject.narrow(in.read_Object(), getType());
     }
 
     /** Write an instance of this value to a CDR stream */
     @Override
     public void write(OutputStream out, Object val) {
-        javax.rmi.CORBA.Util.writeRemoteObject(out, val);
+        writeRemoteObject(out, val);
     }
 
     @Override
     protected final TypeCode genTypeCode() {
-        ORB orb = ORB.init();
-        return orb.create_interface_tc(getRepositoryID(), getType().getName());
+        return ORB.init().create_interface_tc(getRepositoryID(), getType().getName());
     }
 
     @Override
-    void writeMarshalValue(PrintWriter pw, String outName,
-            String paramName) {
+    void writeMarshalValue(PrintWriter pw, String outName, String paramName) {
         pw.print("javax.rmi.CORBA.Util.writeRemoteObject(");
         pw.print(outName);
         pw.print(',');
@@ -417,11 +355,11 @@ abstract class RemoteDescriptor extends TypeDescriptor {
         return null;
     }
 
-    static String stubClassName(Class<?> c) {
+    private static String stubClassName(Class<?> c) {
 
         String cname = c.getName();
 
-        String pkgname = null;
+        String pkgname;
         int idx = cname.lastIndexOf('.');
         if (idx == -1) {
             pkgname = "org.omg.stub";
@@ -458,11 +396,8 @@ abstract class RemoteDescriptor extends TypeDescriptor {
         //
         // construct String[] _ids;
         //
-        String[] all_interfaces = all_interfaces();
         pw.println("\tprivate static final String[] _ids = {");
-        for (int i = 0; i < all_interfaces.length; i++) {
-            pw.println("\t\t\"" + all_interfaces[i] + "\",");
-        }
+        getIds().forEach(id -> pw.println("\t\t\"" + id + "\","));
         pw.println("\t};\n");
 
         pw.println("\tpublic String[] _ids() {");
@@ -472,29 +407,13 @@ abstract class RemoteDescriptor extends TypeDescriptor {
         //
         // now, construct stub methods
         //
-        MethodDescriptor[] meths = getMethods();
-        for (int i = 0; i < meths.length; i++) {
-            meths[i].writeStubMethod(pw);
-        }
+        getOperations().forEach(meth -> meth.writeStubMethod(pw));
 
         pw.println("}");
     }
 
     String getStubClassName() {
-        Class<?> c = getType();
-        String cname = c.getName();
-
-        String pkgname = null;
-        int idx = cname.lastIndexOf('.');
-        if (idx == -1) {
-            pkgname = "org.omg.stub";
-        } else {
-            pkgname = "org.omg.stub." + cname.substring(0, idx);
-        }
-
-        String cplain = cname.substring(idx + 1);
-
-        return pkgname + "." + "_" + cplain + "_Stub";
+        return stubClassName(getType());
     }
 
     @Override
@@ -506,21 +425,15 @@ abstract class RemoteDescriptor extends TypeDescriptor {
 
         classes.add(c);
 
-        if (c.getSuperclass() != null) {
-            TypeDescriptor desc = repo.getDescriptor(c.getSuperclass());
-            desc.addDependencies(classes);
-        }
+        Optional.ofNullable(c.getSuperclass())
+                .map(repo::getDescriptor)
+                .ifPresent(desc -> desc.addDependencies(classes));
 
-        Class<?>[] ifaces = c.getInterfaces();
-        for (int i = 0; i < ifaces.length; i++) {
-            TypeDescriptor desc = repo.getDescriptor(ifaces[i]);
-            desc.addDependencies(classes);
-        }
+        Arrays.stream(c.getInterfaces())
+                .map(repo::getDescriptor)
+                .forEach(desc -> desc.addDependencies(classes));
 
-        MethodDescriptor[] mths = getMethods();
-        for (int i = 0; i < mths.length; i++) {
-            mths[i].addDependencies(classes);
-        }
+        getOperations().forEach(mth -> mth.addDependencies(classes));
     }
 
     @Override

@@ -76,6 +76,7 @@ import static org.apache.yoko.logging.VerboseLogging.MARSHAL_IN_LOG;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_OUT_LOG;
 import static org.apache.yoko.rmi.impl.FieldDescriptor.getForSerialPersistentField;
+import static org.apache.yoko.rmi.impl.RemoteDescriptor.genMostSpecificRemoteInterface;
 import static org.apache.yoko.rmi.util.StringUtil.convertToValidIDLNames;
 import static org.apache.yoko.util.Exceptions.as;
 import static sun.reflect.ReflectionFactory.getReflectionFactory;
@@ -129,10 +130,10 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     @Override
-    protected final RemoteInterfaceDescriptor genRemoteInterface() {
+    final RemoteInterfaceDescriptor genRemoteInterface() {
         Class<?> type = getType();
         return Remote.class.isAssignableFrom(type) ?
-                RemoteDescriptor.genMostSpecificRemoteInterface(type, repo) :
+                genMostSpecificRemoteInterface(type, repo) :
                 super.genRemoteInterface();
     }
 
