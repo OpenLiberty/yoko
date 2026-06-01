@@ -69,7 +69,6 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.Comparator.comparing;
-import static java.util.Optional.ofNullable;
 import static java.util.function.Function.identity;
 import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.io.Buffer.createReadBuffer;
@@ -88,9 +87,9 @@ class ValueDescriptor extends TypeDescriptor {
 
     private final LazyReference<Supplier<Serializable>> blankInstanceSupplierRef = new LazyReference<>(this::genBlankInstanceSupplier);
 
-    private final LazyReference<Optional<Method>> writeObjectMethodRef = new LazyReference<>(this::findWriteObjectMethod);
+    private final LazyReference<Method> writeObjectMethodRef = new LazyReference<>(this::findWriteObjectMethod);
 
-    private final LazyReference<Optional<Method>> readObjectMethodRef = new LazyReference<>(this::findReadObjectMethod);
+    private final LazyReference<Method> readObjectMethodRef = new LazyReference<>(this::findReadObjectMethod);
 
     private final LazyReference<Long> serialVersionUidRef = new LazyReference<>(this::genSerialVersionUid);
 
@@ -159,7 +158,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     long genSerialVersionUid() {
-        return ofNullable(findSerialVersionUIDField())
+        return Optional.ofNullable(findSerialVersionUIDField())
                 .map(field -> {
                     try {
                         return field.getLong(null);
@@ -167,7 +166,7 @@ class ValueDescriptor extends TypeDescriptor {
                         return null;
                     }
                 })
-                .orElseGet(() -> ofNullable(ObjectStreamClass.lookup(getType()))
+                .orElseGet(() -> Optional.ofNullable(ObjectStreamClass.lookup(getType()))
                         .map(ObjectStreamClass::getSerialVersionUID)
                         .orElse(0L));
     }
@@ -181,7 +180,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     ValueDescriptor genSuperDescriptor() {
-        return ofNullable(getType().getSuperclass())
+        return Optional.ofNullable(getType().getSuperclass())
                 .filter(sc -> sc != Object.class)
                 .map(repo::getDescriptor)
                 .filter(ValueDescriptor.class::isInstance)
@@ -194,7 +193,7 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private ValueReader genSuperReader() {
-        return ofNullable(getSuperDescriptor())
+        return Optional.ofNullable(getSuperDescriptor())
                 .map(this::createSuperValueReader)
                 .orElse((reader, val) -> val);
     }
@@ -262,28 +261,28 @@ class ValueDescriptor extends TypeDescriptor {
         }).orElse(identity());
     }
 
-    private Optional<Method> findReadObjectMethod() {
-        return doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
+    private Method findReadObjectMethod() {
+        return doPrivileged((PrivilegedAction<Method>) () -> {
             try {
                 Method method = getType().getDeclaredMethod("readObject", ObjectInputStream.class);
                 
                 // Validate the method
                 int modifiers = method.getModifiers();
                 if (!Modifier.isPrivate(modifiers) || Modifier.isStatic(modifiers)) {
-                    return Optional.empty();
+                    return null;
                 }
                 
                 method.setAccessible(true);
-                return Optional.of(method);
+                return method;
             } catch (NoSuchMethodException ignored) {
-                return Optional.empty();
+                return null;
             }
         });
     }
 
-    private Optional<Method> findWriteObjectMethod() {
+    private Method findWriteObjectMethod() {
         Class<?> type = getType();
-        return doPrivileged((PrivilegedAction<Optional<Method>>) () -> {
+        return doPrivileged((PrivilegedAction<Method>) () -> {
             try {
                 Method method = type.getDeclaredMethod("writeObject", ObjectOutputStream.class);
                 
@@ -292,13 +291,13 @@ class ValueDescriptor extends TypeDescriptor {
                 if (!Modifier.isPrivate(modifiers) 
                         || Modifier.isStatic(modifiers) 
                         || method.getDeclaringClass() != type) {
-                    return Optional.empty();
+                    return null;
                 }
                 
                 method.setAccessible(true);
-                return Optional.of(method);
+                return method;
             } catch (NoSuchMethodException ignored) {
-                return Optional.empty();
+                return null;
             }
         });
     }
@@ -436,7 +435,7 @@ class ValueDescriptor extends TypeDescriptor {
     private FieldDescriptor[] buildFieldDescriptors() {
         if (!isSerializable()) return FieldDescriptor.EMPTY_ARRAY;
 
-        return ofNullable(findSerialPersistentFields())
+        return Optional.ofNullable(findSerialPersistentFields())
                 .map(this::buildFieldDescriptorsFromSerialPersistentFields)
                 .orElseGet(this::buildFieldDescriptorsFromDeclaredFields);
     }
@@ -452,7 +451,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     private FieldDescriptor[] buildFieldDescriptorsFromSerialPersistentFields(ObjectStreamField[] serialPersistentFields) {
         return Arrays.stream(serialPersistentFields)
-                .map(streamField -> ofNullable(findMatchingField(streamField))
+                .map(streamField -> Optional.ofNullable(findMatchingField(streamField))
                         .orElseGet(() -> getForSerialPersistentField(getType(), streamField, repo)))
                 .sorted()
                 .toArray(FieldDescriptor[]::new);
@@ -510,7 +509,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     public boolean isChunked() {
         if (isCustomMarshalled()) return true;
-        return ofNullable(getSuperDescriptor()).map(ValueDescriptor::isChunked).orElse(false);
+        return Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::isChunked).orElse(false);
     }
 
     Function<Serializable, Serializable> getWriteReplacer() {
@@ -522,11 +521,11 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     Optional<Method> getReadObjectMethod() {
-        return readObjectMethodRef.get();
+        return Optional.ofNullable(readObjectMethodRef.get());
     }
 
     Optional<Method> getWriteObjectMethod() {
-        return writeObjectMethodRef.get();
+        return Optional.ofNullable(writeObjectMethodRef.get());
     }
 
 
@@ -990,7 +989,7 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         private void writeSuperClassHash(DataOutputStream out) {
-            ofNullable(getType().getSuperclass())
+            Optional.ofNullable(getType().getSuperclass())
                     .map(repo::getDescriptor)
                     .map(TypeDescriptor::getClassHash)
                     .ifPresent(hash -> {
@@ -1038,7 +1037,7 @@ class ValueDescriptor extends TypeDescriptor {
     @Override
     TypeCode genTypeCode() {
         ORB orb = ORB.init();
-        TypeCode _base = ofNullable(getSuperDescriptor()).map(ValueDescriptor::getTypeCode).orElse(null);
+        TypeCode _base = Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::getTypeCode).orElse(null);
 
         Class<?> type = getType();
         TypeCode tc;
@@ -1074,7 +1073,7 @@ class ValueDescriptor extends TypeDescriptor {
         fvd.supported_interfaces = ZERO_STRINGS;
         fvd.abstract_base_values = ZERO_STRINGS;
         fvd.is_truncatable = false;
-        fvd.base_value = ofNullable(getSuperDescriptor()).map(ValueDescriptor::getRepositoryID).orElse("");
+        fvd.base_value = Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::getRepositoryID).orElse("");
         fvd.type = getTypeCode();
         return fvd;
     }
