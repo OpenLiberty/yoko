@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ import org.omg.IIOP.ListenPoint;
 
 import java.util.*;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 public final class ListenerMap {
     // Internal list of ListenPoints
     private final Set<EndPoint> endPoints = new LinkedHashSet<>();
@@ -35,7 +37,7 @@ public final class ListenerMap {
     public ListenPoint[] getListenPoints() {
         List<ListenPoint> listenPoints = new ArrayList<>();
         for (EndPoint ep: endPoints) listenPoints.add(ep.asListenPoint());
-        return listenPoints.toArray(new ListenPoint[0]);
+        return listenPoints.toArray(emptyArray(ListenPoint.class));
     }
 
     /**

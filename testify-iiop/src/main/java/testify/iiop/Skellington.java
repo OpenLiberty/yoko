@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +46,8 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 public abstract class Skellington extends Servant implements Tie, Remote {
     private final String[] ids;
 
@@ -54,7 +56,7 @@ public abstract class Skellington extends Servant implements Tie, Remote {
         this.ids = findRemoteInterfaces(this.getClass())
                 .map(vh::getRMIRepositoryID)
                 .collect(Collectors.toList())
-                .toArray(new String[0]);
+                .toArray(emptyArray(String.class));
     }
 
     private static Stream<Class<? extends Remote>> findRemoteInterfaces(final Class<?> forClass) {

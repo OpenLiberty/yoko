@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,11 +25,11 @@ package org.apache.yoko.rmi.util.stub;
  */
 public interface Stub {
     /** Object array used for calling methods with no arguments */
-    public static final Object[] noarg = new Object[0];
+
 
     /**
      * Get the stub handler object.
-     * 
+     *
      * This method is generated separately for each stub method.
      */
     public Object ____getTriforkStubHandler();

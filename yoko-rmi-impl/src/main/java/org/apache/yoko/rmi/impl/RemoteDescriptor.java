@@ -102,8 +102,10 @@ abstract class RemoteDescriptor extends TypeDescriptor {
                         Collectors.toList(),
                         Collections::unmodifiableList));
     }
+
+    private static final String[] EMPTY_STRINGS = {};
     public String[] all_interfaces() {
-        return getIds().toArray(new String[0]);
+        return getIds().toArray(EMPTY_STRINGS);
     }
 
     private Map<String, MethodDescriptor> genMethodMap() {
@@ -140,8 +142,9 @@ abstract class RemoteDescriptor extends TypeDescriptor {
         super(type, repository);
     }
 
+    private static final MethodDescriptor[] EMPTY_DESCRIPTORS = {};
     public MethodDescriptor[] getMethods() {
-        return getOperations().toArray(new MethodDescriptor[0]);
+        return getOperations().toArray(EMPTY_DESCRIPTORS);
     }
 
     private List<RemoteDescriptor> genSuperDescriptors() {

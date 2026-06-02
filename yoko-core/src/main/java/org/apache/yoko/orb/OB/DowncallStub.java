@@ -19,6 +19,7 @@ package org.apache.yoko.orb.OB;
 
 import static java.util.logging.Level.FINE;
 import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.apache.yoko.io.Buffer.createWriteBuffer;
 import static org.apache.yoko.logging.VerboseLogging.RETRY_LOG;
 import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
@@ -92,7 +93,7 @@ public final class DowncallStub {
     // The ORBInstance object
     //
     private ORBInstance orbInstance_;
-    
+
     //
     // The IOR and the original IOR
     //
@@ -468,7 +469,7 @@ public final class DowncallStub {
                 out._OB_ORBInstance(this._OB_getORBInstance());
                 return out;
             } catch (FailureException ex) {
-                
+
                 handleFailureException(downcall, ex);
             }
         }
@@ -690,7 +691,7 @@ public final class DowncallStub {
         // Create the router to_visit list
         //
         RouterListHolder to_visit = new RouterListHolder();
-        to_visit.value = new Router[0];
+        to_visit.value = emptyArray(Router.class);
         MessageRoutingUtil.getRouterListFromComponents(orbInstance_, profile, to_visit);
 
         //
@@ -728,7 +729,7 @@ public final class DowncallStub {
         //
         // Empty QoS list
         //
-        Policy[] qosList = new Policy[0];
+        Policy[] qosList = emptyArray(Policy.class);
 
         //
         // Create a new Persistent request
@@ -790,7 +791,7 @@ public final class DowncallStub {
 
         //
         // Unmarshal the request header
-        // 
+        //
         RequestHeader_1_2 requestHeader = RequestHeader_1_2Helper.read(tmpIn);
 
         //
@@ -798,15 +799,15 @@ public final class DowncallStub {
         // Router
         //
         RouterListHolder configRouterList = new RouterListHolder();
-        configRouterList.value = new Router[0];
+        configRouterList.value = emptyArray(Router.class);
 
         //
         // Populate the configRouterList
         //
         MessageRoutingUtil.getRouterListFromComponents(orbInstance_, info, configRouterList);
 
-        requestInfo.visited = new Router[0];
-        requestInfo.to_visit = new Router[0];
+        requestInfo.visited = emptyArray(Router.class);
+        requestInfo.to_visit = emptyArray(Router.class);
 
         //
         // Get the target for this request
@@ -834,7 +835,7 @@ public final class DowncallStub {
         // Get the selected qos for this request
         //
         PolicyValueSeqHolder invocPoliciesHolder = new PolicyValueSeqHolder();
-        invocPoliciesHolder.value = new PolicyValue[0];
+        invocPoliciesHolder.value = emptyArray(PolicyValue.class);
         MessageRoutingUtil.getInvocationPolicyValues(policies_, invocPoliciesHolder);
         requestInfo.selected_qos = invocPoliciesHolder.value;
 

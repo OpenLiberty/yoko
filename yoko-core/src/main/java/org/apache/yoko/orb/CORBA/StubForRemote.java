@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,11 @@ import java.rmi.Remote;
 
 import javax.rmi.CORBA.Stub;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 public class StubForRemote extends Stub implements Remote {
 	public String[] _ids() {
-		return new String[0];
+		return emptyArray(String.class);
 	}
-	
+
 }

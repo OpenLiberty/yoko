@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,8 @@ import org.omg.PortableServer.POAManagerFactoryPackage.*;
 
 import java.lang.System;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 final class TestPOAManagerFactory {
     static void TestAll(ORB orb, POA root) {
         POAManagerFactory factory = root.the_POAManagerFactory();
@@ -47,7 +49,7 @@ final class TestPOAManagerFactory {
         // Create POA Managers without policies
         //
 
-        Policy[] pl = new Policy[0];
+        Policy[] pl = emptyArray(Policy.class);
         ;
 
         POAManager test = null;

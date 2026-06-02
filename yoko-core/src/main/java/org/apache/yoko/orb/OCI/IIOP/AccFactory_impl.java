@@ -28,6 +28,8 @@ import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.IIOP.ProfileBody_1_0;
+
+import static org.apache.yoko.util.Arrays.emptyArray;
 import org.omg.IIOP.ProfileBody_1_0Helper;
 import org.omg.IOP.Codec;
 import org.omg.IOP.CodecFactory;
@@ -45,6 +47,7 @@ import java.util.logging.Logger;
 
 import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.apache.yoko.orb.OB.Net.getCanonicalHostname;
 import static org.apache.yoko.orb.OCI.IIOP.Acceptor_impl.ProfileCardinality.MANY;
 import static org.apache.yoko.orb.OCI.IIOP.Acceptor_impl.ProfileCardinality.ONE;
@@ -132,7 +135,7 @@ final class AccFactory_impl extends LocalObject implements AccFactory {
                         }
                     }
                     if (list.isEmpty()) throw new InvalidParam("invalid argument for --host: " + hostArg);
-                    hosts = list.toArray(new String[0]);
+                    hosts = list.toArray(emptyArray(String.class));
                     break;
 
                 case "--multi-profile":
@@ -209,7 +212,7 @@ final class AccFactory_impl extends LocalObject implements AccFactory {
                         components[j] = TaggedComponentHelper
                                 .read(in);
                 } else
-                    components = new TaggedComponent[0];
+                    components = emptyArray(TaggedComponent.class);
 
                 // Fill in the new object-key
                 body.object_key = key;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,8 @@ import java.net.Socket;
 import java.util.Collections;
 import java.util.Set;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 public interface UnifiedConnectionHelper {
     void init(ORB orb, String params);
     Socket createSocket(String host, int port, IOR ior, Policy... policies) throws IOException;
@@ -37,6 +39,6 @@ public interface UnifiedConnectionHelper {
     ServerSocket createServerSocket(int port, int backlog, String... params)  throws IOException;
     ServerSocket createServerSocket(int port, int backlog, InetAddress address, String... params) throws IOException;
     default Set<Integer> tags() { return Collections.emptySet(); }
-    default TransportAddress[] getEndpoints(TaggedComponent taggedComponent, Policy... policies) { return new TransportAddress[0]; }
+    default TransportAddress[] getEndpoints(TaggedComponent taggedComponent, Policy... policies) { return emptyArray(TransportAddress.class); }
     default boolean isExtended() { return false; }
 }

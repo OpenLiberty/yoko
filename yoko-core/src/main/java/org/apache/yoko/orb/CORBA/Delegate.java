@@ -40,6 +40,8 @@ import org.omg.CORBA.NO_IMPLEMENT;
 import org.omg.CORBA.NO_RESPONSE;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
 import org.omg.CORBA.Policy;
+
+import static org.apache.yoko.util.Arrays.emptyArray;
 import org.omg.CORBA.PolicyListHolder;
 import org.omg.CORBA.REBIND;
 import org.omg.CORBA.SetOverrideType;
@@ -75,7 +77,7 @@ import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 public final class Delegate extends org.omg.CORBA_2_4.portable.Delegate {
     private static final Logger logger = Logger.getLogger(Delegate.class.getName());
-    private static final Policy[] EMPTY_POLICY_ARRAY = new Policy[0];
+
     private final ORBInstance orbInstance;
     private IOR ior;
     private IOR origIor;
@@ -448,7 +450,7 @@ public final class Delegate extends org.omg.CORBA_2_4.portable.Delegate {
             // now overwrite/add the new policies
             for (Policy p : np) policiesByType.put(p.policy_type(), p);
             // copy the policies that survived into a new array
-            newPolicies = policiesByType.values().toArray(EMPTY_POLICY_ARRAY);
+            newPolicies = policiesByType.values().toArray(emptyArray(Policy.class));
         }
 
         final Delegate p = new Delegate(orbInstance, ior, origIor, newPolicies);
@@ -554,7 +556,7 @@ public final class Delegate extends org.omg.CORBA_2_4.portable.Delegate {
             }
         }
 
-        return list.toArray(EMPTY_POLICY_ARRAY);
+        return list.toArray(emptyArray(Policy.class));
     }
 
     public Policy get_client_policy(org.omg.CORBA.Object self, int type) {

@@ -96,6 +96,7 @@ import java.util.Properties;
 
 import static java.util.Arrays.copyOf;
 import static java.util.Arrays.sort;
+import static org.apache.yoko.util.Arrays.emptyArray;
 
 final public class MessageRoutingUtil {
     public static void getRouterListFromConfig(ORBInstance orbInstance, RouterListHolder routerList) {
@@ -108,7 +109,7 @@ final public class MessageRoutingUtil {
             if (key.startsWith("yoko.ami.router.")) amiPropKeys.add(key);
         }
         // Sort the keys - not an efficient sort but ok as lists are small
-        String[] routerKeys = (String[]) amiPropKeys.toArray(new String[0]);
+        String[] routerKeys = (String[]) amiPropKeys.toArray(emptyArray(String.class));
         sort(routerKeys);
 
         for (String routerKey : routerKeys) {
@@ -588,7 +589,7 @@ final public class MessageRoutingUtil {
             } catch (INV_POLICY ignored) {
             }
         }
-        return list.toArray(new Policy[0]);
+        return list.toArray(emptyArray(Policy.class));
     }
 
     private static Policy getPolicyFromPolicyValue(PolicyValue policyValue) {

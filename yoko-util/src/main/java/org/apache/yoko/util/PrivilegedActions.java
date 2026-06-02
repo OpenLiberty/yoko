@@ -42,6 +42,8 @@ public enum PrivilegedActions {
 
     public static final PrivilegedAction<ClassLoader> GET_CONTEXT_CLASS_LOADER = () -> currentThread().getContextClassLoader();
 
+    public static final PrivilegedAction<ClassLoader> GET_SYSTEM_CLASS_LOADER = ClassLoader::getSystemClassLoader;
+
     public static PrivilegedAction<String> getSysProp(final String key) { return () -> System.getProperty(key); }
 
     public static PrivilegedAction<String> getSysProp(final String key, final String defaultValue) { return () -> System.getProperty(key, defaultValue); }

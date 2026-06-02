@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import org.omg.CORBA.BAD_OPERATION;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.StructMember;
+
+import static org.apache.yoko.util.Arrays.emptyArray;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
@@ -66,9 +68,7 @@ final public class NotFoundHelper
         if(typeCode_ == null)
         {
             ORB orb = ORB.init();
-            StructMember[] members = new StructMember[0];
-
-            typeCode_ = orb.create_exception_tc(id(), "NotFound", members);
+            typeCode_ = orb.create_exception_tc(id(), "NotFound", emptyArray(StructMember.class));
         }
 
         return typeCode_;

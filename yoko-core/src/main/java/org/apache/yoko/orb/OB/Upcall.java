@@ -46,6 +46,7 @@ import java.util.logging.Logger;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Logger.getLogger;
 import static org.apache.yoko.io.Buffer.createWriteBuffer;
+import static org.apache.yoko.util.Arrays.EMPTY_INTS;
 import static org.apache.yoko.orb.OB.SendingContextRuntimes.SENDING_CONTEXT_RUNTIME;
 import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
 
@@ -114,7 +115,7 @@ public class Upcall {
 
         // get the reply timeout
         PolicyManager pm = orbInstance.getPolicyManager();
-        final Policy[] policy_overrides = pm.get_policy_overrides(new int[0]);
+        final Policy[] policy_overrides = pm.get_policy_overrides(EMPTY_INTS);
         RefCountPolicyList policies = new RefCountPolicyList(policy_overrides);
         timeout = Timeout.in(policies.replyTimeout);
     }

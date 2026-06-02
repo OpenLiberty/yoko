@@ -202,6 +202,8 @@ import java.util.StringTokenizer;
 import static java.security.AccessController.doPrivileged;
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
+import static org.apache.yoko.util.Arrays.EMPTY_INTS;
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.apache.yoko.logging.VerboseLogging.INIT_LOG;
 import static org.apache.yoko.logging.VerboseLogging.SHUTDOWN_LOG;
 import static org.apache.yoko.orb.OB.CodeSetInfo.UTF_16;
@@ -339,7 +341,7 @@ public class ORB_impl extends ORBSingleton {
                     List<String> paramList = new ArrayList<>();
                     pos = ParseParams.parse(prop, pos, paramList);
                     String name = paramList.remove(0);
-                    String[] params = paramList.toArray(new String[0]);
+                    String[] params = paramList.toArray(emptyArray(String.class));
 
                     Plugin plugin = pluginManager_.initPlugin(name, args);
                     if (plugin == null) throw new INITIALIZE("OCI client initialization failed for '" + name + "'");
@@ -354,7 +356,7 @@ public class ORB_impl extends ORBSingleton {
                     List<String> paramList = new ArrayList<>();
                     pos = ParseParams.parse(prop, pos, paramList);
                     String name = paramList.remove(0);
-                    String[] params = paramList.toArray(new String[0]);
+                    String[] params = paramList.toArray(emptyArray(String.class));
 
                     Plugin plugin = pluginManager_.initPlugin(name, args);
                     if (plugin == null) {
@@ -375,7 +377,7 @@ public class ORB_impl extends ORBSingleton {
             } catch (DuplicateName ex) {
                 throw Assert.fail(ex);
             }
-            
+
             // Install interceptors for Yoko Auxiliary Stream Format
             try {
                 piManager.addIORInterceptor(new YasfIORInterceptor(), true);
@@ -407,7 +409,7 @@ public class ORB_impl extends ORBSingleton {
             try {
                 // Get the router list from configuration data
                 RouterListHolder routerListHolder = new RouterListHolder();
-                routerListHolder.value = new Router[0];
+                routerListHolder.value = emptyArray(Router.class);
 
                 MessageRoutingUtil.getRouterListFromConfig(orbInstance_, routerListHolder);
                 piManager.addIORInterceptor(new MessageRoutingIORInterceptor_impl(routerListHolder.value), false);
@@ -822,7 +824,7 @@ public class ORB_impl extends ORBSingleton {
     }
 
     private static String[] parseAppletParams(Applet app) {
-        String[] args = new String[0];
+        String[] args = emptyArray(String.class);
 
         // Check for parameter list
         String paramList = app.getParameter("ORBparams");
@@ -837,7 +839,7 @@ public class ORB_impl extends ORBSingleton {
     }
 
     private void setParameters(StringSeqHolder args, final Properties initialProps) {
-        if (args.value == null) args.value = new String[0];
+        if (args.value == null) args.value = emptyArray(String.class);
 
         // Initialize the properties - make a local copy to avoid modifying the original
         final Properties properties = new Properties();
@@ -1006,7 +1008,7 @@ public class ORB_impl extends ORBSingleton {
             IOR ior;
 
             if (p == null) {
-                ior = new IOR("", new TaggedProfile[0]);
+            ior = new IOR("", emptyArray(TaggedProfile.class));
             } else {
                 if (p instanceof LocalObject)
                     throw new MARSHAL(
@@ -1170,8 +1172,8 @@ public class ORB_impl extends ORBSingleton {
         try (AutoLock readLock = destroyLock_.getReadLock()) {
             if (destroy_) throw new OBJECT_NOT_EXIST("ORB is destroyed");
             service_info.value = new ServiceInformation();
-            service_info.value.service_options = new int[0];
-            service_info.value.service_details = new ServiceDetail[0];
+            service_info.value.service_options = EMPTY_INTS;
+            service_info.value.service_details = emptyArray(ServiceDetail.class);
             return false;
         }
     }

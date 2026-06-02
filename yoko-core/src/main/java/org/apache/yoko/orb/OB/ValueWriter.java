@@ -45,6 +45,7 @@ import java.util.IdentityHashMap;
 import static java.security.AccessController.doPrivileged;
 import static javax.rmi.CORBA.Util.createValueHandler;
 import static javax.rmi.CORBA.Util.getCodebase;
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_getOrigType;
 import static org.apache.yoko.util.MinorCodes.MinorNoValueFactory;
 import static org.apache.yoko.util.MinorCodes.describeMarshal;
@@ -358,7 +359,7 @@ public final class ValueWriter {
                 //
 
                 tag = 0x7fffff00;
-                ids = new String[0];
+                ids = emptyArray(String.class);
             }
 
             int startPos = beginValue(tag, ids, null, chunked);
@@ -433,13 +434,13 @@ public final class ValueWriter {
                 int pos = writeBuffer.getPosition();
                 WStringValueHelper.write (out_, (String)repValue);
                 instanceTable_.put (repValue, pos);
-                // we record the original value position so that another attempt to write out 
-                // the original object will resolve to the same object. 
+                // we record the original value position so that another attempt to write out
+                // the original object will resolve to the same object.
                 instanceTable_.put (value, pos);
                 return;
             }
-            // save the original value because we want to record that object in the 
-            // indirection table also, once we've established the offset position. 
+            // save the original value because we want to record that object in the
+            // indirection table also, once we've established the offset position.
             originalValue = value;
             value = repValue;
 
@@ -472,8 +473,8 @@ public final class ValueWriter {
 
         int pos = beginValue(tag, ids, codebase, isChunked);
         instanceTable_.put (value, pos);
-        // if this was replace via writeReplace, record the original 
-        // value in the indirection table too. 
+        // if this was replace via writeReplace, record the original
+        // value in the indirection table too.
         if (originalValue != null) {
             instanceTable_.put(originalValue, pos);
         }

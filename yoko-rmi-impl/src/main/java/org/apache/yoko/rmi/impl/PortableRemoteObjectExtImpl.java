@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,11 +27,12 @@ import java.util.WeakHashMap;
 import static java.security.AccessController.doPrivileged;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
 import static org.apache.yoko.util.PrivilegedActions.GET_SYSPROPS;
+import static org.apache.yoko.util.Arrays.emptyArray;
 
 public final class PortableRemoteObjectExtImpl implements PortableRemoteObjectExtDelegate {
     private enum Holder {
         ;
-        private static final ORB DEFAULT_ORB = ORB.init(new String[0], doPrivileged(GET_SYSPROPS));
+        private static final ORB DEFAULT_ORB = ORB.init(emptyArray(String.class), doPrivileged(GET_SYSPROPS));
     }
 
     private static int nextId = 0;

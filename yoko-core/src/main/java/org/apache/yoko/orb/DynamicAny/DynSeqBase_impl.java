@@ -28,6 +28,8 @@ import org.omg.CORBA.TCKind;
 import org.omg.CORBA.TypeCodePackage.BadKind;
 import org.omg.DynamicAny.DynAny;
 import org.omg.DynamicAny.DynAnyFactory;
+
+import static org.apache.yoko.util.Arrays.emptyArray;
 import org.omg.DynamicAny.DynAnyFactoryPackage.InconsistentTypeCode;
 import org.omg.DynamicAny.DynAnyPackage.InvalidValue;
 import org.omg.DynamicAny.DynAnyPackage.TypeMismatch;
@@ -104,7 +106,7 @@ abstract class DynSeqBase_impl extends DynAny_impl {
 
         dynValueReader_ = dynValueReader;
 
-        components_ = new DynAny[0];
+        components_ = emptyArray(DynAny.class);
 
         try {
             contentType_ = origType_.content_type();

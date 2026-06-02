@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,6 +52,8 @@ import org.omg.DynamicAny.DynValueBoxHelper;
 import org.omg.DynamicAny.DynValueHelper;
 import org.omg.DynamicAny.NameDynAnyPair;
 import org.omg.DynamicAny.NameValuePair;
+
+import static org.apache.yoko.util.Arrays.emptyArray;
 import test.common.TypeCodes;
 import test.types.DynAnyTypes.TestAnySeqHelper;
 import test.types.DynAnyTypes.TestBoundedString10SeqHelper;
@@ -1599,7 +1601,7 @@ public class TestDynAny {
             // Test: set_members InvalidValue exception
             //
             try {
-                nvpseq = new NameValuePair[0];
+                nvpseq = emptyArray(NameValuePair.class);
                 s1.set_members(nvpseq);
                 assertNull(null);
             } catch (InvalidValue ex) {
@@ -1661,7 +1663,7 @@ public class TestDynAny {
             // Test: set_members_as_dyn_any() InvalidValue exception
             //
             try {
-                ndpseq = new NameDynAnyPair[0];
+                ndpseq = emptyArray(NameDynAnyPair.class);
                 s1.set_members_as_dyn_any(ndpseq);
                 assertNull(null);
             } catch (InvalidValue ex) {
@@ -4070,7 +4072,7 @@ public class TestDynAny {
             //
             // Test: set_elements_as_dyn_any
             //
-            ndpSeq = new NameDynAnyPair[0];
+            ndpSeq = emptyArray(NameDynAnyPair.class);
             v1.set_members_as_dyn_any(ndpSeq);
 
             //

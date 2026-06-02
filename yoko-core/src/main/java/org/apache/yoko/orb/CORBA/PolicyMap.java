@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,23 +19,25 @@ package org.apache.yoko.orb.CORBA;
 
 import org.omg.CORBA.Policy;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
 
 public class PolicyMap extends TreeMap<Integer, Policy> {
-    private static final Policy[] ZERO_POLICIES_ARRAY = new Policy[0];
+
 
     public PolicyMap(PolicyMap m) { super(m); }
     public PolicyMap(Policy...policies) { for (Policy p: policies) add(p); }
 
     public void add(Policy p) { put(p.policy_type(), p); }
 
-    public Policy[] getAllPolicies() { return values().toArray(ZERO_POLICIES_ARRAY); }
+    public Policy[] getAllPolicies() { return values().toArray(emptyArray(Policy.class)); }
 
     public Policy[] getSomePolicies(int[] types) {
         List<Policy> list = new ArrayList<>();
         for (int type: types) if (containsKey(type)) list.add(get(type));
-        return list.toArray(ZERO_POLICIES_ARRAY);
+        return list.toArray(emptyArray(Policy.class));
     }
 }

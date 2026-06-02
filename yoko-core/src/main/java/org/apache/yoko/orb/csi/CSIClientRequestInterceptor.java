@@ -28,6 +28,9 @@ import org.omg.CSI.ITTDistinguishedName;
 import org.omg.CSI.ITTPrincipalName;
 import org.omg.CSI.IdentityToken;
 import org.omg.CSI.MTCompleteEstablishContext;
+
+import static org.apache.yoko.util.Arrays.emptyArray;
+import org.omg.CSI.AuthorizationElement;
 import org.omg.CSI.MTContextError;
 import org.omg.CSI.MTEstablishContext;
 import org.omg.CSI.MTMessageInContext;
@@ -48,6 +51,8 @@ import org.omg.PortableInterceptor.ClientRequestInfo;
 import org.omg.PortableInterceptor.ForwardRequest;
 
 import java.util.Arrays;
+
+import static org.apache.yoko.util.Arrays.EMPTY_BYTES;
 import java.util.logging.Logger;
 
 import static org.apache.yoko.orb.csi.CSIInterceptorBase.CallStatus.pushIsLocal;
@@ -172,13 +177,13 @@ public class CSIClientRequestInterceptor extends CSIInterceptorBase
         establishMsg.client_context_id = 0;
 
         // Make empty authorization token list
-        establishMsg.authorization_token = EMPTY_AUTH_ELEMENT;
+        establishMsg.authorization_token = emptyArray(AuthorizationElement.class);
 
         String scopedUserName = name + "@" + realm;
 
         if (support_gssup_delegation) {
 
-            establishMsg.client_authentication_token = EMPTY_BARR;
+            establishMsg.client_authentication_token = EMPTY_BYTES;
 
             //
             // indicate identitytoken as ITTPrincipalName

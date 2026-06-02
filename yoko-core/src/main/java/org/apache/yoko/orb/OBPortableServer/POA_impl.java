@@ -141,6 +141,8 @@ import static org.apache.yoko.orb.OBPortableServer.ServantLocationStrategyFactor
 import static org.apache.yoko.orb.OBPortableServer.SynchronizationPolicyValue._NO_SYNCHRONIZATION;
 import static org.apache.yoko.orb.OBPortableServer.SynchronizationPolicyValue._SYNCHRONIZE_ON_ORB;
 import static org.apache.yoko.orb.OBPortableServer.SynchronizationPolicyValue._SYNCHRONIZE_ON_POA;
+import static org.apache.yoko.util.Arrays.EMPTY_BYTES;
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.apache.yoko.util.Assert.ensure;
 import static org.apache.yoko.util.Assert.fail;
 import static org.apache.yoko.util.MinorCodes.MinorCannotDispatch;
@@ -275,7 +277,7 @@ final public class POA_impl extends LocalObject implements POA {
                 manager_ = null;
             }
             if (callAdapterStateChange_) {
-                ObjectReferenceTemplate[] arr = childTemplates_.toArray(new ObjectReferenceTemplate[0]);
+                ObjectReferenceTemplate[] arr = childTemplates_.toArray(emptyArray(ObjectReferenceTemplate.class));
                 orbInstance_.getPIManager().adapterStateChange(arr, NON_EXISTENT.value);
             }
             servantLocationStrategy_.destroy(this, poaControl_.etherealize());
@@ -310,11 +312,11 @@ final public class POA_impl extends LocalObject implements POA {
 
         logger.fine(() -> "Creating POA " + name + " using manager " + manager.get_id());
 
-        poaId_ = null == parent ? new String[0] : concat(stream(parent.poaId_), Stream.of(name)).toArray(String[]::new);
+        poaId_ = null == parent ? emptyArray(String.class) : concat(stream(parent.poaId_), Stream.of(name)).toArray(String[]::new);
         poaCreateTime_ = (int) (currentTimeMillis() / 1000);
 
         // TODO: It would be nicer if this didn't use CreateObjectKey
-        byte[] oid = new byte[0];
+        byte[] oid = EMPTY_BYTES;
         ObjectKeyData data = new ObjectKeyData(serverId_, poaId_, oid, policies_.lifespanPolicy() == PERSISTENT, poaCreateTime_);
         adapterId_ = CreateObjectKey(data);
 
@@ -331,7 +333,7 @@ final public class POA_impl extends LocalObject implements POA {
 
         orbInstance_.getPIManager().establishComponents(iorInfo_);
 
-        IOR iorTemplate = new IOR("", new TaggedProfile[0]);
+        IOR iorTemplate = new IOR("", emptyArray(TaggedProfile.class));
 
         IORHolder iorH = new IORHolder(iorTemplate);
         iorInfoImpl._OB_addComponents(iorH, m._OB_getGIOPVersion());
@@ -432,8 +434,7 @@ final public class POA_impl extends LocalObject implements POA {
                 try {
                     InitialServiceManager ism = orbInstance_.getInitialServiceManager();
                     POAManagerFactory factory = narrow(ism.resolveInitialReferences("POAManagerFactory"));
-                    Policy[] emptyPl = new Policy[0];
-                    obmanager = (POAManager) factory.create_POAManager(adapter, emptyPl);
+                    obmanager = (POAManager) factory.create_POAManager(adapter, emptyArray(Policy.class));
                 } catch (InvalidName | ManagerAlreadyExists | PolicyError ex) {
                     throw fail(ex);
                 }
@@ -611,7 +612,7 @@ final public class POA_impl extends LocalObject implements POA {
         if (poaControl_.getDestroyed()) {
             throw new OBJECT_NOT_EXIST("POA " + name_ + " has been destroyed");
         }
-        
+
         adapterActivator_.setAdapterActivator(activator);
     }
 
@@ -710,7 +711,7 @@ final public class POA_impl extends LocalObject implements POA {
         // Get the list of routers for this target
         //
         RouterListHolder configRouterList = new RouterListHolder();
-        configRouterList.value = new Router[0];
+        configRouterList.value = emptyArray(Router.class);
         MessageRoutingUtil.getRouterListFromConfig(orbInstance_, configRouterList);
 
         Router[] value = configRouterList.value;

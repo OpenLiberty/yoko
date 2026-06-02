@@ -52,6 +52,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 import static javax.rmi.PortableRemoteObject.narrow;
@@ -277,7 +279,7 @@ class ServerSteward {
             args.add("java.base/java.util=ALL-UNNAMED");
         }
 
-        return args.toArray(new String[0]);
+        return args.toArray(emptyArray(String.class));
     }
 
     private String buildClasspathForVersion(String version) {
