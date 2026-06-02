@@ -46,7 +46,7 @@ class FVDEnumDescriptor extends EnumDescriptor {
 
     @Override
     FullValueDescription getFullValueDescription() {
-        return fvd;
+        return copyOf(fvd);
     }
 
     @Override

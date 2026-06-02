@@ -1054,6 +1054,50 @@ class ValueDescriptor extends TypeDescriptor {
     private static final Initializer[] ZERO_INITIALIZERS = {};
     private static final String[] ZERO_STRINGS = {};
     
+
+    /**
+     * Creates a defensive copy of a FullValueDescription.
+     * This ensures that modifications to the returned object or its array fields
+     * do not affect the original.
+     *
+     * @param original the FullValueDescription to copy
+     * @return a defensive copy of the FullValueDescription
+     */
+    static FullValueDescription copyOf(FullValueDescription original) {
+        if (original == null) {
+            return null;
+        }
+        
+        FullValueDescription copy = new FullValueDescription();
+        copy.name = original.name;
+        copy.id = original.id;
+        copy.is_abstract = original.is_abstract;
+        copy.is_custom = original.is_custom;
+        copy.defined_in = original.defined_in;
+        copy.version = original.version;
+        
+        // Deep copy arrays
+        copy.operations = original.operations == null ? null : 
+            Arrays.copyOf(original.operations, original.operations.length);
+        copy.attributes = original.attributes == null ? null : 
+            Arrays.copyOf(original.attributes, original.attributes.length);
+        copy.members = original.members == null ? null : 
+            Arrays.copyOf(original.members, original.members.length);
+        copy.initializers = original.initializers == null ? null : 
+            Arrays.copyOf(original.initializers, original.initializers.length);
+        copy.supported_interfaces = original.supported_interfaces == null ? null : 
+            Arrays.copyOf(original.supported_interfaces, original.supported_interfaces.length);
+        copy.abstract_base_values = original.abstract_base_values == null ? null : 
+            Arrays.copyOf(original.abstract_base_values, original.abstract_base_values.length);
+        
+        copy.is_truncatable = original.is_truncatable;
+        copy.base_value = original.base_value;
+        copy.type = original.type;
+        
+        return copy;
+    }
+
+
     FullValueDescription getFullValueDescription() {
         FullValueDescription fvd = new FullValueDescription();
         fvd.name = getType().getName();

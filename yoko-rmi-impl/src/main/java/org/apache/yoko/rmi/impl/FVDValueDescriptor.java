@@ -93,7 +93,7 @@ final class FVDValueDescriptor extends ValueDescriptor {
 
     @Override
     FullValueDescription getFullValueDescription() {
-        return fvd;
+        return copyOf(fvd);
     }
 
     @Override
