@@ -33,8 +33,11 @@ import java.rmi.RemoteException;
 import java.rmi.UnexpectedException;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -46,6 +49,7 @@ import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
 import static javax.rmi.CORBA.Util.mapSystemException;
 import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.PrivilegedActions.action;
 import static org.apache.yoko.util.Streams.concatStreams;
 
 public final class MethodDescriptor extends ModelElement {
@@ -55,8 +59,8 @@ public final class MethodDescriptor extends ModelElement {
     final Method reflectedMethod;
     final LazyReference<Boolean> responseExpectedRef = new LazyReference<>(this::genResponseExpected);
     final LazyReference<TypeDescriptor> returnTypeRef = new LazyReference<>(this::genReturnType);
-    final LazyReference<TypeDescriptor[]> parameterTypesRef = new LazyReference<>(this::genParameterTypes);
-    final LazyReference<ExceptionDescriptor[]> exceptionTypesRef = new LazyReference<>(this::genExceptionTypes);
+    final LazyReference<List<TypeDescriptor>> parameterTypesRef = new LazyReference<>(this::genParameterTypes);
+    final LazyReference<List<ExceptionDescriptor>> exceptionTypesRef = new LazyReference<>(this::genExceptionTypes);
     final LazyReference<Boolean> copyWithinStateRef = new LazyReference<>(this::genCopyWithinState);
 
     private static boolean notRemoteException(Class<?> aClass) {
@@ -68,7 +72,7 @@ public final class MethodDescriptor extends ModelElement {
             return true;
         }
 
-        return Arrays.stream(getExceptionTypes())
+        return getExceptionTypes().stream()
                 .map(TypeDescriptor::getType)
                 .noneMatch(isEqual(RemoteOnewayException.class));
     }
@@ -78,7 +82,7 @@ public final class MethodDescriptor extends ModelElement {
     }
 
     TypeDescriptor genReturnType() {
-        Class<?> returnType = doPrivileged((PrivilegedAction<Class<?>>) reflectedMethod::getReturnType);
+        Class<?> returnType = doPrivileged(action(reflectedMethod::getReturnType));
         return repo.getDescriptor(returnType);
     }
 
@@ -86,31 +90,31 @@ public final class MethodDescriptor extends ModelElement {
         return returnTypeRef.get();
     }
 
-    TypeDescriptor[] genParameterTypes() {
-        Class<?>[] paramTypes = doPrivileged((PrivilegedAction<Class<?>[]>) reflectedMethod::getParameterTypes);
+    List<TypeDescriptor> genParameterTypes() {
+        Class<?>[] paramTypes = doPrivileged(action(reflectedMethod::getParameterTypes));
         return Arrays.stream(paramTypes)
                 .map(repo::getDescriptor)
-                .toArray(TypeDescriptor[]::new);
+                .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
     }
 
-    private TypeDescriptor[] getParameterTypes() {
+    private List<TypeDescriptor> getParameterTypes() {
         return parameterTypesRef.get();
     }
 
-    ExceptionDescriptor[] genExceptionTypes() {
-        Class<?>[] exceptionTypes = doPrivileged((PrivilegedAction<Class<?>[]>) reflectedMethod::getExceptionTypes);
+    List<ExceptionDescriptor> genExceptionTypes() {
+        Class<?>[] exceptionTypes = doPrivileged(action(reflectedMethod::getExceptionTypes));
         return Arrays.stream(exceptionTypes)
                 .map(repo::getDescriptor)
                 .map(ExceptionDescriptor.class::cast)
-                .toArray(ExceptionDescriptor[]::new);
+                .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
     }
 
-    private ExceptionDescriptor[] getExceptionTypes() {
+    private List<ExceptionDescriptor> getExceptionTypes() {
         return exceptionTypesRef.get();
     }
 
     Boolean genCopyWithinState() {
-        return Arrays.stream(getParameterTypes())
+        return getParameterTypes().stream()
                 .anyMatch(TypeDescriptor::copyWithinState);
     }
 
@@ -136,15 +140,15 @@ public final class MethodDescriptor extends ModelElement {
 
             try {
                 OutputStream out = orb.create_output_stream();
-                TypeDescriptor[] paramTypes = getParameterTypes();
+                List<TypeDescriptor> paramTypes = getParameterTypes();
                 IntStream.range(0, args.length)
-                        .filter(i -> paramTypes[i].copyBetweenStates())
-                        .forEach(i -> paramTypes[i].write(out, args[i]));
+                        .filter(i -> paramTypes.get(i).copyBetweenStates())
+                        .forEach(i -> paramTypes.get(i).write(out, args[i]));
 
                 InputStream in = out.create_input_stream();
                 IntStream.range(0, args.length)
-                        .filter(i -> paramTypes[i].copyBetweenStates())
-                        .forEach(i -> args[i] = paramTypes[i].read(in));
+                        .filter(i -> paramTypes.get(i).copyBetweenStates())
+                        .forEach(i -> args[i] = paramTypes.get(i).read(in));
             } catch (SystemException ex) {
                 logger.log(FINE, ex, () -> "Exception occurred copying arguments");
                 throw mapSystemException(ex);
@@ -152,9 +156,9 @@ public final class MethodDescriptor extends ModelElement {
 
         } else if (getCopyWithinState()) {
             CopyState state = new CopyState(repo);
-            TypeDescriptor[] paramTypes = getParameterTypes();
+            List<TypeDescriptor> paramTypes = getParameterTypes();
             IntStream.range(0, args.length)
-                    .filter(i -> paramTypes[i].copyWithinState())
+                    .filter(i -> paramTypes.get(i).copyWithinState())
                     .forEach(i -> {
                 try {
                     args[i] = state.copy(args[i]);
@@ -206,7 +210,7 @@ public final class MethodDescriptor extends ModelElement {
      * read the arguments to this method, and return them as an array of objects
      */
     public Object[] readArguments(InputStream in) {
-        return Arrays.stream(getParameterTypes())
+        return getParameterTypes().stream()
                 .map(desc -> desc.read(in))
                 .toArray();
     }
@@ -232,8 +236,8 @@ public final class MethodDescriptor extends ModelElement {
          * pw.close (); log.debug (cw.toString ()); }
          */
 
-        TypeDescriptor[] paramTypes = getParameterTypes();
-        IntStream.range(0, paramTypes.length).forEach(i -> paramTypes[i].write(out, args[i]));
+        List<TypeDescriptor> paramTypes = getParameterTypes();
+        IntStream.range(0, paramTypes.size()).forEach(i -> paramTypes.get(i).write(out, args[i]));
     }
 
     /** write the result of this method */
@@ -242,35 +246,31 @@ public final class MethodDescriptor extends ModelElement {
     }
 
     public OutputStream writeException(ResponseHandler response, Throwable ex) {
-        for (ExceptionDescriptor exceptionType : getExceptionTypes()) {
-            if (exceptionType.getType().isInstance(ex)) {
-                org.omg.CORBA_2_3.portable.OutputStream out = (org.omg.CORBA_2_3.portable.OutputStream) response.createExceptionReply();
-
-                out.write_string(exceptionType.getExceptionRepositoryID());
-                out.write_value(ex);
-                return out;
-            }
-        }
-
-        logger.log(WARNING, ex, () -> "unhandled exception: " + ex.getMessage());
-
-        throw new UnknownException(ex);
+        return getExceptionTypes().stream()
+                .filter(exceptionType -> exceptionType.getType().isInstance(ex))
+                .findFirst()
+                .map(exceptionType -> {
+                    org.omg.CORBA_2_3.portable.OutputStream out = (org.omg.CORBA_2_3.portable.OutputStream) response.createExceptionReply();
+                    out.write_string(exceptionType.getExceptionRepositoryID());
+                    out.write_value(ex);
+                    return out;
+                })
+                .orElseThrow(() -> {
+                    logger.log(WARNING, ex, () -> "unhandled exception: " + ex.getMessage());
+                    return new UnknownException(ex);
+                });
     }
 
     public void readException(InputStream in) throws Throwable {
         org.omg.CORBA_2_3.portable.InputStream in2 = (org.omg.CORBA_2_3.portable.InputStream) in;
 
-        String ex_id = in.read_string();
-        Throwable ex;
+        String exId = in.read_string();
+        Throwable ex = (Throwable) in2.read_value();
 
-        for (ExceptionDescriptor exceptionType : getExceptionTypes()) {
-            if (ex_id.equals(exceptionType.getExceptionRepositoryID())) {
-                ex = (Throwable) in2.read_value();
-                throw ex;
-            }
-        }
-
-        ex = (Throwable) in2.read_value();
+        boolean matched = getExceptionTypes().stream()
+                .map(ExceptionDescriptor::getExceptionRepositoryID)
+                .anyMatch(exId::equals);
+        if (matched) throw ex;
 
         if (ex instanceof Exception) {
             throw as(UnexpectedException::new, ex, ex.getMessage());
@@ -308,8 +308,8 @@ public final class MethodDescriptor extends ModelElement {
     String transformOverloading(String mname) {
         StringBuilder buf = new StringBuilder(mname);
 
-        TypeDescriptor[] paramTypes = getParameterTypes();
-        if (paramTypes.length == 0) {
+        List<TypeDescriptor> paramTypes = getParameterTypes();
+        if (paramTypes.isEmpty()) {
             buf.append("__");
         } else {
             for (TypeDescriptor parameterType : paramTypes) {

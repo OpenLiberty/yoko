@@ -33,13 +33,12 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.rmi.Remote;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import static java.util.Collections.singletonList;
 import static java.util.stream.IntStream.range;
 import static javax.rmi.CORBA.Util.writeAny;
 
@@ -198,37 +197,23 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
     }
 
     @Override
-    protected final ValueMember[] genValueMembers() {
-        final ValueMember[] members = new ValueMember[1];
+    protected List<ValueMember> genValueMembers() {
         final TypeDescriptor elemDesc = repo.getDescriptor(elementType);
         final String elemRepID = elemDesc.getRepositoryID();
 
         final ORB orb = ORB.init();
         TypeCode memberTC = orb.create_sequence_tc(0, elemDesc.getTypeCode());
 
-        members[0] = new ValueMember("", // member has no name!
+        ValueMember member = new ValueMember("", // member has no name!
                     elemRepID, this.getRepositoryID(), "1.0", memberTC, null,
                     (short) 1);
 
-        return members;
+        return singletonList(member);
     }
 
     @Override
     void addDependencies(Set<Class<?>> classes) {
         repo.getDescriptor(basicType).addDependencies(classes);
-    }
-
-    final CorbaObjectReader makeCorbaObjectReader(final InputStream in, final Map offsetMap, final Serializable obj)
-            throws IOException {
-        try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<CorbaObjectReader>() {
-                public CorbaObjectReader run() throws IOException {
-                    return new CorbaObjectReader(in, offsetMap, obj);
-                }
-            });
-        } catch (PrivilegedActionException e) {
-            throw (IOException)e.getException();
-        }
     }
 }
 

@@ -17,7 +17,9 @@
  */
 package org.apache.yoko.util;
 
+import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
@@ -60,9 +62,30 @@ public enum PrivilegedActions {
         return type::getDeclaredMethods;
     }
 
+    public static PrivilegedAction<Field[]> getDeclaredFields(Class<?> type) {
+        return type::getDeclaredFields;
+    }
+
+    public static PrivilegedExceptionAction<Field> getDeclaredField(Class<?> type, String name) {
+        return () -> type.getDeclaredField(name);
+    }
+
+    public static PrivilegedExceptionAction<Field> getField(Class<?> type, String name) {
+        return () -> type.getField(name);
+    }
+
     public static PrivilegedAction<Class<?>[]> getInterfaces(Class<?> type) {
         return type::getInterfaces;
     }
 
+    public static <T extends AccessibleObject> PrivilegedAction<T> makeAccessible(T accessible) {
+        return () -> {
+            accessible.setAccessible(true);
+            return accessible;
+        };
+    }
+
     public static <T> PrivilegedAction<T> action(PrivilegedAction<T> action) { return action; }
+
+    public static <T> PrivilegedExceptionAction<T> exAction(PrivilegedExceptionAction<T> action) { return action; }
 }

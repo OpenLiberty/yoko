@@ -22,8 +22,12 @@ import org.omg.CORBA.ValueDefPackage.FullValueDescription;
 import org.omg.CORBA.ValueMember;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.collectingAndThen;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
 
 final class FVDValueDescriptor extends ValueDescriptor {
@@ -46,7 +50,7 @@ final class FVDValueDescriptor extends ValueDescriptor {
     ValueDescriptor genSuperDescriptor() { return superDesc; }
 
     @Override
-    protected FieldDescriptor[] genFields() {
+    protected List<FieldDescriptor> genFields() {
         MARSHAL_LOG.finer(() -> "Computing field descriptors for " + fvd.name + " version " + fvd.version);
         return Arrays.stream(fvd.members)
                 .map(vm -> {
@@ -54,7 +58,7 @@ final class FVDValueDescriptor extends ValueDescriptor {
                     MARSHAL_LOG.finer(() -> String.format("\t%s -> %s", describe(vm), describe(fd)));
                     return fd;
                 })
-                .toArray(FieldDescriptor[]::new);
+                .collect(collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
     }
 
     private static String describe(FieldDescriptor fd) {
@@ -67,14 +71,15 @@ final class FVDValueDescriptor extends ValueDescriptor {
 
     private FieldDescriptor findField(ValueMember valueMember) {
         for (Class<?> c = getType(); c != null; c = c.getSuperclass()) {
-            Optional<FieldDescriptor> result = Optional.of(repo.getDescriptor(c))
-                    .filter(ValueDescriptor.class::isInstance)
-                    .map(ValueDescriptor.class::cast)
-                    .map(ValueDescriptor::getFields)
-                    .flatMap(fields -> Arrays.stream(fields)
-                            .filter(fd -> fd.getIDLName().equals(valueMember.name))
-                            .findFirst());
-            if (result.isPresent()) return result.get();
+            TypeDescriptor desc = repo.getDescriptor(c);
+            if (!(desc instanceof ValueDescriptor)) continue;
+
+            ValueDescriptor valueDesc = (ValueDescriptor) desc;
+            for (FieldDescriptor fd : valueDesc.getFields()) {
+                if (fd.getIDLName().equals(valueMember.name)) {
+                    return fd;
+                }
+            }
         }
         // There was no matching field in the local implementation, so create a field descriptor
         // that will read from the stream but not assign to any local field
@@ -87,7 +92,7 @@ final class FVDValueDescriptor extends ValueDescriptor {
     }
 
     @Override
-    org.omg.CORBA.ValueDefPackage.FullValueDescription getFullValueDescription() {
+    FullValueDescription getFullValueDescription() {
         return fvd;
     }
 
