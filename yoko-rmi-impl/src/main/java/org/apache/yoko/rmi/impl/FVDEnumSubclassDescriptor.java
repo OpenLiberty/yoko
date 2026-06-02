@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,36 +20,37 @@ package org.apache.yoko.rmi.impl;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.ValueDefPackage.FullValueDescription;
 
-import java.util.Objects;
-
 class FVDEnumSubclassDescriptor extends EnumSubclassDescriptor {
     private final FullValueDescription fvd;
     private final String repid;
+    private final ValueDescriptor superDesc;
 
     FVDEnumSubclassDescriptor(FullValueDescription fvd, Class clazz, TypeRepository rep, String repid, ValueDescriptor super_desc) {
         super(EnumSubclassDescriptor.getEnumType(clazz), rep);
         this.fvd = fvd;
         this.repid = repid;
+        this.superDesc = super_desc;
 
         init();
-
-        _super_descriptor = super_desc;
     }
 
     @Override
-    protected String genRepId() {
+    final ValueDescriptor genSuperDescriptor() {
+        return superDesc;
+    }
+
+    @Override
+    String genRepId() {
         return repid;
     }
 
     @Override
     FullValueDescription getFullValueDescription() {
-        return fvd;
+        return copyOf(fvd);
     }
 
     @Override
-    protected final TypeCode genTypeCode() {
-        return fvd.type;
-    }
+    TypeCode genTypeCode() { return fvd.type; }
 
     @Override
     public boolean isCustomMarshalled() {

@@ -35,7 +35,7 @@ import testify.annotation.Logging;
 import java.io.Serializable;
 import java.util.EnumSet;
 
-import static org.apache.yoko.util.yasf.Yasf.ENUM_FIXED;
+import static org.apache.yoko.util.yasf.Yasf.ENUM_FIX_1;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -49,7 +49,7 @@ import static testify.matchers.ByteArrayMatchers.matchesHex;
  * were not supported in CDR streams
  */
 class JavaValueNullFieldsTest {
-    private static final EnumSet<Yasf> OLD_STYLE = EnumSet.of(ENUM_FIXED);
+    private static final EnumSet<Yasf> OLD_STYLE = EnumSet.of(ENUM_FIX_1);
 
     YokoOutputStream out;
     byte[] data;

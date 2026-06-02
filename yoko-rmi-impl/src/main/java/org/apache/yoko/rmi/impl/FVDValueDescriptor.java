@@ -22,13 +22,18 @@ import org.omg.CORBA.ValueDefPackage.FullValueDescription;
 import org.omg.CORBA.ValueMember;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.collectingAndThen;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
 
 final class FVDValueDescriptor extends ValueDescriptor {
     final FullValueDescription fvd;
     final String repid;
+    private final ValueDescriptor superDesc;
 
     FVDValueDescriptor(FullValueDescription fvd, Class<?> clazz,
             TypeRepository rep, String repid, ValueDescriptor super_desc) {
@@ -36,30 +41,24 @@ final class FVDValueDescriptor extends ValueDescriptor {
 
         this.repid = repid;
         this.fvd = fvd;
+        this.superDesc = super_desc;
 
         init();
-
-        this._super_descriptor = super_desc;
     }
 
-    public void init() {
-        super.init();
+    @Override
+    ValueDescriptor genSuperDescriptor() { return superDesc; }
 
-        // don't override custom loading. Our local version could work differently.
-//        if (!fvd.is_custom) {
-//            _read_object_method = null;
-//            _write_object_method = null;
-//            _is_externalizable = false;
-//        }
-
+    @Override
+    protected List<FieldDescriptor> genFields() {
         MARSHAL_LOG.finer(() -> "Computing field descriptors for " + fvd.name + " version " + fvd.version);
-        _fields = Arrays.stream(fvd.members)
+        return Arrays.stream(fvd.members)
                 .map(vm -> {
                     FieldDescriptor fd = findField(vm);
                     MARSHAL_LOG.finer(() -> String.format("\t%s -> %s", describe(vm), describe(fd)));
                     return fd;
                 })
-                .toArray(FieldDescriptor[]::new);
+                .collect(collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
     }
 
     private static String describe(FieldDescriptor fd) {
@@ -71,40 +70,34 @@ final class FVDValueDescriptor extends ValueDescriptor {
     }
 
     private FieldDescriptor findField(ValueMember valueMember) {
-        for (Class<?> c = type; c != null; c = c.getSuperclass()) {
-            TypeDescriptor td = repo.getDescriptor(c);
-            if (td instanceof ValueDescriptor) {
-                ValueDescriptor vd = (ValueDescriptor) td;
-                FieldDescriptor[] fds = vd._fields;
+        for (Class<?> c = getType(); c != null; c = c.getSuperclass()) {
+            TypeDescriptor desc = repo.getDescriptor(c);
+            if (!(desc instanceof ValueDescriptor)) continue;
 
-                if (fds == null) {
-                    continue;
-                }
-
-                for (FieldDescriptor fd : fds) {
-                    if (fd.getIDLName().equals(valueMember.name)) return fd;
+            ValueDescriptor valueDesc = (ValueDescriptor) desc;
+            for (FieldDescriptor fd : valueDesc.getFields()) {
+                if (fd.getIDLName().equals(valueMember.name)) {
+                    return fd;
                 }
             }
         }
         // There was no matching field in the local implementation, so create a field descriptor
         // that will read from the stream but not assign to any local field
-        return new ValueMemberFieldDescriptor(type, valueMember, repo);
+        return new ValueMemberFieldDescriptor(getType(), valueMember, repo);
     }
 
     @Override
-    protected String genRepId() {
+    String genRepId() {
         return repid;
     }
 
     @Override
-    org.omg.CORBA.ValueDefPackage.FullValueDescription getFullValueDescription() {
-        return fvd;
+    FullValueDescription getFullValueDescription() {
+        return copyOf(fvd);
     }
 
     @Override
-    protected final TypeCode genTypeCode() {
-        return fvd.type;
-    }
+    TypeCode genTypeCode() { return fvd.type; }
 
     @Override
     public boolean isCustomMarshalled() {

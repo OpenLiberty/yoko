@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,19 +31,17 @@ class StringDescriptor extends ValueDescriptor {
     }
 
     @Override
-    protected final String genIDLName() {
+    final String genIDLName() {
         return "CORBA_WStringValue";
     }
 
     @Override
-    protected String genPackageName() {
+    String genPackageName() {
         return "CORBA";
     }
 
     @Override
-    protected String genTypeName() {
-        return "WStringValue";
-    }
+    String genTypeName() { return "WStringValue"; }
 
     /** Read an instance of this value from a CDR stream */
     @Override

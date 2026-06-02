@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,24 +24,24 @@ import org.omg.CORBA.TypeCode;
 abstract class SimpleDescriptor extends TypeDescriptor {
     private final String idl_name;
     private final TCKind tc;
-    SimpleDescriptor(Class type, TypeRepository repository, String idl_name, TCKind tc) {
+    SimpleDescriptor(Class<?> type, TypeRepository repository, String idl_name, TCKind tc) {
         super(type, repository);
         this.idl_name = idl_name;
         this.tc = tc;
     }
 
     @Override
-    protected final String genIDLName() {
+    final String genIDLName() {
         return idl_name;
     }
 
     @Override
-    protected final String genPackageName() {
+    String genPackageName() {
         return "";
     }
 
     @Override
-    protected final String genTypeName() {
+    String genTypeName() {
         return idl_name;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,13 +47,13 @@ public class StubBuilder {
         TypeRepository rep = TypeRepository.get();
         Iterator it = interfaces.iterator();
         while (it.hasNext()) {
-            Class cl = (Class) it.next();
+            Class<?> cl = (Class<?>) it.next();
             RemoteDescriptor desc = (RemoteDescriptor) rep.getDescriptor(cl);
 
             desc.addDependencies(pending);
         }
 
-        Class[] classes = new Class[pending.size()];
+        Class<?>[] classes = new Class<?>[pending.size()];
         pending.toArray(classes);
 
         for (int i = 0; i < classes.length; i++) {

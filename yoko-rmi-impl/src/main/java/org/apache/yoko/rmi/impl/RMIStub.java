@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ public abstract class RMIStub extends javax.rmi.CORBA.Stub {
     public RMIStub() {
         super();
 
-        Class remote_interface = getClass().getInterfaces()[0];
+        Class<?> remote_interface = getClass().getInterfaces()[0];
 
         RMIState state = (RMIState) PortableRemoteObjectExt.getState();
         Object o = state.repo.getRemoteInterface(

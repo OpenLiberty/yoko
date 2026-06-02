@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@
  */
 package org.apache.yoko.rmi.impl;
 
+import org.apache.yoko.rmi.util.PriorityQueue;
+import org.omg.CORBA.portable.IndirectionException;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -27,9 +30,6 @@ import java.io.ObjectStreamClass;
 import java.io.Serializable;
 import java.rmi.Remote;
 import java.util.Map;
-
-import org.apache.yoko.rmi.util.PriorityQueue;
-import org.omg.CORBA.portable.IndirectionException;
 
 abstract class ObjectReader extends ObjectInputStream {
     ObjectReader() throws IOException {}
@@ -146,7 +146,7 @@ abstract class ObjectReaderBase extends ObjectReader {
             throw new NotActiveException();
         }
 
-        Map fieldMap = desc.readFields(this);
+        Map<String, Object> fieldMap = desc.readFields(this);
 
         return new GetFieldImpl(fieldMap);
     }
@@ -166,9 +166,9 @@ abstract class ObjectReaderBase extends ObjectReader {
 
     static class GetFieldImpl extends GetField {
 
-        Map fieldMap;
+        private final Map<String, Object> fieldMap;
 
-        GetFieldImpl(Map map) {
+        GetFieldImpl(Map<String, Object> map) {
             fieldMap = map;
         }
 
@@ -183,108 +183,63 @@ abstract class ObjectReaderBase extends ObjectReader {
          * @see java.io.ObjectInputStream.GetField#get(String, boolean)
          */
         public boolean get(String name, boolean val) throws IOException {
-            Boolean value = (Boolean) fieldMap.get(name);
-            if (defaulted(name)) {
-                return val;
-            } else {
-                return value.booleanValue();
-            }
+            return defaulted(name) ? val : (Boolean)fieldMap.get(name);
         }
 
         /**
          * @see java.io.ObjectInputStream.GetField#get(String, byte)
          */
         public byte get(String name, byte val) throws IOException {
-            Byte value = (Byte) fieldMap.get(name);
-            if (defaulted(name)) {
-                return val;
-            } else {
-                return value.byteValue();
-            }
+            return defaulted(name) ? val : (Byte)fieldMap.get(name);
         }
 
         /**
          * @see java.io.ObjectInputStream.GetField#get(String, char)
          */
         public char get(String name, char val) throws IOException {
-            Character value = (Character) fieldMap.get(name);
-            if (defaulted(name)) {
-                return val;
-            } else {
-                return value.charValue();
-            }
+            return defaulted(name) ? val : (Character)fieldMap.get(name);
         }
 
         /**
          * @see java.io.ObjectInputStream.GetField#get(String, double)
          */
         public double get(String name, double val) throws IOException {
-            Double value = (Double) fieldMap.get(name);
-            if (defaulted(name)) {
-                return val;
-            } else {
-                return value.doubleValue();
-            }
+            return defaulted(name) ? val : (Double)fieldMap.get(name);
         }
 
         /**
          * @see java.io.ObjectInputStream.GetField#get(String, float)
          */
         public float get(String name, float val) throws IOException {
-            Float value = (Float) fieldMap.get(name);
-            if (defaulted(name)) {
-                return val;
-            } else {
-                return value.floatValue();
-            }
+            return defaulted(name) ? val : (Float)fieldMap.get(name);
         }
 
         /**
          * @see java.io.ObjectInputStream.GetField#get(String, int)
          */
         public int get(String name, int val) throws IOException {
-            Integer value = (Integer) fieldMap.get(name);
-            if (defaulted(name)) {
-                return val;
-            } else {
-                return value.intValue();
-            }
+            return defaulted(name) ? val : (Integer)fieldMap.get(name);
         }
 
         /**
          * @see java.io.ObjectInputStream.GetField#get(String, long)
          */
         public long get(String name, long val) throws IOException {
-            Long value = (Long) fieldMap.get(name);
-            if (defaulted(name)) {
-                return val;
-            } else {
-                return value.longValue();
-            }
+            return defaulted(name) ? val : (Long)fieldMap.get(name);
         }
 
         /**
          * @see java.io.ObjectInputStream.GetField#get(String, Object)
          */
         public Object get(String name, Object val) throws IOException {
-            Object value = (Object) fieldMap.get(name);
-            if (defaulted(name)) {
-                return val;
-            } else {
-                return value;
-            }
+            return defaulted(name) ? val : fieldMap.get(name);
         }
 
         /**
          * @see java.io.ObjectInputStream.GetField#get(String, short)
          */
         public short get(String name, short val) throws IOException {
-            Short value = (Short) fieldMap.get(name);
-            if (defaulted(name)) {
-                return val;
-            } else {
-                return value.shortValue();
-            }
+            return defaulted(name) ? val : (Short)fieldMap.get(name);
         }
 
         /**

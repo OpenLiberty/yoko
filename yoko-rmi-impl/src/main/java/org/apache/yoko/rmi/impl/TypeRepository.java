@@ -21,6 +21,7 @@ import org.apache.yoko.rmi.impl.TypeDescriptor.FullKey;
 import org.apache.yoko.rmi.impl.TypeDescriptor.SimpleKey;
 import org.apache.yoko.rmi.util.SearchKey;
 import org.apache.yoko.rmi.util.WeakKey;
+import org.apache.yoko.util.yasf.Yasf;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.ValueDefPackage.FullValueDescription;
 import org.omg.CORBA.portable.IDLEntity;
@@ -45,6 +46,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 
 public class TypeRepository {
@@ -201,17 +203,13 @@ public class TypeRepository {
         }
 
         private final Raw rawValues;
-        private final TypeDescriptorCache repIdDescriptors;
 
-        LocalDescriptors(TypeRepository repo, TypeDescriptorCache repIdDescriptors) {
+        LocalDescriptors(TypeRepository repo) {
             rawValues = new Raw(repo);
-            this.repIdDescriptors = repIdDescriptors;
         }
         @Override
         protected synchronized TypeDescriptor computeValue(Class<?> type) {
-            final TypeDescriptor desc = rawValues.get(type);
-            if (desc.doInitOnce()) repIdDescriptors.put(desc);
-            return desc;
+            return rawValues.get(type).getInitialized();
         }
 
     }
@@ -243,13 +241,15 @@ public class TypeRepository {
 
     private TypeRepository() {
         repIdDescriptors = new TypeDescriptorCache();
-        localDescriptors = new LocalDescriptors(this, repIdDescriptors);
+        addToRepIdDescriptors = repIdDescriptors::put;
+        localDescriptors = new LocalDescriptors(this);
 
         for (Class<?> type: initTypes) {
             localDescriptors.get(type);
         }
     }
 
+    final Consumer<TypeDescriptor> addToRepIdDescriptors;
     private static enum RepoHolder {
         ;
         static final TypeRepository value = new TypeRepository();
@@ -307,6 +307,12 @@ public class TypeRepository {
                 return (ValueDescriptor) localDescriptors.get(clz);
             }
             clzdesc = (ValueDescriptor) getDescriptor(clz);
+            if (clzdesc.isEnum() && Yasf.ENUM_FIX_1.isSupported() && !Yasf.ENUM_TRUE_HASH_AND_FVD.isSupported()) {
+                // The FVD from the other end say it sends 'name' and 'ordinal', but will _actually_
+                // only send 'name'.
+                // So just use the local descriptor, which only expects to read 'name'.
+                return clzdesc;
+            }
             String localID = clzdesc.getRepositoryID();
 
             if (repid.equals(localID)) {

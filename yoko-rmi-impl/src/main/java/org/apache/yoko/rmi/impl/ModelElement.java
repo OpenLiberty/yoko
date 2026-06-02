@@ -28,19 +28,9 @@ abstract class ModelElement {
         this.java_name = java_name;
     }
 
-    private volatile boolean initComplete = false;
-    /** It is the caller's responsibility to ensure this method is called from only one thread at a time. */
-    final boolean doInitOnce() {
-        if (initComplete) return false;
-        init();
-        return initComplete = true;
-    }
-
-    protected void init() { }
-
-    private final LazyReference<String> idlName = new LazyReference<>(this::genIDLName);
-    protected abstract String genIDLName();
-    public final String getIDLName() {
-        return idlName.get();
+    private final LazyReference<String> idlNameRef = new LazyReference<>(this::genIDLName);
+    String genIDLName() { throw new UnsupportedOperationException(); }
+    final String getIDLName() {
+        return idlNameRef.get();
     }
 }

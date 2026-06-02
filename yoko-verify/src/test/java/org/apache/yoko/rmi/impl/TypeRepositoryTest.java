@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ public class TypeRepositoryTest {
                     } catch (InterruptedException e) { }
                     final ValueDescriptor descriptor = (ValueDescriptor)repo.getDescriptor(type);
                     StringBuilder sb = new StringBuilder();
-                    for (FieldDescriptor fd: descriptor._fields) {
+                    for (FieldDescriptor fd: descriptor.getFields()) {
                         final String fType = fd == null ? "null" : fd.getType().getName();
                         final String fName = fd == null ? "null" : fd.getIDLName();
                         sb.append(String.format("%-20s ", fType + ' ' + fName + ';'));

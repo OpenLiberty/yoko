@@ -213,7 +213,5 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
     }
 
     @Override
-    ValueMember getValueMember(TypeRepository rep) {
-        return valueMember;
-    }
+    ValueMember genValueMember() { return valueMember; }
 }
