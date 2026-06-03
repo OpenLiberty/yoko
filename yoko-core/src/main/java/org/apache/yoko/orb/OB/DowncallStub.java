@@ -546,7 +546,7 @@ public final class DowncallStub {
     //
     // Invoke a request from a portable stub
     //
-    public YokoInputStream invoke(
+    public org.omg.CORBA.portable.InputStream invoke(
             org.omg.CORBA.Object self,
             YokoOutputStream out)
             throws ApplicationException,
@@ -610,13 +610,11 @@ public final class DowncallStub {
                     throw new ApplicationException(id, in);
                 } else {
                     //
-                    // We're using portable stubs, so we'll never
-                    // know the unmarshalled results. Therefore,
-                    // we might as well invoke the interceptors now.
+                    // Wrap the InputStream to trigger interceptors after the first read.
+                    // This ensures the result is available to interceptors and unmarshalling
+                    // exceptions are properly reported via receive_exception.
                     //
-                    down.postUnmarshal();
-
-                    return in;
+                    return new WrappedReplyInputStream(in, down);
                 }
             } else {
                 down.preUnmarshal();

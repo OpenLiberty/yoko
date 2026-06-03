@@ -55,15 +55,14 @@ public class RoflTest {
         private final String text;
         public Message(String text) { this.text = text; }
         private void readObject(ObjectInputStream in) throws Exception {
-            // Yasf is only set when writing out.
-            // All options default when reading in,
-            // so the thread should have Yasf set to null.
-            assertEquals(Rofl.NONE, RoflThreadLocal.get());
+            // Since we are marshalling from another ORB purporting to be IBM,
+            // Rofl options should be set when reading in.
+            assertEquals(IBM, RoflThreadLocal.get().type());
             in.defaultReadObject();
         }
         private void writeObject(ObjectOutputStream out) throws Exception {
-            // Since we are marshalling to another Yoko ORB,
-            // Yasf options should be set when writing out.
+            // Since we are marshalling to another ORB purporting to be IBM,
+            // Rofl options should be set when writing out.
             assertEquals(IBM, RoflThreadLocal.get().type());
             out.defaultWriteObject();
         }

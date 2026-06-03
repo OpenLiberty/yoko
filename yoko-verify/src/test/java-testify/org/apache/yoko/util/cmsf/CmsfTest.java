@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,10 +37,9 @@ public class CmsfTest {
         private final String text;
         public Message(String text) { this.text = text; }
         private void readObject(ObjectInputStream in) throws Exception {
-            // Cmsf is only set when writing out.
-            // All options default when reading in,
-            // so the thread should have Cmsf set to null.
-            assertEquals(1, CmsfThreadLocal.get());
+            // Since we are marshalling from another Yoko ORB,
+            // Cmsf options should be set when reading in.
+            assertEquals(2, CmsfThreadLocal.get());
             in.defaultReadObject();
         }
         private void writeObject(ObjectOutputStream out) throws Exception {
