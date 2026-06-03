@@ -1,0 +1,9 @@
+{"id":"0653df20-b482-4fd8-878a-09d6d6582f7a","ts":"2026-06-03T15:47:06.049Z","path":"/Volumes/git/liberty/yoko/rewrite.yml","version":"1.0.0","taskID":"f65cdbb0-a22f-4a9a-9694-ff7028954866"}
+{"id":"90f0b4d1-46ee-45ee-bb7c-ec92560c914c","ts":"2026-06-03T15:52:09.396Z","path":"/Volumes/git/liberty/yoko/rewrite.yml","version":"1.0.0","taskID":"f65cdbb0-a22f-4a9a-9694-ff7028954866"}
+{"id":"817f9f44-5fbd-4e35-b1de-a2694b0fef44","ts":"2026-06-03T15:53:13.045Z","path":"/Volumes/git/liberty/yoko/build.gradle","version":"1.0.0","taskID":"f65cdbb0-a22f-4a9a-9694-ff7028954866"}
+{"id":"321ea110-1d9a-4c9d-bdcb-01069bb47af1","ts":"2026-06-03T15:53:35.463Z","path":"/Volumes/git/liberty/yoko/build.gradle","version":"1.0.0","taskID":"f65cdbb0-a22f-4a9a-9694-ff7028954866"}
+{"id":"90e7fbbd-0471-48e0-b431-b981dc2da077","ts":"2026-06-03T16:09:34.988Z","path":"/Volumes/git/liberty/yoko/rewrite.yml","version":"1.0.0","taskID":"f65cdbb0-a22f-4a9a-9694-ff7028954866"}
+{"id":"3d355b72-4264-4fdb-a661-5f092409dcf4","ts":"2026-06-03T16:21:30.946Z","path":"/Volumes/git/liberty/yoko/testify/build.gradle","version":"1.0.0","taskID":"f65cdbb0-a22f-4a9a-9694-ff7028954866"}
+{"id":"38b8b44a-8c17-46d2-b0f1-f57d889dea55","ts":"2026-06-03T16:21:38.743Z","path":"/Volumes/git/liberty/yoko/yoko-osgi/build.gradle","version":"1.0.0","taskID":"f65cdbb0-a22f-4a9a-9694-ff7028954866"}
+{"id":"2e24a656-1433-402b-af32-4cd07cfe3d5e","ts":"2026-06-03T16:25:15.877Z","path":"/Volumes/git/liberty/yoko/yoko-rmi-spec/build.gradle","version":"1.0.0","taskID":"f65cdbb0-a22f-4a9a-9694-ff7028954866"}
+{"id":"d7465d1d-5b30-4781-b1e1-9094d20591bc","ts":"2026-06-03T16:25:23.293Z","path":"/Volumes/git/liberty/yoko/yoko-util/build.gradle","version":"1.0.0","taskID":"f65cdbb0-a22f-4a9a-9694-ff7028954866"}
