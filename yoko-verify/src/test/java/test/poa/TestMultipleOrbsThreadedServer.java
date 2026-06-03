@@ -20,7 +20,7 @@ package test.poa;
 import java.io.*;
 import java.util.Properties;
 
-import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 
 import static org.apache.yoko.orb.OBCORBA.ORB_impl.ParseArgs;
 
@@ -73,7 +73,7 @@ final public class TestMultipleOrbsThreadedServer {
             props.put("yoko.orb.id", orb_id); // Use ORB ID passed
 
             try {
-                String[] args = emptyArray(String.class);
+                String[] args = NO_STRINGS;
                 orb_ = org.omg.CORBA.ORB.init(args, props);
 
                 org.omg.CORBA.Object obj = orb_.resolve_initial_references("RootPOA");

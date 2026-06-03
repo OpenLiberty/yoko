@@ -71,6 +71,7 @@ import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.logging.VerboseLogging.INIT_LOG;
 import static org.apache.yoko.logging.VerboseLogging.SHUTDOWN_LOG;
 import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import static org.apache.yoko.util.Assert.ensure;
 import static org.omg.PortableServer.POAManagerPackage.State.INACTIVE;
 
@@ -125,7 +126,7 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
 
             for (AccFactory factory : factories) {
                 if (! protocol.equals(factory.id())) continue;
-                AcceptorConfig config = new AcceptorConfig(protocol, params.toArray(emptyArray(String.class)));
+                AcceptorConfig config = new AcceptorConfig(protocol, params.toArray(NO_STRINGS));
                 acceptorConfigs.add(config);
                 continue PROTOCOL_LOOP;
             }

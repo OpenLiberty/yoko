@@ -143,6 +143,7 @@ import static org.apache.yoko.orb.OBPortableServer.SynchronizationPolicyValue._S
 import static org.apache.yoko.orb.OBPortableServer.SynchronizationPolicyValue._SYNCHRONIZE_ON_POA;
 import static org.apache.yoko.util.Arrays.EMPTY_BYTES;
 import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import static org.apache.yoko.util.Assert.ensure;
 import static org.apache.yoko.util.Assert.fail;
 import static org.apache.yoko.util.MinorCodes.MinorCannotDispatch;
@@ -312,7 +313,7 @@ final public class POA_impl extends LocalObject implements POA {
 
         logger.fine(() -> "Creating POA " + name + " using manager " + manager.get_id());
 
-        poaId_ = null == parent ? emptyArray(String.class) : concat(stream(parent.poaId_), Stream.of(name)).toArray(String[]::new);
+        poaId_ = null == parent ? NO_STRINGS : concat(stream(parent.poaId_), Stream.of(name)).toArray(String[]::new);
         poaCreateTime_ = (int) (currentTimeMillis() / 1000);
 
         // TODO: It would be nicer if this didn't use CreateObjectKey

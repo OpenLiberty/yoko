@@ -204,6 +204,7 @@ import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.util.Arrays.EMPTY_INTS;
 import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import static org.apache.yoko.logging.VerboseLogging.INIT_LOG;
 import static org.apache.yoko.logging.VerboseLogging.SHUTDOWN_LOG;
 import static org.apache.yoko.orb.OB.CodeSetInfo.UTF_16;
@@ -341,7 +342,7 @@ public class ORB_impl extends ORBSingleton {
                     List<String> paramList = new ArrayList<>();
                     pos = ParseParams.parse(prop, pos, paramList);
                     String name = paramList.remove(0);
-                    String[] params = paramList.toArray(emptyArray(String.class));
+                    String[] params = paramList.toArray(NO_STRINGS);
 
                     Plugin plugin = pluginManager_.initPlugin(name, args);
                     if (plugin == null) throw new INITIALIZE("OCI client initialization failed for '" + name + "'");
@@ -356,7 +357,7 @@ public class ORB_impl extends ORBSingleton {
                     List<String> paramList = new ArrayList<>();
                     pos = ParseParams.parse(prop, pos, paramList);
                     String name = paramList.remove(0);
-                    String[] params = paramList.toArray(emptyArray(String.class));
+                    String[] params = paramList.toArray(NO_STRINGS);
 
                     Plugin plugin = pluginManager_.initPlugin(name, args);
                     if (plugin == null) {
@@ -824,7 +825,7 @@ public class ORB_impl extends ORBSingleton {
     }
 
     private static String[] parseAppletParams(Applet app) {
-        String[] args = emptyArray(String.class);
+        String[] args = NO_STRINGS;
 
         // Check for parameter list
         String paramList = app.getParameter("ORBparams");
@@ -839,7 +840,7 @@ public class ORB_impl extends ORBSingleton {
     }
 
     private void setParameters(StringSeqHolder args, final Properties initialProps) {
-        if (args.value == null) args.value = emptyArray(String.class);
+        if (args.value == null) args.value = NO_STRINGS;
 
         // Initialize the properties - make a local copy to avoid modifying the original
         final Properties properties = new Properties();

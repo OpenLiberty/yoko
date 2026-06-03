@@ -45,7 +45,7 @@ import java.util.IdentityHashMap;
 import static java.security.AccessController.doPrivileged;
 import static javax.rmi.CORBA.Util.createValueHandler;
 import static javax.rmi.CORBA.Util.getCodebase;
-import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_getOrigType;
 import static org.apache.yoko.util.MinorCodes.MinorNoValueFactory;
 import static org.apache.yoko.util.MinorCodes.describeMarshal;
@@ -359,7 +359,7 @@ public final class ValueWriter {
                 //
 
                 tag = 0x7fffff00;
-                ids = emptyArray(String.class);
+                ids = NO_STRINGS;
             }
 
             int startPos = beginValue(tag, ids, null, chunked);

@@ -34,6 +34,9 @@ public enum Arrays {
     /** Zero-length int array constant */
     public static final int[] EMPTY_INTS = {};
 
+    /** Zero-length String array constant */
+    public static final String[] NO_STRINGS;
+
     /**
      * ClassValue holding empty array for the Class.
      * <p>
@@ -41,13 +44,18 @@ public enum Arrays {
      * so entries are GC'd when the Class becomes unreachable, even though the array value
      * holds a strong reference back to the Class via its component type.
      */
-    private static final ClassValue<Object[]> EMPTY_ARRAYS = new ClassValue<Object[]>() {
-        @Override
-        protected Object[] computeValue(Class<?> type) {
-            return (Object[])Array.newInstance(type, 0);
-        }
-    };
+    private static final ClassValue<Object> EMPTY_ARRAYS;
 
+    static {
+        EMPTY_ARRAYS = new ClassValue<Object>() {
+            @Override
+            protected Object computeValue(Class<?> type) {
+                return Array.newInstance(type, 0);
+            }
+        };
+
+        NO_STRINGS = emptyArray(String.class);
+    }
     /**
      * Functional interface for iterating over paired elements from two arrays.
      *
@@ -94,7 +102,7 @@ public enum Arrays {
      *
      * <p>Example usage:
      * <pre>{@code
-     * String[] emptyStrings = emptyArray(String.class);
+     * String[] emptyStrings = NO_STRINGS; // Use constant for String arrays
      * Integer[] emptyIntegers = emptyArray(Integer.class);
      * }</pre>
      *
@@ -104,7 +112,12 @@ public enum Arrays {
      */
     public static <T> T[] emptyArray(Class<T> clazz) {
         @SuppressWarnings("unchecked")
-        T[] result = (T[])EMPTY_ARRAYS.get(clazz);
+        T[] result = (T[])EMPTY_ARRAYS.get(assertNotPrimitive(clazz));
         return result;
+    }
+
+    private static Class<?> assertNotPrimitive(Class<?> clazz) {
+        assert !clazz.isPrimitive();
+        return clazz;
     }
 }

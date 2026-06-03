@@ -30,6 +30,7 @@ import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.IIOP.ProfileBody_1_0;
 
 import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import org.omg.IIOP.ProfileBody_1_0Helper;
 import org.omg.IOP.Codec;
 import org.omg.IOP.CodecFactory;
@@ -48,6 +49,7 @@ import java.util.logging.Logger;
 import static java.lang.Integer.parseInt;
 import static java.util.Objects.requireNonNull;
 import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import static org.apache.yoko.orb.OB.Net.getCanonicalHostname;
 import static org.apache.yoko.orb.OCI.IIOP.Acceptor_impl.ProfileCardinality.MANY;
 import static org.apache.yoko.orb.OCI.IIOP.Acceptor_impl.ProfileCardinality.ONE;
@@ -135,7 +137,7 @@ final class AccFactory_impl extends LocalObject implements AccFactory {
                         }
                     }
                     if (list.isEmpty()) throw new InvalidParam("invalid argument for --host: " + hostArg);
-                    hosts = list.toArray(emptyArray(String.class));
+                    hosts = list.toArray(NO_STRINGS);
                     break;
 
                 case "--multi-profile":

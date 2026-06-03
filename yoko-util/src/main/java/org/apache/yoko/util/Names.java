@@ -19,10 +19,7 @@ package org.apache.yoko.util;
 
 import org.omg.CosNaming.NameComponent;
 
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.apache.yoko.util.Arrays.emptyArray;
 
 public enum Names {
     ;
@@ -30,7 +27,6 @@ public enum Names {
     public static NameComponent[] toCosName(String...parts) {
         return Stream.of(parts)
                 .map(s -> new NameComponent(s, ""))
-                .collect(Collectors.toList())
-                .toArray(emptyArray(NameComponent.class));
+                .toArray(NameComponent[]::new);
     }
 }

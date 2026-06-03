@@ -43,10 +43,7 @@ import java.rmi.RemoteException;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.apache.yoko.util.Arrays.emptyArray;
 
 public abstract class Skellington extends Servant implements Tie, Remote {
     private final String[] ids;
@@ -55,8 +52,7 @@ public abstract class Skellington extends Servant implements Tie, Remote {
         final ValueHandler vh = Util.createValueHandler();
         this.ids = findRemoteInterfaces(this.getClass())
                 .map(vh::getRMIRepositoryID)
-                .collect(Collectors.toList())
-                .toArray(emptyArray(String.class));
+                .toArray(String[]::new);
     }
 
     private static Stream<Class<? extends Remote>> findRemoteInterfaces(final Class<?> forClass) {

@@ -56,7 +56,7 @@ import static java.lang.Boolean.getBoolean;
 import static java.lang.Integer.toHexString;
 import static java.lang.System.arraycopy;
 import static java.security.AccessController.doPrivileged;
-import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
 import static javax.rmi.CORBA.Util.createValueHandler;
@@ -125,7 +125,7 @@ public final class ValueReader {
         String codebase; // Java only
 
         Header() {
-            ids = emptyArray(String.class);
+            ids = NO_STRINGS;
             state = new ChunkState();
         }
 

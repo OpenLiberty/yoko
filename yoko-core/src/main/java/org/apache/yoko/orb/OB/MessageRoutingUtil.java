@@ -97,6 +97,7 @@ import java.util.Properties;
 import static java.util.Arrays.copyOf;
 import static java.util.Arrays.sort;
 import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 
 final public class MessageRoutingUtil {
     public static void getRouterListFromConfig(ORBInstance orbInstance, RouterListHolder routerList) {
@@ -109,7 +110,7 @@ final public class MessageRoutingUtil {
             if (key.startsWith("yoko.ami.router.")) amiPropKeys.add(key);
         }
         // Sort the keys - not an efficient sort but ok as lists are small
-        String[] routerKeys = (String[]) amiPropKeys.toArray(emptyArray(String.class));
+        String[] routerKeys = amiPropKeys.toArray(NO_STRINGS);
         sort(routerKeys);
 
         for (String routerKey : routerKeys) {

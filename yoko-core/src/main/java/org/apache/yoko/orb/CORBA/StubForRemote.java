@@ -17,15 +17,13 @@
  */
 package org.apache.yoko.orb.CORBA;
 
+import javax.rmi.CORBA.Stub;
 import java.rmi.Remote;
 
-import javax.rmi.CORBA.Stub;
-
-import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 
 public class StubForRemote extends Stub implements Remote {
-	public String[] _ids() {
-		return emptyArray(String.class);
-	}
-
+    public String[] _ids() {
+        return NO_STRINGS;
+    }
 }

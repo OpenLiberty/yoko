@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import org.omg.PortableServer.POAPackage.AdapterAlreadyExists;
 import org.omg.PortableServer.POAPackage.InvalidPolicy;
 import testify.iiop.annotation.ConfigureOrb;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -46,7 +47,7 @@ public class PoaCreateTest {
     @Test
     public void testCreatePOA(POA rootPoa) throws Exception {
         // Create child POA
-        POA poa = rootPoa.create_POA("poa1", null, new Policy[]{});
+        POA poa = rootPoa.create_POA("poa1", null, emptyArray(Policy.class));
 
         // Test: POAManager should NOT be the same as the root's manager
         POAManager mgr = poa.the_POAManager();
@@ -63,7 +64,7 @@ public class PoaCreateTest {
         POA parent = poa.the_parent();
         assertTrue(parent._is_equivalent(rootPoa));
 
-        assertThrows(AdapterAlreadyExists.class, () -> rootPoa.create_POA("poa1", null, new Policy[]{}));
+        assertThrows(AdapterAlreadyExists.class, () -> rootPoa.create_POA("poa1", null, emptyArray(Policy.class)));
 
         //In order to use the NON_RETAIN policy, you must first have a servant manager
         Policy[] invalidPolicies = { rootPoa.create_servant_retention_policy(NON_RETAIN) };
@@ -75,14 +76,14 @@ public class PoaCreateTest {
     @Test
     void testCreateChildOfChildPoa(POA rootPoa) throws Exception{
         // Create another child of root POA
-        POA poa = rootPoa.create_POA("rootPoa", rootMgr, new Policy[]{});
+        POA poa = rootPoa.create_POA("rootPoa", rootMgr, emptyArray(Policy.class));
 
         // Test: POAManager should be the same as the root's manager
         POAManager mgr = poa.the_POAManager();
         assertTrue(mgr._is_equivalent(rootMgr));
 
         // Create child of child POA
-        POA poa3 = poa.create_POA("child", rootMgr, new Policy[]{});
+        POA poa3 = poa.create_POA("child", rootMgr, emptyArray(Policy.class));
 
         // Test: Confirm parent
         POA parent = poa3.the_parent();

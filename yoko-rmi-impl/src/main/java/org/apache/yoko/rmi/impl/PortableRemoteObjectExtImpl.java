@@ -27,12 +27,12 @@ import java.util.WeakHashMap;
 import static java.security.AccessController.doPrivileged;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
 import static org.apache.yoko.util.PrivilegedActions.GET_SYSPROPS;
-import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 
 public final class PortableRemoteObjectExtImpl implements PortableRemoteObjectExtDelegate {
     private enum Holder {
         ;
-        private static final ORB DEFAULT_ORB = ORB.init(emptyArray(String.class), doPrivileged(GET_SYSPROPS));
+        private static final ORB DEFAULT_ORB = ORB.init(NO_STRINGS, doPrivileged(GET_SYSPROPS));
     }
 
     private static int nextId = 0;

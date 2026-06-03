@@ -29,7 +29,7 @@ import org.omg.PortableServer.POAPackage.ObjectNotActive;
 import org.omg.PortableServer.POAPackage.ServantAlreadyActive;
 import org.omg.PortableServer.POAPackage.ServantNotActive;
 
-import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
 import org.omg.SendingContext.CodeBaseHelper;
 import org.omg.SendingContext.RunTime;
@@ -243,7 +243,7 @@ public class ValueHandlerImpl implements ValueHandler {
     }
 
     String[] getImplementations(String[] ids) {
-        if (ids == null) return emptyArray(String.class);
+        if (ids == null) return NO_STRINGS;
         String[] result = new String[ids.length];
         for (int i = 0; i < ids.length; i++) result[i] = getImplementation(ids[i]);
         return result;
@@ -271,7 +271,7 @@ public class ValueHandlerImpl implements ValueHandler {
     String[] getBases(String id) {
         try {
             Class<?> clz = getClassFromRepositoryID(id);
-            if (clz == null) return emptyArray(String.class);
+            if (clz == null) return NO_STRINGS;
 
             Class<?>[] ifaces = clz.getInterfaces();
             Class<?> superClz = clz.getSuperclass();
@@ -293,7 +293,7 @@ public class ValueHandlerImpl implements ValueHandler {
             return result;
         } catch (Throwable ex) {
             logger.log(WARNING, ex, () -> "exception in CodeBase::bases");
-            return emptyArray(String.class);
+            return NO_STRINGS;
         }
     }
 

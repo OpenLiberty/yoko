@@ -20,7 +20,7 @@ package org.apache.yoko.orb.CORBA;
 import org.omg.CORBA.portable.IDLEntity;
 import org.omg.CORBA_2_4.portable.ObjectImpl;
 
-import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 
 final public class StubForObject extends ObjectImpl
         implements IDLEntity {
@@ -29,6 +29,6 @@ final public class StubForObject extends ObjectImpl
     // ------------------------------------------------------------------
 
     public String[] _ids() {
-        return emptyArray(String.class);
+        return NO_STRINGS;
     }
 }

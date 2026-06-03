@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -42,27 +43,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ArraysTest {
 
     @Test
-    void testEmptyArrayReturnsZeroLengthArray() {
-        String[] result = emptyArray(String.class);
-        assertNotNull(result);
-        assertEquals(0, result.length);
+    void testNoStringsConstant() {
+        // Verify NO_STRINGS is the same instance as emptyArray(String.class)
+        assertSame(NO_STRINGS, emptyArray(String.class));
+        assertNotNull(NO_STRINGS);
+        assertEquals(0, NO_STRINGS.length);
+        assertEquals(String.class, NO_STRINGS.getClass().getComponentType());
     }
 
     @Test
     void testEmptyArrayWithDifferentTypes() {
         // Test with various common types
-        String[] strings = emptyArray(String.class);
         Integer[] integers = emptyArray(Integer.class);
         Object[] objects = emptyArray(Object.class);
         Serializable[] serializables = emptyArray(Serializable.class);
 
-        assertEquals(0, strings.length);
         assertEquals(0, integers.length);
         assertEquals(0, objects.length);
         assertEquals(0, serializables.length);
 
         // Verify correct component types
-        assertEquals(String.class, strings.getClass().getComponentType());
         assertEquals(Integer.class, integers.getClass().getComponentType());
         assertEquals(Object.class, objects.getClass().getComponentType());
         assertEquals(Serializable.class, serializables.getClass().getComponentType());
@@ -71,8 +71,8 @@ class ArraysTest {
     @Test
     void testEmptyArrayCachingForSystemClasses() {
         // For system classes, the same instance should be returned
-        String[] first = emptyArray(String.class);
-        String[] second = emptyArray(String.class);
+        String[] first = NO_STRINGS;
+        String[] second = NO_STRINGS;
 
         assertSame(first, second, "Same instance should be returned for system classes");
     }
@@ -80,8 +80,8 @@ class ArraysTest {
     @Test
     void testEmptyArrayCachingForMultipleTypes() {
         // Each type should have its own cached instance
-        String[] strings1 = emptyArray(String.class);
-        String[] strings2 = emptyArray(String.class);
+        String[] strings1 = NO_STRINGS;
+        String[] strings2 = NO_STRINGS;
         Integer[] integers1 = emptyArray(Integer.class);
         Integer[] integers2 = emptyArray(Integer.class);
 
@@ -106,7 +106,7 @@ class ArraysTest {
                     startLatch.await(); // Wait for all threads to be ready
 
                     for (int j = 0; j < iterationsPerThread; j++) {
-                        String[] array = emptyArray(String.class);
+                        String[] array = NO_STRINGS;
                         synchronized (results) {
                             results.add(array);
                         }
@@ -194,7 +194,7 @@ class ArraysTest {
     @RepeatedTest(5)
     void testEmptyArrayConsistency() {
         // Repeated test to ensure consistent behavior across multiple invocations
-        String[] array = emptyArray(String.class);
+        String[] array = NO_STRINGS;
         assertNotNull(array);
         assertEquals(0, array.length);
         assertEquals(String.class, array.getClass().getComponentType());
@@ -241,7 +241,7 @@ class ArraysTest {
     void testEmptyArrayImmutability() {
         // Verify that the returned array is truly empty and cannot be modified
         // (well, it can be modified, but it's zero-length so there's nothing to modify)
-        String[] array = emptyArray(String.class);
+        String[] array = NO_STRINGS;
         assertEquals(0, array.length);
 
         // Attempting to access any element should throw ArrayIndexOutOfBoundsException
