@@ -31,8 +31,10 @@ import org.omg.PortableInterceptor.ServerRequestInfo;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
+import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidComponentId;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidServiceContextId;
 
@@ -45,33 +47,44 @@ public class RoflHelper {
     }
 
     public void findAndSave(ServerRequestInfo requestInfo) {
+        Function<RemoteOrb,ServiceContext> scGetter = (ro) -> getServiceContext(requestInfo, ro);
         // iterate through the known RemoteOrbs
         RemoteOrb.KNOWN_REMOTE_ORBS.stream()
                 // look up the service context
-                .map(remoteOrb -> {
-                    try {
-                        return requestInfo.get_request_service_context(remoteOrb.serviceContextId);
-                    } catch (BAD_PARAM e) {
-                        // if it just wasn't present, hand back a null
-                        if (e.minor == MinorInvalidServiceContextId) return null;
-                        // any other error should be propagated
-                        throw e;
-                    }
-                })
+                .map(scGetter)
                 // ignore any RemoteOrbs whose service context was not found
                 .filter(Objects::nonNull)
                 // take the first RemoteOrb (in our ordering) whose service context was present
                 .findFirst()
-                // if there was one, save its service context into the ROFL slot.
-                .ifPresent(sc -> {
-                    Any any = ORB.init().create_any();
-                    ServiceContextHelper.insert(any, sc);
-                    try {
-                        requestInfo.set_slot(slotId, any);
-                    } catch (InvalidSlot e) {
-                        throw (INTERNAL) (new INTERNAL(e.getMessage())).initCause(e);
-                    }
-                });
+                // if there was one, create an Any holding it
+                .map(RoflHelper::createAny)
+                // ... and put the any into the ROFL slot.
+                .ifPresent((any) -> setSlot(requestInfo, any));
+    }
+
+    private static Any createAny(ServiceContext sc) {
+        Any any = ORB.init().create_any();
+        ServiceContextHelper.insert(any, sc);
+        return any;
+    }
+
+    private void setSlot(ServerRequestInfo requestInfo, Any any) {
+        try {
+            requestInfo.set_slot(slotId, any);
+        } catch (InvalidSlot e) {
+            throw as(INTERNAL::new, e, e.getMessage());
+        }
+    }
+
+    private static ServiceContext getServiceContext(ServerRequestInfo requestInfo, RemoteOrb remoteOrb) {
+        try {
+            return requestInfo.get_request_service_context(remoteOrb.serviceContextId);
+        } catch (BAD_PARAM e) {
+            // if it just wasn't present, hand back a null
+            if (MinorInvalidServiceContextId == e.minor) return null;
+            // any other error should be propagated
+            throw e;
+        }
     }
 
     public Rofl loadAndCreate(ServerRequestInfo requestInfo) {
@@ -82,7 +95,7 @@ public class RoflHelper {
                     .map(RoflHelper::createFromServiceContext)
                     .orElse(Rofl.NONE);
         } catch (InvalidSlot e) {
-            throw (INTERNAL) (new INTERNAL(e.getMessage())).initCause(e);
+            throw as(INTERNAL::new, e, e.getMessage());
         }
     }
 
@@ -96,18 +109,21 @@ public class RoflHelper {
     }
 
     public static Rofl createFromTaggedComponent(ClientRequestInfo ri) {
+        Function<RemoteOrb,Rofl> roflGetter = (ro) -> getRofl(ri, ro);
         return RemoteOrb.KNOWN_REMOTE_ORBS.stream()
-                .map(remoteOrb -> {
-                    try {
-                        TaggedComponent tc = ri.get_effective_component(remoteOrb.tagComponentId);
-                        return remoteOrb.createRofl(tc);
-                    } catch (BAD_PARAM e) {
-                        if (e.minor == MinorInvalidComponentId) return null;
-                        throw e;
-                    }
-                })
+                .map(roflGetter)
                 .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(Rofl.NONE);
+    }
+
+    private static Rofl getRofl(ClientRequestInfo ri, RemoteOrb remoteOrb) {
+        try {
+            TaggedComponent tc = ri.get_effective_component(remoteOrb.tagComponentId);
+            return remoteOrb.createRofl(tc);
+        } catch (BAD_PARAM e) {
+            if (MinorInvalidComponentId == e.minor) return null;
+            throw e;
+        }
     }
 }

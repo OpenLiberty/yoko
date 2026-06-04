@@ -28,6 +28,7 @@ import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.util.Objects;
 
+import static org.apache.yoko.util.ThreadLocalStack.YASF_THREAD_LOCAL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -40,13 +41,13 @@ public class YasfTest {
         private void readObject(ObjectInputStream in) throws Exception {
             // Since we are marshalling from another Yoko ORB,
             // Yasf options should be set when reading in.
-            assertNotNull(YasfThreadLocal.get());
+            assertNotNull(YASF_THREAD_LOCAL.get());
             in.defaultReadObject();
         }
         private void writeObject(ObjectOutputStream out) throws Exception {
             // Since we are marshalling to another Yoko ORB,
             // Yasf options should be set when writing out.
-            assertNotNull(YasfThreadLocal.get());
+            assertNotNull(YASF_THREAD_LOCAL.get());
             out.defaultWriteObject();
         }
         public boolean equals(Object o) { return o instanceof Message && Objects.equals(text, ((Message) o).text); }

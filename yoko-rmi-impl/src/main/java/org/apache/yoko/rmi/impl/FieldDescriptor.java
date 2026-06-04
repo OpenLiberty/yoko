@@ -52,10 +52,10 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
     private interface FieldDescriptorFactory {
         FieldDescriptor create(Class<?> owner, Class<?> type, String name, Field f, TypeRepository repository);
     }
-    
-    private static final LazyReference<Map<Class<?>, FieldDescriptorFactory>> simpleFactoriesRef = 
+
+    private static final LazyReference<Map<Class<?>, FieldDescriptorFactory>> simpleFactoriesRef =
         new LazyReference<>(FieldDescriptor::genSimpleFactories);
-    
+
     private static Map<Class<?>, FieldDescriptorFactory> genSimpleFactories() {
         Map<Class<?>, FieldDescriptorFactory> map = new HashMap<>();
         // Primitive types
@@ -75,7 +75,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         map.put(Remote.class, RemoteFieldDescriptor::new);
         return unmodifiableMap(map);
     }
-    
+
     private static Map<Class<?>, FieldDescriptorFactory> getSimpleFactories() {
         return simpleFactoriesRef.get();
     }
@@ -189,15 +189,15 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         if (org.omg.CORBA.Object.class.isAssignableFrom(type)) {
             return new CorbaObjectFieldDescriptor(owner, type, name, f, repository);
         }
-        
+
         if (Remote.class.isAssignableFrom(type)) {
             return new RemoteFieldDescriptor(owner, type, name, f, repository);
         }
-        
+
         if (Serializable.class.isAssignableFrom(type)) {
             return new ValueFieldDescriptor(owner, type, name, f, repository);
         }
-        
+
         if (type.isInterface() && type.getMethods().length == 0) {
             // TODO: make this spec-compliant
             // See Java-to-IDL 1.4 section 4.3.11 "Mapping Abstract Interfaces".
@@ -207,7 +207,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
             // compatibility with how other ORBs marshal null values.
             return new ObjectFieldDescriptor(owner, type, name, f, repository);
         }
-        
+
         // interface classes with methods and non-serializable classes
         return new ValueFieldDescriptor(owner, type, name, f, repository);
     }

@@ -20,9 +20,6 @@ package org.apache.yoko;
 import acme.Echo;
 import org.apache.yoko.ThreadLocalPollutionTest.ExceptionThrowingInterceptor.InterceptorException;
 import org.apache.yoko.ThreadLocalPollutionTest.ExceptionThrowingInterceptor.WhenToThrow;
-import org.apache.yoko.util.cmsf.CmsfThreadLocal;
-import org.apache.yoko.util.rofl.RoflThreadLocal;
-import org.apache.yoko.util.yasf.YasfThreadLocal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +34,10 @@ import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
 import testify.iiop.annotation.ConfigureServer;
 import testify.iiop.annotation.ConfigureServer.BeforeServer;
 import testify.iiop.annotation.ConfigureServer.RemoteImpl;
+
+import static org.apache.yoko.util.ThreadLocalStack.CMSF_THREAD_LOCAL;
+import static org.apache.yoko.util.ThreadLocalStack.ROFL_THREAD_LOCAL;
+import static org.apache.yoko.util.ThreadLocalStack.YASF_THREAD_LOCAL;
 
 import java.rmi.RemoteException;
 import java.util.EnumMap;
@@ -117,21 +118,16 @@ public abstract class ThreadLocalPollutionTest {
 
     @AfterEach
     void checkForThreadPollution() {
-        int cmsfDepth = invoke(CmsfThreadLocal.class, "getStackDepth");
-        assertEquals(0, cmsfDepth, "CMSF stack should be empty");
-
-        int roflDepth = invoke(RoflThreadLocal.class, "getStackDepth");
-        assertEquals(0, roflDepth, "ROFL stack should be empty");
-
-        int yasfDepth = invoke(YasfThreadLocal.class, "getStackDepth");
-        assertEquals(0, yasfDepth, "Stack should be empty");
+        assertEquals(0, CMSF_THREAD_LOCAL.depth(), "CMSF stack should be empty");
+        assertEquals(0, ROFL_THREAD_LOCAL.depth(), "ROFL stack should be empty");
+        assertEquals(0, YASF_THREAD_LOCAL.depth(), "YASF stack should be empty");
     }
 
     @AfterAll
     static void cleanUp() {
-        CmsfThreadLocal.reset();
-        YasfThreadLocal.reset();
-        RoflThreadLocal.reset();
+        CMSF_THREAD_LOCAL.reset();
+        YASF_THREAD_LOCAL.reset();
+        ROFL_THREAD_LOCAL.reset();
     }
 
     @ParameterizedTest

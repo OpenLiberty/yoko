@@ -25,11 +25,8 @@ import org.apache.yoko.orb.OB.ORBInstance;
 import org.apache.yoko.orb.OB.ParameterDesc;
 import org.apache.yoko.orb.OB.Util;
 import org.apache.yoko.orb.OCI.TransportInfo;
+import org.apache.yoko.io.SimplyCloseable;
 import org.apache.yoko.util.Assert;
-import org.apache.yoko.util.cmsf.CmsfThreadLocal;
-import org.apache.yoko.util.cmsf.CmsfThreadLocal.CmsfOverride;
-import org.apache.yoko.util.yasf.YasfThreadLocal;
-import org.apache.yoko.util.yasf.YasfThreadLocal.YasfOverride;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.CompletionStatus;
@@ -49,6 +46,9 @@ import org.omg.PortableInterceptor.LOCATION_FORWARD;
 import org.omg.PortableInterceptor.ObjectReferenceTemplate;
 import org.omg.PortableInterceptor.SUCCESSFUL;
 import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
+
+import static org.apache.yoko.util.ThreadLocalStack.CMSF_THREAD_LOCAL;
+import static org.apache.yoko.util.ThreadLocalStack.YASF_THREAD_LOCAL;
 import org.omg.PortableInterceptor.ServerRequestInterceptor;
 import org.omg.PortableInterceptor.TRANSPORT_RETRY;
 import org.omg.PortableInterceptor.USER_EXCEPTION;
@@ -279,8 +279,8 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
         argStrategy.setArgsAvail(false);
         argStrategy.setExceptAvail(false);
 
-        try (CmsfOverride ignored = CmsfThreadLocal.override();
-             YasfOverride ignored1 = YasfThreadLocal.override()) {
+        try (SimplyCloseable ignored = CMSF_THREAD_LOCAL.overrideForInterceptors();
+             SimplyCloseable ignored1 = YASF_THREAD_LOCAL.overrideForInterceptors()) {
             for (ServerRequestInterceptor i: interceptors) {
                 i.receive_request_service_contexts(this);
                 this.interceptors.add(i);
@@ -301,8 +301,8 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
         argStrategy.setExceptAvail(true);
         replyStatus = NO_REPLY;
 
-        try (CmsfOverride ignored = CmsfThreadLocal.override();
-             YasfOverride ignored1 = YasfThreadLocal.override()) {
+        try (SimplyCloseable ignored = CMSF_THREAD_LOCAL.overrideForInterceptors();
+             SimplyCloseable ignored1 = YASF_THREAD_LOCAL.overrideForInterceptors()) {
             for (ServerRequestInterceptor sri: interceptors)
                 sri.receive_request(this);
         } catch (ForwardRequest ex) {
@@ -318,8 +318,8 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
         // The servant is no longer available
         servant = null;
 
-        try (CmsfOverride ignored = CmsfThreadLocal.override();
-             YasfOverride ignored1 = YasfThreadLocal.override()) {
+        try (SimplyCloseable ignored = CMSF_THREAD_LOCAL.overrideForInterceptors();
+             SimplyCloseable ignored1 = YASF_THREAD_LOCAL.overrideForInterceptors()) {
             for (ServerRequestInterceptor i: removeInReverse(interceptors)) {
                 i.send_reply(this);
             }
@@ -334,8 +334,8 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
         // The servant is no longer available
         servant = null;
 
-        try (CmsfOverride ignored = CmsfThreadLocal.override();
-             YasfOverride ignored1 = YasfThreadLocal.override()) {
+        try (SimplyCloseable ignored = CMSF_THREAD_LOCAL.overrideForInterceptors();
+             SimplyCloseable ignored1 = YASF_THREAD_LOCAL.overrideForInterceptors()) {
             Assert.ensure(replyStatus == SYSTEM_EXCEPTION.value || replyStatus == USER_EXCEPTION.value);
 
             for (ServerRequestInterceptor i : removeInReverse(interceptors)) {
@@ -371,8 +371,8 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
         // The servant is no longer available
         servant = null;
 
-        try (CmsfOverride ignored = CmsfThreadLocal.override();
-             YasfOverride ignored1 = YasfThreadLocal.override()) {
+        try (SimplyCloseable ignored = CMSF_THREAD_LOCAL.overrideForInterceptors();
+             SimplyCloseable ignored1 = YASF_THREAD_LOCAL.overrideForInterceptors()) {
             Assert.ensure(replyStatus == LOCATION_FORWARD.value || replyStatus == TRANSPORT_RETRY.value);
 
             for (ServerRequestInterceptor i: removeInReverse(interceptors)) {
@@ -415,8 +415,8 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
             piCurrent._OB_pushSlotData(requestSlotData);
             // Call pre_unmarshal on extended interceptors after context switch
             // Use override to maintain consistency with other interceptor calls
-            try (CmsfOverride ignored = CmsfThreadLocal.override();
-                 YasfOverride ignored1 = YasfThreadLocal.override()) {
+            try (SimplyCloseable ignored = CMSF_THREAD_LOCAL.overrideForInterceptors();
+                 SimplyCloseable ignored1 = YASF_THREAD_LOCAL.overrideForInterceptors()) {
                 interceptors.stream()
                     .filter(ExtendedServerRequestInterceptor.class::isInstance)
                     .map(ExtendedServerRequestInterceptor.class::cast)
@@ -429,8 +429,8 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
     public void _OB_postMarshal() {
         logger.fine(() -> "Calling post_marshal on extended interceptors");
         // Use override to maintain consistency with other interceptor calls
-        try (CmsfOverride ignored = CmsfThreadLocal.override();
-             YasfOverride ignored1 = YasfThreadLocal.override()) {
+        try (SimplyCloseable ignored = CMSF_THREAD_LOCAL.overrideForInterceptors();
+             SimplyCloseable ignored1 = YASF_THREAD_LOCAL.overrideForInterceptors()) {
             interceptors.stream()
                 .filter(ExtendedServerRequestInterceptor.class::isInstance)
                 .map(ExtendedServerRequestInterceptor.class::cast)

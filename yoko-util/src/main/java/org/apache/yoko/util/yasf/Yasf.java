@@ -8,7 +8,7 @@
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an \"AS IS\" BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
@@ -17,13 +17,17 @@
  */
 package org.apache.yoko.util.yasf;
 
+import org.apache.yoko.util.concurrent.LazyReference;
+
 import java.util.BitSet;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.copyOf;
 import static org.apache.yoko.util.Collectors.toBitSet;
 import static org.apache.yoko.util.Collectors.toUnmodifiableEnumSet;
+import static org.apache.yoko.util.ThreadLocalStack.YASF_THREAD_LOCAL;
 
 /**
  * <h2>YASF &mdash; Yoko Auxiliary Stream Format</h2>
@@ -45,10 +49,6 @@ public enum Yasf {
     // TODO - Get the OMG to assign this value to Yoko
     public static final int TAG_YOKO_AUXILIARY_STREAM_FORMAT = 0xeeeeeeee;
     public static final int YOKO_AUXILIARY_STREAM_FORMAT_SC = 0xeeeeeeee;
-    /** Pre-computed octet representation of all supported fixes in this level */
-    private static final byte[] BYTES = Stream.of(Yasf.values())
-            .collect(toBitSet(y -> y.itemIndex))
-            .toByteArray();
 
     /**
      * The index of this option in any bitmap representation.
@@ -60,7 +60,7 @@ public enum Yasf {
     Yasf(int itemIndex) { this.itemIndex = itemIndex; }
 
     public boolean isSupported() {
-        Set<Yasf> set = YasfThreadLocal.get();
+        Set<Yasf> set = YASF_THREAD_LOCAL.get();
         // When there is no thread local set
         // (i.e. when talking to non-Yoko ORBs),
         // assume the format is ON.
@@ -88,9 +88,31 @@ public enum Yasf {
                 .collect(toUnmodifiableEnumSet(Yasf.class));
     }
 
+    private static final LazyReference<Supplier<byte[]>> dataSupplierRef = new LazyReference<>(Yasf::genDataSupplier);
+
+    /** Compute supplier of octet representation of all supported fixes in this level */
+    private static Supplier<byte[]> genDataSupplier() {
+        byte[] data = Stream.of(Yasf.values())
+                .collect(toBitSet(y -> y.itemIndex))
+                .toByteArray();
+        return () -> copyOf(data, data.length);
+    }
+
     /**
      * Get the bitmap of Yasf options supported in this ORB.
      * @return the bitmap as a byte array
      */
-    public static byte[] toData() { return copyOf(BYTES, BYTES.length); }
+    public static byte[] toData() { return dataSupplierRef.get().get(); }
+
+    /**
+     * Convert a set of Yasf options to a bitmap representation.
+     * @param yasfSet the set of Yasf options to convert
+     * @return the bitmap as a byte array
+     */
+    public static byte[] toData(Set<Yasf> yasfSet) {
+        if (null == yasfSet) return null;
+        return yasfSet.stream()
+                .collect(toBitSet(y -> y.itemIndex))
+                .toByteArray();
+    }
 }

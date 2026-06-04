@@ -18,6 +18,7 @@
 package org.apache.yoko.util.rofl;
 
 import static org.apache.yoko.util.rofl.Rofl.RemoteOrb.IBM;
+import static org.apache.yoko.util.ThreadLocalStack.ROFL_THREAD_LOCAL;
 
 public enum Interop {
     ;
@@ -33,7 +34,7 @@ public enum Interop {
      */
     public static boolean flagDefaultWriteObject(String customRepId) {
         if (null == customRepId) return true;
-        if (RoflThreadLocal.get().type() != IBM) return true;
+        if (ROFL_THREAD_LOCAL.get().type() != IBM) return true;
         if (!customRepId.endsWith(":686A81014B597419")) return true;
         return !customRepId.startsWith("RMI:org.omg.custom.java.util.Date:");
     }

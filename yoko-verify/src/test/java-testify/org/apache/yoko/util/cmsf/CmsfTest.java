@@ -28,6 +28,8 @@ import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.util.Objects;
 
+import static org.apache.yoko.util.cmsf.Cmsf.CMSFv2;
+import static org.apache.yoko.util.ThreadLocalStack.CMSF_THREAD_LOCAL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ConfigureServer
@@ -39,13 +41,13 @@ public class CmsfTest {
         private void readObject(ObjectInputStream in) throws Exception {
             // Since we are marshalling from another Yoko ORB,
             // Cmsf options should be set when reading in.
-            assertEquals(2, CmsfThreadLocal.get());
+            assertEquals(CMSFv2, CMSF_THREAD_LOCAL.get());
             in.defaultReadObject();
         }
         private void writeObject(ObjectOutputStream out) throws Exception {
             // Since we are marshalling to another Yoko ORB,
             // Cmsf options should be set when writing out.
-            assertEquals(2, CmsfThreadLocal.get());
+            assertEquals(CMSFv2, CMSF_THREAD_LOCAL.get());
             out.defaultWriteObject();
         }
         public boolean equals(Object o) { return o instanceof Message && Objects.equals(text, ((Message) o).text); }

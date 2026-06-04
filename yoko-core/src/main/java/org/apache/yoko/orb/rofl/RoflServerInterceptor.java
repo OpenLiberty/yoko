@@ -17,12 +17,14 @@
  */
 package org.apache.yoko.orb.rofl;
 
+import org.apache.yoko.io.SimplyCloseable;
 import org.apache.yoko.orb.PortableInterceptor.ExtendedServerRequestInterceptor;
 import org.apache.yoko.util.rofl.RoflHelper;
-import org.apache.yoko.util.rofl.RoflThreadLocal;
 import org.omg.CORBA.LocalObject;
 import org.omg.PortableInterceptor.ForwardRequest;
 import org.omg.PortableInterceptor.ServerRequestInfo;
+
+import static org.apache.yoko.util.ThreadLocalStack.ROFL_THREAD_LOCAL;
 
 public class RoflServerInterceptor extends LocalObject implements ExtendedServerRequestInterceptor {
     private static final String NAME = RoflServerInterceptor.class.getName();
@@ -32,19 +34,18 @@ public class RoflServerInterceptor extends LocalObject implements ExtendedServer
         this.roflHelper = new RoflHelper(slotId);
     }
     public void receive_request_service_contexts(ServerRequestInfo ri) throws ForwardRequest {
-        RoflThreadLocal.reset();
+        ROFL_THREAD_LOCAL.reset();
         // Store in slot - will be retrieved after context switch in pre_unmarshal
         roflHelper.findAndSave(ri);
     }
 
     public void pre_unmarshal(ServerRequestInfo ri) {
-        // Push ROFL data after context switch, before argument deserialization
-        RoflThreadLocal.push(roflHelper.loadAndCreate(ri));
+        @SuppressWarnings("resource") // popped in post_marshal
+        SimplyCloseable ignored = ROFL_THREAD_LOCAL.push(roflHelper.loadAndCreate(ri));
     }
 
     public void post_marshal(ServerRequestInfo ri) {
-        // Pop ROFL data after marshalling is complete
-        RoflThreadLocal.pop();
+        ROFL_THREAD_LOCAL.pop();
     }
 
     public String name() { return NAME; }
