@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,8 +56,22 @@ public enum Exceptions {
     }
 
     private static <EXC extends Throwable> EXC withCause(EXC exc, Throwable cause) {
-        if (exc instanceof RemoteException) ((RemoteException)exc).detail = cause;
-        else exc.initCause(cause);
+        if (exc instanceof RemoteException) {
+            ((RemoteException)exc).detail = cause;
+            return exc;
+        }
+        final Throwable currentCause = exc.getCause();
+        if (currentCause == cause) return exc;
+        if (null == currentCause) {
+            try {
+                exc.initCause(cause);
+                return exc;
+            } catch (IllegalStateException ignored) {
+            }
+        }
+        // Couldn't add cause as exc's causal, so use addSuppressed instead
+        if (null != cause) exc.addSuppressed(cause);
+
         return exc;
     }
 }
