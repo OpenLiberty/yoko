@@ -28,6 +28,8 @@ import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAPackage.ObjectNotActive;
 import org.omg.PortableServer.POAPackage.ServantAlreadyActive;
 import org.omg.PortableServer.POAPackage.ServantNotActive;
+
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
 import org.omg.SendingContext.CodeBaseHelper;
 import org.omg.SendingContext.RunTime;
@@ -138,7 +140,7 @@ public class ValueHandlerImpl implements ValueHandler {
                 synchronized (streamMap) {
                     streamMap.remove(in);
                 }
-            } 
+            }
         }
         return obj;
     }
@@ -194,7 +196,7 @@ public class ValueHandlerImpl implements ValueHandler {
             Serializable result = desc.writeReplace(val);
             if (result != val)
                 logger.finer(() -> "replacing with value of type " + val.getClass().getName() + " with " + result.getClass().getName());
-            return result; 
+            return result;
         }
     }
 
@@ -241,7 +243,7 @@ public class ValueHandlerImpl implements ValueHandler {
     }
 
     String[] getImplementations(String[] ids) {
-        if (ids == null) return new String[0];
+        if (ids == null) return NO_STRINGS;
         String[] result = new String[ids.length];
         for (int i = 0; i < ids.length; i++) result[i] = getImplementation(ids[i]);
         return result;
@@ -269,7 +271,7 @@ public class ValueHandlerImpl implements ValueHandler {
     String[] getBases(String id) {
         try {
             Class<?> clz = getClassFromRepositoryID(id);
-            if (clz == null) return new String[0];
+            if (clz == null) return NO_STRINGS;
 
             Class<?>[] ifaces = clz.getInterfaces();
             Class<?> superClz = clz.getSuperclass();
@@ -291,7 +293,7 @@ public class ValueHandlerImpl implements ValueHandler {
             return result;
         } catch (Throwable ex) {
             logger.log(WARNING, ex, () -> "exception in CodeBase::bases");
-            return new String[0];
+            return NO_STRINGS;
         }
     }
 

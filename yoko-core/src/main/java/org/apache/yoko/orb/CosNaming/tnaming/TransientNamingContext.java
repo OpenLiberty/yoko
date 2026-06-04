@@ -38,6 +38,8 @@ import org.omg.CosNaming.BindingIteratorHolder;
 import org.omg.CosNaming.BindingIteratorPOA;
 import org.omg.CosNaming.BindingListHolder;
 import org.omg.CosNaming.NameComponent;
+
+import static org.apache.yoko.util.Arrays.emptyArray;
 import org.omg.CosNaming.NamingContextHelper;
 import org.omg.CosNaming.NamingContext;
 
@@ -397,7 +399,7 @@ public class TransientNamingContext extends NamingContextBase {
             }
             else {
                 // return an empty element
-                b.value = new Binding(new NameComponent[0], BindingType.nobject);
+                b.value = new Binding(emptyArray(NameComponent.class), BindingType.nobject);
                 return false;
             }
         }

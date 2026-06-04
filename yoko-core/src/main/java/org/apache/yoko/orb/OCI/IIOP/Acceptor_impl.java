@@ -56,6 +56,7 @@ import java.util.List;
 import static java.net.InetAddress.getLoopbackAddress;
 import static java.util.Objects.requireNonNull;
 import static java.util.logging.Level.FINE;
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.apache.yoko.logging.VerboseLogging.CONN_IN_LOG;
 import static org.apache.yoko.logging.VerboseLogging.logged;
 import static org.apache.yoko.logging.VerboseLogging.wrapped;
@@ -240,7 +241,7 @@ final class Acceptor_impl extends LocalObject implements Acceptor {
     }
 
     private static void addNewProfile_1_1(IOR ior, Version version, String host, short port, byte[] key, List<TaggedComponent> components) {
-        ProfileBody_1_1 body = new ProfileBody_1_1(version, host, port, key, components.toArray(new TaggedComponent[0]));
+        ProfileBody_1_1 body = new ProfileBody_1_1(version, host, port, key, components.toArray(emptyArray(TaggedComponent.class)));
         try (YokoOutputStream out = new YokoOutputStream()) {
             out._OB_writeEndian();
             ProfileBody_1_1Helper.write(out, body);
@@ -252,7 +253,7 @@ final class Acceptor_impl extends LocalObject implements Acceptor {
     public ProfileInfo[] get_local_profiles(IOR ior) {
         // Get local profiles for all hosts
         ProfileInfoSeqHolder profileInfoSeq = new ProfileInfoSeqHolder();
-        profileInfoSeq.value = new ProfileInfo[0];
+        profileInfoSeq.value = emptyArray(ProfileInfo.class);
 
         for (String s : hosts_) {
             Util.extractAllProfileInfos(ior, profileInfoSeq, true, s, port_, true, codec_);

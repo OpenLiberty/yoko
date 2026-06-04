@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,8 @@ import org.omg.CosNaming.BindingIteratorPOA;
 import org.omg.CosNaming.BindingListHolder;
 import org.omg.CosNaming.BindingType;
 import org.omg.CosNaming.NameComponent;
+
+import static org.apache.yoko.util.Arrays.emptyArray;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.Servant;
 
@@ -45,7 +47,7 @@ public final class BindingIteratorImpl extends LocalObject implements BindingIte
         // the iterator use to access the bindings
         private final Iterator<BoundObject> iterator;
 
-        private static final NameComponent[] ZERO_NC_ARRAY = new NameComponent[0];
+
         /**
          * Create a new BindingIterator to iterate over the given boundObjects.
          * @param boundObjects The bound objects over which to iterate.
@@ -73,7 +75,7 @@ public final class BindingIteratorImpl extends LocalObject implements BindingIte
                 return true;
             } else {
                 // return an empty element
-                b.value = new Binding(ZERO_NC_ARRAY, BindingType.nobject);
+                b.value = new Binding(emptyArray(NameComponent.class), BindingType.nobject);
                 return false;
             }
         }

@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.util;
 
+import java.lang.reflect.Array;
 import java.util.function.BiConsumer;
 
 import static java.util.stream.IntStream.range;
@@ -27,6 +28,34 @@ import static java.util.stream.IntStream.range;
 public enum Arrays {
     ;
 
+    /** Zero-length byte array constant */
+    public static final byte[] EMPTY_BYTES = {};
+
+    /** Zero-length int array constant */
+    public static final int[] EMPTY_INTS = {};
+
+    /** Zero-length String array constant */
+    public static final String[] NO_STRINGS;
+
+    /**
+     * ClassValue holding empty array for the Class.
+     * <p>
+     * Safe for classloader unloading: ClassValue uses weak references to Class keys internally,
+     * so entries are GC'd when the Class becomes unreachable, even though the array value
+     * holds a strong reference back to the Class via its component type.
+     */
+    private static final ClassValue<Object> EMPTY_ARRAYS;
+
+    static {
+        EMPTY_ARRAYS = new ClassValue<Object>() {
+            @Override
+            protected Object computeValue(Class<?> type) {
+                return Array.newInstance(type, 0);
+            }
+        };
+
+        NO_STRINGS = emptyArray(String.class);
+    }
     /**
      * Functional interface for iterating over paired elements from two arrays.
      *
@@ -66,5 +95,29 @@ public enum Arrays {
     public static <A, B> Zipper<A, B> zip(A[] arr1, B[] arr2) {
         if (arr1.length != arr2.length) throw new IllegalArgumentException("Arrays must have the same length: " + arr1.length + " != " + arr2.length);
         return action -> range(0, arr1.length).forEach(i -> action.accept(arr1[i], arr2[i]));
+    }
+
+    /**
+     * Creates a zero-length array of the specified class type.
+     *
+     * <p>Example usage:
+     * <pre>{@code
+     * String[] emptyStrings = NO_STRINGS; // Use constant for String arrays
+     * Integer[] emptyIntegers = emptyArray(Integer.class);
+     * }</pre>
+     *
+     * @param <T> the component type of the array
+     * @param clazz the class object representing the component type
+     * @return a zero-length array of the specified type
+     */
+    public static <T> T[] emptyArray(Class<T> clazz) {
+        @SuppressWarnings("unchecked")
+        T[] result = (T[])EMPTY_ARRAYS.get(assertNotPrimitive(clazz));
+        return result;
+    }
+
+    private static Class<?> assertNotPrimitive(Class<?> clazz) {
+        assert !clazz.isPrimitive();
+        return clazz;
     }
 }

@@ -24,6 +24,8 @@ import org.omg.PortableInterceptor.ORBInitializer;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
+
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import java.util.Optional;
 
 import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
@@ -46,7 +48,7 @@ public @interface ConfigureOrb {
         private final String initializerClassName;
 
         NameService() {
-            this.args = new String[0];
+            this.args = NO_STRINGS;
             this.initializerClassName = null;
         }
 

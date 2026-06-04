@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,10 +29,14 @@ import org.junit.runners.Parameterized.Parameters;
 import java.math.BigInteger;
 import java.util.Arrays;
 
-import static org.apache.yoko.util.HexConverter.*;
-import static org.apache.yoko.util.HexConverterTest.Util.*;
+import static org.apache.yoko.util.Arrays.EMPTY_BYTES;
+import static org.apache.yoko.util.HexConverter.fromHex;
+import static org.apache.yoko.util.HexConverter.toHex;
+import static org.apache.yoko.util.HexConverterTest.Util.bytes;
+import static org.apache.yoko.util.HexConverterTest.Util.matchesHex;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class)
 public class HexConverterTest {
@@ -105,7 +109,7 @@ public class HexConverterTest {
         }
 
         static byte[] bytes(String hex) {
-            if (hex.isEmpty()) return new byte[0];
+            if (hex.isEmpty()) return EMPTY_BYTES;
             BigInteger bigInt = new BigInteger(hex, 16);
             byte[] bytes = bigInt.toByteArray();
             return padLeft(bytes, hex.length() / 2);

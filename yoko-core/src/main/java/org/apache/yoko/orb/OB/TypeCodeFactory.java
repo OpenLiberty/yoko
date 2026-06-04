@@ -19,6 +19,7 @@ package org.apache.yoko.orb.OB;
 
 import static java.lang.Character.isLetter;
 import static java.lang.Character.isLetterOrDigit;
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_convertForeignTypeCode;
 import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_embedRecTC;
 import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_getOrigType;
@@ -242,7 +243,7 @@ public final class TypeCodeFactory {
             break;
 
         case _tk_value:
-            tc = createValueTC("IDL:omg.org/CORBA/ValueBase:1.0", "ValueBase", VM_ABSTRACT.value, null, new ValueMember[0]);
+            tc = createValueTC("IDL:omg.org/CORBA/ValueBase:1.0", "ValueBase", VM_ABSTRACT.value, null, emptyArray(ValueMember.class));
             break;
 
         default:

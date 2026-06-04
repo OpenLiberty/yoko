@@ -50,6 +50,8 @@ import org.omg.IOP.IOR;
 import org.omg.IOP.IORHelper;
 import org.omg.IOP.TaggedProfile;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Enumeration;
@@ -666,7 +668,7 @@ public final class YokoOutputStream extends OutputStream implements ValueOutputS
             MARSHAL_OUT_LOG.finest(() -> "Writing a null CORBA object value");
             IOR ior = new IOR();
             ior.type_id = "";
-            ior.profiles = new TaggedProfile[0];
+            ior.profiles = emptyArray(TaggedProfile.class);
             IORHelper.write(this, ior);
         } else {
             if (value instanceof LocalObject)

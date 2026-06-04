@@ -39,6 +39,8 @@ import org.omg.DynamicAny.DynValueHelper;
 import org.omg.DynamicAny.NameDynAnyPair;
 import org.omg.DynamicAny.NameValuePair;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 import static org.omg.CORBA.TCKind._tk_value;
 import static org.omg.CORBA.TCKind.tk_value;
 
@@ -46,7 +48,7 @@ import java.util.Vector;
 
 final class DynValue_impl extends DynValueCommon_impl implements
         DynValue {
-    private DynAny[] components_ = new DynAny[0];
+    private DynAny[] components_ = emptyArray(DynAny.class);
 
     private String[] names_;
 
@@ -173,7 +175,7 @@ final class DynValue_impl extends DynValueCommon_impl implements
     protected void destroyComponents() {
         if (components_.length > 0) {
             for (DynAny dynAny : components_) dynAny.destroy();
-            components_ = new DynAny[0];
+            components_ = emptyArray(DynAny.class);
         }
 
         index_ = -1;

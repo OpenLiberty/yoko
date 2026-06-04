@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,6 @@ import java.rmi.RemoteException;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class Skellington extends Servant implements Tie, Remote {
@@ -53,8 +52,7 @@ public abstract class Skellington extends Servant implements Tie, Remote {
         final ValueHandler vh = Util.createValueHandler();
         this.ids = findRemoteInterfaces(this.getClass())
                 .map(vh::getRMIRepositoryID)
-                .collect(Collectors.toList())
-                .toArray(new String[0]);
+                .toArray(String[]::new);
     }
 
     private static Stream<Class<? extends Remote>> findRemoteInterfaces(final Class<?> forClass) {

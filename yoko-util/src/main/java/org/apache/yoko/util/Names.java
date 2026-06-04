@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package org.apache.yoko.util;
 
 import org.omg.CosNaming.NameComponent;
 
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public enum Names {
@@ -28,7 +27,6 @@ public enum Names {
     public static NameComponent[] toCosName(String...parts) {
         return Stream.of(parts)
                 .map(s -> new NameComponent(s, ""))
-                .collect(Collectors.toList())
-                .toArray(new NameComponent[0]);
+                .toArray(NameComponent[]::new);
     }
 }

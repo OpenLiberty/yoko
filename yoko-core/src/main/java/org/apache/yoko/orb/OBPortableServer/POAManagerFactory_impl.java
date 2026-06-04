@@ -70,6 +70,8 @@ import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 import static org.apache.yoko.logging.VerboseLogging.INIT_LOG;
 import static org.apache.yoko.logging.VerboseLogging.SHUTDOWN_LOG;
+import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import static org.apache.yoko.util.Assert.ensure;
 import static org.omg.PortableServer.POAManagerPackage.State.INACTIVE;
 
@@ -124,7 +126,7 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
 
             for (AccFactory factory : factories) {
                 if (! protocol.equals(factory.id())) continue;
-                AcceptorConfig config = new AcceptorConfig(protocol, params.toArray(new String[0]));
+                AcceptorConfig config = new AcceptorConfig(protocol, params.toArray(NO_STRINGS));
                 acceptorConfigs.add(config);
                 continue PROTOCOL_LOOP;
             }
@@ -137,7 +139,7 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
             throw new INITIALIZE("no endpoints defined");
         }
 
-        return acceptorConfigs.toArray(new AcceptorConfig[0]);
+        return acceptorConfigs.toArray(emptyArray(AcceptorConfig.class));
     }
 
     // ----------------------------------------------------------------------
@@ -188,7 +190,7 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
                     }
                 }
             }
-            Policy[] tmpPolicies = policyList.toArray(new Policy[0]);
+            Policy[] tmpPolicies = policyList.toArray(emptyArray(Policy.class));
 
             AcceptorConfig[] configs;
 
@@ -222,7 +224,7 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
             }
 
             // Create the new POAManager_impl and add to the table
-            Acceptor[] arr = acceptors.toArray(new Acceptor[0]);
+            Acceptor[] arr = acceptors.toArray(emptyArray(Acceptor.class));
             POAManager_impl manager = new POAManager_impl(orbInstance_, poaLocator_, id, count_.toString(), arr, tmpPolicies);
             managers_.put(id, manager);
             return manager;
@@ -233,7 +235,7 @@ final public class POAManagerFactory_impl extends LocalObject implements POAMana
     public org.omg.PortableServer.POAManager[] list() {
         List<POAManager_impl> list = new ArrayList<>(managers_.values());
         while(list.remove(null));
-        return list.toArray(new org.omg.PortableServer.POAManager[0]);
+        return list.toArray(emptyArray(org.omg.PortableServer.POAManager.class));
     }
 
     @Override

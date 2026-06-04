@@ -55,6 +55,7 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 import static javax.rmi.PortableRemoteObject.narrow;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -276,8 +277,7 @@ class ServerSteward {
             args.add("--add-opens");
             args.add("java.base/java.util=ALL-UNNAMED");
         }
-
-        return args.toArray(new String[0]);
+        return args.toArray(NO_STRINGS);
     }
 
     private String buildClasspathForVersion(String version) {
