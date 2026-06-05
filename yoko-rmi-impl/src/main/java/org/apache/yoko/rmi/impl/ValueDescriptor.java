@@ -124,6 +124,9 @@ class ValueDescriptor extends TypeDescriptor {
     private static final Set<? extends Class<? extends Serializable>> IMMUTABLE_VALUE_CLASSES = unmodifiableSet(new HashSet<>(asList(Integer.class,
             Character.class, Boolean.class, Byte.class, Long.class, Float.class, Double.class, Short.class)));
 
+    /** 30210: Record support utility (null for non-records) */
+    private RecordSupportUtils _recordSupportUtils = null;
+
     ValueDescriptor(Class<?> type, TypeRepository repository) {
         this(type, repository, null, null, null);
     }
@@ -295,6 +298,22 @@ class ValueDescriptor extends TypeDescriptor {
 
     Method genReadObjectMethod() {
         try {
+
+            // 30210: Check for record support
+            // TODO: Remove duplicate classloading from here and findWriteObjectMethod()
+            _recordSupportUtils = RecordSupportUtils.forClass(getType());
+            if (_recordSupportUtils != null) {
+                logger.fine("Detected record class: " + getType().getName());
+                
+                // Validate record follows serialization rules
+                _recordSupportUtils.validate();
+                
+                logger.fine("Record has " + _recordSupportUtils.getComponents().length + " components");
+
+                // Records cannot have custom serialization methods
+                return null;
+            }
+
             Method method = doPrivileged(getDeclaredMethod(getType(), "readObject", ObjectInputStream.class));
 
             // Validate the method
@@ -312,6 +331,22 @@ class ValueDescriptor extends TypeDescriptor {
     Method genWriteObjectMethod() {
         Class<?> type = getType();
         try {
+
+            // 30210: Check for record support
+            // TODO: Remove duplicate classloading from here and findReadObjectMethod()
+            _recordSupportUtils = RecordSupportUtils.forClass(getType());
+            if (_recordSupportUtils != null) {
+                logger.fine("Detected record class: " + getType().getName());
+                
+                // Validate record follows serialization rules
+                _recordSupportUtils.validate();
+                
+                logger.fine("Record has " + _recordSupportUtils.getComponents().length + " components");
+
+                // Records cannot have custom serialization methods
+                return null;
+            }
+
             Method method = doPrivileged(getDeclaredMethod(type, "writeObject", ObjectOutputStream.class));
 
             // Validate the method
@@ -555,6 +590,14 @@ class ValueDescriptor extends TypeDescriptor {
     public void writeValue(final OutputStream out, final Serializable value) {
         try {
             ObjectWriter writer = doPrivileged(exAction(() -> new CorbaObjectWriter(out, value)));
+
+            // 30210: Handle Records
+            if (_recordSupportUtils != null) {
+                    // Delegate to record support
+                    _recordSupportUtils.writeComponents(writer, value);
+                    return;
+                }
+
             writeValue(writer, value);
         } catch (IOException ex) {
             throw as(MARSHAL::new, ex, ex.getMessage());
@@ -827,11 +870,27 @@ class ValueDescriptor extends TypeDescriptor {
         try {
             ObjectReader reader = makeCorbaObjectReader(in, offsetMap, value);
 
+            // 30210: Handle Record case
+            if (_recordSupportUtils != null) {
+
+                // Delegate to record support
+                Serializable instance = (Serializable) _recordSupportUtils.readAndConstruct(reader);
+                
+                // Register in offset map if needed
+                // Currently, this has already been done, but we might move the put later
+                if (offset != null) {
+                    offsetMap.put(offset, instance);
+                }
+                return instance;
+            }
+
             final Serializable resolved = readResolve(readValue(reader, value));
+
             if (value != resolved) {
                 offsetMap.put(offset, resolved);
             }
             return resolved;
+
         } catch (IOException ex) {
             throw as(MARSHAL::new, ex, ex.getMessage());
         }
