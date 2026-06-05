@@ -25,19 +25,23 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.collectingAndThen;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
 
-final class FVDValueDescriptor extends ValueDescriptor {
+class FVDValueDescriptor extends ValueDescriptor {
     final FullValueDescription fvd;
     final String repid;
     private final ValueDescriptor superDesc;
 
-    FVDValueDescriptor(FullValueDescription fvd, Class<?> clazz,
-            TypeRepository rep, String repid, ValueDescriptor super_desc) {
-        super(clazz, rep);
+    FVDValueDescriptor(FullValueDescription fvd, Class<?> clazz, TypeRepository rep, String repid, ValueDescriptor super_desc) {
+        this(fvd, clazz, rep, repid, super_desc, null);
+    }
+
+    FVDValueDescriptor(FullValueDescription fvd, Class<?> clazz, TypeRepository rep, String repid, ValueDescriptor super_desc, Supplier<ValueReader> readerSupplier) {
+        super(clazz, rep, readerSupplier);
 
         this.repid = repid;
         this.fvd = fvd;
@@ -45,6 +49,18 @@ final class FVDValueDescriptor extends ValueDescriptor {
 
         init();
     }
+
+    static FVDValueDescriptor create(FullValueDescription fvd, Class<?> clz, TypeRepository repo, String repId, ValueDescriptor superDesc) {
+        if ((superDesc != null) && superDesc.isEnum()) {
+            Class<?> enumType = EnumSubclassDescriptor.getEnumType(clz);
+            return new FVDUncustomizableValueDescriptor(fvd, enumType, repo, repId, superDesc, () -> EnumSubclassDescriptor.genValueReader(superDesc, enumType));
+        } else if (fvd.id.startsWith("RMI:java.lang.Enum:")) {
+            return new FVDUncustomizableValueDescriptor(fvd, clz, repo, repId, superDesc);
+        } else {
+            return new FVDValueDescriptor(fvd, clz, repo, repId, superDesc);
+        }
+    }
+
 
     @Override
     ValueDescriptor genSuperDescriptor() { return superDesc; }
@@ -92,9 +108,7 @@ final class FVDValueDescriptor extends ValueDescriptor {
     }
 
     @Override
-    FullValueDescription getFullValueDescription() {
-        return copyOf(fvd);
-    }
+    FullValueDescription getFullValueDescription() { return copyOf(fvd); }
 
     @Override
     TypeCode genTypeCode() { return fvd.type; }

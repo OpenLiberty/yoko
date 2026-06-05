@@ -333,20 +333,12 @@ public class TypeRepository {
 
         FullValueDescription fvd = codebase.meta(repid);
 
-        ValueDescriptor super_desc = null;
-        if (!"".equals(fvd.base_value)) {
-            super_desc = getDescriptor(clz == null ? null : clz.getSuperclass(), fvd.base_value, codebase);
-        }
+        final ValueDescriptor superDesc = "".equals(fvd.base_value) ? null :
+            getDescriptor(null == clz ? null : clz.getSuperclass(), fvd.base_value, codebase);
 
-        final ValueDescriptor newDesc;
-        if ((super_desc != null) && super_desc.isEnum()) {
-            newDesc = new FVDEnumSubclassDescriptor(fvd, clz, this, repid, super_desc);
-        } else if (fvd.id.startsWith("RMI:java.lang.Enum:")) {
-            newDesc = new FVDEnumDescriptor(fvd, clz, this, repid, super_desc);
-        } else {
-            newDesc = new FVDValueDescriptor(fvd, clz, this, repid, super_desc);
-        }
-        ConcurrentMap<String, ValueDescriptor> remoteDescMap = (clz == null) ? noTypeDescMap : fvdDescMaps.get(clz);
+        final ValueDescriptor newDesc = FVDValueDescriptor.create(fvd, clz, this, repid, superDesc);
+
+        ConcurrentMap<String, ValueDescriptor> remoteDescMap = (null == clz) ? noTypeDescMap : fvdDescMaps.get(clz);
         clzdesc = remoteDescMap.putIfAbsent(newDesc.getRepositoryID(), newDesc);
         if (clzdesc == null) {
             clzdesc = newDesc;

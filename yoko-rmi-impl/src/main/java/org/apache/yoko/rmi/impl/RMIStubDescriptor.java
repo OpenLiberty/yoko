@@ -18,7 +18,6 @@
 package org.apache.yoko.rmi.impl;
 
 import java.io.IOException;
-import java.io.Serializable;
 
 class RMIStubDescriptor extends ValueDescriptor {
     RMIStubDescriptor(Class type, TypeRepository repository) {
@@ -50,8 +49,7 @@ class RMIStubDescriptor extends ValueDescriptor {
     }
 
     @Override
-    protected Serializable readValue(ObjectReader reader, java.io.Serializable value)
-            throws IOException {
-        return getSuperDescriptor().readValue(reader, value);
+    ValueReader genValueReader() {
+        return getSuperDescriptor().genValueReader();
     }
 }

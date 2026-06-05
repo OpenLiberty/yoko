@@ -20,10 +20,12 @@ package org.apache.yoko.rmi.impl;
 import java.io.IOException;
 import java.io.ObjectStreamField;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.util.Map;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 class EnumSubclassDescriptor extends UncustomizableValueDescriptor {
-    private static final ObjectStreamField[] SERIAL_PERSISTENT_FIELDS = {};
 
     EnumSubclassDescriptor(Class<?> type, TypeRepository repository) {
         super(type, repository);
@@ -44,10 +46,23 @@ class EnumSubclassDescriptor extends UncustomizableValueDescriptor {
     protected final boolean isEnum() { return true; }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    protected Serializable readValue(ObjectReader reader, Serializable val) throws IOException {
-        Map<String,Object> fields = getSuperDescriptor().readFields(reader);
-        return Enum.valueOf((Class)getType(), (String)fields.get("name"));
+    ValueReader genValueReader() {
+        return genValueReader(this.getSuperDescriptor(), this.getType());
+    }
+
+    static ValueReader genValueReader(ValueDescriptor superDesc, Class<?> type) {
+        return (reader, ignored) -> readValue(superDesc, type, reader);
+    }
+
+    private static Serializable readValue(ValueDescriptor superDesc, Class<?> type, ObjectReader reader) {
+        try {
+            Map<String, Object> fields = superDesc.readFields(reader);
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            Serializable result = Enum.valueOf((Class)type, (String) fields.get("name"));
+            return result;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
@@ -65,6 +80,6 @@ class EnumSubclassDescriptor extends UncustomizableValueDescriptor {
     @Override
     ObjectStreamField[] findSerialPersistentFields() {
         // Enum subclasses have no fields of their own - they delegate to the parent enum
-        return SERIAL_PERSISTENT_FIELDS;
+        return emptyArray(ObjectStreamField.class);
     }
 }
