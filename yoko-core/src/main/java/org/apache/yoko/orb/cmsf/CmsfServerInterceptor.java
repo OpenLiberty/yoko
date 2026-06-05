@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.orb.cmsf;
 
+import org.apache.yoko.orb.PortableInterceptor.ExtendedServerRequestInterceptor;
 import org.apache.yoko.util.cmsf.CmsfThreadLocal;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.INTERNAL;
@@ -26,7 +27,6 @@ import org.omg.IOP.ServiceContext;
 import org.omg.PortableInterceptor.ForwardRequest;
 import org.omg.PortableInterceptor.InvalidSlot;
 import org.omg.PortableInterceptor.ServerRequestInfo;
-import org.omg.PortableInterceptor.ServerRequestInterceptor;
 
 import java.io.IOException;
 import java.io.NotSerializableException;
@@ -38,12 +38,12 @@ import static org.apache.yoko.orb.cmsf.CmsfVersion.CMSFv1;
 import static org.apache.yoko.util.Hex.formatHexPara;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidServiceContextId;
 
-public final class CmsfServerInterceptor extends LocalObject implements ServerRequestInterceptor {
+public final class CmsfServerInterceptor extends LocalObject implements ExtendedServerRequestInterceptor {
     private static final Logger LOGGER = Logger.getLogger(CmsfServerInterceptor.class.getName());
     private static final String NAME = CmsfServerInterceptor.class.getName();
 
     private final int slotId;
-    
+
     public CmsfServerInterceptor(int slotId) {
         this.slotId = slotId;
     }
@@ -60,6 +60,7 @@ public final class CmsfServerInterceptor extends LocalObject implements ServerRe
         } catch (BAD_PARAM e) {
             if (e.minor != MinorInvalidServiceContextId) throw e;
         }
+        // Store in slot - will be retrieved after context switch in pre_unmarshal
         try {
             ri.set_slot(slotId, cmsf.getAny());
         } catch (InvalidSlot e) {
@@ -68,32 +69,20 @@ public final class CmsfServerInterceptor extends LocalObject implements ServerRe
     }
 
     @Override
-    public void receive_request(ServerRequestInfo ri) throws ForwardRequest {
-    }
-    
-    private void setupCmsfThreadLocalValue(ServerRequestInfo ri) {
-        CmsfVersion cmsf = CMSFv1;
+    public void pre_unmarshal(ServerRequestInfo ri) {
+        // Push CMSF data after context switch, before argument deserialization
         try {
-            cmsf = CmsfVersion.readAny(ri.get_slot(slotId));
+            CmsfVersion cmsf = CmsfVersion.readAny(ri.get_slot(slotId));
+            CmsfThreadLocal.push(cmsf.getValue());
         } catch (InvalidSlot e) {
             throw (INTERNAL)(new INTERNAL(e.getMessage())).initCause(e);
         }
-        CmsfThreadLocal.push(cmsf.getValue());
     }
 
     @Override
-    public void send_reply(ServerRequestInfo ri) {
-        setupCmsfThreadLocalValue(ri);
-    }
-
-    @Override
-    public void send_exception(ServerRequestInfo ri) throws ForwardRequest {
-        setupCmsfThreadLocalValue(ri);
-    }
-
-    @Override
-    public void send_other(ServerRequestInfo ri) throws ForwardRequest {
-        setupCmsfThreadLocalValue(ri);
+    public void post_marshal(ServerRequestInfo ri) {
+        // Pop CMSF data after marshalling is complete
+        CmsfThreadLocal.pop();
     }
 
     @Override
@@ -101,14 +90,10 @@ public final class CmsfServerInterceptor extends LocalObject implements ServerRe
         return NAME;
     }
 
-    @Override
-    public void destroy() {
-    }
-    
     private void readObject(ObjectInputStream ios) throws IOException {
         throw new NotSerializableException(NAME);
     }
-    
+
     private void writeObject(ObjectOutputStream oos) throws IOException {
         throw new NotSerializableException(NAME);
     }

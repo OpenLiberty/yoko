@@ -54,7 +54,7 @@ public class YasfTest {
         public String toString() { return String.format("MessageImpl[%s]", text); }
     }
 
-    interface Echo extends RemoteFunction<Message, Message>{}
+    public interface Echo extends RemoteFunction<Message, Message>{}
 
     @RemoteImpl
     public static final Echo REMOTE = m -> m;

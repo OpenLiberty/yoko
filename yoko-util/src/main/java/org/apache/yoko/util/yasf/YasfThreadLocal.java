@@ -25,11 +25,7 @@ import java.util.logging.Logger;
  */
 public final class YasfThreadLocal {
     private static final Logger LOGGER = Logger.getLogger(YasfThreadLocal.class.getName());
-    private static final ThreadLocal<YasfInfo> yasfInfo = new ThreadLocal<YasfInfo>() {
-        @Override protected YasfInfo initialValue() {
-            return new YasfInfo();
-        }
-    };
+    private static final ThreadLocal<YasfInfo> yasfInfo = ThreadLocal.withInitial(YasfInfo::new);
 
     private YasfThreadLocal() {}
 

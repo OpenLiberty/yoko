@@ -26,11 +26,7 @@ import java.util.logging.Logger;
  */
 public final class CmsfThreadLocal {
     private static final Logger LOGGER = Logger.getLogger(CmsfThreadLocal.class.getName());
-    private static final ThreadLocal<CmsfInfo> cmsfInfo = new ThreadLocal<CmsfInfo>() {
-        @Override protected CmsfInfo initialValue() {
-            return new CmsfInfo();
-        }
-    };
+    private static final ThreadLocal<CmsfInfo> cmsfInfo = ThreadLocal.withInitial(CmsfInfo::new);
 
     private CmsfThreadLocal() {}
 

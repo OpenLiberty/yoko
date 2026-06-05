@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,19 +17,19 @@
  */
 package org.apache.yoko.orb.yasf;
 
-import java.io.IOException;
-import java.io.NotSerializableException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-
+import org.apache.yoko.orb.PortableInterceptor.ExtendedServerRequestInterceptor;
 import org.apache.yoko.util.yasf.Yasf;
 import org.apache.yoko.util.yasf.YasfThreadLocal;
 import org.omg.CORBA.LocalObject;
 import org.omg.PortableInterceptor.ForwardRequest;
 import org.omg.PortableInterceptor.ServerRequestInfo;
-import org.omg.PortableInterceptor.ServerRequestInterceptor;
 
-public class YasfServerInterceptor extends LocalObject implements ServerRequestInterceptor {
+import java.io.IOException;
+import java.io.NotSerializableException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
+public class YasfServerInterceptor extends LocalObject implements ExtendedServerRequestInterceptor {
     private static final String NAME = YasfServerInterceptor.class.getName();
 
     private final int slotId;
@@ -42,41 +42,40 @@ public class YasfServerInterceptor extends LocalObject implements ServerRequestI
     public void receive_request_service_contexts(ServerRequestInfo ri) throws ForwardRequest {
         YasfThreadLocal.reset();
         byte[] yasfData = YasfHelper.readData(ri);
+        // Store in slot - will be retrieved after context switch in pre_unmarshal
         YasfHelper.setSlot(slotId, ri, yasfData);
     }
 
     @Override
-    public void receive_request(ServerRequestInfo ri) throws ForwardRequest {
+    public void pre_unmarshal(ServerRequestInfo ri) {
+        // Push YASF data after context switch, before argument deserialization
+        YasfThreadLocal.push(Yasf.toSet(YasfHelper.getSlot(slotId, ri)));
+    }
+
+    @Override
+    public void post_marshal(ServerRequestInfo ri) {
+        // Pop YASF data after marshalling is complete
+        YasfThreadLocal.pop();
     }
 
     @Override
     public void send_reply(ServerRequestInfo ri) {
-        YasfThreadLocal.push(Yasf.toSet(YasfHelper.getSlot(slotId, ri)));
-        // Adding for diagnostic purposes
         YasfHelper.addSc(ri);
     }
 
     @Override
-    public void send_exception(ServerRequestInfo ri) throws ForwardRequest {
-        YasfThreadLocal.push(Yasf.toSet(YasfHelper.getSlot(slotId, ri)));
-        // Adding for diagnostic purposes
+    public void send_exception(ServerRequestInfo ri) {
         YasfHelper.addSc(ri);
     }
 
     @Override
-    public void send_other(ServerRequestInfo ri) throws ForwardRequest {
-        YasfThreadLocal.push(Yasf.toSet(YasfHelper.getSlot(slotId, ri)));
-        // Adding for diagnostic purposes
+    public void send_other(ServerRequestInfo ri) {
         YasfHelper.addSc(ri);
     }
 
     @Override
     public String name() {
         return NAME;
-    }
-
-    @Override
-    public void destroy() {
     }
 
     private void readObject(ObjectInputStream ios) throws IOException {

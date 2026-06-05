@@ -291,6 +291,8 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
             Delegate p = (Delegate) (((ObjectImpl) ex.forward)._get_delegate());
             throw new LocationForward(p._OB_IOR(), false);
         }
+        // Note: CMSF/YASF/ROFL data pushed by interceptors during receive_request_service_contexts
+        // is now active (override has closed) and will be available during argument deserialization
     }
 
     public void _OB_request() throws LocationForward {
@@ -411,6 +413,28 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
             logger.fine(() -> "Pushing the PICurrent because of a context switch");
             currentNeedsPopping = true;
             piCurrent._OB_pushSlotData(requestSlotData);
+            // Call pre_unmarshal on extended interceptors after context switch
+            // Use override to maintain consistency with other interceptor calls
+            try (CmsfOverride ignored = CmsfThreadLocal.override();
+                 YasfOverride ignored1 = YasfThreadLocal.override()) {
+                interceptors.stream()
+                    .filter(ExtendedServerRequestInterceptor.class::isInstance)
+                    .map(ExtendedServerRequestInterceptor.class::cast)
+                    .forEach(i -> i.pre_unmarshal(this));
+            }
+        }
+    }
+
+    // Called after response marshalling to clean up thread-local state
+    public void _OB_postMarshal() {
+        logger.fine(() -> "Calling post_marshal on extended interceptors");
+        // Use override to maintain consistency with other interceptor calls
+        try (CmsfOverride ignored = CmsfThreadLocal.override();
+             YasfOverride ignored1 = YasfThreadLocal.override()) {
+            interceptors.stream()
+                .filter(ExtendedServerRequestInterceptor.class::isInstance)
+                .map(ExtendedServerRequestInterceptor.class::cast)
+                .forEach(i -> i.post_marshal(this));
         }
     }
 
