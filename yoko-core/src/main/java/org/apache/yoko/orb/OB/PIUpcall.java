@@ -82,6 +82,11 @@ public final class PIUpcall extends Upcall {
         return super.preMarshal();
     }
 
+    public void postMarshal() {
+        piManager_.serverPostMarshal(requestInfo_);
+        super.postMarshal();
+    }
+
     public void setUserException(Any any) {
         try {
             UnknownUserException uex = new UnknownUserException(any);

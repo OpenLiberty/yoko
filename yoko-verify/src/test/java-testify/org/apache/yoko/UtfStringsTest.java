@@ -18,12 +18,12 @@
 package org.apache.yoko;
 
 import org.apache.yoko.io.ReadBuffer;
+import org.apache.yoko.io.SimplyCloseable;
 import org.apache.yoko.orb.CORBA.ORB;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OB.CodecPair;
 import org.apache.yoko.orb.OB.ORBInstance;
-import org.apache.yoko.util.yasf.YasfThreadLocal;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -37,6 +37,7 @@ import static java.util.EnumSet.complementOf;
 import static org.apache.yoko.orb.OB.CodeSetInfo.UTF_16;
 import static org.apache.yoko.orb.OB.CodeSetInfo.UTF_8;
 import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
+import static org.apache.yoko.util.ThreadLocalStack.YASF_THREAD_LOCAL;
 import static org.apache.yoko.util.yasf.Yasf.WRITE_UTF8_AS_UTF8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
@@ -243,9 +244,9 @@ class UtfStringsTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("unicodeSupplementaryTestStrings")
     void writeCesu8(String description, String text, String utf8Hex, String cesu8Hex, String utf16Hex) {
-        YasfThreadLocal.push(complementOf(EnumSet.of(WRITE_UTF8_AS_UTF8)));
-        try { checkWrittenForm(o -> o.write_string(text), cesu8Hex); }
-        finally { YasfThreadLocal.pop(); }
+        try (SimplyCloseable ignored = YASF_THREAD_LOCAL.push(complementOf(EnumSet.of(WRITE_UTF8_AS_UTF8)))) {
+            checkWrittenForm(o -> o.write_string(text), cesu8Hex);
+        }
     }
 
     @ParameterizedTest(name = "{0}")

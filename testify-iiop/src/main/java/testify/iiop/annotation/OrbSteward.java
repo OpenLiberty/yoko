@@ -28,6 +28,10 @@ import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
 import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
+
+import static org.apache.yoko.util.ThreadLocalStack.CMSF_THREAD_LOCAL;
+import static org.apache.yoko.util.ThreadLocalStack.ROFL_THREAD_LOCAL;
+import static org.apache.yoko.util.ThreadLocalStack.YASF_THREAD_LOCAL;
 import testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope;
 
 import java.util.Objects;
@@ -107,9 +111,9 @@ class OrbSteward implements ExtensionContext.Store.CloseableResource {
         // When ORB shuts down, in-flight requests may not complete their full interceptor lifecycle,
         // leaving ThreadLocal state on the stack. Reset to ensure clean state for next test.
         // TODO: Remove this workaround once issue #783 is properly fixed in Yoko core.
-        org.apache.yoko.util.cmsf.CmsfThreadLocal.reset();
-        org.apache.yoko.util.rofl.RoflThreadLocal.reset();
-        org.apache.yoko.util.yasf.YasfThreadLocal.reset();
+        CMSF_THREAD_LOCAL.reset();
+        ROFL_THREAD_LOCAL.reset();
+        YASF_THREAD_LOCAL.reset();
     }
 
     private boolean isOrbModifier(Class<?> c) {

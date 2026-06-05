@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,9 +28,9 @@ import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.util.Objects;
 
+import static org.apache.yoko.util.ThreadLocalStack.YASF_THREAD_LOCAL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 @ConfigureServer
 public class YasfTest {
@@ -39,16 +39,15 @@ public class YasfTest {
         private final String text;
         public Message(String text) { this.text = text; }
         private void readObject(ObjectInputStream in) throws Exception {
-            // Yasf is only set when writing out.
-            // All options default when reading in,
-            // so the thread should have Yasf set to null.
-            assertNull(YasfThreadLocal.get());
+            // Since we are marshalling from another Yoko ORB,
+            // Yasf options should be set when reading in.
+            assertNotNull(YASF_THREAD_LOCAL.get());
             in.defaultReadObject();
         }
         private void writeObject(ObjectOutputStream out) throws Exception {
             // Since we are marshalling to another Yoko ORB,
             // Yasf options should be set when writing out.
-            assertNotNull(YasfThreadLocal.get());
+            assertNotNull(YASF_THREAD_LOCAL.get());
             out.defaultWriteObject();
         }
         public boolean equals(Object o) { return o instanceof Message && Objects.equals(text, ((Message) o).text); }
@@ -56,7 +55,7 @@ public class YasfTest {
         public String toString() { return String.format("MessageImpl[%s]", text); }
     }
 
-    interface Echo extends RemoteFunction<Message, Message>{}
+    public interface Echo extends RemoteFunction<Message, Message>{}
 
     @RemoteImpl
     public static final Echo REMOTE = m -> m;

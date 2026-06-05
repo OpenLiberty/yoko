@@ -20,11 +20,11 @@ package org.apache.yoko;
 import acme.AbstractInterface;
 import acme.AbstractValue;
 import org.apache.yoko.io.ReadBuffer;
+import org.apache.yoko.io.SimplyCloseable;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.util.yasf.Yasf;
-import org.apache.yoko.util.yasf.YasfThreadLocal;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +35,7 @@ import testify.annotation.Logging;
 import java.io.Serializable;
 import java.util.EnumSet;
 
+import static org.apache.yoko.util.ThreadLocalStack.YASF_THREAD_LOCAL;
 import static org.apache.yoko.util.yasf.Yasf.ENUM_FIX_1;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -62,8 +63,7 @@ class JavaValueNullFieldsTest {
 
     @Test
     void marshalNullFieldsOldStyle() {
-        YasfThreadLocal.push(OLD_STYLE);
-        try {
+        try (SimplyCloseable ignored = YASF_THREAD_LOCAL.push(OLD_STYLE)) {
             out.write_value(new HolderC());
             finishWriting();
             assertThat(data, matchesHex("" +
@@ -75,27 +75,21 @@ class JavaValueNullFieldsTest {
                     "0050:  00000000 bbbbbbbb 00000000 cccccccc  \"................\"\n" +
                     "0060:  00000000                             \"....\""));
             assertHolderUnmarshalledCorrectly(in.read_value());
-        } finally {
-            YasfThreadLocal.pop();
         }
     }
 
     @Test
     void marshalNonSerializableFieldsOldStyle() {
-        YasfThreadLocal.push(OLD_STYLE);
-        try {
+        try (SimplyCloseable ignored = YASF_THREAD_LOCAL.push(OLD_STYLE)) {
             HolderA holder = new HolderA();
             holder.valueA = new NonSerializable();
             Assertions.assertThrows(MARSHAL.class, () -> out.write_value(holder));
-        } finally {
-            YasfThreadLocal.pop();
         }
     }
 
     @Test
     void marshalSerializableFieldsOldStyle() {
-        YasfThreadLocal.push(OLD_STYLE);
-        try {
+        try (SimplyCloseable ignored = YASF_THREAD_LOCAL.push(OLD_STYLE)) {
             HolderA holder = new HolderA();
             holder.valueA = new SerializableChild();
             out.write_value(holder);
@@ -115,8 +109,6 @@ class JavaValueNullFieldsTest {
             assertThat(actual, notNullValue());
             assertThat(actual.valueA, notNullValue());
             assertThat(actual.valueA, instanceOf(SerializableChild.class));
-        } finally {
-            YasfThreadLocal.pop();
         }
     }
 

@@ -24,10 +24,9 @@ import org.apache.yoko.orb.OBPortableServer.POA_impl;
 import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.orb.OCI.TransportInfo;
+import org.apache.yoko.io.SimplyCloseable;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.Timeout;
-import org.apache.yoko.util.cmsf.CmsfThreadLocal;
-import org.apache.yoko.util.cmsf.CmsfThreadLocal.CmsfOverride;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.Policy;
 import org.omg.CORBA.PolicyManager;
@@ -48,6 +47,7 @@ import static java.util.logging.Logger.getLogger;
 import static org.apache.yoko.io.Buffer.createWriteBuffer;
 import static org.apache.yoko.util.Arrays.EMPTY_INTS;
 import static org.apache.yoko.orb.OB.SendingContextRuntimes.SENDING_CONTEXT_RUNTIME;
+import static org.apache.yoko.util.ThreadLocalStack.CMSF_THREAD_LOCAL;
 import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
 
 public class Upcall {
@@ -292,7 +292,7 @@ public class Upcall {
 
     private static void createUnknownExceptionServiceContexts(UnknownException ex, ServiceContexts replyContexts) {
         final Throwable t = ex.originalEx;
-        try (CmsfOverride o = CmsfThreadLocal.override()) {
+        try (SimplyCloseable o = CMSF_THREAD_LOCAL.overrideForInterceptors()) {
             CodecPair codecs = CodecPair.getDefaultCodecs(GIOP1_2);
             try (YokoOutputStream os = new YokoOutputStream(codecs, GIOP1_2)) {
                 os._OB_writeEndian();

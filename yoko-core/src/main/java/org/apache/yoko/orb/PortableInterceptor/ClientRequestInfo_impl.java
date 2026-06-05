@@ -24,13 +24,10 @@ import org.apache.yoko.orb.OB.ObjectFactory;
 import org.apache.yoko.orb.OB.PIDowncall;
 import org.apache.yoko.orb.OB.Util;
 import org.apache.yoko.orb.OCI.ProfileInfo;
+import org.apache.yoko.io.SimplyCloseable;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.CollectionExtras;
 import org.apache.yoko.util.Exceptions;
-import org.apache.yoko.util.cmsf.CmsfThreadLocal;
-import org.apache.yoko.util.cmsf.CmsfThreadLocal.CmsfOverride;
-import org.apache.yoko.util.yasf.YasfThreadLocal;
-import org.apache.yoko.util.yasf.YasfThreadLocal.YasfOverride;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.BAD_PARAM;
@@ -49,6 +46,9 @@ import org.omg.IOP.TaggedProfile;
 import org.omg.PortableInterceptor.ClientRequestInfo;
 import org.omg.PortableInterceptor.ClientRequestInterceptor;
 import org.omg.PortableInterceptor.ForwardRequest;
+
+import static org.apache.yoko.util.ThreadLocalStack.CMSF_THREAD_LOCAL;
+import static org.apache.yoko.util.ThreadLocalStack.YASF_THREAD_LOCAL;
 import org.omg.PortableInterceptor.LOCATION_FORWARD;
 import org.omg.PortableInterceptor.SUCCESSFUL;
 import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
@@ -269,8 +269,8 @@ final public class ClientRequestInfo_impl extends RequestInfo_impl implements Cl
         argStrategy.setArgsAvail(true);
         argStrategy.setExceptAvail(true);
 
-        try (CmsfOverride ignored = CmsfThreadLocal.override();
-             YasfOverride ignored1 = YasfThreadLocal.override()) {
+        try (SimplyCloseable ignored = CMSF_THREAD_LOCAL.overrideForInterceptors();
+             SimplyCloseable ignored1 = YASF_THREAD_LOCAL.overrideForInterceptors()) {
             for(ClientRequestInterceptor interceptor: interceptors) {
                 try {
                     interceptor.send_request(this);
@@ -303,8 +303,8 @@ final public class ClientRequestInfo_impl extends RequestInfo_impl implements Cl
             piCurrent._OB_pushSlotData(newThreadScopePICurrentSlotData);
         }
 
-        try (CmsfOverride ignored = CmsfThreadLocal.override();
-             YasfOverride ignored1 = YasfThreadLocal.override()) {
+        try (SimplyCloseable ignored = CMSF_THREAD_LOCAL.overrideForInterceptors();
+             SimplyCloseable ignored1 = YASF_THREAD_LOCAL.overrideForInterceptors()) {
             for (ClientRequestInterceptor i: CollectionExtras.removeInReverse(interceptors)) {
                 try {
                     switch (replyStatus) {
