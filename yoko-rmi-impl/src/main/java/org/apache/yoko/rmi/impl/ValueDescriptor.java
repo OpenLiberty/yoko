@@ -41,6 +41,7 @@ import java.io.ObjectStreamClass;
 import java.io.ObjectStreamField;
 import java.io.PrintWriter;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -100,17 +101,17 @@ class ValueDescriptor extends TypeDescriptor {
 
     private final LazyReference<Supplier<Serializable>> blankInstanceSupplierRef = new LazyReference<>(this::genBlankInstanceSupplier);
 
-    private final LazyReference<Method> writeObjectMethodRef = new LazyReference<>(this::findWriteObjectMethod);
+    private final LazyReference<Method> writeObjectMethodRef = new LazyReference<>(this::genWriteObjectMethod);
 
-    private final LazyReference<Method> readObjectMethodRef = new LazyReference<>(this::findReadObjectMethod);
+    private final LazyReference<Method> readObjectMethodRef = new LazyReference<>(this::genReadObjectMethod);
 
     private final LazyReference<Long> serialVersionUidRef = new LazyReference<>(this::genSerialVersionUid);
 
     private final LazyReference<ValueWriter> valueWriterRef = new LazyReference<>(this::genValueWriter);
-    private final LazyReference<ValueReader> valueReaderRef = new LazyReference<>(this::genValueReader);
+    private final LazyReference<ValueReader> valueReaderRef;
 
     @FunctionalInterface
-    private interface ValueReader extends BiFunction<ObjectReader, Serializable, Serializable> {}
+    interface ValueReader extends BiFunction<ObjectReader, Serializable, Serializable> {}
 
     private final LazyReference<ValueDescriptor> superDescriptorRef = new LazyReference<>(this::genSuperDescriptor);
 
@@ -124,18 +125,41 @@ class ValueDescriptor extends TypeDescriptor {
             Character.class, Boolean.class, Byte.class, Long.class, Float.class, Double.class, Short.class)));
 
     ValueDescriptor(Class<?> type, TypeRepository repository) {
-        super(type, repository);
+        this(type, repository, null, null, null);
+    }
+
+    ValueDescriptor(Class<?> type, TypeRepository repository, ReadFn readFn, WriteFn writeFn) {
+        this(type, repository, readFn, writeFn, null);
+    }
+
+    ValueDescriptor(Class<?> type, TypeRepository repository, WriteFn writeFn, Supplier<ValueReader> readerSuppler) {
+        this(type, repository, null, writeFn, readerSuppler);
+    }
+
+    private ValueDescriptor(Class<?> type, TypeRepository repository, ReadFn readFn, WriteFn writeFn, Supplier<ValueReader> readerSuppler) {
+        super(type, repository,
+            null == readFn ? genVanillaReadFn(type) : readFn,
+            null == writeFn ? ValueDescriptor::vanillaWriteFn : writeFn);
+        valueReaderRef = new LazyReference<>(null == readerSuppler ? this::genValueReader : readerSuppler);
+    }
+
+    private static ReadFn genVanillaReadFn(Class<?> type) {
+        return in -> ((org.omg.CORBA_2_3.portable.InputStream) in).read_value(type);
+    }
+
+    private static void vanillaWriteFn(java.io.OutputStream out, Object val) {
+        ((org.omg.CORBA_2_3.portable.OutputStream) out).write_value((Serializable) val);
     }
 
     protected boolean isEnum() { return false; }
 
     boolean isExternalizable() { return Externalizable.class.isAssignableFrom(getType()); }
 
-    boolean isSerializable() { return Serializable.class.isAssignableFrom(getType()); }
+    private boolean isSerializable() { return Serializable.class.isAssignableFrom(getType()); }
 
-    boolean isRmiStub() { return RMIStub.class.isAssignableFrom(getType()); }
+    private boolean isRmiStub() { return RMIStub.class.isAssignableFrom(getType()); }
 
-    boolean isImmutableValue() { return immutableValueRef.get(); }
+    private boolean isImmutableValue() { return immutableValueRef.get(); }
 
     private boolean genImmutableValue() {
         return IMMUTABLE_VALUE_CLASSES.contains(getType());
@@ -151,14 +175,11 @@ class ValueDescriptor extends TypeDescriptor {
 
     @Override
     String genRepId() {
-        return genRepId(getClassHash());
-    }
-
-    private String genRepId(long hashCode) {
+        long hashCode = getClassHash();
         return String.format("RMI:%s:%016X:%016X", convertToValidIDLNames(getType().getName()), hashCode, getSerialVersionUid());
     }
 
-    String genCustomRepId() {
+    private String genCustomRepId() {
         return String.format("RMI:org.omg.custom.%s", getRepositoryID().substring(4));
     }
 
@@ -216,13 +237,13 @@ class ValueDescriptor extends TypeDescriptor {
             try {
                 return superDesc.readValue(reader, val);
             } catch (IOException ex) {
-                throw as(UncheckedIOException::new, ex);
+                throw new UncheckedIOException(ex);
             }
         };
     }
 
 
-    private Function<Serializable, Serializable> genWriteReplacer() {
+    Function<Serializable, Serializable> genWriteReplacer() {
         Method found = null;
         for (Class<?> curr = getType(); curr != null; curr = curr.getSuperclass()) {
             try {
@@ -249,7 +270,7 @@ class ValueDescriptor extends TypeDescriptor {
         };
     }
 
-    private Function<Serializable, Serializable> genReadResolver() {
+    Function<Serializable, Serializable> genReadResolver() {
         Method method;
         try {
             method = doPrivileged(getDeclaredMethod(getType(), "readResolve"));
@@ -257,7 +278,7 @@ class ValueDescriptor extends TypeDescriptor {
         } catch (Exception ignored) {
             return identity();
         }
-        
+
         return  val -> {
             try {
                 return (Serializable) method.invoke(val);
@@ -272,7 +293,7 @@ class ValueDescriptor extends TypeDescriptor {
         };
     }
 
-    private Method findReadObjectMethod() {
+    Method genReadObjectMethod() {
         try {
             Method method = doPrivileged(getDeclaredMethod(getType(), "readObject", ObjectInputStream.class));
 
@@ -288,7 +309,7 @@ class ValueDescriptor extends TypeDescriptor {
         }
     }
 
-    private Method findWriteObjectMethod() {
+    Method genWriteObjectMethod() {
         Class<?> type = getType();
         try {
             Method method = doPrivileged(getDeclaredMethod(type, "writeObject", ObjectOutputStream.class));
@@ -329,7 +350,7 @@ class ValueDescriptor extends TypeDescriptor {
         }
     }
 
-    Supplier<Serializable> genBlankInstanceSupplier() {
+    private Supplier<Serializable> genBlankInstanceSupplier() {
         return findConstructor()
                 .map(constructor -> (Supplier<Serializable>) () -> {
                     try {
@@ -377,7 +398,7 @@ class ValueDescriptor extends TypeDescriptor {
         Class<?> type = getType();
 
         if (initClass == null) {
-            MARSHAL_LOG.warning(() -> "Class " + type.getName() 
+            MARSHAL_LOG.warning(() -> "Class " + type.getName()
                     + " is not properly serializable. It has no non-serializable super-class");
             return Optional.empty();
         }
@@ -395,13 +416,13 @@ class ValueDescriptor extends TypeDescriptor {
                 MARSHAL_LOG.warning(() -> "Unable to get constructor for serialization for class " + java_name);
                 return Optional.empty();
             }
-            
+
             constructor = doPrivileged(makeAccessible(constructor));
             return Optional.of(constructor);
 
         } catch (Exception ex) {
-            MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName() 
-                    + " is not properly serializable. First non-serializable super-class (" 
+            MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName()
+                    + " is not properly serializable. First non-serializable super-class ("
                     + initClass.getName() + ") has no default constructor.");
             return Optional.empty();
         }
@@ -415,12 +436,12 @@ class ValueDescriptor extends TypeDescriptor {
 
         Class<?> type = getType();
         if (!samePackage(type, initClass)) {
-            MARSHAL_LOG.warning(() -> "Class " + type.getName() 
+            MARSHAL_LOG.warning(() -> "Class " + type.getName()
                     + " is not properly serializable. The default constructor of its first "
                     + "non-serializable super-class (" + initClass.getName() + ") is not accessible.");
             return false;
         }
-        
+
         return true;
     }
 
@@ -468,7 +489,7 @@ class ValueDescriptor extends TypeDescriptor {
             }
         } catch (Exception ignored) {
         }
-        
+
         return null;
     }
 
@@ -494,16 +515,6 @@ class ValueDescriptor extends TypeDescriptor {
         return (idx == -1) ? "" : name.substring(0, idx);
     }
 
-    /** Read an instance of this value from a CDR stream */
-    public Object read(org.omg.CORBA.portable.InputStream in) {
-        return ((org.omg.CORBA_2_3.portable.InputStream) in).read_value();
-    }
-
-    /** Write an instance of this value to a CDR stream */
-    public void write(OutputStream out, Object value) {
-        ((org.omg.CORBA_2_3.portable.OutputStream) out).write_value((Serializable) value);
-    }
-
     public boolean isCustomMarshalled() {
         return (isExternalizable() || getWriteObjectMethod().isPresent());
     }
@@ -513,19 +524,19 @@ class ValueDescriptor extends TypeDescriptor {
         return Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::isChunked).orElse(false);
     }
 
-    Function<Serializable, Serializable> getWriteReplacer() {
+    private Function<Serializable, Serializable> getWriteReplacer() {
         return writeReplacerRef.get();
     }
 
-    Function<Serializable, Serializable> getReadResolver() {
+    private Function<Serializable, Serializable> getReadResolver() {
         return readResolverRef.get();
     }
 
-    Optional<Method> getReadObjectMethod() {
+    private Optional<Method> getReadObjectMethod() {
         return Optional.ofNullable(readObjectMethodRef.get());
     }
 
-    Optional<Method> getWriteObjectMethod() {
+    private Optional<Method> getWriteObjectMethod() {
         return Optional.ofNullable(writeObjectMethodRef.get());
     }
 
@@ -581,7 +592,7 @@ class ValueDescriptor extends TypeDescriptor {
             if (isExternalizable()) {
                 return buildExternalizableWriter();
             }
-            
+
             return getWriteObjectMethod()
                     .map(this::buildCustomWriter)
                     .orElseGet(this::buildDefaultWriter);
@@ -592,7 +603,7 @@ class ValueDescriptor extends TypeDescriptor {
                 try {
                     writer.invokeWriteExternal((Externalizable) val);
                 } catch (IOException ex) {
-                    throw as(UncheckedIOException::new, ex);
+                    throw new UncheckedIOException(ex);
                 }
             };
         }
@@ -603,7 +614,7 @@ class ValueDescriptor extends TypeDescriptor {
                     getSuperWriter().accept(writer, val);
                     defaultWriteValue(writer, val);
                 } catch (IOException ex) {
-                    throw as(UncheckedIOException::new, ex);
+                    throw new UncheckedIOException(ex);
                 }
             };
         }
@@ -618,10 +629,10 @@ class ValueDescriptor extends TypeDescriptor {
                 } catch (InvocationTargetException ex) {
                     final Throwable t = ex.getTargetException();
                     throw (t instanceof IOException)
-                            ? as(UncheckedIOException::new, t)
+                            ? new UncheckedIOException((IOException)t)
                             : as(UnknownException::new, t, t);
                 } catch (IOException ex) {
-                    throw as(UncheckedIOException::new, ex);
+                    throw new UncheckedIOException(ex);
                 }
             };
         }
@@ -638,7 +649,7 @@ class ValueDescriptor extends TypeDescriptor {
                 try {
                     superDesc.writeValue(writer, val);
                 } catch (IOException ex) {
-                    throw as(UncheckedIOException::new, ex);
+                    throw new UncheckedIOException(ex);
                 }
             };
         }
@@ -647,13 +658,7 @@ class ValueDescriptor extends TypeDescriptor {
     @FunctionalInterface
     private interface ValueWriter extends BiConsumer<ObjectWriter,Serializable> {}
 
-    private static class UncheckedIOException extends RuntimeException {
-        @Override
-        public IOException getCause() { return (IOException)super.getCause(); }
-    }
-
-
-    private ValueReader genValueReader() {
+    ValueReader genValueReader() {
         return new ValueReaderBuilder().build();
     }
 
@@ -669,7 +674,7 @@ class ValueDescriptor extends TypeDescriptor {
             if (isExternalizable()) {
                 return buildExternalizableReader();
             }
-            
+
             return getWriteObjectMethod()
                     .map(this::buildCustomMarshalReader)
                     .orElseGet(this::buildSimpleReader);
@@ -681,9 +686,9 @@ class ValueDescriptor extends TypeDescriptor {
                     reader.readExternal((Externalizable) value);
                     return value;
                 } catch (ClassNotFoundException e) {
-                    throw as(UncheckedIOException::new, new IOException("cannot instantiate class", e));
+                    throw new UncheckedIOException(new IOException("cannot instantiate class", e));
                 } catch (IOException ex) {
-                    throw as(UncheckedIOException::new, ex);
+                    throw new UncheckedIOException(ex);
                 }
             };
         }
@@ -707,7 +712,7 @@ class ValueDescriptor extends TypeDescriptor {
                 } catch (InvocationTargetException ex) {
                     final Throwable t = ex.getTargetException();
                     throw (t instanceof IOException)
-                            ? as(UncheckedIOException::new, t)
+                            ? new UncheckedIOException((IOException)t)
                             : as(UnknownException::new, t, t);
                 }
             };
@@ -720,7 +725,7 @@ class ValueDescriptor extends TypeDescriptor {
                     defaultReadValue(reader, val);
                     return val;
                 } catch (IOException ex) {
-                    throw as(UncheckedIOException::new, ex);
+                    throw new UncheckedIOException(ex);
                 }
             };
         }
@@ -752,10 +757,10 @@ class ValueDescriptor extends TypeDescriptor {
                 } catch (InvocationTargetException ex) {
                     final Throwable t = ex.getTargetException();
                     throw (t instanceof IOException)
-                            ? as(UncheckedIOException::new, t)
+                            ? new UncheckedIOException((IOException)t)
                             : as(UnknownException::new, t, t);
                 } catch (IOException ex) {
-                    throw as(UncheckedIOException::new, ex);
+                    throw new UncheckedIOException(ex);
                 }
             };
         }
@@ -775,7 +780,7 @@ class ValueDescriptor extends TypeDescriptor {
                     }
                     return val;
                 } catch (IOException ex) {
-                    throw as(UncheckedIOException::new, ex);
+                    throw new UncheckedIOException(ex);
                 }
             };
         }
@@ -936,7 +941,7 @@ class ValueDescriptor extends TypeDescriptor {
     /**
      * This method reads the fields of a single class slice.
      */
-    protected Serializable readValue(ObjectReader reader, Serializable value) throws IOException {
+    private Serializable readValue(ObjectReader reader, Serializable value) throws IOException {
         try {
             return getValueReader().apply(reader, value);
         } catch (UncheckedIOException ex) {
@@ -991,7 +996,7 @@ class ValueDescriptor extends TypeDescriptor {
                         try {
                             out.writeLong(hash);
                         } catch (IOException e) {
-                            throw as(UncheckedIOException::new, e);
+                            throw new UncheckedIOException(e);
                         }
                     });
         }
@@ -1008,7 +1013,7 @@ class ValueDescriptor extends TypeDescriptor {
                             out.writeUTF(field.java_name);
                             out.writeUTF(makeSignature(field.getType()));
                         } catch (IOException e) {
-                            throw as(UncheckedIOException::new, e);
+                            throw new UncheckedIOException(e);
                         }
                     });
         }
@@ -1017,7 +1022,7 @@ class ValueDescriptor extends TypeDescriptor {
     private static final Comparator<FieldDescriptor> compareByName = comparing(f -> f.java_name);
 
     private final LazyReference<List<ValueMember>> valueMembersRef = new LazyReference<>(this::genValueMembers);
-    
+
     protected List<ValueMember> genValueMembers() {
         return getFields().stream()
                 .map(FieldDescriptor::getValueMember)
@@ -1053,7 +1058,7 @@ class ValueDescriptor extends TypeDescriptor {
     private static final AttributeDescription[] ZERO_ATTRIBUTES = {};
     private static final Initializer[] ZERO_INITIALIZERS = {};
     private static final String[] ZERO_STRINGS = {};
-    
+
 
     /**
      * Creates a defensive copy of a FullValueDescription.
@@ -1067,7 +1072,7 @@ class ValueDescriptor extends TypeDescriptor {
         if (original == null) {
             return null;
         }
-        
+
         FullValueDescription copy = new FullValueDescription();
         copy.name = original.name;
         copy.id = original.id;
@@ -1075,25 +1080,25 @@ class ValueDescriptor extends TypeDescriptor {
         copy.is_custom = original.is_custom;
         copy.defined_in = original.defined_in;
         copy.version = original.version;
-        
+
         // Deep copy arrays
-        copy.operations = original.operations == null ? null : 
+        copy.operations = original.operations == null ? null :
             Arrays.copyOf(original.operations, original.operations.length);
-        copy.attributes = original.attributes == null ? null : 
+        copy.attributes = original.attributes == null ? null :
             Arrays.copyOf(original.attributes, original.attributes.length);
-        copy.members = original.members == null ? null : 
+        copy.members = original.members == null ? null :
             Arrays.copyOf(original.members, original.members.length);
-        copy.initializers = original.initializers == null ? null : 
+        copy.initializers = original.initializers == null ? null :
             Arrays.copyOf(original.initializers, original.initializers.length);
-        copy.supported_interfaces = original.supported_interfaces == null ? null : 
+        copy.supported_interfaces = original.supported_interfaces == null ? null :
             Arrays.copyOf(original.supported_interfaces, original.supported_interfaces.length);
-        copy.abstract_base_values = original.abstract_base_values == null ? null : 
+        copy.abstract_base_values = original.abstract_base_values == null ? null :
             Arrays.copyOf(original.abstract_base_values, original.abstract_base_values.length);
-        
+
         copy.is_truncatable = original.is_truncatable;
         copy.base_value = original.base_value;
         copy.type = original.type;
-        
+
         return copy;
     }
 

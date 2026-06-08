@@ -47,8 +47,18 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
     final Class basicType;
     private final int order;
 
+    private static <ARR extends Serializable> WriteFn createWriter(Class<? extends ARR> type, TypeRepository rep) {
+        return (out, value) -> {
+            org.omg.CORBA_2_3.portable.OutputStream _out = (org.omg.CORBA_2_3.portable.OutputStream) out;
+            String repositoryID = rep.getDescriptor(type).getRepositoryID();
+            _out.write_value((Serializable)value, repositoryID);
+        };
+    }
+
     protected ArrayDescriptor(Class<? extends ARR> type, Class elemType, TypeRepository rep) {
-        super(type, rep);
+        super(type, rep,
+            in -> ((org.omg.CORBA_2_3.portable.InputStream) in).read_value(type),
+            createWriter(type, rep));
         logger.fine(() -> "Creating an array descriptor for type " + type.getName() + " holding elements of " + elemType.getName());
         this.elementType = elemType;
 
@@ -100,12 +110,12 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
         StringBuffer sb = new StringBuffer("org_omg_boxedRMI_");
 
         TypeDescriptor desc = repo.getDescriptor(basicType);
-        
-        // The logic that looks for the last "_" fails when this is a 
-        // long_long primitive type.  The primitive types have a "" package 
-        // name, so check those first.  If it's not one of the primitives, 
+
+        // The logic that looks for the last "_" fails when this is a
+        // long_long primitive type.  The primitive types have a "" package
+        // name, so check those first.  If it's not one of the primitives,
         // then we can safely split using the last index position.
-        String pkgName = desc.getPackageName(); 
+        String pkgName = desc.getPackageName();
         if (pkgName.length() == 0) {
             sb.append("seq");
             sb.append(order);
@@ -171,29 +181,6 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
         } else {
             return new AbstractObjectArrayDescriptor(type, elemType, rep);
         }
-    }
-
-    /**
-     * Read an instance of this value from a CDR stream. Overridden to provide a
-     * specific type
-     */
-    @Override
-    public Object read(InputStream in) {
-        org.omg.CORBA_2_3.portable.InputStream _in = (org.omg.CORBA_2_3.portable.InputStream) in;
-        logger.fine(() -> "Reading an array value with repository id " + getRepositoryID() + " java class is " + getType());
-
-        // if we have a resolved class, read using that, otherwise fall back on the
-        // repository id.
-        Class<?> type = getType();
-        return ((null == type) ? _in.read_value(getRepositoryID()) : _in.read_value(type));
-    }
-
-    /** Write an instance of this value to a CDR stream */
-    @Override
-    public void write(OutputStream out, Object value) {
-        org.omg.CORBA_2_3.portable.OutputStream _out = (org.omg.CORBA_2_3.portable.OutputStream) out;
-
-        _out.write_value((Serializable)value, getRepositoryID());
     }
 
     @Override

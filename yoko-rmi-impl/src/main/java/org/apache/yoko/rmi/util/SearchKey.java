@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ public class SearchKey<T> implements Key<T> {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!!!(o instanceof Key)) return false;
-        return value.equals(((Key)o).get());
+        if (!(o instanceof Key)) return false;
+        return value.equals(((Key<?>)o).get());
     }
 }

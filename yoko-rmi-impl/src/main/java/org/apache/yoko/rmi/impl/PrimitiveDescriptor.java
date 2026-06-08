@@ -21,19 +21,17 @@ import org.omg.CORBA.ORB;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.TypeCode;
 
-abstract class SimpleDescriptor extends TypeDescriptor {
+final class PrimitiveDescriptor extends TypeDescriptor {
     private final String idl_name;
     private final TCKind tc;
-    SimpleDescriptor(Class<?> type, TypeRepository repository, String idl_name, TCKind tc) {
-        super(type, repository);
+    PrimitiveDescriptor(Class<?> type, TypeRepository repository, String idl_name, TCKind tc, ReadFn readFn, WriteFn writeFn) {
+        super(type, repository, readFn, writeFn);
         this.idl_name = idl_name;
         this.tc = tc;
     }
 
     @Override
-    final String genIDLName() {
-        return idl_name;
-    }
+    String genIDLName() { return idl_name; }
 
     @Override
     String genPackageName() {
@@ -46,9 +44,7 @@ abstract class SimpleDescriptor extends TypeDescriptor {
     }
 
     @Override
-    protected final TypeCode genTypeCode() {
-        return ORB.init().get_primitive_tc(tc);
-    }
+    TypeCode genTypeCode() { return ORB.init().get_primitive_tc(tc); }
 
     @Override
     boolean copyInStub() {
@@ -56,12 +52,10 @@ abstract class SimpleDescriptor extends TypeDescriptor {
     }
 
     @Override
-    public boolean copyBetweenStates() {
-        return false;
-    }
+    boolean copyBetweenStates() { return false; }
 
     @Override
-    public boolean copyWithinState() {
+    boolean copyWithinState() {
         return false;
     }
 }

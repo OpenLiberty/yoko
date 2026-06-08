@@ -20,14 +20,13 @@ package org.apache.yoko.rmi.impl;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.WStringValueHelper;
-import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
 
 import java.io.Serializable;
 
 class StringDescriptor extends ValueDescriptor {
     StringDescriptor(TypeRepository repository) {
-        super(String.class, repository);
+        super(String.class, repository, WStringValueHelper::read, (out, value) -> WStringValueHelper.write(out, (String) value));
     }
 
     @Override
@@ -42,18 +41,6 @@ class StringDescriptor extends ValueDescriptor {
 
     @Override
     String genTypeName() { return "WStringValue"; }
-
-    /** Read an instance of this value from a CDR stream */
-    @Override
-    public Object read(InputStream in) {
-        return WStringValueHelper.read(in);
-    }
-
-    /** Write an instance of this value to a CDR stream */
-    @Override
-    public void write(OutputStream out, Object value) {
-        WStringValueHelper.write(out, (String) value);
-    }
 
     @Override
     public void writeValue(OutputStream out, Serializable value) {

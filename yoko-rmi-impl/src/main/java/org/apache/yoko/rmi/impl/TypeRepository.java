@@ -19,8 +19,10 @@ package org.apache.yoko.rmi.impl;
 
 import org.apache.yoko.rmi.impl.TypeDescriptor.FullKey;
 import org.apache.yoko.rmi.impl.TypeDescriptor.SimpleKey;
+import org.apache.yoko.rmi.util.Key;
 import org.apache.yoko.rmi.util.SearchKey;
 import org.apache.yoko.rmi.util.WeakKey;
+import org.apache.yoko.util.concurrent.LazyReference;
 import org.apache.yoko.util.yasf.Yasf;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.ValueDefPackage.FullValueDescription;
@@ -39,89 +41,108 @@ import java.lang.reflect.Method;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
+
+import static java.util.Collections.unmodifiableMap;
+import static java.util.Collections.unmodifiableSet;
 
 public class TypeRepository {
     static final Logger logger = Logger.getLogger(TypeRepository.class.getName());
 
     private static final class TypeDescriptorCache {
-        private final ConcurrentMap<WeakKey<FullKey>, WeakReference<TypeDescriptor>> map =
-                new ConcurrentHashMap<>();
+        private final ConcurrentMap<Key<? extends SimpleKey>, WeakReference<TypeDescriptor>> map = new ConcurrentHashMap<>();
         private final ReferenceQueue<FullKey> staleKeys = new ReferenceQueue<>();
 
         public TypeDescriptor get(String repid) {
             cleanStaleKeys();
-            WeakReference<TypeDescriptor> ref =
-                    map.get(new SearchKey<SimpleKey>(new SimpleKey(repid)));
+            WeakReference<TypeDescriptor> ref = map.get(new SearchKey<>(new SimpleKey(repid)));
             return (null == ref) ? null : ref.get();
         }
 
         public TypeDescriptor get(String repid, Class<?> localType) {
             cleanStaleKeys();
-            WeakReference<TypeDescriptor> ref =
-                    map.get(new SearchKey<FullKey>(new FullKey(repid, localType)));
+            WeakReference<TypeDescriptor> ref = map.get(new SearchKey<>(new FullKey(repid, localType)));
             return (null == ref) ? null : ref.get();
         }
 
         public void put(TypeDescriptor typeDesc) {
             cleanStaleKeys();
             final WeakReference<TypeDescriptor> value = new WeakReference<>(typeDesc);
-            map.putIfAbsent(new WeakKey<FullKey>(typeDesc.getKey(), staleKeys), value);
+            map.putIfAbsent(new WeakKey<>(typeDesc.getKey(), staleKeys), value);
         }
 
         private void cleanStaleKeys() {
-            for (Reference<? extends Object> staleKey = staleKeys.poll(); staleKey != null; staleKey = staleKeys.poll()) {
-                map.remove(staleKey);
+            for (Reference<?> staleKey = staleKeys.poll(); staleKey != null; staleKey = staleKeys.poll()) {
+                map.remove((WeakKey<?>)staleKey);
             }
         }
     }
 
     private static final class LocalDescriptors extends ClassValue<TypeDescriptor> {
         private static final class Raw extends ClassValue<TypeDescriptor> {
-            private static final List<Class<?>> staticAnyTypes =
-                    Collections.unmodifiableList(
-                            Arrays.asList(Object.class, Externalizable.class, Serializable.class, Remote.class));
 
             private final TypeRepository repo;
+            private final Map<Class<?>, Supplier<TypeDescriptor>> simpleFactories;
 
             Raw(TypeRepository repo) {
                 this.repo = repo;
+                this.simpleFactories = genSimpleFactories();
+            }
+
+            private Map<Class<?>, Supplier<TypeDescriptor>> genSimpleFactories() {
+                Map<Class<?>, Supplier<TypeDescriptor>> map = new HashMap<>();
+                // Primitive types
+                map.put(boolean.class, () -> new PrimitiveDescriptor(boolean.class, repo, "boolean", org.omg.CORBA.TCKind.tk_boolean, org.omg.CORBA.portable.InputStream::read_boolean, (out, val) -> out.write_boolean((Boolean)val)));
+                map.put(byte.class, () -> new PrimitiveDescriptor(byte.class, repo, "octet", org.omg.CORBA.TCKind.tk_octet, org.omg.CORBA.portable.InputStream::read_octet, (out, val) -> out.write_octet((Byte)val)));
+                map.put(short.class, () -> new PrimitiveDescriptor(short.class, repo, "short", org.omg.CORBA.TCKind.tk_short, org.omg.CORBA.portable.InputStream::read_short, (out, val) -> out.write_short((Short)val)));
+                map.put(char.class, () -> new PrimitiveDescriptor(char.class, repo, "wchar", org.omg.CORBA.TCKind.tk_wchar, org.omg.CORBA.portable.InputStream::read_wchar, (out, val) -> out.write_wchar((Character)val)));
+                map.put(int.class, () -> new PrimitiveDescriptor(int.class, repo, "long", org.omg.CORBA.TCKind.tk_long, org.omg.CORBA.portable.InputStream::read_long, (out, val) -> out.write_long((Integer)val)));
+                map.put(long.class, () -> new PrimitiveDescriptor(long.class, repo, "long_long", org.omg.CORBA.TCKind.tk_longlong, org.omg.CORBA.portable.InputStream::read_longlong, (out, val) -> out.write_longlong((Long)val)));
+                map.put(float.class, () -> new PrimitiveDescriptor(float.class, repo, "float", org.omg.CORBA.TCKind.tk_float, org.omg.CORBA.portable.InputStream::read_float, (out, val) -> out.write_float((Float)val)));
+                map.put(double.class, () -> new PrimitiveDescriptor(double.class, repo, "double", org.omg.CORBA.TCKind.tk_double, org.omg.CORBA.portable.InputStream::read_double, (out, val) -> out.write_double((Double)val)));
+                map.put(void.class, () -> new PrimitiveDescriptor(void.class, repo, "void", org.omg.CORBA.TCKind.tk_void, in -> null, (out, val) -> {}));
+                // Other simple types
+                map.put(String.class, () -> new StringDescriptor(repo));
+                map.put(Class.class, () -> new ClassDescriptor(repo));
+                map.put(ClassDesc.class, () -> new ClassDescDescriptor(repo));
+                map.put(Date.class, () -> new DateValueDescriptor(repo));
+                map.put(Enum.class, () -> new EnumDescriptor(Enum.class, repo));
+                // Static any types
+                map.put(Object.class, () -> new AnyDescriptor(Object.class, repo));
+                map.put(Externalizable.class, () -> new AnyDescriptor(Externalizable.class, repo));
+                map.put(Serializable.class, () -> new AnyDescriptor(Serializable.class, repo));
+                map.put(Remote.class, () -> new AnyDescriptor(Remote.class, repo));
+                return unmodifiableMap(map);
             }
 
             @Override
             protected TypeDescriptor computeValue(Class<?> type) {
-                if (type.isPrimitive()) {
-                    return primitiveDescriptor(type);
-                } else if (type == String.class) {
-                    return new StringDescriptor(repo);
-                } else if (type == Class.class) {
-                    return new ClassDescriptor(repo);
-                } else if (type == ClassDesc.class) {
-                    return new ClassDescDescriptor(repo);
-                } else if (type == java.util.Date.class) {
-                    return new DateValueDescriptor(repo);
-                } else if (staticAnyTypes.contains(type)) {
-                    return new AnyDescriptor(type, repo);
-                } else if ((IDLEntity.class.isAssignableFrom(type)) && isIDLEntity(type)) {
+                // Check for exact type matches in simple factories map
+                Supplier<TypeDescriptor> factory = simpleFactories.get(type);
+                if (factory != null) {
+                    return factory.get();
+                }
+
+                // Handle types requiring assignability checks
+                if ((IDLEntity.class.isAssignableFrom(type)) && isIDLEntity(type)) {
                     return new IDLEntityDescriptor(type, repo);
                 } else if (Throwable.class.isAssignableFrom(type)) {
                     return new ExceptionDescriptor(type, repo);
-                } else if (Enum.class == type) {
-                    return new EnumDescriptor(type, repo);
                 } else if (Enum.class.isAssignableFrom(type)) {
                     Class<?> enumType = EnumSubclassDescriptor.getEnumType(type);
                     return ((enumType == type) ? new EnumSubclassDescriptor(type, repo) : get(enumType));
                 } else if (type.isArray()) {
                     return ArrayDescriptor.get(type, repo);
-                } else if ((!!!type.isInterface()) && Serializable.class.isAssignableFrom(type)) {
+                } else if ((!type.isInterface()) && Serializable.class.isAssignableFrom(type)) {
                     return new ValueDescriptor(type, repo);
                 } else if (Remote.class.isAssignableFrom(type)) {
                     if (type.isInterface()) {
@@ -142,50 +163,22 @@ public class TypeRepository {
                 }
             }
 
-            private TypeDescriptor primitiveDescriptor(Class<?> type) {
-                if (type == Boolean.TYPE) {
-                    return new BooleanDescriptor(repo);
-                } else if (type == Byte.TYPE) {
-                    return new ByteDescriptor(repo);
-                } else if (type == Short.TYPE) {
-                    return new ShortDescriptor(repo);
-                } else if (type == Character.TYPE) {
-                    return new CharDescriptor(repo);
-                } else if (type == Integer.TYPE) {
-                    return new IntegerDescriptor(repo);
-                } else if (type == Long.TYPE) {
-                    return new LongDescriptor(repo);
-                } else if (type == Float.TYPE) {
-                    return new FloatDescriptor(repo);
-                } else if (type == Double.TYPE) {
-                    return new DoubleDescriptor(repo);
-                } else if (type == Void.TYPE) {
-                    return new VoidDescriptor(repo);
-                } else {
-                    throw new RuntimeException("internal error: " + type);
-                }
-            }
-
             private static boolean isIDLEntity(Class<?> type) {
                 for (Class<?> intf : type.getInterfaces()) {
-                    if (intf.equals(IDLEntity.class))
-                        return true;
+                    if (intf.equals(IDLEntity.class)) return true;
                 }
                 return false;
             }
 
             private static boolean isAbstractInterface(Class<?> type) {
-                if (!type.isInterface())
-                    return false;
+                if (!type.isInterface()) return false;
 
                 for (Class<?> intf : type.getInterfaces()) {
-                    if (!isAbstractInterface(intf))
-                        return false;
+                    if (!isAbstractInterface(intf)) return false;
                 }
 
                 for (Method method : type.getDeclaredMethods()) {
-                    if (!isRemoteMethod(method))
-                        return false;
+                    if (!isRemoteMethod(method)) return false;
                 }
 
                 return true;
@@ -193,8 +186,7 @@ public class TypeRepository {
 
             private static boolean isRemoteMethod(java.lang.reflect.Method m) {
                 for (Class<?> exceptionType : m.getExceptionTypes()) {
-                    if (exceptionType.isAssignableFrom(RemoteException.class))
-                        return true;
+                    if (exceptionType.isAssignableFrom(RemoteException.class)) return true;
                 }
 
                 return false;
@@ -219,14 +211,14 @@ public class TypeRepository {
         @Override
         protected ConcurrentMap<String,ValueDescriptor> computeValue(
                 Class<?> type) {
-            return new ConcurrentHashMap<String,ValueDescriptor>(1);
+            return new ConcurrentHashMap<>(1);
         }
     }
 
     private final TypeDescriptorCache repIdDescriptors;
     private final LocalDescriptors localDescriptors;
     private final FvdRepIdDescriptorMaps fvdDescMaps = new FvdRepIdDescriptorMaps();
-    private final ConcurrentMap<String,ValueDescriptor> noTypeDescMap = new ConcurrentHashMap<String,ValueDescriptor>();
+    private final ConcurrentMap<String,ValueDescriptor> noTypeDescMap = new ConcurrentHashMap<>();
 
     private static final Set<Class<?>> initTypes;
 
@@ -236,7 +228,7 @@ public class TypeRepository {
     }
 
     private static Set<Class<?>> createClassSet(Class<?>...types) {
-        return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(types)));
+        return unmodifiableSet(new HashSet<>(Arrays.asList(types)));
     }
 
     private TypeRepository() {
@@ -244,37 +236,32 @@ public class TypeRepository {
         addToRepIdDescriptors = repIdDescriptors::put;
         localDescriptors = new LocalDescriptors(this);
 
-        for (Class<?> type: initTypes) {
-            localDescriptors.get(type);
-        }
+        for (Class<?> type: initTypes) localDescriptors.get(type);
     }
+
+    private static final LazyReference<TypeRepository> INSTANCE = new LazyReference<>(TypeRepository::new);
 
     final Consumer<TypeDescriptor> addToRepIdDescriptors;
-    private static enum RepoHolder {
-        ;
-        static final TypeRepository value = new TypeRepository();
-    }
-
     public static TypeRepository get() {
-        return RepoHolder.value;
+        return INSTANCE.get();
     }
 
     public String getRepositoryID(Class<?> type) {
         return getDescriptor(type).getRepositoryID();
     }
 
-    public RemoteInterfaceDescriptor getRemoteInterface(Class<?> type) {
+    RemoteInterfaceDescriptor getRemoteInterface(Class<?> type) {
         return getDescriptor(type).getRemoteInterface();
     }
 
-    public TypeDescriptor getDescriptor(Class<?> type) {
+    TypeDescriptor getDescriptor(Class<?> type) {
         logger.fine(() -> String.format("Requesting type descriptor for class \"%s\"", type.getName()));
         final TypeDescriptor desc = localDescriptors.get(type);
         logger.fine(() -> String.format("Class \"%s\" resolves to %s", type.getName(), desc));
         return desc;
     }
 
-    public TypeDescriptor getDescriptor(String repId) {
+    TypeDescriptor getDescriptor(String repId) {
         logger.fine(() -> String.format("Requesting type descriptor for repId \"%s\"", repId));
         final TypeDescriptor desc = repIdDescriptors.get(repId);
         logger.fine(() -> String.format("RepId \"%s\" resolves to %s", repId, desc));
@@ -288,8 +275,7 @@ public class TypeRepository {
      * @return ValueDescriptor
      * @throws ClassNotFoundException  something might go wrong.
      */
-    public ValueDescriptor getDescriptor(Class<?> clz, String repid,
-            RunTime runtime) throws ClassNotFoundException {
+    ValueDescriptor getDescriptor(Class<?> clz, String repid, RunTime runtime) throws ClassNotFoundException {
         if (repid == null) {
             return (ValueDescriptor) getDescriptor(clz);
         }
@@ -333,22 +319,14 @@ public class TypeRepository {
 
         FullValueDescription fvd = codebase.meta(repid);
 
-        ValueDescriptor super_desc = null;
-        if (!"".equals(fvd.base_value)) {
-            super_desc = getDescriptor(clz == null ? null : clz.getSuperclass(), fvd.base_value, codebase);
-        }
+        final ValueDescriptor superDesc = "".equals(fvd.base_value) ? null :
+            getDescriptor(null == clz ? null : clz.getSuperclass(), fvd.base_value, codebase);
 
-        final ValueDescriptor newDesc;
-        if ((super_desc != null) && super_desc.isEnum()) {
-            newDesc = new FVDEnumSubclassDescriptor(fvd, clz, this, repid, super_desc);
-        } else if (fvd.id.startsWith("RMI:java.lang.Enum:")) {
-            newDesc = new FVDEnumDescriptor(fvd, clz, this, repid, super_desc);
-        } else {
-            newDesc = new FVDValueDescriptor(fvd, clz, this, repid, super_desc);
-        }
-        ConcurrentMap<String, ValueDescriptor> remoteDescMap = (clz == null) ? noTypeDescMap : fvdDescMaps.get(clz);
+        final ValueDescriptor newDesc = FVDValueDescriptor.create(fvd, clz, this, repid, superDesc);
+
+        ConcurrentMap<String, ValueDescriptor> remoteDescMap = (null == clz) ? noTypeDescMap : fvdDescMaps.get(clz);
         clzdesc = remoteDescMap.putIfAbsent(newDesc.getRepositoryID(), newDesc);
-        if (clzdesc == null) {
+        if (null == clzdesc) {
             clzdesc = newDesc;
             repIdDescriptors.put(clzdesc);
         }

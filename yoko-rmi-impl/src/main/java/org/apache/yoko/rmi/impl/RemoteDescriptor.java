@@ -20,17 +20,16 @@ package org.apache.yoko.rmi.impl;
 import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TypeCode;
-import org.omg.CORBA.portable.InputStream;
-import org.omg.CORBA.portable.OutputStream;
 
+import javax.rmi.CORBA.Util;
 import javax.rmi.PortableRemoteObject;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -53,7 +52,6 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toCollection;
-import static javax.rmi.CORBA.Util.writeRemoteObject;
 import static org.apache.yoko.util.Predicates.not;
 import static org.apache.yoko.util.PrivilegedActions.getClassLoader;
 import static org.apache.yoko.util.PrivilegedActions.getDeclaredMethods;
@@ -139,7 +137,7 @@ abstract class RemoteDescriptor extends TypeDescriptor {
     }
 
     RemoteDescriptor(Class<?> type, TypeRepository repository) {
-        super(type, repository);
+        super(type, repository, in -> PortableRemoteObject.narrow(in.read_Object(), type), Util::writeRemoteObject);
     }
 
     private static final MethodDescriptor[] EMPTY_DESCRIPTORS = {};
@@ -298,18 +296,6 @@ abstract class RemoteDescriptor extends TypeDescriptor {
                 .filter(Remote.class::isAssignableFrom)
                 .forEach(i -> addRemoteInterfacesToSet(i, interfaces));
         return interfaces;
-    }
-
-    /** Read an instance of this value from a CDR stream */
-    @Override
-    public Object read(InputStream in) {
-        return PortableRemoteObject.narrow(in.read_Object(), getType());
-    }
-
-    /** Write an instance of this value to a CDR stream */
-    @Override
-    public void write(OutputStream out, Object val) {
-        writeRemoteObject(out, val);
     }
 
     @Override

@@ -29,6 +29,8 @@ import java.rmi.Remote;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
 import static org.apache.yoko.util.Exceptions.as;
@@ -37,6 +39,8 @@ abstract class TypeDescriptor extends ModelElement {
     protected static final Logger logger = Logger.getLogger(TypeDescriptor.class.getName());
 
     private final Class<?> type;
+    private final java.util.function.Function<InputStream, Object> readFunction;
+    private final java.util.function.BiConsumer<OutputStream, Object> writeFunction;
 
     final Class<?> getType() { return type; }
 
@@ -124,7 +128,7 @@ abstract class TypeDescriptor extends ModelElement {
             if (obj == null) return false;
             if (!(obj instanceof SimpleKey)) return false;
             if (obj instanceof FullKey &&
-                    !!!Objects.equals(localType, ((FullKey)obj).localType)) return false;
+                    !Objects.equals(localType, ((FullKey) obj).localType)) return false;
             return super.equals(obj);
         }
     }
@@ -136,9 +140,14 @@ abstract class TypeDescriptor extends ModelElement {
                 getRepositoryID());
     }
 
-    protected TypeDescriptor(Class<?> type, TypeRepository repository) {
+    interface ReadFn extends Function<InputStream, Object> {}
+    interface WriteFn extends BiConsumer<OutputStream,Object> {}
+
+    protected TypeDescriptor(Class<?> type, TypeRepository repository, ReadFn readFn, WriteFn writeFn) {
         super(repository, type.getName());
         this.type = type;
+        this.readFunction = readFn;
+        this.writeFunction = writeFn;
     }
 
     @Override
@@ -164,10 +173,14 @@ abstract class TypeDescriptor extends ModelElement {
 
 
     /** Read an instance of this value from a CDR stream */
-    public abstract Object read(InputStream in);
+    public final Object read(InputStream in) {
+        return readFunction.apply(in);
+    }
 
     /** Write an instance of this value to a CDR stream */
-    public abstract void write(OutputStream out, Object val);
+    public final void write(OutputStream out, Object val) {
+        writeFunction.accept(out, val);
+    }
 
     public boolean isCustomMarshalled() {
         return false;
@@ -286,19 +299,17 @@ abstract class TypeDescriptor extends ModelElement {
 
     /**
      * Method copyBetweenStates.
-     * 
+     *
      * @return boolean
      */
-    public boolean copyBetweenStates() {
-        return true;
-    }
+    boolean copyBetweenStates() { return true; }
 
     /**
      * Method copyWithinState.
-     * 
+     *
      * @return boolean
      */
-    public boolean copyWithinState() {
+    boolean copyWithinState() {
         return true;
     }
 
