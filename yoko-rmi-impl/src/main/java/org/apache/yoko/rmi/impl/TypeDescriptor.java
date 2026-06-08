@@ -124,7 +124,7 @@ abstract class TypeDescriptor extends ModelElement {
             if (obj == null) return false;
             if (!(obj instanceof SimpleKey)) return false;
             if (obj instanceof FullKey &&
-                    !!!Objects.equals(localType, ((FullKey)obj).localType)) return false;
+                    !Objects.equals(localType, ((FullKey) obj).localType)) return false;
             return super.equals(obj);
         }
     }
