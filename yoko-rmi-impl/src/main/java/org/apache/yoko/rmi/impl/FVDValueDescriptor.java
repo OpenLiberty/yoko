@@ -20,6 +20,7 @@ package org.apache.yoko.rmi.impl;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.ValueDefPackage.FullValueDescription;
 import org.omg.CORBA.ValueMember;
+import org.omg.CORBA.portable.OutputStream;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -41,13 +42,17 @@ class FVDValueDescriptor extends ValueDescriptor {
     }
 
     FVDValueDescriptor(FullValueDescription fvd, Class<?> clazz, TypeRepository rep, String repid, ValueDescriptor super_desc, Supplier<ValueReader> readerSupplier) {
-        super(clazz, rep, readerSupplier);
+        super(clazz, rep, FVDValueDescriptor::unsupportedWrite, readerSupplier);
 
         this.repid = repid;
         this.fvd = fvd;
         this.superDesc = super_desc;
 
         init();
+    }
+
+    private static void unsupportedWrite(OutputStream ignored, Object ignored1) {
+        throw new UnsupportedOperationException("FVDValueDescriptor does not support writing");
     }
 
     static FVDValueDescriptor create(FullValueDescription fvd, Class<?> clz, TypeRepository repo, String repId, ValueDescriptor superDesc) {

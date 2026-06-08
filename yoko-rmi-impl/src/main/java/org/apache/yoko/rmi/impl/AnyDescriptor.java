@@ -27,24 +27,12 @@ import java.io.PrintWriter;
 
 class AnyDescriptor extends TypeDescriptor {
     AnyDescriptor(Class<?> type, TypeRepository rep) {
-        super(type, rep);
+        super(type, rep, javax.rmi.CORBA.Util::readAny, javax.rmi.CORBA.Util::writeAny);
     }
 
     @Override
     protected String genRepId() {
         return String.format("IDL:%s:1.0", getType().getName().replace('.', '/'));
-    }
-
-    /** Read an instance of this value from a CDR stream */
-    @Override
-    public Object read(InputStream in) {
-        return javax.rmi.CORBA.Util.readAny(in);
-    }
-
-    /** Write an instance of this value to a CDR stream */
-    @Override
-    public void write(OutputStream out, Object val) {
-        javax.rmi.CORBA.Util.writeAny(out, val);
     }
 
     @Override

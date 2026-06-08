@@ -41,7 +41,6 @@ import java.lang.reflect.Method;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,6 +52,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
+import static java.util.Collections.unmodifiableMap;
 import static java.util.Collections.unmodifiableSet;
 
 public class TypeRepository {
@@ -101,15 +101,15 @@ public class TypeRepository {
             private Map<Class<?>, Supplier<TypeDescriptor>> genSimpleFactories() {
                 Map<Class<?>, Supplier<TypeDescriptor>> map = new HashMap<>();
                 // Primitive types
-                map.put(Boolean.TYPE, () -> new BooleanDescriptor(repo));
-                map.put(Byte.TYPE, () -> new ByteDescriptor(repo));
-                map.put(Short.TYPE, () -> new ShortDescriptor(repo));
-                map.put(Character.TYPE, () -> new CharDescriptor(repo));
-                map.put(Integer.TYPE, () -> new IntegerDescriptor(repo));
-                map.put(Long.TYPE, () -> new LongDescriptor(repo));
-                map.put(Float.TYPE, () -> new FloatDescriptor(repo));
-                map.put(Double.TYPE, () -> new DoubleDescriptor(repo));
-                map.put(Void.TYPE, () -> new VoidDescriptor(repo));
+                map.put(boolean.class, () -> new PrimitiveDescriptor(boolean.class, repo, "boolean", org.omg.CORBA.TCKind.tk_boolean, org.omg.CORBA.portable.InputStream::read_boolean, (out, val) -> out.write_boolean((Boolean)val)));
+                map.put(byte.class, () -> new PrimitiveDescriptor(byte.class, repo, "octet", org.omg.CORBA.TCKind.tk_octet, org.omg.CORBA.portable.InputStream::read_octet, (out, val) -> out.write_octet((Byte)val)));
+                map.put(short.class, () -> new PrimitiveDescriptor(short.class, repo, "short", org.omg.CORBA.TCKind.tk_short, org.omg.CORBA.portable.InputStream::read_short, (out, val) -> out.write_short((Short)val)));
+                map.put(char.class, () -> new PrimitiveDescriptor(char.class, repo, "wchar", org.omg.CORBA.TCKind.tk_wchar, org.omg.CORBA.portable.InputStream::read_wchar, (out, val) -> out.write_wchar((Character)val)));
+                map.put(int.class, () -> new PrimitiveDescriptor(int.class, repo, "long", org.omg.CORBA.TCKind.tk_long, org.omg.CORBA.portable.InputStream::read_long, (out, val) -> out.write_long((Integer)val)));
+                map.put(long.class, () -> new PrimitiveDescriptor(long.class, repo, "long_long", org.omg.CORBA.TCKind.tk_longlong, org.omg.CORBA.portable.InputStream::read_longlong, (out, val) -> out.write_longlong((Long)val)));
+                map.put(float.class, () -> new PrimitiveDescriptor(float.class, repo, "float", org.omg.CORBA.TCKind.tk_float, org.omg.CORBA.portable.InputStream::read_float, (out, val) -> out.write_float((Float)val)));
+                map.put(double.class, () -> new PrimitiveDescriptor(double.class, repo, "double", org.omg.CORBA.TCKind.tk_double, org.omg.CORBA.portable.InputStream::read_double, (out, val) -> out.write_double((Double)val)));
+                map.put(void.class, () -> new PrimitiveDescriptor(void.class, repo, "void", org.omg.CORBA.TCKind.tk_void, in -> null, (out, val) -> {}));
                 // Other simple types
                 map.put(String.class, () -> new StringDescriptor(repo));
                 map.put(Class.class, () -> new ClassDescriptor(repo));
@@ -121,7 +121,7 @@ public class TypeRepository {
                 map.put(Externalizable.class, () -> new AnyDescriptor(Externalizable.class, repo));
                 map.put(Serializable.class, () -> new AnyDescriptor(Serializable.class, repo));
                 map.put(Remote.class, () -> new AnyDescriptor(Remote.class, repo));
-                return Collections.unmodifiableMap(map);
+                return unmodifiableMap(map);
             }
 
             @Override

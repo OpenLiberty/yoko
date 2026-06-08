@@ -19,35 +19,21 @@ package org.apache.yoko.rmi.impl;
 
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TypeCode;
-import org.omg.CORBA.portable.InputStream;
-import org.omg.CORBA.portable.OutputStream;
+import org.omg.CORBA_2_3.portable.InputStream;
+import org.omg.CORBA_2_3.portable.OutputStream;
 
 import java.io.PrintWriter;
 
 class AbstractObjectDescriptor extends ValueDescriptor {
-    protected AbstractObjectDescriptor(Class type, TypeRepository repository) {
-        super(type, repository);
+    protected AbstractObjectDescriptor(Class<?> type, TypeRepository repository) {
+        super(type, repository,
+            in -> ((InputStream) in).read_abstract_interface(),
+            (out, value) -> ((OutputStream) out).write_abstract_interface(value));
     }
 
     @Override
     String genRepId() {
         return String.format("IDL:%s:1.0", getType().getName().replace('.', '/'));
-    }
-
-    /** Read an instance of this value from a CDR stream */
-    @Override
-    public Object read(InputStream in) {
-        org.omg.CORBA_2_3.portable.InputStream _in = (org.omg.CORBA_2_3.portable.InputStream) in;
-
-        return _in.read_abstract_interface();
-    }
-
-    /** Write an instance of this value to a CDR stream */
-    @Override
-    public void write(OutputStream out, Object value) {
-        org.omg.CORBA_2_3.portable.OutputStream _out = (org.omg.CORBA_2_3.portable.OutputStream) out;
-
-        _out.write_abstract_interface(value);
     }
 
     @Override

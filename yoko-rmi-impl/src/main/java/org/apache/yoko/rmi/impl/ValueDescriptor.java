@@ -125,12 +125,30 @@ class ValueDescriptor extends TypeDescriptor {
             Character.class, Boolean.class, Byte.class, Long.class, Float.class, Double.class, Short.class)));
 
     ValueDescriptor(Class<?> type, TypeRepository repository) {
-        this(type, repository, null);
+        this(type, repository, null, null, null);
     }
 
-    ValueDescriptor(Class<?> type, TypeRepository repository, Supplier<ValueReader> readerSuppler) {
-        super(type, repository);
-        valueReaderRef = new LazyReference<>((null == readerSuppler) ? this::genValueReader : readerSuppler);
+    ValueDescriptor(Class<?> type, TypeRepository repository, ReadFn readFn, WriteFn writeFn) {
+        this(type, repository, readFn, writeFn, null);
+    }
+
+    ValueDescriptor(Class<?> type, TypeRepository repository, WriteFn writeFn, Supplier<ValueReader> readerSuppler) {
+        this(type, repository, null, writeFn, readerSuppler);
+    }
+
+    private ValueDescriptor(Class<?> type, TypeRepository repository, ReadFn readFn, WriteFn writeFn, Supplier<ValueReader> readerSuppler) {
+        super(type, repository,
+            null == readFn ? genVanillaReadFn(type) : readFn,
+            null == writeFn ? ValueDescriptor::vanillaWriteFn : writeFn);
+        valueReaderRef = new LazyReference<>(null == readerSuppler ? this::genValueReader : readerSuppler);
+    }
+
+    private static ReadFn genVanillaReadFn(Class<?> type) {
+        return in -> ((org.omg.CORBA_2_3.portable.InputStream) in).read_value(type);
+    }
+
+    private static void vanillaWriteFn(java.io.OutputStream out, Object val) {
+        ((org.omg.CORBA_2_3.portable.OutputStream) out).write_value((Serializable) val);
     }
 
     protected boolean isEnum() { return false; }
@@ -260,7 +278,7 @@ class ValueDescriptor extends TypeDescriptor {
         } catch (Exception ignored) {
             return identity();
         }
-        
+
         return  val -> {
             try {
                 return (Serializable) method.invoke(val);
@@ -380,7 +398,7 @@ class ValueDescriptor extends TypeDescriptor {
         Class<?> type = getType();
 
         if (initClass == null) {
-            MARSHAL_LOG.warning(() -> "Class " + type.getName() 
+            MARSHAL_LOG.warning(() -> "Class " + type.getName()
                     + " is not properly serializable. It has no non-serializable super-class");
             return Optional.empty();
         }
@@ -398,13 +416,13 @@ class ValueDescriptor extends TypeDescriptor {
                 MARSHAL_LOG.warning(() -> "Unable to get constructor for serialization for class " + java_name);
                 return Optional.empty();
             }
-            
+
             constructor = doPrivileged(makeAccessible(constructor));
             return Optional.of(constructor);
 
         } catch (Exception ex) {
-            MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName() 
-                    + " is not properly serializable. First non-serializable super-class (" 
+            MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName()
+                    + " is not properly serializable. First non-serializable super-class ("
                     + initClass.getName() + ") has no default constructor.");
             return Optional.empty();
         }
@@ -418,12 +436,12 @@ class ValueDescriptor extends TypeDescriptor {
 
         Class<?> type = getType();
         if (!samePackage(type, initClass)) {
-            MARSHAL_LOG.warning(() -> "Class " + type.getName() 
+            MARSHAL_LOG.warning(() -> "Class " + type.getName()
                     + " is not properly serializable. The default constructor of its first "
                     + "non-serializable super-class (" + initClass.getName() + ") is not accessible.");
             return false;
         }
-        
+
         return true;
     }
 
@@ -471,7 +489,7 @@ class ValueDescriptor extends TypeDescriptor {
             }
         } catch (Exception ignored) {
         }
-        
+
         return null;
     }
 
@@ -495,16 +513,6 @@ class ValueDescriptor extends TypeDescriptor {
         String name = type.getName();
         int idx = name.lastIndexOf('.');
         return (idx == -1) ? "" : name.substring(0, idx);
-    }
-
-    /** Read an instance of this value from a CDR stream */
-    public Object read(org.omg.CORBA.portable.InputStream in) {
-        return ((org.omg.CORBA_2_3.portable.InputStream) in).read_value();
-    }
-
-    /** Write an instance of this value to a CDR stream */
-    public void write(OutputStream out, Object value) {
-        ((org.omg.CORBA_2_3.portable.OutputStream) out).write_value((Serializable) value);
     }
 
     public boolean isCustomMarshalled() {
@@ -584,7 +592,7 @@ class ValueDescriptor extends TypeDescriptor {
             if (isExternalizable()) {
                 return buildExternalizableWriter();
             }
-            
+
             return getWriteObjectMethod()
                     .map(this::buildCustomWriter)
                     .orElseGet(this::buildDefaultWriter);
@@ -666,7 +674,7 @@ class ValueDescriptor extends TypeDescriptor {
             if (isExternalizable()) {
                 return buildExternalizableReader();
             }
-            
+
             return getWriteObjectMethod()
                     .map(this::buildCustomMarshalReader)
                     .orElseGet(this::buildSimpleReader);
@@ -1014,7 +1022,7 @@ class ValueDescriptor extends TypeDescriptor {
     private static final Comparator<FieldDescriptor> compareByName = comparing(f -> f.java_name);
 
     private final LazyReference<List<ValueMember>> valueMembersRef = new LazyReference<>(this::genValueMembers);
-    
+
     protected List<ValueMember> genValueMembers() {
         return getFields().stream()
                 .map(FieldDescriptor::getValueMember)
@@ -1050,7 +1058,7 @@ class ValueDescriptor extends TypeDescriptor {
     private static final AttributeDescription[] ZERO_ATTRIBUTES = {};
     private static final Initializer[] ZERO_INITIALIZERS = {};
     private static final String[] ZERO_STRINGS = {};
-    
+
 
     /**
      * Creates a defensive copy of a FullValueDescription.
@@ -1064,7 +1072,7 @@ class ValueDescriptor extends TypeDescriptor {
         if (original == null) {
             return null;
         }
-        
+
         FullValueDescription copy = new FullValueDescription();
         copy.name = original.name;
         copy.id = original.id;
@@ -1072,25 +1080,25 @@ class ValueDescriptor extends TypeDescriptor {
         copy.is_custom = original.is_custom;
         copy.defined_in = original.defined_in;
         copy.version = original.version;
-        
+
         // Deep copy arrays
-        copy.operations = original.operations == null ? null : 
+        copy.operations = original.operations == null ? null :
             Arrays.copyOf(original.operations, original.operations.length);
-        copy.attributes = original.attributes == null ? null : 
+        copy.attributes = original.attributes == null ? null :
             Arrays.copyOf(original.attributes, original.attributes.length);
-        copy.members = original.members == null ? null : 
+        copy.members = original.members == null ? null :
             Arrays.copyOf(original.members, original.members.length);
-        copy.initializers = original.initializers == null ? null : 
+        copy.initializers = original.initializers == null ? null :
             Arrays.copyOf(original.initializers, original.initializers.length);
-        copy.supported_interfaces = original.supported_interfaces == null ? null : 
+        copy.supported_interfaces = original.supported_interfaces == null ? null :
             Arrays.copyOf(original.supported_interfaces, original.supported_interfaces.length);
-        copy.abstract_base_values = original.abstract_base_values == null ? null : 
+        copy.abstract_base_values = original.abstract_base_values == null ? null :
             Arrays.copyOf(original.abstract_base_values, original.abstract_base_values.length);
-        
+
         copy.is_truncatable = original.is_truncatable;
         copy.base_value = original.base_value;
         copy.type = original.type;
-        
+
         return copy;
     }
 

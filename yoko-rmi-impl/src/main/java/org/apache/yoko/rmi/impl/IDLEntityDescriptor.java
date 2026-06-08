@@ -21,7 +21,6 @@ import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.portable.InputStream;
-import org.omg.CORBA.portable.ObjectImpl;
 import org.omg.CORBA.portable.OutputStream;
 
 import javax.rmi.CORBA.Util;
@@ -39,19 +38,30 @@ import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.PrivilegedActions.getClassLoader;
 
 class IDLEntityDescriptor extends ValueDescriptor {
-    private final boolean isCorba;
     private final Class helperType;
 
-    IDLEntityDescriptor(Class type, TypeRepository repository) {
-        super(type, repository);
+    private static ReadFn createReader(Class<?> type) {
+        boolean isCorbaObj = org.omg.CORBA.Object.class.isAssignableFrom(type);
+        if (isCorbaObj) return InputStream::read_Object;
+        String repId = String.format("RMI:%s:%016X", type.getName(), 0);
+        return in -> ((org.omg.CORBA_2_3.portable.InputStream) in).read_value(repId);
+    }
 
-        isCorba = org.omg.CORBA.Object.class.isAssignableFrom(type);
+    private static WriteFn createWriter(Class<?> type) {
+        boolean isCorbaObj = org.omg.CORBA.Object.class.isAssignableFrom(type);
+        if (isCorbaObj) return (out, val) -> out.write_Object((org.omg.CORBA.Object) val);
+        String repId = String.format("RMI:%s:%016X", type.getName(), 0);
+        return (out, val) -> ((org.omg.CORBA_2_3.portable.OutputStream) out).write_value((Serializable) val, repId);
+    }
+
+    IDLEntityDescriptor(Class type, TypeRepository repository) {
+        super(type, repository, createReader(type), createWriter(type));
+
         try {
             final String helperName = type.getName() + "Helper";
             helperType = Util.loadClass(helperName, null, doPrivileged(getClassLoader(type)));
         } catch (ClassNotFoundException ex) {
-            throw new RuntimeException("cannot load IDL Helper class for "
-                    + type, ex);
+            throw new RuntimeException("cannot load IDL Helper class for " + type, ex);
         }
     }
 
@@ -68,25 +78,6 @@ class IDLEntityDescriptor extends ValueDescriptor {
         } catch (PrivilegedActionException ex) {
             throw new RuntimeException("Unable to find " + methodName + " method for " + helperType.getName(), ex.getCause());
         }
-    }
-
-    @FunctionalInterface
-    private interface ObjectReader extends Function<InputStream, Object> {}
-
-    private final LazyReference<ObjectReader> objectReader = new LazyReference<>(this::genObjectReader);
-
-    ObjectReader genObjectReader() {
-        // Capture the logic at build time
-        if (isCorba) {
-            return in -> ((org.omg.CORBA_2_3.portable.InputStream) in).read_Object(getType());
-        } else {
-            final String repositoryID = getRepositoryID();
-            return in -> ((org.omg.CORBA_2_3.portable.InputStream) in).read_value(repositoryID);
-        }
-    }
-
-    private ObjectReader getObjectReader() {
-        return objectReader.get();
     }
 
     @FunctionalInterface
@@ -131,35 +122,11 @@ class IDLEntityDescriptor extends ValueDescriptor {
 
 
 
-    /** Read an instance of this value from a CDR stream */
-    @Override
-    public Object read(InputStream in) {
-        return getObjectReader().apply(in);
-    }
-
     @Override
     public Serializable readValue(final InputStream in, final Map<Integer, Serializable> offsetMap, final Integer offset) {
         Serializable value = getReader().apply(in);
         offsetMap.put(offset, value);
         return value;
-    }
-
-    /** Write an instance of this value to a CDR stream */
-    @Override
-    public void write(OutputStream out, Object val) {
-        org.omg.CORBA_2_3.portable.OutputStream _out = (org.omg.CORBA_2_3.portable.OutputStream) out;
-
-        // there are two ways we need to deal with IDLEntity classes.  Ones that also implement
-        // the CORBA Object interface are actual corba objects, and must be handled that way.
-        // Other IDLEntity classes are just transmitted by value.
-        if (val instanceof ObjectImpl) {
-            _out.write_Object((org.omg.CORBA.Object)val);
-        } else {
-            // we directly call write_value() on the stream here, with the explicitly specified
-            // repository ID.  the output stream will handle writing the value tag for us, and eventually
-            // will call our writeValue() method to serialize the object.
-            _out.write_value((Serializable)val, getRepositoryID());
-        }
     }
 
     @Override
