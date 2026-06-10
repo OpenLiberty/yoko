@@ -386,6 +386,12 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Supplier<Serializable> genBlankInstanceSupplier() {
+
+        // 30210: Records can't be instantiated without constructor arguments, so this should return null in the Record case
+        if (_recordSupportUtils != null) {
+            return null;
+        }
+
         return findConstructor()
                 .map(constructor -> (Supplier<Serializable>) () -> {
                     try {
