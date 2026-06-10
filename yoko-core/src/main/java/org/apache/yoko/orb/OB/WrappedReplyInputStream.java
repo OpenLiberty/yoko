@@ -120,6 +120,11 @@ final class WrappedReplyInputStream extends InputStream {
     /**
      * Called before the first read operation returns to trigger interceptors.
      * Subsequent reads bypass this check.
+     * <p>
+     * <em>Note: this approach may be insufficient in the edge case of an IDL-defined
+     * interface with out or inout parameters in addition to the return value,
+     * but only if those subsequent values are unmarshalled differently according to context 
+     * (e.g. YASF, CMSF, or ROFL).</em>
      */
     private void triggerInterceptorsOnFirstRead() throws SystemException {
         if (readYet) return;
