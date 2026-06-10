@@ -17,13 +17,19 @@
  */
 package org.apache.yoko.orb.CORBA.typecode;
 
+import org.omg.CORBA.BAD_TYPECODE;
 import org.omg.CORBA.TypeCode;
+import org.omg.CORBA.TypeCodePackage.BadKind;
 import org.omg.CORBA.TypeCodePackage.Bounds;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.MinorCodes.MinorTypeMismatch;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.TCKind.tk_enum;
 
 /**
@@ -121,6 +127,27 @@ public final class EnumTypeCode extends YokoTypeCode {
             return true;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Converts a foreign TypeCode to an EnumTypeCode.
+     * 
+     * @param tc the TypeCode to convert (must be tk_enum)
+     * @param history map of already converted TypeCodes (unused for enum types)
+     * @param recHistory list of TypeCodes currently being processed (unused for enum types)
+     * @return a new EnumTypeCode instance
+     */
+    public static YokoTypeCode from(TypeCode tc, Map<TypeCode, YokoTypeCode> history, List<TypeCode> recHistory) {
+        try {
+            int count = tc.member_count();
+            String[] memberNames = new String[count];
+            for (int i = 0; i < count; i++) {
+                memberNames[i] = tc.member_name(i);
+            }
+            return new EnumTypeCode(tc.id(), tc.name(), memberNames);
+        } catch (BadKind | Bounds e) {
+            throw as(BAD_TYPECODE::new, e, "Invalid enum TypeCode", MinorTypeMismatch, COMPLETED_NO);
         }
     }
 }

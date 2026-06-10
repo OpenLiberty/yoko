@@ -84,4 +84,20 @@ public final class FixedTypeCode extends YokoTypeCode {
             return false;
         }
     }
+
+    /**
+     * Converts a foreign TypeCode to a FixedTypeCode.
+     * 
+     * @param tc the TypeCode to convert
+     * @param history map of already converted TypeCodes (unused for fixed types)
+     * @param recHistory list of TypeCodes currently being processed (unused for fixed types)
+     * @return a new FixedTypeCode instance
+     */
+    public static YokoTypeCode from(TypeCode tc, java.util.Map<TypeCode, YokoTypeCode> history, java.util.List<TypeCode> recHistory) {
+        try {
+            return new FixedTypeCode(tc.fixed_digits(), tc.fixed_scale());
+        } catch (org.omg.CORBA.TypeCodePackage.BadKind e) {
+            throw new org.omg.CORBA.BAD_TYPECODE("Invalid fixed TypeCode: " + e.getMessage());
+        }
+    }
 }

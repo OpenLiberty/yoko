@@ -17,12 +17,18 @@
  */
 package org.apache.yoko.orb.CORBA.typecode;
 
+import org.omg.CORBA.BAD_TYPECODE;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.TypeCode;
+import org.omg.CORBA.TypeCodePackage.BadKind;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.MinorCodes.MinorTypeMismatch;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.TCKind.tk_abstract_interface;
 import static org.omg.CORBA.TCKind.tk_objref;
 import static org.omg.CORBA_2_4.TCKind.tk_local_interface;
@@ -97,6 +103,22 @@ public final class ObjectRefTypeCode extends YokoTypeCode {
             return this.name.equals(otherName);
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Converts a foreign TypeCode to an ObjectRefTypeCode.
+     * 
+     * @param tc the TypeCode to convert (must be tk_objref, tk_abstract_interface, or tk_local_interface)
+     * @param history map of already converted TypeCodes (unused for object reference types)
+     * @param recHistory list of TypeCodes currently being processed (unused for object reference types)
+     * @return a new ObjectRefTypeCode instance
+     */
+    public static YokoTypeCode from(TypeCode tc, Map<TypeCode, YokoTypeCode> history, List<TypeCode> recHistory) {
+        try {
+            return new ObjectRefTypeCode(tc.kind(), tc.id(), tc.name());
+        } catch (BadKind e) {
+            throw as(BAD_TYPECODE::new, e, "Invalid object reference TypeCode", MinorTypeMismatch, COMPLETED_NO);
         }
     }
 }

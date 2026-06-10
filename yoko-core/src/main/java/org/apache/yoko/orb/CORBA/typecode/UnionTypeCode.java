@@ -19,14 +19,20 @@ package org.apache.yoko.orb.CORBA.typecode;
 
 import org.apache.yoko.util.Exceptions;
 import org.omg.CORBA.Any;
+import org.omg.CORBA.BAD_TYPECODE;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.TypeCode;
+import org.omg.CORBA.TypeCodePackage.BadKind;
 import org.omg.CORBA.TypeCodePackage.Bounds;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.MinorCodes.MinorTypeMismatch;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.TCKind.tk_octet;
 import static org.omg.CORBA.TCKind.tk_union;
 
@@ -37,18 +43,20 @@ public final class UnionTypeCode extends YokoTypeCode {
     private final String id;
     private final String name;
     private final String[] memberNames;
-    private final TypeCode[] memberTypes;
+    private final YokoTypeCode[] memberTypes;
     private final Any[] labels;
-    private final TypeCode discriminatorType;
+    private final YokoTypeCode discriminatorType;
 
     public UnionTypeCode(String id, String name, TypeCode discriminatorType,
                          String[] memberNames, TypeCode[] memberTypes, Any[] labels) {
         super(tk_union);
         this.id = id;
         this.name = name;
-        this.discriminatorType = discriminatorType;
+        this.discriminatorType = YokoTypeCode.from(discriminatorType);
         this.memberNames = memberNames.clone();
-        this.memberTypes = memberTypes.clone();
+        this.memberTypes = Arrays.stream(memberTypes)
+            .map(YokoTypeCode::from)
+            .toArray(YokoTypeCode[]::new);
         this.labels = labels.clone();
     }
 
@@ -244,6 +252,48 @@ public final class UnionTypeCode extends YokoTypeCode {
             return true;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Converts a foreign TypeCode to a UnionTypeCode.
+     * 
+     * @param tc the TypeCode to convert (must be tk_union)
+     * @param history map of already converted TypeCodes
+     * @param recHistory list of TypeCodes currently being processed (for recursion detection)
+     * @return a new UnionTypeCode instance
+     */
+    public static YokoTypeCode from(TypeCode tc, Map<TypeCode, YokoTypeCode> history, List<TypeCode> recHistory) {
+        try {
+            int count = tc.member_count();
+            String[] memberNames = new String[count];
+            TypeCode[] memberTypes = new TypeCode[count];
+            Any[] labels = new Any[count];
+            
+            // Collect member names and labels
+            for (int i = 0; i < count; i++) {
+                memberNames[i] = tc.member_name(i);
+                labels[i] = tc.member_label(i);
+            }
+            
+            // Convert discriminator type
+            TypeCode discriminatorType = tc.discriminator_type();
+            YokoTypeCode convertedDiscriminator = YokoTypeCode.from(discriminatorType);
+            
+            // Add to recursion history before processing member types
+            recHistory.add(tc);
+            
+            // Convert member types (may encounter recursion)
+            for (int i = 0; i < count; i++) {
+                memberTypes[i] = YokoTypeCode.from(tc.member_type(i));
+            }
+            
+            // Remove from recursion history
+            recHistory.remove(recHistory.size() - 1);
+            
+            return new UnionTypeCode(tc.id(), tc.name(), convertedDiscriminator, memberNames, memberTypes, labels);
+        } catch (BadKind | Bounds e) {
+            throw as(BAD_TYPECODE::new, e, "Invalid union TypeCode", MinorTypeMismatch, COMPLETED_NO);
         }
     }
 }

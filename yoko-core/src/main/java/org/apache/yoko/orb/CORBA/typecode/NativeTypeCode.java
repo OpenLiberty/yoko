@@ -17,11 +17,17 @@
  */
 package org.apache.yoko.orb.CORBA.typecode;
 
+import org.omg.CORBA.BAD_TYPECODE;
 import org.omg.CORBA.TypeCode;
+import org.omg.CORBA.TypeCodePackage.BadKind;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.MinorCodes.MinorTypeMismatch;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.TCKind.tk_native;
 
 /**
@@ -90,6 +96,22 @@ public final class NativeTypeCode extends YokoTypeCode {
             return this.name.equals(otherName);
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Converts a foreign TypeCode to a NativeTypeCode.
+     * 
+     * @param tc the TypeCode to convert (must be tk_native)
+     * @param history map of already converted TypeCodes (unused for native types)
+     * @param recHistory list of TypeCodes currently being processed (unused for native types)
+     * @return a new NativeTypeCode instance
+     */
+    public static YokoTypeCode from(TypeCode tc, Map<TypeCode, YokoTypeCode> history, List<TypeCode> recHistory) {
+        try {
+            return new NativeTypeCode(tc.id(), tc.name());
+        } catch (BadKind e) {
+            throw as(BAD_TYPECODE::new, e, "Invalid native TypeCode", MinorTypeMismatch, COMPLETED_NO);
         }
     }
 }

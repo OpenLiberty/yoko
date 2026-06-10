@@ -17,12 +17,18 @@
  */
 package org.apache.yoko.orb.CORBA.typecode;
 
+import org.omg.CORBA.BAD_TYPECODE;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.TypeCode;
+import org.omg.CORBA.TypeCodePackage.BadKind;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.MinorCodes.MinorTypeMismatch;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.TCKind.tk_string;
 import static org.omg.CORBA.TCKind.tk_wstring;
 
@@ -79,6 +85,22 @@ public final class StringTypeCode extends YokoTypeCode {
             return other.length() == this.length;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Converts a foreign TypeCode to a StringTypeCode.
+     * 
+     * @param tc the TypeCode to convert (must be tk_string or tk_wstring)
+     * @param history map of already converted TypeCodes (unused for string types)
+     * @param recHistory list of TypeCodes currently being processed (unused for string types)
+     * @return a new StringTypeCode instance
+     */
+    public static YokoTypeCode from(TypeCode tc, Map<TypeCode, YokoTypeCode> history, List<TypeCode> recHistory) {
+        try {
+            return new StringTypeCode(tc.kind(), tc.length());
+        } catch (BadKind e) {
+            throw as(BAD_TYPECODE::new, e, "Invalid string TypeCode", MinorTypeMismatch, COMPLETED_NO);
         }
     }
 }

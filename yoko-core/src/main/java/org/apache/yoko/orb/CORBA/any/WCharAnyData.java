@@ -22,7 +22,7 @@ import org.omg.CORBA_2_3.portable.InputStream;
 import org.omg.CORBA_2_3.portable.OutputStream;
 
 import static org.apache.yoko.orb.CORBA.any.YokoAnyData.newMismatchBadOp;
-import static org.apache.yoko.orb.OB.TypeCodeFactory.createPrimitiveTC;
+import static org.apache.yoko.orb.CORBA.typecode.YokoTypeCode.getPrimitive;
 import static org.omg.CORBA.TCKind.tk_wchar;
 
 /**
@@ -30,7 +30,7 @@ import static org.omg.CORBA.TCKind.tk_wchar;
  * Always contains a valid wide char value.
  */
 public final class WCharAnyData implements YokoAnyData<Character> {
-    private static final TypeCode TYPE_CODE = createPrimitiveTC(tk_wchar);
+    private static final TypeCode TYPE_CODE = getPrimitive(tk_wchar);
 
     private final char value;
 

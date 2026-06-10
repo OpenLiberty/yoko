@@ -17,21 +17,25 @@
  */
 package org.apache.yoko.orb.CORBA.typecode;
 
+import org.apache.yoko.util.TriFunction;
 import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.Any;
+import org.omg.CORBA.BAD_TYPECODE;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.TypeCodePackage.BadKind;
 import org.omg.CORBA.TypeCodePackage.Bounds;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
+import static java.util.Collections.unmodifiableMap;
 import static org.apache.yoko.util.Assert.ensure;
 import static org.omg.CORBA.TCKind.tk_Principal;
 import static org.omg.CORBA.TCKind.tk_TypeCode;
@@ -83,44 +87,111 @@ public abstract class YokoTypeCode extends TypeCode {
     /**
      * Lazily initialized primitive TypeCode instances.
      * Each primitive kind has a single shared instance created on first access.
-     * Non-primitive kinds throw IllegalArgumentException.
-     * Map key is TCKind.value() for efficient lookup.
+     * Non-primitive kinds return null from their supplier.
+     * Map key is TCKind for efficient lookup.
      */
-    private static final Map<TCKind, LazyReference<YokoTypeCode>> PRIMITIVE_TYPECODES;
+    private static final Map<TCKind, Supplier<YokoTypeCode>> PRIMITIVE_REFS;
+
+    /**
+     * Functional interface for converting foreign TypeCodes to YokoTypeCodes.
+     * Extends TriFunction to provide conversion with history tracking for recursion handling.
+     */
+    private interface Converter extends TriFunction<TypeCode, Map<TypeCode, YokoTypeCode>, List<TypeCode>, YokoTypeCode> {
+    }
+
+    /**
+     * Map of TCKind to converter functions for non-primitive types.
+     * Each converter delegates to the appropriate type-specific from() method.
+     * Converters are lazily initialized on first access.
+     */
+    private static final Map<TCKind, Supplier<Converter>> CONVERTER_REFS;
+
+    /**
+     * Map of TCKind to recursion checker functions.
+     * Complex types (struct, except, union, value) use getRecursionPlaceholder.
+     * All other types return null (no recursion checking needed).
+     */
+    private static final Map<TCKind, Converter> RECURSION_CHECKERS;
 
     static {
-        // TCKind values for primitive types that can be created via getPrimitive()
-        TCKind[] primitiveKinds = {
-            tk_null, tk_void, tk_short, tk_long,
-            tk_ushort, tk_ulong, tk_float, tk_double,
-            tk_boolean, tk_char, tk_octet, tk_any,
-            tk_TypeCode, tk_Principal, tk_longlong,
-            tk_ulonglong, tk_longdouble, tk_wchar
-        };
+        Map<TCKind, Supplier<YokoTypeCode>> map = new HashMap<>();
 
-        // TCKind values for non-primitive types that require additional parameters
-        TCKind[] nonPrimitiveKinds = {
-            tk_objref, tk_struct, tk_union, tk_enum,
-            tk_string, tk_sequence, tk_array, tk_alias,
-            tk_except, tk_wstring, tk_fixed, tk_value,
-            tk_value_box, tk_native, tk_abstract_interface, tk_local_interface
-        };
+        // Primitive types with lazy suppliers
+        map.put(tk_null, new LazyReference<>(() -> new PrimitiveTypeCode(tk_null)));
+        map.put(tk_void, new LazyReference<>(() -> new PrimitiveTypeCode(tk_void)));
+        map.put(tk_short, new LazyReference<>(() -> new PrimitiveTypeCode(tk_short)));
+        map.put(tk_long, new LazyReference<>(() -> new PrimitiveTypeCode(tk_long)));
+        map.put(tk_ushort, new LazyReference<>(() -> new PrimitiveTypeCode(tk_ushort)));
+        map.put(tk_ulong, new LazyReference<>(() -> new PrimitiveTypeCode(tk_ulong)));
+        map.put(tk_float, new LazyReference<>(() -> new PrimitiveTypeCode(tk_float)));
+        map.put(tk_double, new LazyReference<>(() -> new PrimitiveTypeCode(tk_double)));
+        map.put(tk_boolean, new LazyReference<>(() -> new PrimitiveTypeCode(tk_boolean)));
+        map.put(tk_char, new LazyReference<>(() -> new PrimitiveTypeCode(tk_char)));
+        map.put(tk_octet, new LazyReference<>(() -> new PrimitiveTypeCode(tk_octet)));
+        map.put(tk_any, new LazyReference<>(() -> new PrimitiveTypeCode(tk_any)));
+        map.put(tk_TypeCode, new LazyReference<>(() -> new PrimitiveTypeCode(tk_TypeCode)));
+        map.put(tk_Principal, new LazyReference<>(() -> new PrimitiveTypeCode(tk_Principal)));
+        map.put(tk_longlong, new LazyReference<>(() -> new PrimitiveTypeCode(tk_longlong)));
+        map.put(tk_ulonglong, new LazyReference<>(() -> new PrimitiveTypeCode(tk_ulonglong)));
+        map.put(tk_longdouble, new LazyReference<>(() -> new PrimitiveTypeCode(tk_longdouble)));
+        map.put(tk_wchar, new LazyReference<>(() -> new PrimitiveTypeCode(tk_wchar)));
 
-        Map<TCKind, LazyReference<YokoTypeCode>> map = new HashMap<>();
+        // Unbounded string singletons (commonly used)
+        map.put(tk_string, new LazyReference<>(() -> new StringTypeCode(tk_string, 0)));
+        map.put(tk_wstring, new LazyReference<>(() -> new StringTypeCode(tk_wstring, 0)));
 
-        // Populate primitive types
-        java.util.Arrays.stream(primitiveKinds).forEach(kind ->
-            map.put(kind, new LazyReference<>(() -> new PrimitiveTypeCode(kind)))
-        );
+        // Non-primitive types with null-returning suppliers
+        map.put(tk_objref, () -> null);
+        map.put(tk_struct, () -> null);
+        map.put(tk_union, () -> null);
+        map.put(tk_enum, () -> null);
+        map.put(tk_sequence, () -> null);
+        map.put(tk_array, () -> null);
+        map.put(tk_alias, () -> null);
+        map.put(tk_except, () -> null);
+        map.put(tk_fixed, () -> null);
+        map.put(tk_value, () -> null);
+        map.put(tk_value_box, () -> null);
+        map.put(tk_native, () -> null);
+        map.put(tk_abstract_interface, () -> null);
+        map.put(tk_local_interface, () -> null);
 
-        // Populate non-primitive types that throw exceptions
-        java.util.Arrays.stream(nonPrimitiveKinds).forEach(kind ->
-            map.put(kind, new LazyReference<>(() -> {
-                throw new IllegalArgumentException("TCKind " + kind + " is not a primitive type");
-            }))
-        );
+        PRIMITIVE_REFS = unmodifiableMap(map);
+    }
 
-        PRIMITIVE_TYPECODES = Collections.unmodifiableMap(map);
+    static {
+        // Initialize type converters for non-primitive types with lazy initialization
+        Map<TCKind, Supplier<Converter>> converters = new HashMap<>();
+        converters.put(tk_fixed, new LazyReference<>(() -> FixedTypeCode::from));
+        converters.put(tk_string, new LazyReference<>(() -> StringTypeCode::from));
+        converters.put(tk_wstring, new LazyReference<>(() -> StringTypeCode::from));
+        converters.put(tk_objref, new LazyReference<>(() -> ObjectRefTypeCode::from));
+        converters.put(tk_abstract_interface, new LazyReference<>(() -> ObjectRefTypeCode::from));
+        converters.put(tk_local_interface, new LazyReference<>(() -> ObjectRefTypeCode::from));
+        converters.put(tk_native, new LazyReference<>(() -> NativeTypeCode::from));
+        converters.put(tk_struct, new LazyReference<>(() -> StructTypeCode::from));
+        converters.put(tk_except, new LazyReference<>(() -> ExceptionTypeCode::from));
+        converters.put(tk_union, new LazyReference<>(() -> UnionTypeCode::from));
+        converters.put(tk_enum, new LazyReference<>(() -> EnumTypeCode::from));
+        converters.put(tk_sequence, new LazyReference<>(() -> SequenceTypeCode::from));
+        converters.put(tk_array, new LazyReference<>(() -> ArrayTypeCode::from));
+        converters.put(tk_alias, new LazyReference<>(() -> AliasTypeCode::from));
+        converters.put(tk_value_box, new LazyReference<>(() -> ValueBoxTypeCode::from));
+        converters.put(tk_value, new LazyReference<>(() -> ValueTypeCode::from));
+        CONVERTER_REFS = unmodifiableMap(converters);
+    }
+
+    static {
+        // Initialize recursion checkers - only complex types need recursion checking
+        Map<TCKind, Converter> recursionCheckers = new HashMap<>();
+        
+        // Only populate for complex types that support recursion
+        recursionCheckers.put(tk_struct, YokoTypeCode::getRecursionPlaceholder);
+        recursionCheckers.put(tk_except, YokoTypeCode::getRecursionPlaceholder);
+        recursionCheckers.put(tk_union, YokoTypeCode::getRecursionPlaceholder);
+        recursionCheckers.put(tk_value, YokoTypeCode::getRecursionPlaceholder);
+        
+        RECURSION_CHECKERS = unmodifiableMap(recursionCheckers);
     }
 
     /**
@@ -132,9 +203,12 @@ public abstract class YokoTypeCode extends TypeCode {
      * @throws IllegalArgumentException if the kind is not a primitive type or unknown
      */
     public static YokoTypeCode getPrimitive(TCKind kind) {
-        return java.util.Optional.ofNullable(PRIMITIVE_TYPECODES.get(kind))
-            .map(LazyReference::get)
-            .orElseThrow(() -> new IllegalArgumentException("Unknown TCKind: " + kind));
+        Supplier<YokoTypeCode> supplier = PRIMITIVE_REFS.get(kind);
+        if (supplier == null) {
+            throw new IllegalArgumentException("Unknown TCKind: " + kind);
+        }
+        return Optional.ofNullable(supplier.get())
+            .orElseThrow(() -> new IllegalArgumentException("TCKind " + kind + " is not a primitive type"));
     }
 
     /**
@@ -142,9 +216,12 @@ public abstract class YokoTypeCode extends TypeCode {
      * Use length 0 for unbounded strings.
      *
      * @param length the maximum length of the string (0 for unbounded)
-     * @return a new string TypeCode
+     * @return a string TypeCode (singleton for unbounded, new instance for bounded)
      */
     public static YokoTypeCode createString(int length) {
+        if (length == 0) {
+            return getPrimitive(TCKind.tk_string);
+        }
         return new StringTypeCode(TCKind.tk_string, length);
     }
 
@@ -153,9 +230,12 @@ public abstract class YokoTypeCode extends TypeCode {
      * Use length 0 for unbounded wide strings.
      *
      * @param length the maximum length of the wide string (0 for unbounded)
-     * @return a new wide string TypeCode
+     * @return a wide string TypeCode (singleton for unbounded, new instance for bounded)
      */
     public static YokoTypeCode createWString(int length) {
+        if (length == 0) {
+            return getPrimitive(TCKind.tk_wstring);
+        }
         return new StringTypeCode(TCKind.tk_wstring, length);
     }
 
@@ -336,6 +416,16 @@ public abstract class YokoTypeCode extends TypeCode {
         return kind;
     }
 
+    /**
+     * Returns the original type. For most types, this returns the type itself.
+     * For alias types, this is overridden to return the aliased type.
+     *
+     * @return the original TypeCode
+     */
+    public TypeCode getOrigType() {
+        return this;
+    }
+
     @Override
     public String toString() {
         return describe(new StringBuilder(), "", new HashSet<>()).toString();
@@ -423,19 +513,89 @@ public abstract class YokoTypeCode extends TypeCode {
 
     /**
      * Converts a TypeCode to a YokoTypeCode. If the TypeCode is already a YokoTypeCode,
-     * returns it as-is. Otherwise, creates a new YokoTypeCode instance by copying
-     * the structure of the foreign TypeCode.
+     * returns it as-is. If null, returns null. Otherwise, creates a new YokoTypeCode 
+     * instance by copying the structure of the foreign TypeCode.
      *
-     * @param tc the TypeCode to convert
-     * @return a YokoTypeCode instance
-     * @throws org.omg.CORBA.BAD_TYPECODE if the TypeCode is invalid
+     * @param tc the TypeCode to convert (may be null)
+     * @return a YokoTypeCode instance, or null if input is null
+     * @throws BAD_TYPECODE if the TypeCode is invalid
      */
     public static YokoTypeCode from(TypeCode tc) {
+        if (null == tc) return null;
         if (tc instanceof YokoTypeCode) return (YokoTypeCode) tc;
 
-        // TODO: Implement full conversion from foreign TypeCodes
-        // For now, this will be implemented when TypeCodeFactory is migrated
-        throw new UnsupportedOperationException(
-            "Conversion from foreign TypeCode not yet implemented");
+        Map<TypeCode, YokoTypeCode> history = new HashMap<>();
+        List<TypeCode> recHistory = new ArrayList<>();
+
+        return convertForeignTypeCode(tc, history, recHistory);
+    }
+
+    /**
+     * Helper method to convert foreign TypeCodes, handling recursion properly.
+     */
+    private static YokoTypeCode convertForeignTypeCode(
+            TypeCode tc, Map<TypeCode, YokoTypeCode> history, List<TypeCode> recHistory) {
+        if (tc instanceof YokoTypeCode) return (YokoTypeCode) tc;
+
+        TCKind kind = tc.kind();
+
+        // Check if this is a known kind
+        Supplier<YokoTypeCode> primitiveSupplier = PRIMITIVE_REFS.get(kind);
+        if (primitiveSupplier == null) {
+            throw new BAD_TYPECODE("Unknown TypeCode kind: " + kind);
+        }
+
+        // Check if this is a primitive type - use cached instance
+        YokoTypeCode primitive = primitiveSupplier.get();
+        if (null != primitive) return primitive;
+
+        // Check if already converted
+        YokoTypeCode result = history.get(tc);
+        if (null != result) return result;
+
+        // Check for recursion using the recursion checker for this kind
+        Converter recursionChecker = RECURSION_CHECKERS.get(kind);
+        if (null != recursionChecker) {
+            YokoTypeCode placeholder = recursionChecker.apply(tc, history, recHistory);
+            if (placeholder != null) return placeholder;
+        }
+
+        // Use converter from map to delegate to type-specific conversion
+        Supplier<Converter> converterSupplier = CONVERTER_REFS.get(kind);
+        if (converterSupplier == null) {
+            throw new BAD_TYPECODE("No converter available for TypeCode kind: " + kind);
+        }
+
+        Converter converter = converterSupplier.get();
+        YokoTypeCode converted = converter.apply(tc, history, recHistory);
+        history.put(tc, converted);
+        return converted;
+    }
+
+    /**
+     * Creates a recursive placeholder for a TypeCode that is currently being processed.
+     * 
+     * @param tc the TypeCode being processed
+     * @param history map of already converted TypeCodes
+     * @param recHistory list of TypeCodes currently being processed
+     * @return a RecursiveTypeCode placeholder if recursion is detected, null otherwise
+     */
+    private static YokoTypeCode getRecursionPlaceholder(TypeCode tc, Map<TypeCode, YokoTypeCode> history, List<TypeCode> recHistory) {
+        for (TypeCode typeCode : recHistory) {
+            if (tc != typeCode) continue;
+
+            try {
+                // Create recursive placeholder
+                RecursiveTypeCode recursivePlaceholder = new RecursiveTypeCode(tc.id());
+                YokoTypeCode existing = history.get(tc);
+                if (existing instanceof RecursiveTypeCode) {
+                    recursivePlaceholder.setRecursiveType(existing);
+                }
+                return recursivePlaceholder;
+            } catch (BadKind ex) {
+                throw new BAD_TYPECODE("Cannot get id from recursive TypeCode: " + ex.getMessage());
+            }
+        }
+        return null;
     }
 }

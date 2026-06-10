@@ -17,11 +17,17 @@
  */
 package org.apache.yoko.orb.CORBA.typecode;
 
+import org.omg.CORBA.BAD_TYPECODE;
 import org.omg.CORBA.TypeCode;
+import org.omg.CORBA.TypeCodePackage.BadKind;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.MinorCodes.MinorTypeMismatch;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.TCKind.tk_array;
 
 /**
@@ -29,12 +35,12 @@ import static org.omg.CORBA.TCKind.tk_array;
  */
 public final class ArrayTypeCode extends YokoTypeCode {
     private final int length;
-    private final TypeCode contentType;
+    private final YokoTypeCode contentType;
 
     public ArrayTypeCode(int length, TypeCode contentType) {
         super(tk_array);
         this.length = length;
-        this.contentType = contentType;
+        this.contentType = YokoTypeCode.from(contentType);
     }
 
     @Override
@@ -97,6 +103,24 @@ public final class ArrayTypeCode extends YokoTypeCode {
             return other.length() == this.length && contentType.equal(other.content_type());
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Converts a foreign TypeCode to an ArrayTypeCode.
+     * 
+     * @param tc the TypeCode to convert (must be tk_array)
+     * @param history map of already converted TypeCodes
+     * @param recHistory list of TypeCodes currently being processed
+     * @return a new ArrayTypeCode instance
+     */
+    public static YokoTypeCode from(TypeCode tc, Map<TypeCode, YokoTypeCode> history, List<TypeCode> recHistory) {
+        try {
+            TypeCode contentType = tc.content_type();
+            YokoTypeCode convertedContent = YokoTypeCode.from(contentType);
+            return new ArrayTypeCode(tc.length(), convertedContent);
+        } catch (BadKind e) {
+            throw as(BAD_TYPECODE::new, e, "Invalid array TypeCode", MinorTypeMismatch, COMPLETED_NO);
         }
     }
 }
