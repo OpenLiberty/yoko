@@ -17,7 +17,12 @@
  */
 package org.apache.yoko.orb.OB;
 
+import org.apache.yoko.io.SimplyCloseable;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
+import org.apache.yoko.util.cmsf.Cmsf;
+import org.apache.yoko.util.concurrent.LazyReference;
+import org.apache.yoko.util.rofl.Rofl;
+import org.apache.yoko.util.yasf.Yasf;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.Context;
 import org.omg.CORBA.INTERNAL;
@@ -30,9 +35,13 @@ import org.omg.CORBA_2_3.portable.InputStream;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.ThreadLocalStack.CMSF_THREAD_LOCAL;
+import static org.apache.yoko.util.ThreadLocalStack.ROFL_THREAD_LOCAL;
+import static org.apache.yoko.util.ThreadLocalStack.YASF_THREAD_LOCAL;
 
 /**
  * Wrapper for InputStream that intercepts the first read operation to trigger
@@ -46,18 +55,47 @@ final class WrappedReplyInputStream extends InputStream {
     private final YokoInputStream yokoStream;
     private final Downcall downcall;
     private boolean readYet;
+    private final LazyReference<Supplier<SimplyCloseable>> configFrameRef;
 
     WrappedReplyInputStream(YokoInputStream yokoStream, Downcall downcall) {
         this.yokoStream = yokoStream;
         this.downcall = downcall;
+        
+        // Initialize LazyReference with a function that captures thread local values and returns a Supplier
+        // The Supplier, when invoked, pushes captured values and returns a composite closer
+        this.configFrameRef = new LazyReference<>(() -> {
+            // Capture current thread local values at initialization time
+            final Set<Yasf> yasf = YASF_THREAD_LOCAL.get();
+            final Cmsf cmsf = CMSF_THREAD_LOCAL.get();
+            final Rofl rofl = ROFL_THREAD_LOCAL.get();
+            
+            // Return a Supplier that pushes the captured values and returns a composite closer
+            return () -> {
+                // Push the captured values onto their respective thread local stacks
+                @SuppressWarnings("resource")
+                SimplyCloseable ignored0 = YASF_THREAD_LOCAL.push(yasf);
+                @SuppressWarnings("resource")
+                SimplyCloseable ignored1 = CMSF_THREAD_LOCAL.push(cmsf);
+                @SuppressWarnings("resource")
+                SimplyCloseable ignored2 = ROFL_THREAD_LOCAL.push(rofl);
+                
+                // Return a composite SimplyCloseable that pops all three in reverse order
+                return () -> {
+                    ROFL_THREAD_LOCAL.pop();
+                    CMSF_THREAD_LOCAL.pop();
+                    YASF_THREAD_LOCAL.pop();
+                };
+            };
+        });
     }
 
     /**
      * Wraps a read operation with first-read interception logic.
      * Handles both value-returning and void operations uniformly.
+     * Establishes thread local frame before unmarshalling.
      */
     private <T> T wrapRead(Supplier<T> readOp) {
-        try {
+        try (SimplyCloseable ignored = configFrameRef.get().get()) {
             T result = readOp.get();
             triggerInterceptorsOnFirstRead();
             return result;
@@ -68,9 +106,10 @@ final class WrappedReplyInputStream extends InputStream {
 
     /**
      * Wraps a void read operation (array reads) with first-read interception logic.
+     * Establishes thread local frame before unmarshalling.
      */
     private void wrapVoidRead(Runnable readOp) {
-        try {
+        try (SimplyCloseable ignored = configFrameRef.get().get()) {
             readOp.run();
             triggerInterceptorsOnFirstRead();
         } catch (SystemException ex) {
@@ -98,11 +137,12 @@ final class WrappedReplyInputStream extends InputStream {
     /**
      * Handles SystemException during first read by reporting to interceptors
      * via receive_exception before propagating the exception.
+     * Establishes thread local frame before unmarshalling exception.
      */
     private <T> T handleFirstReadException(SystemException ex) throws SystemException {
         if (readYet) throw ex;
         readYet = true;
-        try {
+        try (SimplyCloseable ignored = configFrameRef.get().get()) {
             downcall.unmarshalEx(ex);
             downcall.postUnmarshal();
             throw ex;
