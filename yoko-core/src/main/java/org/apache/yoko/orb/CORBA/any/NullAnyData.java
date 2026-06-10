@@ -22,7 +22,7 @@ import org.omg.CORBA_2_3.portable.InputStream;
 import org.omg.CORBA_2_3.portable.OutputStream;
 
 import static org.apache.yoko.orb.CORBA.any.YokoAnyData.newMismatchBadOp;
-import static org.apache.yoko.orb.OB.TypeCodeFactory.createPrimitiveTC;
+import static org.apache.yoko.orb.CORBA.typecode.YokoTypeCode.getPrimitive;
 import static org.omg.CORBA.TCKind.tk_null;
 import static org.omg.CORBA.TCKind.tk_void;
 
@@ -31,8 +31,8 @@ import static org.omg.CORBA.TCKind.tk_void;
  * These types have no value and always return null.
  */
 public enum NullAnyData implements YokoAnyData<Object> {
-    NULL(createPrimitiveTC(tk_null)),
-    VOID(createPrimitiveTC(tk_void));
+    NULL(getPrimitive(tk_null)),
+    VOID(getPrimitive(tk_void));
 
     private final TypeCode typeCode;
 

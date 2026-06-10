@@ -22,7 +22,7 @@ import org.omg.CORBA_2_3.portable.InputStream;
 import org.omg.CORBA_2_3.portable.OutputStream;
 
 import static org.apache.yoko.orb.CORBA.any.YokoAnyData.newMismatchBadOp;
-import static org.apache.yoko.orb.OB.TypeCodeFactory.createPrimitiveTC;
+import static org.apache.yoko.orb.CORBA.typecode.YokoTypeCode.getPrimitive;
 import static org.omg.CORBA.TCKind.tk_long;
 
 /**
@@ -30,7 +30,7 @@ import static org.omg.CORBA.TCKind.tk_long;
  * Always contains a valid int value.
  */
 public final class LongAnyData implements YokoAnyData<Integer> {
-    private static final TypeCode TYPE_CODE = createPrimitiveTC(tk_long);
+    private static final TypeCode TYPE_CODE = getPrimitive(tk_long);
 
     private final int value;
 

@@ -30,7 +30,7 @@ import org.omg.CORBA_2_3.portable.OutputStream;
 import java.util.function.Supplier;
 
 import static org.apache.yoko.orb.CORBA.any.YokoAnyData.newMismatchBadOp;
-import static org.apache.yoko.orb.OB.TypeCodeFactory.createPrimitiveTC;
+import static org.apache.yoko.orb.CORBA.typecode.YokoTypeCode.getPrimitive;
 import static org.omg.CORBA.TCKind.tk_any;
 
 /**
@@ -38,7 +38,7 @@ import static org.omg.CORBA.TCKind.tk_any;
  * The value is extracted from the input stream only when needed.
  */
 public final class AnyAnyData extends LazyAnyData<Any> {
-    private static final TypeCode TYPE_CODE = createPrimitiveTC(tk_any);
+    private static final TypeCode TYPE_CODE = getPrimitive(tk_any);
 
     // Constructor for of() - value provided, stream created lazily
     private AnyAnyData(Any anyValue, Supplier<OutputStream> outputStreamSupplier) {

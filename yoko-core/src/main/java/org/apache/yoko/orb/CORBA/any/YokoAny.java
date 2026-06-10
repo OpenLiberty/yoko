@@ -19,8 +19,7 @@ package org.apache.yoko.orb.CORBA.any;
 
 import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
-import org.apache.yoko.orb.CORBA.TypeCodeImpl;
-
+import org.apache.yoko.orb.CORBA.typecode.YokoTypeCode;
 import org.apache.yoko.orb.OB.ORBInstance;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.BAD_OPERATION;
@@ -41,7 +40,40 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static java.util.Collections.unmodifiableMap;
-import static org.apache.yoko.orb.OB.TypeCodeFactory.createPrimitiveTC;
+import static org.apache.yoko.orb.CORBA.typecode.YokoTypeCode.getPrimitive;
+import static org.omg.CORBA.TCKind.tk_abstract_interface;
+import static org.omg.CORBA.TCKind.tk_alias;
+import static org.omg.CORBA.TCKind.tk_any;
+import static org.omg.CORBA.TCKind.tk_array;
+import static org.omg.CORBA.TCKind.tk_boolean;
+import static org.omg.CORBA.TCKind.tk_char;
+import static org.omg.CORBA.TCKind.tk_double;
+import static org.omg.CORBA.TCKind.tk_enum;
+import static org.omg.CORBA.TCKind.tk_except;
+import static org.omg.CORBA.TCKind.tk_fixed;
+import static org.omg.CORBA.TCKind.tk_float;
+import static org.omg.CORBA.TCKind.tk_long;
+import static org.omg.CORBA.TCKind.tk_longdouble;
+import static org.omg.CORBA.TCKind.tk_longlong;
+import static org.omg.CORBA.TCKind.tk_native;
+import static org.omg.CORBA.TCKind.tk_null;
+import static org.omg.CORBA.TCKind.tk_objref;
+import static org.omg.CORBA.TCKind.tk_octet;
+import static org.omg.CORBA.TCKind.tk_Principal;
+import static org.omg.CORBA.TCKind.tk_sequence;
+import static org.omg.CORBA.TCKind.tk_short;
+import static org.omg.CORBA.TCKind.tk_string;
+import static org.omg.CORBA.TCKind.tk_struct;
+import static org.omg.CORBA.TCKind.tk_TypeCode;
+import static org.omg.CORBA.TCKind.tk_ulong;
+import static org.omg.CORBA.TCKind.tk_ulonglong;
+import static org.omg.CORBA.TCKind.tk_union;
+import static org.omg.CORBA.TCKind.tk_ushort;
+import static org.omg.CORBA.TCKind.tk_value;
+import static org.omg.CORBA.TCKind.tk_value_box;
+import static org.omg.CORBA.TCKind.tk_void;
+import static org.omg.CORBA.TCKind.tk_wchar;
+import static org.omg.CORBA.TCKind.tk_wstring;
 
 /**
  * New Any implementation using YokoAnyData for type-safe value storage.
@@ -52,88 +84,88 @@ public final class YokoAny extends Any {
     private YokoAnyData<?> data;
 
     // Factory map for creating YokoAnyData from InputStream
-    private static final Map<Integer, BiFunction<InputStream, TypeCode, YokoAnyData<?>>> FROM_FACTORIES;
+    private static final Map<TCKind, BiFunction<InputStream, TypeCode, YokoAnyData<?>>> FROM_FACTORIES;
 
     static {
-        Map<Integer, BiFunction<InputStream, TypeCode, YokoAnyData<?>>> map = new HashMap<>();
-        map.put(TCKind._tk_null, NullAnyData::from);
-        map.put(TCKind._tk_void, NullAnyData::from);
-        map.put(TCKind._tk_short, ShortAnyData::from);
-        map.put(TCKind._tk_long, LongAnyData::from);
-        map.put(TCKind._tk_longlong, LongLongAnyData::from);
-        map.put(TCKind._tk_ushort, UShortAnyData::from);
-        map.put(TCKind._tk_ulong, ULongAnyData::from);
-        map.put(TCKind._tk_ulonglong, ULongLongAnyData::from);
-        map.put(TCKind._tk_float, FloatAnyData::from);
-        map.put(TCKind._tk_double, DoubleAnyData::from);
-        map.put(TCKind._tk_boolean, BooleanAnyData::from);
-        map.put(TCKind._tk_char, CharAnyData::from);
-        map.put(TCKind._tk_wchar, WCharAnyData::from);
-        map.put(TCKind._tk_octet, OctetAnyData::from);
-        map.put(TCKind._tk_string, StringAnyData::from);
-        map.put(TCKind._tk_wstring, WStringAnyData::from);
-        map.put(TCKind._tk_fixed, FixedAnyData::from);
-        map.put(TCKind._tk_enum, EnumAnyData::from);
-        map.put(TCKind._tk_TypeCode, TypeCodeAnyData::from);
-        map.put(TCKind._tk_any, AnyAnyData::from);
-        map.put(TCKind._tk_objref, ObjectAnyData::from);
-        map.put(TCKind._tk_value, ValueAnyData::from);
-        map.put(TCKind._tk_value_box, ValueAnyData::from);
-        map.put(TCKind._tk_abstract_interface, AbstractInterfaceAnyData::from);
+        Map<TCKind, BiFunction<InputStream, TypeCode, YokoAnyData<?>>> map = new HashMap<>();
+        map.put(tk_null, NullAnyData::from);
+        map.put(tk_void, NullAnyData::from);
+        map.put(tk_short, ShortAnyData::from);
+        map.put(tk_long, LongAnyData::from);
+        map.put(tk_longlong, LongLongAnyData::from);
+        map.put(tk_ushort, UShortAnyData::from);
+        map.put(tk_ulong, ULongAnyData::from);
+        map.put(tk_ulonglong, ULongLongAnyData::from);
+        map.put(tk_float, FloatAnyData::from);
+        map.put(tk_double, DoubleAnyData::from);
+        map.put(tk_boolean, BooleanAnyData::from);
+        map.put(tk_char, CharAnyData::from);
+        map.put(tk_wchar, WCharAnyData::from);
+        map.put(tk_octet, OctetAnyData::from);
+        map.put(tk_string, StringAnyData::from);
+        map.put(tk_wstring, WStringAnyData::from);
+        map.put(tk_fixed, FixedAnyData::from);
+        map.put(tk_enum, EnumAnyData::from);
+        map.put(tk_TypeCode, TypeCodeAnyData::from);
+        map.put(tk_any, AnyAnyData::from);
+        map.put(tk_objref, ObjectAnyData::from);
+        map.put(tk_value, ValueAnyData::from);
+        map.put(tk_value_box, ValueAnyData::from);
+        map.put(tk_abstract_interface, AbstractInterfaceAnyData::from);
         // Complex types that wrap the stream directly
-        map.put(TCKind._tk_struct, StreamWrapperAnyData::from);
-        map.put(TCKind._tk_except, StreamWrapperAnyData::from);
-        map.put(TCKind._tk_union, StreamWrapperAnyData::from);
-        map.put(TCKind._tk_sequence, StreamWrapperAnyData::from);
-        map.put(TCKind._tk_array, StreamWrapperAnyData::from);
+        map.put(tk_struct, StreamWrapperAnyData::from);
+        map.put(tk_except, StreamWrapperAnyData::from);
+        map.put(tk_union, StreamWrapperAnyData::from);
+        map.put(tk_sequence, StreamWrapperAnyData::from);
+        map.put(tk_array, StreamWrapperAnyData::from);
         // Unsupported types that should throw exceptions
-        map.put(TCKind._tk_Principal, (is, tc) -> { throw new BAD_OPERATION("TypeCode kind tk_Principal is deprecated and not supported"); });
-        map.put(TCKind._tk_alias, (is, tc) -> { throw new BAD_OPERATION("TypeCode kind tk_alias should be resolved to its actual type before reading"); });
-        map.put(TCKind._tk_longdouble, (is, tc) -> { throw new BAD_OPERATION("TypeCode kind tk_longdouble is not supported"); });
-        map.put(TCKind._tk_native, (is, tc) -> { throw new BAD_OPERATION("TypeCode kind tk_native is not supported"); });
+        map.put(tk_Principal, (is, tc) -> { throw new BAD_OPERATION("TypeCode kind tk_Principal is deprecated and not supported"); });
+        map.put(tk_alias, (is, tc) -> { throw new BAD_OPERATION("TypeCode kind tk_alias should be resolved to its actual type before reading"); });
+        map.put(tk_longdouble, (is, tc) -> { throw new BAD_OPERATION("TypeCode kind tk_longdouble is not supported"); });
+        map.put(tk_native, (is, tc) -> { throw new BAD_OPERATION("TypeCode kind tk_native is not supported"); });
         FROM_FACTORIES = unmodifiableMap(map);
     }
 
     // Extraction map for legacy Any implementations
-    private static final Map<Integer, Function<Any, Object>> LEGACY_EXTRACTORS;
+    private static final Map<TCKind, Function<Any, Object>> LEGACY_EXTRACTORS;
 
     static {
-        Map<Integer, Function<Any, Object>> map = new HashMap<>();
-        map.put(TCKind._tk_null, a -> null);
-        map.put(TCKind._tk_void, a -> null);
-        map.put(TCKind._tk_short, Any::extract_short);
-        map.put(TCKind._tk_long, Any::extract_long);
-        map.put(TCKind._tk_longlong, Any::extract_longlong);
-        map.put(TCKind._tk_ushort, Any::extract_ushort);
-        map.put(TCKind._tk_ulong, Any::extract_ulong);
-        map.put(TCKind._tk_ulonglong, Any::extract_ulonglong);
-        map.put(TCKind._tk_float, Any::extract_float);
-        map.put(TCKind._tk_double, Any::extract_double);
-        map.put(TCKind._tk_boolean, Any::extract_boolean);
-        map.put(TCKind._tk_char, Any::extract_char);
-        map.put(TCKind._tk_wchar, Any::extract_wchar);
-        map.put(TCKind._tk_octet, Any::extract_octet);
-        map.put(TCKind._tk_string, Any::extract_string);
-        map.put(TCKind._tk_wstring, Any::extract_wstring);
-        map.put(TCKind._tk_fixed, Any::extract_fixed);
-        map.put(TCKind._tk_enum, Any::extract_ulong);
-        map.put(TCKind._tk_TypeCode, Any::extract_TypeCode);
-        map.put(TCKind._tk_any, Any::extract_any);
-        map.put(TCKind._tk_objref, Any::extract_Object);
-        map.put(TCKind._tk_value, Any::extract_Value);
-        map.put(TCKind._tk_value_box, Any::extract_Value);
-        map.put(TCKind._tk_abstract_interface, Any::extract_Value);
+        Map<TCKind, Function<Any, Object>> map = new HashMap<>();
+        map.put(tk_null, a -> null);
+        map.put(tk_void, a -> null);
+        map.put(tk_short, Any::extract_short);
+        map.put(tk_long, Any::extract_long);
+        map.put(tk_longlong, Any::extract_longlong);
+        map.put(tk_ushort, Any::extract_ushort);
+        map.put(tk_ulong, Any::extract_ulong);
+        map.put(tk_ulonglong, Any::extract_ulonglong);
+        map.put(tk_float, Any::extract_float);
+        map.put(tk_double, Any::extract_double);
+        map.put(tk_boolean, Any::extract_boolean);
+        map.put(tk_char, Any::extract_char);
+        map.put(tk_wchar, Any::extract_wchar);
+        map.put(tk_octet, Any::extract_octet);
+        map.put(tk_string, Any::extract_string);
+        map.put(tk_wstring, Any::extract_wstring);
+        map.put(tk_fixed, Any::extract_fixed);
+        map.put(tk_enum, Any::extract_ulong);
+        map.put(tk_TypeCode, Any::extract_TypeCode);
+        map.put(tk_any, Any::extract_any);
+        map.put(tk_objref, Any::extract_Object);
+        map.put(tk_value, Any::extract_Value);
+        map.put(tk_value_box, Any::extract_Value);
+        map.put(tk_abstract_interface, Any::extract_Value);
         // Complex types that use Streamable
-        map.put(TCKind._tk_struct, Any::extract_Streamable);
-        map.put(TCKind._tk_except, Any::extract_Streamable);
-        map.put(TCKind._tk_union, Any::extract_Streamable);
-        map.put(TCKind._tk_sequence, Any::extract_Streamable);
-        map.put(TCKind._tk_array, Any::extract_Streamable);
+        map.put(tk_struct, Any::extract_Streamable);
+        map.put(tk_except, Any::extract_Streamable);
+        map.put(tk_union, Any::extract_Streamable);
+        map.put(tk_sequence, Any::extract_Streamable);
+        map.put(tk_array, Any::extract_Streamable);
         // Unsupported types that should throw exceptions
-        map.put(TCKind._tk_Principal, a -> { throw new BAD_OPERATION("TypeCode kind tk_Principal is deprecated and not supported"); });
-        map.put(TCKind._tk_alias, a -> { throw new BAD_OPERATION("TypeCode kind tk_alias should be resolved to its actual type before extraction"); });
-        map.put(TCKind._tk_longdouble, a -> { throw new BAD_OPERATION("TypeCode kind tk_longdouble is not supported"); });
-        map.put(TCKind._tk_native, a -> { throw new BAD_OPERATION("TypeCode kind tk_native is not supported"); });
+        map.put(tk_Principal, a -> { throw new BAD_OPERATION("TypeCode kind tk_Principal is deprecated and not supported"); });
+        map.put(tk_alias, a -> { throw new BAD_OPERATION("TypeCode kind tk_alias should be resolved to its actual type before extraction"); });
+        map.put(tk_longdouble, a -> { throw new BAD_OPERATION("TypeCode kind tk_longdouble is not supported"); });
+        map.put(tk_native, a -> { throw new BAD_OPERATION("TypeCode kind tk_native is not supported"); });
         LEGACY_EXTRACTORS = unmodifiableMap(map);
     }
 
@@ -191,7 +223,7 @@ public final class YokoAny extends Any {
     }
 
     private Object extractValueFromLegacyAny(Any a) {
-        int kind = a.type().kind().value();
+        TCKind kind = a.type().kind();
         return Optional.ofNullable(LEGACY_EXTRACTORS.get(kind))
             .map(extractor -> extractor.apply(a))
             .orElseThrow(() -> new BAD_OPERATION("Unsupported TypeCode kind for legacy Any extraction: " + kind));
@@ -211,8 +243,8 @@ public final class YokoAny extends Any {
     public void read_value(org.omg.CORBA.portable.InputStream is, TypeCode t) { read_value((InputStream) is, t); }
     private void read_value(InputStream is, TypeCode t) throws MARSHAL {
         // Unwrap alias TypeCodes to get the original kind (e.g., CharSeq is an alias for sequence)
-        TypeCode origType = TypeCodeImpl._OB_getOrigType(t);
-        int kind = origType.kind().value();
+        TypeCode origType = YokoTypeCode.from(t).getOrigType();
+        TCKind kind = origType.kind();
         YokoInputStream yokoInputStream = toYokoInputStream(is, t);
 
         data = Optional.ofNullable(FROM_FACTORIES.get(kind))
@@ -306,8 +338,8 @@ public final class YokoAny extends Any {
         data = TypeCodeAnyData.of(t, this::create_output_stream);
     }
     @Override public void insert_Streamable(Streamable s) { data = StreamableAnyData.of(s, s._type(), this::create_output_stream); }
-    @Override public void insert_fixed(BigDecimal value) { data = FixedAnyData.of(value, createPrimitiveTC(TCKind.tk_fixed), this::create_output_stream); }
+    @Override public void insert_fixed(BigDecimal value) { data = FixedAnyData.of(value, getPrimitive(TCKind.tk_fixed), this::create_output_stream); }
     @Override public void insert_fixed(BigDecimal value, TypeCode type) { data = FixedAnyData.of(value, type, this::create_output_stream); }
-    @Override public void insert_Value(Serializable v) { data = ValueAnyData.of(v, createPrimitiveTC(TCKind.tk_value), this::create_output_stream); }
+    @Override public void insert_Value(Serializable v) { data = ValueAnyData.of(v, getPrimitive(TCKind.tk_value), this::create_output_stream); }
     @Override public void insert_Value(Serializable v, TypeCode t) throws MARSHAL { data = ValueAnyData.of(v, t, this::create_output_stream); }
 }

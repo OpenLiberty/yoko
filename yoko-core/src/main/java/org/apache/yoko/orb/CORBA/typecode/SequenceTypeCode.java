@@ -17,11 +17,17 @@
  */
 package org.apache.yoko.orb.CORBA.typecode;
 
+import org.omg.CORBA.BAD_TYPECODE;
 import org.omg.CORBA.TypeCode;
+import org.omg.CORBA.TypeCodePackage.BadKind;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.MinorCodes.MinorTypeMismatch;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.TCKind.tk_sequence;
 
 /**
@@ -29,12 +35,12 @@ import static org.omg.CORBA.TCKind.tk_sequence;
  */
 public final class SequenceTypeCode extends YokoTypeCode {
     private final int length;
-    private final TypeCode contentType;
+    private final YokoTypeCode contentType;
 
     public SequenceTypeCode(int length, TypeCode contentType) {
         super(tk_sequence);
         this.length = length;
-        this.contentType = contentType;
+        this.contentType = YokoTypeCode.from(contentType);
     }
 
     @Override
@@ -97,6 +103,24 @@ public final class SequenceTypeCode extends YokoTypeCode {
             return other.length() == this.length && contentType.equal(other.content_type());
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Converts a foreign TypeCode to a SequenceTypeCode.
+     * 
+     * @param tc the TypeCode to convert (must be tk_sequence)
+     * @param history map of already converted TypeCodes
+     * @param recHistory list of TypeCodes currently being processed
+     * @return a new SequenceTypeCode instance
+     */
+    public static YokoTypeCode from(TypeCode tc, Map<TypeCode, YokoTypeCode> history, List<TypeCode> recHistory) {
+        try {
+            TypeCode contentType = tc.content_type();
+            YokoTypeCode convertedContent = YokoTypeCode.from(contentType);
+            return new SequenceTypeCode(tc.length(), convertedContent);
+        } catch (BadKind e) {
+            throw as(BAD_TYPECODE::new, e, "Invalid sequence TypeCode", MinorTypeMismatch, COMPLETED_NO);
         }
     }
 }

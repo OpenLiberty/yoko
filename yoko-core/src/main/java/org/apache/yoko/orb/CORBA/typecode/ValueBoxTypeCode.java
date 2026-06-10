@@ -17,11 +17,17 @@
  */
 package org.apache.yoko.orb.CORBA.typecode;
 
+import org.omg.CORBA.BAD_TYPECODE;
 import org.omg.CORBA.TypeCode;
+import org.omg.CORBA.TypeCodePackage.BadKind;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.MinorCodes.MinorTypeMismatch;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.TCKind.tk_value_box;
 
 /**
@@ -30,13 +36,13 @@ import static org.omg.CORBA.TCKind.tk_value_box;
 public final class ValueBoxTypeCode extends YokoTypeCode {
     private final String id;
     private final String name;
-    private final TypeCode contentType;
+    private final YokoTypeCode contentType;
 
     public ValueBoxTypeCode(String id, String name, TypeCode contentType) {
         super(tk_value_box);
         this.id = id;
         this.name = name;
-        this.contentType = contentType;
+        this.contentType = YokoTypeCode.from(contentType);
     }
 
     @Override
@@ -115,6 +121,24 @@ public final class ValueBoxTypeCode extends YokoTypeCode {
             return contentType.equal(other.content_type());
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Converts a foreign TypeCode to a ValueBoxTypeCode.
+     * 
+     * @param tc the TypeCode to convert (must be tk_value_box)
+     * @param history map of already converted TypeCodes
+     * @param recHistory list of TypeCodes currently being processed
+     * @return a new ValueBoxTypeCode instance
+     */
+    public static YokoTypeCode from(TypeCode tc, Map<TypeCode, YokoTypeCode> history, List<TypeCode> recHistory) {
+        try {
+            TypeCode contentType = tc.content_type();
+            YokoTypeCode convertedContent = YokoTypeCode.from(contentType);
+            return new ValueBoxTypeCode(tc.id(), tc.name(), convertedContent);
+        } catch (BadKind e) {
+            throw as(BAD_TYPECODE::new, e, "Invalid value box TypeCode", MinorTypeMismatch, COMPLETED_NO);
         }
     }
 }

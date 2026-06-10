@@ -22,7 +22,7 @@ import org.omg.CORBA_2_3.portable.InputStream;
 import org.omg.CORBA_2_3.portable.OutputStream;
 
 import static org.apache.yoko.orb.CORBA.any.YokoAnyData.newMismatchBadOp;
-import static org.apache.yoko.orb.OB.TypeCodeFactory.createPrimitiveTC;
+import static org.apache.yoko.orb.CORBA.typecode.YokoTypeCode.getPrimitive;
 import static org.omg.CORBA.TCKind.tk_octet;
 
 /**
@@ -30,7 +30,7 @@ import static org.omg.CORBA.TCKind.tk_octet;
  * Always contains a valid byte value.
  */
 public final class OctetAnyData implements YokoAnyData<Byte> {
-    private static final TypeCode TYPE_CODE = createPrimitiveTC(tk_octet);
+    private static final TypeCode TYPE_CODE = getPrimitive(tk_octet);
 
     private final byte value;
 

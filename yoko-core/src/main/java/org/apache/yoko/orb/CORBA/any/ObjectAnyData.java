@@ -29,7 +29,7 @@ import org.omg.CORBA_2_3.portable.OutputStream;
 import java.util.function.Supplier;
 
 import static org.apache.yoko.orb.CORBA.any.YokoAnyData.newMismatchBadOp;
-import static org.apache.yoko.orb.OB.TypeCodeFactory.createPrimitiveTC;
+import static org.apache.yoko.orb.CORBA.typecode.YokoTypeCode.getPrimitive;
 import static org.omg.CORBA.TCKind.tk_objref;
 
 /**
@@ -53,7 +53,7 @@ public final class ObjectAnyData extends LazyAnyData<org.omg.CORBA.Object> {
     }
 
     public static ObjectAnyData of(org.omg.CORBA.Object value, Supplier<OutputStream> outputStreamSupplier) {
-        return new ObjectAnyData(createPrimitiveTC(tk_objref), value, outputStreamSupplier);
+        return new ObjectAnyData(getPrimitive(tk_objref), value, outputStreamSupplier);
     }
 
     public static ObjectAnyData of(org.omg.CORBA.Object value, TypeCode typeCode, Supplier<OutputStream> outputStreamSupplier) {

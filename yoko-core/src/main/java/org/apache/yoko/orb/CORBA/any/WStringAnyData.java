@@ -22,7 +22,7 @@ import org.omg.CORBA_2_3.portable.InputStream;
 import org.omg.CORBA_2_3.portable.OutputStream;
 
 import static org.apache.yoko.orb.CORBA.any.YokoAnyData.newMismatchBadOp;
-import static org.apache.yoko.orb.OB.TypeCodeFactory.createPrimitiveTC;
+import static org.apache.yoko.orb.CORBA.typecode.YokoTypeCode.getPrimitive;
 import static org.omg.CORBA.TCKind.tk_wstring;
 
 /**
@@ -30,7 +30,7 @@ import static org.omg.CORBA.TCKind.tk_wstring;
  * Always contains a valid wide String value.
  */
 public final class WStringAnyData implements YokoAnyData<String> {
-    private static final TypeCode TYPE_CODE = createPrimitiveTC(tk_wstring);
+    private static final TypeCode TYPE_CODE = getPrimitive(tk_wstring);
 
     private final String value;
 

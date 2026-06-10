@@ -18,14 +18,19 @@
 package org.apache.yoko.orb.CORBA.typecode;
 
 import org.apache.yoko.util.Exceptions;
+import org.omg.CORBA.BAD_TYPECODE;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.TypeCodePackage.BadKind;
 import org.omg.CORBA.TypeCodePackage.Bounds;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.MinorCodes.MinorTypeMismatch;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.TCKind.tk_value;
 
 /**
@@ -35,10 +40,10 @@ public final class ValueTypeCode extends YokoTypeCode {
     private final String id;
     private final String name;
     private final String[] memberNames;
-    private final TypeCode[] memberTypes;
+    private final YokoTypeCode[] memberTypes;
     private final short[] memberVisibility;
     private final short typeModifier;
-    private final TypeCode concreteBaseType;
+    private final YokoTypeCode concreteBaseType;
 
     public ValueTypeCode(String id, String name, short typeModifier, TypeCode concreteBaseType,
                          String[] memberNames, TypeCode[] memberTypes, short[] memberVisibility) {
@@ -46,9 +51,11 @@ public final class ValueTypeCode extends YokoTypeCode {
         this.id = id;
         this.name = name;
         this.typeModifier = typeModifier;
-        this.concreteBaseType = concreteBaseType;
+        this.concreteBaseType = YokoTypeCode.from(concreteBaseType);
         this.memberNames = memberNames.clone();
-        this.memberTypes = memberTypes.clone();
+        this.memberTypes = Arrays.stream(memberTypes)
+            .map(YokoTypeCode::from)
+            .toArray(YokoTypeCode[]::new);
         this.memberVisibility = memberVisibility.clone();
     }
 
@@ -252,6 +259,48 @@ public final class ValueTypeCode extends YokoTypeCode {
             return concreteBaseType.equal(other.concrete_base_type());
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Converts a foreign TypeCode to a ValueTypeCode.
+     * 
+     * @param tc the TypeCode to convert (must be tk_value)
+     * @param history map of already converted TypeCodes
+     * @param recHistory list of TypeCodes currently being processed (for recursion detection)
+     * @return a new ValueTypeCode instance
+     */
+    public static YokoTypeCode from(TypeCode tc, Map<TypeCode, YokoTypeCode> history, List<TypeCode> recHistory) {
+        try {
+            int count = tc.member_count();
+            String[] memberNames = new String[count];
+            TypeCode[] memberTypes = new TypeCode[count];
+            short[] memberVisibility = new short[count];
+            
+            // Collect member names and visibility
+            for (int i = 0; i < count; i++) {
+                memberNames[i] = tc.member_name(i);
+                memberVisibility[i] = tc.member_visibility(i);
+            }
+            
+            // Convert concrete base type (if present)
+            TypeCode concreteBaseType = tc.concrete_base_type();
+            YokoTypeCode convertedBase = (concreteBaseType == null) ? null : YokoTypeCode.from(concreteBaseType);
+            
+            // Add to recursion history before processing member types
+            recHistory.add(tc);
+            
+            // Convert member types (may encounter recursion)
+            for (int i = 0; i < count; i++) {
+                memberTypes[i] = YokoTypeCode.from(tc.member_type(i));
+            }
+            
+            // Remove from recursion history
+            recHistory.remove(recHistory.size() - 1);
+            
+            return new ValueTypeCode(tc.id(), tc.name(), tc.type_modifier(), convertedBase, memberNames, memberTypes, memberVisibility);
+        } catch (BadKind | Bounds e) {
+            throw as(BAD_TYPECODE::new, e, "Invalid value TypeCode", MinorTypeMismatch, COMPLETED_NO);
         }
     }
 }
