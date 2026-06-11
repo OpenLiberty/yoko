@@ -132,7 +132,7 @@ public final class EnumTypeCode extends YokoTypeCode {
 
     /**
      * Converts a foreign TypeCode to an EnumTypeCode.
-     * 
+     *
      * @param tc the TypeCode to convert (must be tk_enum)
      * @param history map of already converted TypeCodes (unused for enum types)
      * @param recHistory list of TypeCodes currently being processed (unused for enum types)

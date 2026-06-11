@@ -134,7 +134,7 @@ public final class AliasTypeCode extends YokoTypeCode {
 
     /**
      * Converts a foreign TypeCode to an AliasTypeCode.
-     * 
+     *
      * @param tc the TypeCode to convert (must be tk_alias)
      * @param history map of already converted TypeCodes
      * @param recHistory list of TypeCodes currently being processed

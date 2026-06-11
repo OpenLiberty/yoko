@@ -87,7 +87,7 @@ public final class FixedTypeCode extends YokoTypeCode {
 
     /**
      * Converts a foreign TypeCode to a FixedTypeCode.
-     * 
+     *
      * @param tc the TypeCode to convert
      * @param history map of already converted TypeCodes (unused for fixed types)
      * @param recHistory list of TypeCodes currently being processed (unused for fixed types)

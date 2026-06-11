@@ -108,7 +108,7 @@ public final class ObjectRefTypeCode extends YokoTypeCode {
 
     /**
      * Converts a foreign TypeCode to an ObjectRefTypeCode.
-     * 
+     *
      * @param tc the TypeCode to convert (must be tk_objref, tk_abstract_interface, or tk_local_interface)
      * @param history map of already converted TypeCodes (unused for object reference types)
      * @param recHistory list of TypeCodes currently being processed (unused for object reference types)

@@ -200,7 +200,7 @@ public final class StructTypeCode extends YokoTypeCode {
 
     /**
      * Converts a foreign TypeCode to a StructTypeCode.
-     * 
+     *
      * @param tc the TypeCode to convert (must be tk_struct)
      * @param history map of already converted TypeCodes
      * @param recHistory list of TypeCodes currently being processed (for recursion detection)
@@ -211,23 +211,23 @@ public final class StructTypeCode extends YokoTypeCode {
             int count = tc.member_count();
             String[] memberNames = new String[count];
             TypeCode[] memberTypes = new TypeCode[count];
-            
+
             // Collect member names
             for (int i = 0; i < count; i++) {
                 memberNames[i] = tc.member_name(i);
             }
-            
+
             // Add to recursion history before processing member types
             recHistory.add(tc);
-            
+
             // Convert member types (may encounter recursion)
             for (int i = 0; i < count; i++) {
                 memberTypes[i] = YokoTypeCode.from(tc.member_type(i));
             }
-            
+
             // Remove from recursion history
             recHistory.remove(recHistory.size() - 1);
-            
+
             return new StructTypeCode(tc.id(), tc.name(), memberNames, memberTypes);
         } catch (BadKind | Bounds e) {
             throw as(BAD_TYPECODE::new, e, "Invalid struct TypeCode", MinorTypeMismatch, COMPLETED_NO);

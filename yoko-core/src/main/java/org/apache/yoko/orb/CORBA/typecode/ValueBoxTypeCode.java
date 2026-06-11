@@ -126,7 +126,7 @@ public final class ValueBoxTypeCode extends YokoTypeCode {
 
     /**
      * Converts a foreign TypeCode to a ValueBoxTypeCode.
-     * 
+     *
      * @param tc the TypeCode to convert (must be tk_value_box)
      * @param history map of already converted TypeCodes
      * @param recHistory list of TypeCodes currently being processed

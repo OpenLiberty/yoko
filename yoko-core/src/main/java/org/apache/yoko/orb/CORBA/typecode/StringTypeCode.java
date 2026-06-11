@@ -90,7 +90,7 @@ public final class StringTypeCode extends YokoTypeCode {
 
     /**
      * Converts a foreign TypeCode to a StringTypeCode.
-     * 
+     *
      * @param tc the TypeCode to convert (must be tk_string or tk_wstring)
      * @param history map of already converted TypeCodes (unused for string types)
      * @param recHistory list of TypeCodes currently being processed (unused for string types)
@@ -98,7 +98,7 @@ public final class StringTypeCode extends YokoTypeCode {
      */
     public static YokoTypeCode from(TypeCode tc, Map<TypeCode, YokoTypeCode> history, List<TypeCode> recHistory) {
         try {
-            return new StringTypeCode(tc.kind(), tc.length());
+            return 0 == tc.length() ? YokoTypeCode.getPrimitive(tc.kind()) : new StringTypeCode(tc.kind(), tc.length());
         } catch (BadKind e) {
             throw as(BAD_TYPECODE::new, e, "Invalid string TypeCode", MinorTypeMismatch, COMPLETED_NO);
         }

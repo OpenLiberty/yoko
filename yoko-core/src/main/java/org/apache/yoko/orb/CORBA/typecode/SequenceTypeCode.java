@@ -108,7 +108,7 @@ public final class SequenceTypeCode extends YokoTypeCode {
 
     /**
      * Converts a foreign TypeCode to a SequenceTypeCode.
-     * 
+     *
      * @param tc the TypeCode to convert (must be tk_sequence)
      * @param history map of already converted TypeCodes
      * @param recHistory list of TypeCodes currently being processed

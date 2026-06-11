@@ -108,7 +108,7 @@ public final class ArrayTypeCode extends YokoTypeCode {
 
     /**
      * Converts a foreign TypeCode to an ArrayTypeCode.
-     * 
+     *
      * @param tc the TypeCode to convert (must be tk_array)
      * @param history map of already converted TypeCodes
      * @param recHistory list of TypeCodes currently being processed

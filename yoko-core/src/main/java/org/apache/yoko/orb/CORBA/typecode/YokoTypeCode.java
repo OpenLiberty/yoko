@@ -77,7 +77,7 @@ import static org.omg.CORBA_2_4.TCKind.tk_local_interface;
  * Abstract base class for all TypeCode implementations.
  * Provides common functionality and defines the contract for type-specific implementations.
  */
-public abstract class YokoTypeCode extends TypeCode {
+public abstract class YokoTypeCode extends TypeCode implements TypeCodeExtensions {
     protected final TCKind kind;
 
     protected YokoTypeCode(TCKind kind) {
@@ -184,13 +184,13 @@ public abstract class YokoTypeCode extends TypeCode {
     static {
         // Initialize recursion checkers - only complex types need recursion checking
         Map<TCKind, Converter> recursionCheckers = new HashMap<>();
-        
+
         // Only populate for complex types that support recursion
         recursionCheckers.put(tk_struct, YokoTypeCode::getRecursionPlaceholder);
         recursionCheckers.put(tk_except, YokoTypeCode::getRecursionPlaceholder);
         recursionCheckers.put(tk_union, YokoTypeCode::getRecursionPlaceholder);
         recursionCheckers.put(tk_value, YokoTypeCode::getRecursionPlaceholder);
-        
+
         RECURSION_CHECKERS = unmodifiableMap(recursionCheckers);
     }
 
@@ -219,10 +219,7 @@ public abstract class YokoTypeCode extends TypeCode {
      * @return a string TypeCode (singleton for unbounded, new instance for bounded)
      */
     public static YokoTypeCode createString(int length) {
-        if (length == 0) {
-            return getPrimitive(TCKind.tk_string);
-        }
-        return new StringTypeCode(TCKind.tk_string, length);
+        return (0 == length) ? getPrimitive(tk_string) : new StringTypeCode(tk_string, length);
     }
 
     /**
@@ -233,10 +230,7 @@ public abstract class YokoTypeCode extends TypeCode {
      * @return a wide string TypeCode (singleton for unbounded, new instance for bounded)
      */
     public static YokoTypeCode createWString(int length) {
-        if (length == 0) {
-            return getPrimitive(TCKind.tk_wstring);
-        }
-        return new StringTypeCode(TCKind.tk_wstring, length);
+        return (0 == length) ? getPrimitive(tk_wstring) : new StringTypeCode(tk_wstring, length);
     }
 
     /**
@@ -412,9 +406,7 @@ public abstract class YokoTypeCode extends TypeCode {
 
 
     @Override
-    public TCKind kind() {
-        return kind;
-    }
+    public TCKind kind() { return kind; }
 
     /**
      * Returns the original type. For most types, this returns the type itself.
@@ -422,9 +414,8 @@ public abstract class YokoTypeCode extends TypeCode {
      *
      * @return the original TypeCode
      */
-    public TypeCode getOrigType() {
-        return this;
-    }
+    @Override
+    public TypeCode getOrigType() { return this; }
 
     @Override
     public String toString() {
@@ -513,7 +504,7 @@ public abstract class YokoTypeCode extends TypeCode {
 
     /**
      * Converts a TypeCode to a YokoTypeCode. If the TypeCode is already a YokoTypeCode,
-     * returns it as-is. If null, returns null. Otherwise, creates a new YokoTypeCode 
+     * returns it as-is. If null, returns null. Otherwise, creates a new YokoTypeCode
      * instance by copying the structure of the foreign TypeCode.
      *
      * @param tc the TypeCode to convert (may be null)
@@ -574,7 +565,7 @@ public abstract class YokoTypeCode extends TypeCode {
 
     /**
      * Creates a recursive placeholder for a TypeCode that is currently being processed.
-     * 
+     *
      * @param tc the TypeCode being processed
      * @param history map of already converted TypeCodes
      * @param recHistory list of TypeCodes currently being processed

@@ -101,7 +101,7 @@ public final class NativeTypeCode extends YokoTypeCode {
 
     /**
      * Converts a foreign TypeCode to a NativeTypeCode.
-     * 
+     *
      * @param tc the TypeCode to convert (must be tk_native)
      * @param history map of already converted TypeCodes (unused for native types)
      * @param recHistory list of TypeCodes currently being processed (unused for native types)

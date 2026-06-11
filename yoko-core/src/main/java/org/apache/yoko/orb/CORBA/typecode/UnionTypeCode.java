@@ -257,7 +257,7 @@ public final class UnionTypeCode extends YokoTypeCode {
 
     /**
      * Converts a foreign TypeCode to a UnionTypeCode.
-     * 
+     *
      * @param tc the TypeCode to convert (must be tk_union)
      * @param history map of already converted TypeCodes
      * @param recHistory list of TypeCodes currently being processed (for recursion detection)
@@ -269,28 +269,28 @@ public final class UnionTypeCode extends YokoTypeCode {
             String[] memberNames = new String[count];
             TypeCode[] memberTypes = new TypeCode[count];
             Any[] labels = new Any[count];
-            
+
             // Collect member names and labels
             for (int i = 0; i < count; i++) {
                 memberNames[i] = tc.member_name(i);
                 labels[i] = tc.member_label(i);
             }
-            
+
             // Convert discriminator type
             TypeCode discriminatorType = tc.discriminator_type();
             YokoTypeCode convertedDiscriminator = YokoTypeCode.from(discriminatorType);
-            
+
             // Add to recursion history before processing member types
             recHistory.add(tc);
-            
+
             // Convert member types (may encounter recursion)
             for (int i = 0; i < count; i++) {
                 memberTypes[i] = YokoTypeCode.from(tc.member_type(i));
             }
-            
+
             // Remove from recursion history
             recHistory.remove(recHistory.size() - 1);
-            
+
             return new UnionTypeCode(tc.id(), tc.name(), convertedDiscriminator, memberNames, memberTypes, labels);
         } catch (BadKind | Bounds e) {
             throw as(BAD_TYPECODE::new, e, "Invalid union TypeCode", MinorTypeMismatch, COMPLETED_NO);

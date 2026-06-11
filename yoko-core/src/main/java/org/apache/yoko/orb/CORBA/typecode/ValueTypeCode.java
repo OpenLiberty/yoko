@@ -264,7 +264,7 @@ public final class ValueTypeCode extends YokoTypeCode {
 
     /**
      * Converts a foreign TypeCode to a ValueTypeCode.
-     * 
+     *
      * @param tc the TypeCode to convert (must be tk_value)
      * @param history map of already converted TypeCodes
      * @param recHistory list of TypeCodes currently being processed (for recursion detection)
@@ -276,28 +276,28 @@ public final class ValueTypeCode extends YokoTypeCode {
             String[] memberNames = new String[count];
             TypeCode[] memberTypes = new TypeCode[count];
             short[] memberVisibility = new short[count];
-            
+
             // Collect member names and visibility
             for (int i = 0; i < count; i++) {
                 memberNames[i] = tc.member_name(i);
                 memberVisibility[i] = tc.member_visibility(i);
             }
-            
+
             // Convert concrete base type (if present)
             TypeCode concreteBaseType = tc.concrete_base_type();
             YokoTypeCode convertedBase = (concreteBaseType == null) ? null : YokoTypeCode.from(concreteBaseType);
-            
+
             // Add to recursion history before processing member types
             recHistory.add(tc);
-            
+
             // Convert member types (may encounter recursion)
             for (int i = 0; i < count; i++) {
                 memberTypes[i] = YokoTypeCode.from(tc.member_type(i));
             }
-            
+
             // Remove from recursion history
             recHistory.remove(recHistory.size() - 1);
-            
+
             return new ValueTypeCode(tc.id(), tc.name(), tc.type_modifier(), convertedBase, memberNames, memberTypes, memberVisibility);
         } catch (BadKind | Bounds e) {
             throw as(BAD_TYPECODE::new, e, "Invalid value TypeCode", MinorTypeMismatch, COMPLETED_NO);
