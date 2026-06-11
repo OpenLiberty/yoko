@@ -17,6 +17,7 @@
  */
 package org.apache.yoko.orb.CORBA.any;
 
+import org.apache.yoko.orb.CORBA.typecode.YokoTypeCode;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA_2_3.portable.InputStream;
 import org.omg.CORBA_2_3.portable.OutputStream;
@@ -28,30 +29,31 @@ import static org.omg.CORBA.TCKind.tk_string;
 /**
  * Immutable typed Any implementation for CORBA string values.
  * Always contains a valid String value.
+ * Supports both bounded and unbounded strings.
  */
 public final class StringAnyData implements YokoAnyData<String> {
-    private static final TypeCode TYPE_CODE = getPrimitive(tk_string);
+    private static final TypeCode UNBOUNDED_TYPE_CODE = getPrimitive(tk_string);
 
+    private final TypeCode typeCode;
     private final String value;
 
-    private StringAnyData(String value) {
+    private StringAnyData(TypeCode typeCode, String value) {
+        this.typeCode = typeCode;
         this.value = value;
     }
 
     public static StringAnyData of(String value) {
-        return new StringAnyData(value);
+        return new StringAnyData(UNBOUNDED_TYPE_CODE, value);
     }
 
     public static StringAnyData from(InputStream is, TypeCode t) {
-        if (!TYPE_CODE.equal(t)) {
-            throw newMismatchBadOp();
-        }
-        return new StringAnyData(is.read_string());
+        if (t.kind() != tk_string) throw newMismatchBadOp();
+        return new StringAnyData(YokoTypeCode.from(t), is.read_string());
     }
 
     @Override
     public TypeCode type() {
-        return TYPE_CODE;
+        return typeCode;
     }
 
     @Override

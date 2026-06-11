@@ -98,7 +98,7 @@ public final class StringTypeCode extends YokoTypeCode {
      */
     public static YokoTypeCode from(TypeCode tc, Map<TypeCode, YokoTypeCode> history, List<TypeCode> recHistory) {
         try {
-            return new StringTypeCode(tc.kind(), tc.length());
+            return 0 == tc.length() ? YokoTypeCode.getPrimitive(tc.kind()) : new StringTypeCode(tc.kind(), tc.length());
         } catch (BadKind e) {
             throw as(BAD_TYPECODE::new, e, "Invalid string TypeCode", MinorTypeMismatch, COMPLETED_NO);
         }
