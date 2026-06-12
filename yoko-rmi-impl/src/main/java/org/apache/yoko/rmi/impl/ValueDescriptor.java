@@ -41,7 +41,6 @@ import java.io.ObjectStreamClass;
 import java.io.ObjectStreamField;
 import java.io.PrintWriter;
 import java.io.Serializable;
-import java.io.UncheckedIOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -125,7 +124,8 @@ class ValueDescriptor extends TypeDescriptor {
             Character.class, Boolean.class, Byte.class, Long.class, Float.class, Double.class, Short.class)));
 
     /** 30210: Record support utility (null for non-records) */
-    private RecordSupportUtils _recordSupportUtils = null;
+    private final LazyReference<RecordSupportUtils> recordSupportRef = new LazyReference<>(this::genRecordSupportUtils);
+
 
     ValueDescriptor(Class<?> type, TypeRepository repository) {
         this(type, repository, null, null, null);
@@ -296,19 +296,23 @@ class ValueDescriptor extends TypeDescriptor {
         };
     }
 
+    // 30210: Get RecordSupportUtils
+    private RecordSupportUtils genRecordSupportUtils() {
+        return RecordSupportUtils.forClass(getType());
+    }
+
+
     Method genReadObjectMethod() {
         try {
 
             // 30210: Check for record support
-            // TODO: Remove duplicate classloading from here and findWriteObjectMethod()
-            _recordSupportUtils = RecordSupportUtils.forClass(getType());
-            if (_recordSupportUtils != null) {
+            if (recordSupportRef.get() != null) {
                 logger.fine("Detected record class: " + getType().getName());
                 
                 // Validate record follows serialization rules
-                _recordSupportUtils.validate();
+                recordSupportRef.get().validate();
                 
-                logger.fine("Record has " + _recordSupportUtils.getComponents().length + " components");
+                logger.fine("Record has " + recordSupportRef.get().getComponents().length + " components");
 
                 // Records cannot have custom serialization methods
                 return null;
@@ -333,15 +337,13 @@ class ValueDescriptor extends TypeDescriptor {
         try {
 
             // 30210: Check for record support
-            // TODO: Remove duplicate classloading from here and findReadObjectMethod()
-            _recordSupportUtils = RecordSupportUtils.forClass(getType());
-            if (_recordSupportUtils != null) {
+            if (recordSupportRef.get() != null) {
                 logger.fine("Detected record class: " + getType().getName());
                 
                 // Validate record follows serialization rules
-                _recordSupportUtils.validate();
+                recordSupportRef.get().validate();
                 
-                logger.fine("Record has " + _recordSupportUtils.getComponents().length + " components");
+                logger.fine("Record has " + recordSupportRef.get().getComponents().length + " components");
 
                 // Records cannot have custom serialization methods
                 return null;
@@ -388,7 +390,7 @@ class ValueDescriptor extends TypeDescriptor {
     private Supplier<Serializable> genBlankInstanceSupplier() {
 
         // 30210: Records can't be instantiated without constructor arguments, so this should return null in the Record case
-        if (_recordSupportUtils != null) {
+        if (recordSupportRef.get() != null) {
             return null;
         }
 
@@ -598,9 +600,9 @@ class ValueDescriptor extends TypeDescriptor {
             ObjectWriter writer = doPrivileged(exAction(() -> new CorbaObjectWriter(out, value)));
 
             // 30210: Handle Records
-            if (_recordSupportUtils != null) {
+            if (recordSupportRef.get() != null) {
                     // Delegate to record support
-                    _recordSupportUtils.writeComponents(writer, value);
+                    recordSupportRef.get().writeComponents(writer, value);
                     return;
                 }
 
@@ -877,10 +879,10 @@ class ValueDescriptor extends TypeDescriptor {
             ObjectReader reader = makeCorbaObjectReader(in, offsetMap, value);
 
             // 30210: Handle Record case
-            if (_recordSupportUtils != null) {
+            if (recordSupportRef.get() != null) {
 
                 // Delegate to record support
-                Serializable instance = (Serializable) _recordSupportUtils.readAndConstruct(reader);
+                Serializable instance = (Serializable) recordSupportRef.get().readAndConstruct(reader);
                 
                 // Register in offset map if needed
                 // Currently, this has already been done, but we might move the put later
