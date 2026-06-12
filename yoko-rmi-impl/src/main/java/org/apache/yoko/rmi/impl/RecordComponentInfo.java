@@ -20,7 +20,6 @@ package org.apache.yoko.rmi.impl;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.logging.Logger;
 
 /**
  * Wrapper for java.lang.reflect.RecordComponent (Java 16+).
@@ -34,7 +33,6 @@ public class RecordComponentInfo {
     private final Type genericType;
     private final Method accessor;
    
-    private static final Logger logger = Logger.getLogger(RecordComponentInfo.class.getName());
     /**
      * Creates wrapper from RecordComponent object using reflection.
      * 

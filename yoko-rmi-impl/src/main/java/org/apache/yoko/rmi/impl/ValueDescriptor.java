@@ -41,6 +41,7 @@ import java.io.ObjectStreamClass;
 import java.io.ObjectStreamField;
 import java.io.PrintWriter;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -307,12 +308,12 @@ class ValueDescriptor extends TypeDescriptor {
 
             // 30210: Check for record support
             if (recordSupportRef.get() != null) {
-                logger.fine("Detected record class: " + getType().getName());
+                MARSHAL_LOG.fine("Detected record class: " + getType().getName());
                 
                 // Validate record follows serialization rules
                 recordSupportRef.get().validate();
                 
-                logger.fine("Record has " + recordSupportRef.get().getComponents().length + " components");
+                MARSHAL_LOG.fine("Record has " + recordSupportRef.get().getComponents().length + " components");
 
                 // Records cannot have custom serialization methods
                 return null;
@@ -601,10 +602,11 @@ class ValueDescriptor extends TypeDescriptor {
 
             // 30210: Handle Records
             if (recordSupportRef.get() != null) {
-                    // Delegate to record support
-                    recordSupportRef.get().writeComponents(writer, value);
-                    return;
-                }
+                MARSHAL_OUT_LOG.finer(() -> "writing record: " + getType());
+                // Delegate to record support
+                recordSupportRef.get().writeComponents(writer, value);
+                return;
+            }
 
             writeValue(writer, value);
         } catch (IOException ex) {
@@ -880,6 +882,8 @@ class ValueDescriptor extends TypeDescriptor {
 
             // 30210: Handle Record case
             if (recordSupportRef.get() != null) {
+
+                MARSHAL_IN_LOG.finer(() -> "Reading value: " + value);
 
                 // Delegate to record support
                 Serializable instance = (Serializable) recordSupportRef.get().readAndConstruct(reader);

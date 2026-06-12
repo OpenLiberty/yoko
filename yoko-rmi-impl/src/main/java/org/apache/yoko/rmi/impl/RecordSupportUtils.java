@@ -22,7 +22,10 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.logging.Logger;
+
+import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
+import static org.apache.yoko.logging.VerboseLogging.MARSHAL_IN_LOG;
+import static org.apache.yoko.logging.VerboseLogging.MARSHAL_OUT_LOG;
 
 /**
  * Utility class for Java record serialization support.
@@ -32,7 +35,6 @@ import java.util.logging.Logger;
  */
 public class RecordSupportUtils {
 
-   private static final Logger logger = Logger.getLogger(RecordSupportUtils.class.getName());
     
     // Static reflection-based detection
     private static final Method IS_RECORD_METHOD;
@@ -81,7 +83,7 @@ public class RecordSupportUtils {
         try {
             return (Boolean) IS_RECORD_METHOD.invoke(clazz);
         } catch (Exception e) {
-            logger.fine("Failed to check if class is record: " + clazz.getName());
+            MARSHAL_LOG.warning("Failed to check if class is record: " + clazz.getName());
             return false;
         }
     }
@@ -186,8 +188,12 @@ public class RecordSupportUtils {
      * @throws IOException if writing fails
      */
     public void writeComponents(ObjectWriter writer, Object record) throws IOException {
+
+        MARSHAL_OUT_LOG.finer("Writing record components for " + recordClass.getName());
+
         try {
             for (RecordComponentInfo component : components) {
+                MARSHAL_OUT_LOG.finer("Writing record component: " + component.getName());
                 Method accessor = component.getAccessor();
                 Object value = accessor.invoke(record);
                 writer.writeObject(value);
@@ -208,9 +214,13 @@ public class RecordSupportUtils {
      * @throws IOException if reading or construction fails
      */
     public Object readAndConstruct(ObjectReader reader) throws IOException {
+
+        MARSHAL_IN_LOG.finer("Reading record components for " + recordClass.getName());
+
         try {
             Object[] args = new Object[components.length];
             for (int i = 0; i < components.length; i++) {
+                MARSHAL_IN_LOG.finer("Reading record component: " + components[i].getName() + " of type: " + components[i].getType());
                 args[i] = reader.readObject();
             }
             return canonicalConstructor.newInstance(args);
