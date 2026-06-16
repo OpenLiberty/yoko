@@ -149,4 +149,40 @@ enum MethodHandleHelper {
             return null; // Method doesn't exist
         }
     }
+
+    /**
+     * Gets a MethodHandle for reading an instance field.
+     *
+     * @param targetClass the class containing the field
+     * @param fieldName the name of the field
+     * @param fieldType the type of the field
+     * @return a MethodHandle for getting the field value, or null if not found
+     * @throws Exception if an error occurs during lookup (other than field not found)
+     */
+    static MethodHandle getFieldGetter(Class<?> targetClass, String fieldName, Class<?> fieldType) throws Exception {
+        Lookup lookup = getPrivateLookup(targetClass);
+        try {
+            return lookup.findGetter(targetClass, fieldName, fieldType);
+        } catch (NoSuchFieldException e) {
+            return null; // Field doesn't exist
+        }
+    }
+
+    /**
+     * Gets a MethodHandle for writing an instance field.
+     *
+     * @param targetClass the class containing the field
+     * @param fieldName the name of the field
+     * @param fieldType the type of the field
+     * @return a MethodHandle for setting the field value, or null if not found
+     * @throws Exception if an error occurs during lookup (other than field not found)
+     */
+    static MethodHandle getFieldSetter(Class<?> targetClass, String fieldName, Class<?> fieldType) throws Exception {
+        Lookup lookup = getPrivateLookup(targetClass);
+        try {
+            return lookup.findSetter(targetClass, fieldName, fieldType);
+        } catch (NoSuchFieldException e) {
+            return null; // Field doesn't exist
+        }
+    }
 }
