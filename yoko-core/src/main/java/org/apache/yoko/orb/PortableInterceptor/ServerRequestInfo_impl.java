@@ -58,7 +58,7 @@ import org.omg.PortableServer.Servant;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.apache.yoko.logging.VerboseLogging.REQ_OUT_LOG;
+import static org.apache.yoko.logging.VerboseLogging.REQ_IN_LOG;
 import static org.apache.yoko.util.CollectionExtras.newSynchronizedList;
 import static org.apache.yoko.util.CollectionExtras.removeInReverse;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidPICall;
@@ -351,7 +351,7 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
                     // correct completion status
                     CompletionStatus expected = oldE instanceof SystemException ? ((SystemException)oldE).completed : COMPLETED_YES;
                     if (expected != newE.completed) {
-                        REQ_OUT_LOG.warning(() -> "Correcting completion status on new exception from interceptor " + i.getClass() + ": was " + newE.completed + " and is: " + expected);
+                        REQ_IN_LOG.warning(() -> "Correcting completion status on new exception from interceptor " + i.getClass() + ": was " + newE.completed + " and is: " + expected);
                         newE.completed = expected;
                     }
                     throw newE;
@@ -384,7 +384,7 @@ final public class ServerRequestInfo_impl extends RequestInfo_impl implements Se
                 } catch (SystemException newE) {
                     // correct completion status
                     if (COMPLETED_NO != newE.completed) {
-                        REQ_OUT_LOG.warning(() -> "Correcting completion status on new exception from interceptor " + i.getClass() + ": was " + newE.completed + " and is: " + COMPLETED_NO);
+                        REQ_IN_LOG.warning(() -> "Correcting completion status on new exception from interceptor " + i.getClass() + ": was " + newE.completed + " and is: " + COMPLETED_NO);
                         newE.completed = COMPLETED_NO;
                     }
                     throw newE;
