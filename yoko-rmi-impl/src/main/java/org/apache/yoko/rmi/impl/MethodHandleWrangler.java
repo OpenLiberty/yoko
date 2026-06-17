@@ -17,6 +17,8 @@
  */
 package org.apache.yoko.rmi.impl;
 
+import org.omg.CORBA.INTERNAL;
+
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
@@ -28,17 +30,19 @@ import java.util.function.Function;
 import static java.lang.invoke.MethodHandles.publicLookup;
 import static java.lang.invoke.MethodType.methodType;
 import static java.security.AccessController.doPrivileged;
+import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.PrivilegedActions.exAction;
 
 /**
- * Helper class for obtaining MethodHandles to methods, including private ones.
+ * Package-private class for obtaining MethodHandles to methods and accessors for fields,
+ * including private ones.
  * This class provides secure access to private methods using MethodHandles,
  * with support for both Java 8 and Java 9+ APIs.
  *
  * <p>Security: This class uses privileged blocks when necessary and does not
  * expose Lookup objects to prevent security vulnerabilities.</p>
  */
-enum MethodHandleHelper {
+enum MethodHandleWrangler {
     ; // Empty enum - prevents instantiation
 
     /**
@@ -72,7 +76,7 @@ enum MethodHandleHelper {
             )
         );
 
-        // Capture the lookup once at build time
+        // Capture the caller lookup once
         Lookup callerLookup = MethodHandles.lookup();
 
         return targetClass -> {
@@ -139,14 +143,19 @@ enum MethodHandleHelper {
      * @param methodName the name of the method
      * @param methodType the method signature
      * @return a MethodHandle for the method, or null if not found
-     * @throws Exception if an error occurs during lookup (other than method not found)
      */
-    static MethodHandle getMethodHandle(Class<?> targetClass, String methodName, MethodType methodType) throws Exception {
+    static MethodHandle getMethodHandle(Class<?> targetClass, String methodName, MethodType methodType) {
         Lookup lookup = getPrivateLookup(targetClass);
         try {
-            return lookup.findVirtual(targetClass, methodName, methodType);
-        } catch (NoSuchMethodException e) {
-            return null; // Method doesn't exist
+            return doPrivileged(exAction(() -> lookup.findVirtual(targetClass, methodName, methodType)));
+        } catch (PrivilegedActionException pae) {
+            try {
+                throw pae.getCause(); // unwrap
+            } catch (NoSuchMethodException e) {
+                return null; // method doesn't exist
+            } catch (Throwable e) {
+                throw as(INTERNAL::new, e, "Unexpected exception during method lookup");
+            }
         }
     }
 
@@ -157,14 +166,19 @@ enum MethodHandleHelper {
      * @param fieldName the name of the field
      * @param fieldType the type of the field
      * @return a MethodHandle for getting the field value, or null if not found
-     * @throws Exception if an error occurs during lookup (other than field not found)
      */
-    static MethodHandle getFieldGetter(Class<?> targetClass, String fieldName, Class<?> fieldType) throws Exception {
+    static MethodHandle getFieldGetter(Class<?> targetClass, String fieldName, Class<?> fieldType) {
         Lookup lookup = getPrivateLookup(targetClass);
         try {
-            return lookup.findGetter(targetClass, fieldName, fieldType);
-        } catch (NoSuchFieldException e) {
-            return null; // Field doesn't exist
+            return doPrivileged(exAction(() -> lookup.findGetter(targetClass, fieldName, fieldType)));
+        } catch (PrivilegedActionException pae) {
+            try {
+                throw pae.getCause(); // unwrap
+            } catch (NoSuchMethodException e) {
+                return null; // field doesn't exist
+            } catch (Throwable e) {
+                throw as(INTERNAL::new, e, "Unexpected exception during field getter lookup");
+            }
         }
     }
 
@@ -175,14 +189,19 @@ enum MethodHandleHelper {
      * @param fieldName the name of the field
      * @param fieldType the type of the field
      * @return a MethodHandle for setting the field value, or null if not found
-     * @throws Exception if an error occurs during lookup (other than field not found)
      */
-    static MethodHandle getFieldSetter(Class<?> targetClass, String fieldName, Class<?> fieldType) throws Exception {
+    static MethodHandle getFieldSetter(Class<?> targetClass, String fieldName, Class<?> fieldType) {
         Lookup lookup = getPrivateLookup(targetClass);
         try {
-            return lookup.findSetter(targetClass, fieldName, fieldType);
-        } catch (NoSuchFieldException e) {
-            return null; // Field doesn't exist
+            return doPrivileged(exAction(() -> lookup.findSetter(targetClass, fieldName, fieldType)));
+        } catch (PrivilegedActionException pae) {
+            try {
+                throw pae.getCause();
+            } catch (NoSuchMethodException e) {
+                return null; // field doesn't exist
+            } catch (Throwable e) {
+                throw as(INTERNAL::new, e, "Unexpected exception during field setter lookup");
+            }
         }
     }
 }
