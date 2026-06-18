@@ -21,39 +21,40 @@ import org.omg.CORBA.TCKind;
 import org.omg.CORBA.ValueMember;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import static org.omg.CORBA.TCKind._tk_abstract_interface;
-import static org.omg.CORBA.TCKind._tk_alias;
-import static org.omg.CORBA.TCKind._tk_any;
-import static org.omg.CORBA.TCKind._tk_array;
-import static org.omg.CORBA.TCKind._tk_boolean;
-import static org.omg.CORBA.TCKind._tk_char;
-import static org.omg.CORBA.TCKind._tk_double;
-import static org.omg.CORBA.TCKind._tk_float;
-import static org.omg.CORBA.TCKind._tk_long;
-import static org.omg.CORBA.TCKind._tk_longdouble;
-import static org.omg.CORBA.TCKind._tk_longlong;
-import static org.omg.CORBA.TCKind._tk_native;
-import static org.omg.CORBA.TCKind._tk_objref;
-import static org.omg.CORBA.TCKind._tk_octet;
-import static org.omg.CORBA.TCKind._tk_Principal;
-import static org.omg.CORBA.TCKind._tk_sequence;
-import static org.omg.CORBA.TCKind._tk_short;
-import static org.omg.CORBA.TCKind._tk_string;
-import static org.omg.CORBA.TCKind._tk_struct;
-import static org.omg.CORBA.TCKind._tk_TypeCode;
-import static org.omg.CORBA.TCKind._tk_ulong;
-import static org.omg.CORBA.TCKind._tk_ulonglong;
-import static org.omg.CORBA.TCKind._tk_ushort;
-import static org.omg.CORBA.TCKind._tk_value;
-import static org.omg.CORBA.TCKind._tk_value_box;
-import static org.omg.CORBA.TCKind._tk_wchar;
-import static org.omg.CORBA.TCKind._tk_wstring;
-import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
+import static org.omg.CORBA.TCKind.tk_Principal;
+import static org.omg.CORBA.TCKind.tk_TypeCode;
+import static org.omg.CORBA.TCKind.tk_abstract_interface;
+import static org.omg.CORBA.TCKind.tk_alias;
+import static org.omg.CORBA.TCKind.tk_any;
+import static org.omg.CORBA.TCKind.tk_array;
+import static org.omg.CORBA.TCKind.tk_boolean;
+import static org.omg.CORBA.TCKind.tk_char;
+import static org.omg.CORBA.TCKind.tk_double;
+import static org.omg.CORBA.TCKind.tk_float;
+import static org.omg.CORBA.TCKind.tk_long;
+import static org.omg.CORBA.TCKind.tk_longdouble;
+import static org.omg.CORBA.TCKind.tk_longlong;
+import static org.omg.CORBA.TCKind.tk_native;
+import static org.omg.CORBA.TCKind.tk_objref;
+import static org.omg.CORBA.TCKind.tk_octet;
+import static org.omg.CORBA.TCKind.tk_sequence;
+import static org.omg.CORBA.TCKind.tk_short;
+import static org.omg.CORBA.TCKind.tk_string;
+import static org.omg.CORBA.TCKind.tk_struct;
+import static org.omg.CORBA.TCKind.tk_ulong;
+import static org.omg.CORBA.TCKind.tk_ulonglong;
+import static org.omg.CORBA.TCKind.tk_ushort;
+import static org.omg.CORBA.TCKind.tk_value;
+import static org.omg.CORBA.TCKind.tk_value_box;
+import static org.omg.CORBA.TCKind.tk_wchar;
+import static org.omg.CORBA.TCKind.tk_wstring;
+import static org.omg.CORBA_2_4.TCKind.tk_local_interface;
 
 /**
  * A FieldDescriptor that is created from a ValueMember in a FullValueDescription (FVD).
@@ -65,25 +66,25 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
 
     private enum KindValueUtil {
         ;
-        private static final BitSet PRIMITIVES = new BitSet(_tk_longdouble + 1);
+        private static final BitSet PRIMITIVES = new BitSet(tk_longdouble.value() + 1);
         static {
-            PRIMITIVES.set(_tk_boolean);
-            PRIMITIVES.set(_tk_char);
-            PRIMITIVES.set(_tk_wchar);
-            PRIMITIVES.set(_tk_octet);
-            PRIMITIVES.set(_tk_short);
-            PRIMITIVES.set(_tk_ushort);
-            PRIMITIVES.set(_tk_long);
-            PRIMITIVES.set(_tk_ulong);
-            PRIMITIVES.set(_tk_longlong);
-            PRIMITIVES.set(_tk_ulonglong);
-            PRIMITIVES.set(_tk_float);
-            PRIMITIVES.set(_tk_double);
-            PRIMITIVES.set(_tk_longdouble);
+            PRIMITIVES.set(tk_boolean.value());
+            PRIMITIVES.set(tk_char.value());
+            PRIMITIVES.set(tk_wchar.value());
+            PRIMITIVES.set(tk_octet.value());
+            PRIMITIVES.set(tk_short.value());
+            PRIMITIVES.set(tk_ushort.value());
+            PRIMITIVES.set(tk_long.value());
+            PRIMITIVES.set(tk_ulong.value());
+            PRIMITIVES.set(tk_longlong.value());
+            PRIMITIVES.set(tk_ulonglong.value());
+            PRIMITIVES.set(tk_float.value());
+            PRIMITIVES.set(tk_double.value());
+            PRIMITIVES.set(tk_longdouble.value());
         }
 
-        static boolean isPrimitive(int kind) {
-            return PRIMITIVES.get(kind);
+        static boolean isPrimitive(TCKind kind) {
+            return PRIMITIVES.get(kind.value());
         }
     }
 
@@ -94,49 +95,48 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
 
     private enum TypeReaders {
         ;
-        private static final ReaderOperation[] READERS = new ReaderOperation[_tk_local_interface + 1];
-
         private static final ReaderOperation UNSUPPORTED = reader -> {
             throw new IllegalArgumentException("Unsupported TypeCode kind");
         };
 
-        static {
-            // Fill array with default error-throwing operation
-            Arrays.fill(READERS, UNSUPPORTED);
+        private static final Map<TCKind, ReaderOperation> READERS;
 
-            // Set supported operations
-            READERS[_tk_boolean] = ObjectReader::readBoolean;
-            READERS[_tk_char] = ObjectReader::readChar;
-            READERS[_tk_wchar] = ObjectReader::readChar;
-            READERS[_tk_octet] = ObjectReader::readByte;
-            READERS[_tk_short] = ObjectReader::readShort;
-            READERS[_tk_ushort] = ObjectReader::readShort;
-            READERS[_tk_long] = ObjectReader::readInt;
-            READERS[_tk_ulong] = ObjectReader::readInt;
-            READERS[_tk_longlong] = ObjectReader::readLong;
-            READERS[_tk_ulonglong] = ObjectReader::readLong;
-            READERS[_tk_float] = ObjectReader::readFloat;
-            READERS[_tk_double] = ObjectReader::readDouble;
-            READERS[_tk_longdouble] = ObjectReader::readDouble;
-            READERS[_tk_string] = ObjectReader::readValueObject;
-            READERS[_tk_wstring] = ObjectReader::readValueObject;
-            READERS[_tk_any] = ObjectReader::readAny;
-            READERS[_tk_abstract_interface] = ObjectReader::readAny;
-            READERS[_tk_objref] = ObjectReader::readCorbaObject;
-            READERS[_tk_value] = ObjectReader::readValueObject;
-            READERS[_tk_value_box] = ObjectReader::readValueObject;
-            READERS[_tk_sequence] = ObjectReader::readValueObject;
-            READERS[_tk_array] = ObjectReader::readValueObject;
-            READERS[_tk_struct] = ObjectReader::readValueObject;
-            READERS[_tk_alias] = ObjectReader::readValueObject;
-            READERS[_tk_TypeCode] = ObjectReader::readAbstractObject;
-            READERS[_tk_Principal] = ObjectReader::readAbstractObject;
-            READERS[_tk_native] = ObjectReader::readAbstractObject;
-            READERS[_tk_local_interface] = ObjectReader::readAbstractObject;
+        static {
+            Map<TCKind, ReaderOperation> readers = new HashMap<>();
+            readers.put(tk_boolean, ObjectReader::readBoolean);
+            readers.put(tk_char, ObjectReader::readChar);
+            readers.put(tk_wchar, ObjectReader::readChar);
+            readers.put(tk_octet, ObjectReader::readByte);
+            readers.put(tk_short, ObjectReader::readShort);
+            readers.put(tk_ushort, ObjectReader::readShort);
+            readers.put(tk_long, ObjectReader::readInt);
+            readers.put(tk_ulong, ObjectReader::readInt);
+            readers.put(tk_longlong, ObjectReader::readLong);
+            readers.put(tk_ulonglong, ObjectReader::readLong);
+            readers.put(tk_float, ObjectReader::readFloat);
+            readers.put(tk_double, ObjectReader::readDouble);
+            readers.put(tk_longdouble, ObjectReader::readDouble);
+            readers.put(tk_string, ObjectReader::readValueObject);
+            readers.put(tk_wstring, ObjectReader::readValueObject);
+            readers.put(tk_any, ObjectReader::readAny);
+            readers.put(tk_abstract_interface, ObjectReader::readAny);
+            readers.put(tk_objref, ObjectReader::readCorbaObject);
+            readers.put(tk_value, ObjectReader::readValueObject);
+            readers.put(tk_value_box, ObjectReader::readValueObject);
+            readers.put(tk_sequence, ObjectReader::readValueObject);
+            readers.put(tk_array, ObjectReader::readValueObject);
+            readers.put(tk_struct, ObjectReader::readValueObject);
+            readers.put(tk_alias, ObjectReader::readValueObject);
+            readers.put(tk_TypeCode, ObjectReader::readAbstractObject);
+            readers.put(tk_Principal, ObjectReader::readAbstractObject);
+            readers.put(tk_native, ObjectReader::readAbstractObject);
+            readers.put(tk_local_interface, ObjectReader::readAbstractObject);
+            READERS = Collections.unmodifiableMap(readers);
         }
 
-        static ReaderOperation get(int kind) {
-            return READERS[kind];
+        static ReaderOperation get(TCKind kind) {
+            ReaderOperation operation = READERS.get(kind);
+            return operation == null ? UNSUPPORTED : operation;
         }
     }
 
@@ -162,7 +162,7 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
     }
 
     private static boolean isPrimitiveKind(TCKind kind) {
-        return KindValueUtil.isPrimitive(kind.value());
+        return KindValueUtil.isPrimitive(kind);
     }
 
     @Override
@@ -180,14 +180,14 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
     }
 
     @Override
-    void readFieldIntoMap(ObjectReader reader, Map map) throws IOException {
+    void readFieldIntoMap(ObjectReader reader, Map<String,Object> ignored) throws IOException {
         // Read the value from the stream based on TypeCode, but don't add it to the Map
         // as it wasn't defined in serialPersistentFields
         readValueByTypeCode(reader);
     }
 
     @Override
-    void writeFieldFromMap(ObjectWriter writer, Map map) throws IOException {
+    void writeFieldFromMap(ObjectWriter writer, Map<String,Object> ignored) throws IOException {
         // Cannot write a value that doesn't exist locally
         throw new IOException("Cannot write field '" + java_name +
                 "' from map - no local field equivalent exists for ValueMember from FVD");
@@ -214,10 +214,11 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
     /**
      * Reads a value from the stream based on the TypeCode kind.
      */
+    @SuppressWarnings("UnusedReturnValue")
     private Object readValueByTypeCode(ObjectReader reader) throws IOException {
         try {
-            return TypeReaders.get(kind.value()).read(reader);
-        } catch (IllegalArgumentException | ArrayIndexOutOfBoundsException e) {
+            return TypeReaders.get(kind).read(reader);
+        } catch (IllegalArgumentException e) {
             logger.warning(() -> "Unsupported TypeCode kind for field '" + java_name +
                     "': " + kind.value() + " - reading as abstract object");
             return reader.readAbstractObject();
