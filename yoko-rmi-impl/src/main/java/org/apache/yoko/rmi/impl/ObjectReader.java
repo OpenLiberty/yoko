@@ -47,6 +47,8 @@ abstract class ObjectReader extends ObjectInputStream {
     
     @Override
     protected abstract Object readObjectOverride() throws IOException, ClassNotFoundException;
+
+    final org.omg.CORBA.Object readCorbaObject() { return readCorbaObject(null); }
 }
 
 abstract class ObjectReaderBase extends ObjectReader {

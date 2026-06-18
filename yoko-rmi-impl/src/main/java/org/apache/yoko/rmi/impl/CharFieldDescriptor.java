@@ -1,0 +1,82 @@
+/*
+ * Copyright 2026 IBM Corporation and others.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package org.apache.yoko.rmi.impl;
+
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.lang.reflect.Field;
+import java.util.Map;
+
+import static org.apache.yoko.util.Exceptions.as;
+
+class CharFieldDescriptor extends FieldDescriptor {
+    CharFieldDescriptor(Class<?> owner, Class<?> type, String name, Field f, TypeRepository repository) {
+        super(owner, type, name, f, repository);
+    }
+
+    public void read(ObjectReader reader, Object obj) throws IOException {
+        char value = reader.readChar();
+        setFieldContents(obj, value);
+    }
+
+    public void write(ObjectWriter writer, Object obj) throws IOException {
+        writer.writeChar((Character) getFieldContents(obj));
+    }
+
+    void copyState(Object orig, Object copy, CopyState state) {
+        try {
+            setFieldContents(copy, getFieldContents(orig));
+        } catch (IOException ex) {
+            throw as(InternalError::new, ex, ex.getMessage());
+        }
+    }
+
+    void print(PrintWriter pw, Map<Object, Integer> recurse, Object val) {
+        try {
+            pw.print(java_name);
+            pw.print("=");
+            char ch = (Character) getFieldContents(val);
+            pw.print(ch);
+            pw.print('(');
+            pw.print(Integer.toHexString(0xffff & ((int) ch)));
+            pw.print(')');
+        } catch (IllegalStateException | IOException ex) {
+            pw.print("<non-local>");
+        }
+    }
+
+    /**
+     * @see FieldDescriptor#readFieldIntoMap(ObjectReader, Map)
+     */
+    void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) throws IOException {
+        map.put(java_name, reader.readChar());
+    }
+
+    /**
+     * @see FieldDescriptor#writeFieldFromMap(ObjectWriter, Map)
+     */
+    void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
+        Character value = (Character) map.get(java_name);
+        if (value == null) {
+            writer.writeChar(0);
+        } else {
+            writer.writeChar(value);
+        }
+    }
+}
