@@ -42,7 +42,7 @@ import static java.util.Optional.ofNullable;
  *
  * @param <T> the type of the lazily initialized value
  */
-public class LazyReference<T> {
+public class LazyReference<T> implements Supplier<T> {
     private static final Logger LOGGER = Logger.getLogger(LazyReference.class.getName());
 
     /**
