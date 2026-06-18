@@ -124,6 +124,10 @@ class ValueDescriptor extends TypeDescriptor {
     private static final Set<? extends Class<? extends Serializable>> IMMUTABLE_VALUE_CLASSES = unmodifiableSet(new HashSet<>(asList(Integer.class,
             Character.class, Boolean.class, Byte.class, Long.class, Float.class, Double.class, Short.class)));
 
+    /** 30210: Record support utility (null for non-records) */
+    private final LazyReference<RecordSupportUtils> recordSupportRef = new LazyReference<>(this::genRecordSupportUtils);
+
+
     ValueDescriptor(Class<?> type, TypeRepository repository) {
         this(type, repository, null, null, null);
     }
@@ -293,8 +297,28 @@ class ValueDescriptor extends TypeDescriptor {
         };
     }
 
+    // 30210: Get RecordSupportUtils
+    private RecordSupportUtils genRecordSupportUtils() {
+        return RecordSupportUtils.forClass(getType());
+    }
+
+
     Method genReadObjectMethod() {
         try {
+
+            // 30210: Check for record support
+            if (recordSupportRef.get() != null) {
+                MARSHAL_LOG.fine("Detected record class: " + getType().getName());
+                
+                // Validate record follows serialization rules
+                recordSupportRef.get().validate();
+                
+                MARSHAL_LOG.fine("Record has " + recordSupportRef.get().getComponents().length + " components");
+
+                // Records cannot have custom serialization methods
+                return null;
+            }
+
             Method method = doPrivileged(getDeclaredMethod(getType(), "readObject", ObjectInputStream.class));
 
             // Validate the method
@@ -312,6 +336,20 @@ class ValueDescriptor extends TypeDescriptor {
     Method genWriteObjectMethod() {
         Class<?> type = getType();
         try {
+
+            // 30210: Check for record support
+            if (recordSupportRef.get() != null) {
+                logger.fine("Detected record class: " + getType().getName());
+                
+                // Validate record follows serialization rules
+                recordSupportRef.get().validate();
+                
+                logger.fine("Record has " + recordSupportRef.get().getComponents().length + " components");
+
+                // Records cannot have custom serialization methods
+                return null;
+            }
+
             Method method = doPrivileged(getDeclaredMethod(type, "writeObject", ObjectOutputStream.class));
 
             // Validate the method
@@ -351,6 +389,12 @@ class ValueDescriptor extends TypeDescriptor {
     }
 
     private Supplier<Serializable> genBlankInstanceSupplier() {
+
+        // 30210: Records can't be instantiated without constructor arguments, so this should return null in the Record case
+        if (recordSupportRef.get() != null) {
+            return null;
+        }
+
         return findConstructor()
                 .map(constructor -> (Supplier<Serializable>) () -> {
                     try {
@@ -555,6 +599,15 @@ class ValueDescriptor extends TypeDescriptor {
     public void writeValue(final OutputStream out, final Serializable value) {
         try {
             ObjectWriter writer = doPrivileged(exAction(() -> new CorbaObjectWriter(out, value)));
+
+            // 30210: Handle Records
+            if (recordSupportRef.get() != null) {
+                MARSHAL_OUT_LOG.finer(() -> "writing record: " + getType());
+                // Delegate to record support
+                recordSupportRef.get().writeComponents(writer, value);
+                return;
+            }
+
             writeValue(writer, value);
         } catch (IOException ex) {
             throw as(MARSHAL::new, ex, ex.getMessage());
@@ -827,11 +880,29 @@ class ValueDescriptor extends TypeDescriptor {
         try {
             ObjectReader reader = makeCorbaObjectReader(in, offsetMap, value);
 
+            // 30210: Handle Record case
+            if (recordSupportRef.get() != null) {
+
+                MARSHAL_IN_LOG.finer(() -> "Reading value: " + value);
+
+                // Delegate to record support
+                Serializable instance = (Serializable) recordSupportRef.get().readAndConstruct(reader);
+                
+                // Register in offset map if needed
+                // Currently, this has already been done, but we might move the put later
+                if (offset != null) {
+                    offsetMap.put(offset, instance);
+                }
+                return instance;
+            }
+
             final Serializable resolved = readResolve(readValue(reader, value));
+
             if (value != resolved) {
                 offsetMap.put(offset, resolved);
             }
             return resolved;
+
         } catch (IOException ex) {
             throw as(MARSHAL::new, ex, ex.getMessage());
         }
