@@ -413,7 +413,7 @@ final public class POA_impl extends LocalObject implements POA {
         logger.fine(() -> "POA " + name_ + " creating new POA with name " + adapter);
 
         // Are the requested policies valid?
-        POAPolicies policies = new POAPolicies(orbInstance_, rawPolicies);
+        POAPolicies policies = new POAPolicies(orbInstance_, rawPolicies, adapter);
         IntHolder idx = new IntHolder();
         if (!validatePolicies(policies, rawPolicies, idx))
             throw new InvalidPolicy((short) idx.value);
