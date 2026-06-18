@@ -200,13 +200,13 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
     }
 
     @Override
-    void set(Object o, Object value) throws IOException {
-        throw new IOException("Cannot set field '" + java_name +
+    void setFieldContents(Object o, Object value) throws IOException {
+        throw new IOException("Cannot setFieldContents field '" + java_name +
                 "' - no local field equivalent exists for ValueMember from FVD");
     }
 
     @Override
-    Object get(Object o) throws IOException {
+    Object getFieldContents(Object o) throws IOException {
         throw new IOException("Cannot get field '" + java_name +
                 "' - no local field equivalent exists for ValueMember from FVD");
     }

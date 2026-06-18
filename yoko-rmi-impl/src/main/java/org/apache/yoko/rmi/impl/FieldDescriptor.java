@@ -146,7 +146,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         }
     }
 
-    void set(Object o, Object value) throws IOException {
+    void setFieldContents(Object o, Object value) throws IOException {
         if (null == setter) throw new IOException("No local field '" + java_name + "' in class " + declaringClass.getName());
         try {
             setter.invoke(o, value);
@@ -155,7 +155,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         }
     }
 
-    Object get(Object o) throws IOException {
+    Object getFieldContents(Object o) throws IOException {
         if (null == getter) throw new IOException("No local field '" + java_name + "' in class " + declaringClass.getName());
         try {
             return getter.invoke(o);
@@ -253,7 +253,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         pw.print(java_name);
         pw.print("=");
         try {
-            Object obj = get(val);
+            Object obj = getFieldContents(val);
             if (obj == null) {
                 pw.print("null");
             } else {
@@ -290,21 +290,21 @@ class RemoteFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj) throws IOException {
         Object value = reader.readRemoteObject(interfaceType);
-        set(obj, value);
+        setFieldContents(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        writer.writeRemoteObject(get(obj));
+        writer.writeRemoteObject(getFieldContents(obj));
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
         try {
-            set(copy, state.copy(get(orig)));
+            setFieldContents(copy, state.copy(getFieldContents(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        set(copy, value);
+                        setFieldContents(copy, value);
                     } catch (IOException ex) {
                         throw as(InternalError::new, ex, ex.getMessage());
                     }
@@ -360,7 +360,7 @@ class AnyFieldDescriptor extends FieldDescriptor {
                         + type.getName());
             }
 
-            set(obj, val);
+            setFieldContents(obj, val);
         } catch (IllegalStateException ex) {
             throw as(MARSHAL::new, ex, ex.getMessage());
         }
@@ -368,17 +368,17 @@ class AnyFieldDescriptor extends FieldDescriptor {
 
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
-        writer.writeAny(get(obj));
+        writer.writeAny(getFieldContents(obj));
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
         try {
-            set(copy, state.copy(get(orig)));
+            setFieldContents(copy, state.copy(getFieldContents(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        set(copy, value);
+                        setFieldContents(copy, value);
                     } catch (IOException ex) {
                         throw as(InternalError::new, ex, ex.getMessage());
                     }
@@ -422,7 +422,7 @@ class ValueFieldDescriptor extends FieldDescriptor {
                 // older versions of Yoko treat non-serializable classes as abstract objects
                 value = reader.readAbstractObject();
             }
-            set(obj, value);
+            setFieldContents(obj, value);
         } catch (IllegalStateException ex) {
             throw as(MARSHAL::new, ex, ex.getMessage());
         }
@@ -433,7 +433,7 @@ class ValueFieldDescriptor extends FieldDescriptor {
                 || type.isInterface()
                 || Serializable.class.isAssignableFrom(type)) {
             try {
-                writer.writeValueObject(get(obj));
+                writer.writeValueObject(getFieldContents(obj));
             } catch (SystemException e) {
                 throw e;
             } catch (Exception e) {
@@ -441,18 +441,18 @@ class ValueFieldDescriptor extends FieldDescriptor {
             }
         } else {
             // older versions of Yoko treat non-serializable classes as abstract objects
-            writer.writeObject(get(obj));
+            writer.writeObject(getFieldContents(obj));
         }
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
         try {
-            set(copy, state.copy(get(orig)));
+            setFieldContents(copy, state.copy(getFieldContents(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        set(copy, value);
+                        setFieldContents(copy, value);
                     } catch (IOException ex) {
                         throw as(InternalError::new, ex, ex.getMessage());
                     }
@@ -490,16 +490,16 @@ class StringFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj) throws IOException {
         String value = (String) reader.readValueObject();
-        set(obj, value);
+        setFieldContents(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        writer.writeValueObject(get(obj));
+        writer.writeValueObject(getFieldContents(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            set(copy, get(orig));
+            setFieldContents(copy, getFieldContents(orig));
         } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
@@ -531,24 +531,24 @@ class ObjectFieldDescriptor extends FieldDescriptor {
     public void read(ObjectReader reader, Object obj) throws IOException {
         try {
             Object value = reader.readAbstractObject();
-            set(obj, value);
+            setFieldContents(obj, value);
         } catch (IllegalStateException ex) {
             throw as(MARSHAL::new, ex, ex.getMessage());
         }
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        writer.writeObject(get(obj));
+        writer.writeObject(getFieldContents(obj));
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
         try {
-            set(copy, state.copy(get(orig)));
+            setFieldContents(copy, state.copy(getFieldContents(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        set(copy, value);
+                        setFieldContents(copy, value);
                     } catch (IOException ex) {
                         throw as(InternalError::new, ex, ex.getMessage());
                     }
@@ -583,16 +583,16 @@ class BooleanFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj) throws IOException {
         boolean value = reader.readBoolean();
-        set(obj, value);
+        setFieldContents(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        writer.writeBoolean((Boolean) get(obj));
+        writer.writeBoolean((Boolean) getFieldContents(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            set(copy, get(orig));
+            setFieldContents(copy, getFieldContents(orig));
         } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
@@ -602,7 +602,7 @@ class BooleanFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(get(val));
+            pw.print(getFieldContents(val));
         } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
         }
@@ -635,16 +635,16 @@ class ByteFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj) throws IOException {
         byte value = reader.readByte();
-        set(obj, value);
+        setFieldContents(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        writer.writeByte((Byte) get(obj));
+        writer.writeByte((Byte) getFieldContents(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            set(copy, get(orig));
+            setFieldContents(copy, getFieldContents(orig));
         } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
@@ -654,7 +654,7 @@ class ByteFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(get(val));
+            pw.print(getFieldContents(val));
         } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
         }
@@ -687,16 +687,16 @@ class ShortFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj) throws IOException {
         short value = reader.readShort();
-        set(obj, value);
+        setFieldContents(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        writer.writeShort((Short) get(obj));
+        writer.writeShort((Short) getFieldContents(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            set(copy, get(orig));
+            setFieldContents(copy, getFieldContents(orig));
         } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
@@ -706,7 +706,7 @@ class ShortFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(get(val));
+            pw.print(getFieldContents(val));
         } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
         }
@@ -739,16 +739,16 @@ class CharFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj) throws IOException {
         char value = reader.readChar();
-        set(obj, value);
+        setFieldContents(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        writer.writeChar((Character) get(obj));
+        writer.writeChar((Character) getFieldContents(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            set(copy, get(orig));
+            setFieldContents(copy, getFieldContents(orig));
         } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
@@ -758,7 +758,7 @@ class CharFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            char ch = (Character) get(val);
+            char ch = (Character) getFieldContents(val);
             pw.print(ch);
             pw.print('(');
             pw.print(Integer.toHexString(0xffff & ((int) ch)));
@@ -796,16 +796,16 @@ class IntFieldDescriptor extends FieldDescriptor {
     public void read(ObjectReader reader, Object obj) throws IOException {
         int value = reader.readInt();
         logger.finest(() -> "Read int field value " + value);
-        set(obj, value);
+        setFieldContents(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        writer.writeInt((Integer) get(obj));
+        writer.writeInt((Integer) getFieldContents(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            set(copy, get(orig));
+            setFieldContents(copy, getFieldContents(orig));
         } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
@@ -815,7 +815,7 @@ class IntFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(get(val));
+            pw.print(getFieldContents(val));
         } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
         }
@@ -849,16 +849,16 @@ class LongFieldDescriptor extends FieldDescriptor {
     public void read(ObjectReader reader, Object obj) throws IOException {
         long value = reader.readLong();
         logger.finest(() -> "Read long field value " + value);
-        set(obj, value);
+        setFieldContents(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        writer.writeLong((Long) get(obj));
+        writer.writeLong((Long) getFieldContents(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            set(copy, get(orig));
+            setFieldContents(copy, getFieldContents(orig));
         } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
@@ -868,7 +868,7 @@ class LongFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(get(val));
+            pw.print(getFieldContents(val));
         } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
         }
@@ -901,16 +901,16 @@ class FloatFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj) throws IOException {
         float value = reader.readFloat();
-        set(obj, value);
+        setFieldContents(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        writer.writeFloat((Float) get(obj));
+        writer.writeFloat((Float) getFieldContents(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            set(copy, get(orig));
+            setFieldContents(copy, getFieldContents(orig));
         } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
@@ -920,7 +920,7 @@ class FloatFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(get(val));
+            pw.print(getFieldContents(val));
         } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
         }
@@ -955,16 +955,16 @@ class DoubleFieldDescriptor extends FieldDescriptor {
 
     public void read(ObjectReader reader, Object obj) throws IOException {
         double value = reader.readDouble();
-        set(obj, value);
+        setFieldContents(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        writer.writeDouble((Double) get(obj));
+        writer.writeDouble((Double) getFieldContents(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            set(copy, get(orig));
+            setFieldContents(copy, getFieldContents(orig));
         } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
@@ -974,7 +974,7 @@ class DoubleFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(get(val));
+            pw.print(getFieldContents(val));
         } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
         }
@@ -1010,12 +1010,12 @@ class CorbaObjectFieldDescriptor extends FieldDescriptor {
 
     void copyState(final Object orig, final Object copy, CopyState state) {
         try {
-            set(copy, state.copy(get(orig)));
+            setFieldContents(copy, state.copy(getFieldContents(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        set(copy, value);
+                        setFieldContents(copy, value);
                     } catch (IOException ex) {
                         throw as(InternalError::new, ex, ex.getMessage());
                     }
@@ -1028,7 +1028,7 @@ class CorbaObjectFieldDescriptor extends FieldDescriptor {
 
     void read(ObjectReader reader, Object obj) throws IOException {
         Object value = reader.readCorbaObject(type);
-        set(obj, value);
+        setFieldContents(obj, value);
     }
 
     void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) {
@@ -1038,7 +1038,7 @@ class CorbaObjectFieldDescriptor extends FieldDescriptor {
     }
 
     void write(ObjectWriter writer, Object obj) throws IOException {
-        writer.writeCorbaObject(get(obj));
+        writer.writeCorbaObject(getFieldContents(obj));
     }
 
     void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {
