@@ -1059,10 +1059,20 @@ final public class POA_impl extends LocalObject implements POA {
                     upcall = piUpcall;
 
                     // Call the receive_request_service_contexts interception point
+                    // Per CORBA 3.0.3 spec section 21.3.9.1: "This interception point may raise a system exception.
+                    // If it does, no other Interceptors' receive_request_service_contexts operations are called.
+                    // Those Interceptors on the Flow Stack are popped and their send_exception interception points are called."
                     boolean failed = true;
                     try {
                         piUpcall.receiveRequestServiceContexts(rawPolicies_, adapterId_, oid, adapterTemplate_);
                         failed = false;
+                    } catch (SystemException ex) {
+                        // Exception during receive_request_service_contexts
+                        // Set the exception on the PIUpcall, which will trigger send_exception()
+                        // on the interceptors in the Flow Stack
+                        piUpcall.setSystemException(ex);
+                        // Return the PIUpcall with the exception set so the caller can invoke() it
+                        return piUpcall;
                     } finally {
                         if (failed) _OB_decrementRequestCount();
                     }
