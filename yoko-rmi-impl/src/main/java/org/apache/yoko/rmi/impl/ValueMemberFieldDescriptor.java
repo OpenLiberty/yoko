@@ -122,7 +122,7 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
             READERS[_tk_wstring] = ObjectReader::readValueObject;
             READERS[_tk_any] = ObjectReader::readAny;
             READERS[_tk_abstract_interface] = ObjectReader::readAny;
-            READERS[_tk_objref] = reader -> reader.readCorbaObject(null);
+            READERS[_tk_objref] = ObjectReader::readCorbaObject;
             READERS[_tk_value] = ObjectReader::readValueObject;
             READERS[_tk_value_box] = ObjectReader::readValueObject;
             READERS[_tk_sequence] = ObjectReader::readValueObject;

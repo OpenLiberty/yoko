@@ -1027,12 +1027,12 @@ class CorbaObjectFieldDescriptor extends FieldDescriptor {
     }
 
     void read(ObjectReader reader, Object obj) throws IOException {
-        Object value = reader.readCorbaObject(null);
+        Object value = reader.readCorbaObject(type);
         set(obj, value);
     }
 
     void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) {
-        Object value = reader.readCorbaObject(null);
+        Object value = reader.readCorbaObject(type);
         map.put(java_name, value);
 
     }

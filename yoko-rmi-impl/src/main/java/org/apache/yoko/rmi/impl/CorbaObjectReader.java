@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -175,7 +175,8 @@ public final class CorbaObjectReader extends ObjectReaderBase {
     }
 
     public org.omg.CORBA.Object readCorbaObject(Class<?> type) {
-        return in.read_Object();
+        org.omg.CORBA.Object obj = in.read_Object();
+        return (null == type) ? obj : (org.omg.CORBA.Object)PortableRemoteObject.narrow(obj, type);
     }
 
     public Remote readRemoteObject(Class<?> type) {
