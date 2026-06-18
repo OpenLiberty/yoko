@@ -109,12 +109,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
 
 
     FieldDescriptor(Class<?> owner, Class<?> type, String name, TypeRepository repo) {
-        super(repo, name);
-        this.type = type;
-        this.declaringClass = owner;
-        this.valueMemberAccess = ValueMemberAccess.PRIVATE;
-        getter = null;
-        setter = null;
+        this(owner, type, name, null, repo);
     }
 
     FieldDescriptor(Class<?> owner, Class<?> type, String name, Field f, TypeRepository repo) {
