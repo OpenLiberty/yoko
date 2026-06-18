@@ -28,18 +28,21 @@ import java.io.IOException;
 import java.io.ObjectStreamField;
 import java.io.PrintWriter;
 import java.io.Serializable;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.rmi.Remote;
+import java.security.PrivilegedActionException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.logging.Logger;
 
-import static java.lang.reflect.Modifier.isFinal;
 import static java.lang.reflect.Modifier.isPublic;
+import static java.security.AccessController.doPrivileged;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.logging.Level.FINER;
 import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.PrivilegedActions.exAction;
 import static org.apache.yoko.util.yasf.Yasf.NON_SERIALIZABLE_FIELD_IS_ABSTRACT_VALUE;
 
 abstract class FieldDescriptor extends ModelElement implements Comparable<FieldDescriptor> {
@@ -93,32 +96,71 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         }
     }
 
-    private final org.apache.yoko.rmi.util.corba.Field field;
+    private final MethodHandle setter;
+    private final MethodHandle getter;
 
     final Class<?> type;
 
     final Class<?> declaringClass;
 
-    final boolean isFinal;
-
     private final LazyReference<ValueMember> valueMemberRef = new LazyReference<>(this::genValueMember);
 
     private final ValueMemberAccess valueMemberAccess;
 
-    protected FieldDescriptor(Class<?> owner, Class<?> type, String name, Field f, TypeRepository repo) {
+
+    FieldDescriptor(Class<?> owner, Class<?> type, String name, TypeRepository repo) {
+        super(repo, name);
+        this.type = type;
+        this.declaringClass = owner;
+        this.valueMemberAccess = ValueMemberAccess.PRIVATE;
+        getter = null;
+        setter = null;
+    }
+
+    FieldDescriptor(Class<?> owner, Class<?> type, String name, Field f, TypeRepository repo) {
         super(repo, name);
         this.type = type;
         declaringClass = owner;
 
         if (null == f) {
             this.valueMemberAccess = ValueMemberAccess.PRIVATE;
-            this.field = null;
-            isFinal = false;
+            this.setter = null;
+            this.getter = null;
         } else {
             int modifiers = f.getModifiers();
             this.valueMemberAccess = isPublic(modifiers) ? ValueMemberAccess.PUBLIC : ValueMemberAccess.PRIVATE;
-            this.field = new org.apache.yoko.rmi.util.corba.Field(f);
-            isFinal = isFinal(modifiers);
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            try {
+                Field fieldCopy = doPrivileged(exAction(() -> {
+                    Field copy = f.getDeclaringClass().getDeclaredField(f.getName());
+                    copy.setAccessible(true);
+                    return copy;
+                }));
+                this.getter = lookup.unreflectGetter(fieldCopy);
+                this.setter = lookup.unreflectSetter(fieldCopy);
+            } catch (PrivilegedActionException pae) {
+                throw new RuntimeException(pae.getCause());
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    void set(Object o, Object value) throws IOException {
+        if (null == setter) throw new IOException("No local field '" + java_name + "' in class " + declaringClass.getName());
+        try {
+            setter.invoke(o, value);
+        } catch (Throwable t) {
+            throw as(IOException::new, t, t.getMessage());
+        }
+    }
+
+    Object get(Object o) throws IOException {
+        if (null == getter) throw new IOException("No local field '" + java_name + "' in class " + declaringClass.getName());
+        try {
+            return getter.invoke(o);
+        } catch (Throwable t) {
+            throw as(IOException::new, t, t.getMessage());
         }
     }
 
@@ -150,11 +192,6 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
     }
 
     public boolean isPrimitive() { return type.isPrimitive(); }
-
-    org.apache.yoko.rmi.util.corba.Field getField() {
-        return Optional.ofNullable(field)
-                .orElseThrow(() -> new IllegalStateException("cannot read/write using serialPersistentFields"));
-    }
 
     abstract void read(ObjectReader reader, Object obj) throws IOException;
     abstract void write(ObjectWriter writer, Object obj) throws IOException;
@@ -216,21 +253,15 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         pw.print(java_name);
         pw.print("=");
         try {
-            Object obj = getField().get(val);
+            Object obj = get(val);
             if (obj == null) {
                 pw.print("null");
             } else {
                 TypeDescriptor desc = repo.getDescriptor(obj.getClass());
                 desc.print(pw, recurse, obj);
             }
-        } catch (IllegalStateException ex) {
+        } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
-        } catch (IllegalAccessException ex) {
-            /*
-             * } catch (RuntimeException ex) { System.err.println
-             * ("SystemException in FieldDescriptor "+field); System.err.println
-             * ("value = "+val); ex.printStackTrace ();
-             */
         }
     }
 }
@@ -258,42 +289,28 @@ class RemoteFieldDescriptor extends FieldDescriptor {
     }
 
     public void read(ObjectReader reader, Object obj) throws IOException {
-        try {
-            Object value = reader.readRemoteObject(interfaceType);
-            getField().set(obj, value);
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        Object value = reader.readRemoteObject(interfaceType);
+        set(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        try {
-            writer.writeRemoteObject(getField().get(obj));
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        writer.writeRemoteObject(get(obj));
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
-        final org.apache.yoko.rmi.util.corba.Field field;
         try {
-            field = getField();
-        } catch (IllegalStateException ex) {
-            throw as(InternalError::new, ex, ex.getMessage());
-        }
-        try {
-            field.set(copy, state.copy(field.get(orig)));
+            set(copy, state.copy(get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.set(copy, value);
-                    } catch (IllegalAccessException ex) {
+                        set(copy, value);
+                    } catch (IOException ex) {
                         throw as(InternalError::new, ex, ex.getMessage());
                     }
                 }
             });
-        } catch (IllegalAccessException ex) {
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
@@ -343,41 +360,31 @@ class AnyFieldDescriptor extends FieldDescriptor {
                         + type.getName());
             }
 
-            getField().set(obj, val);
-        } catch (IllegalAccessException | IllegalStateException ex) {
+            set(obj, val);
+        } catch (IllegalStateException ex) {
             throw as(MARSHAL::new, ex, ex.getMessage());
         }
     }
 
     public void write(ObjectWriter writer, Object obj)
             throws IOException {
-        try {
-            writer.writeAny(getField().get(obj));
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        writer.writeAny(get(obj));
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
-        final org.apache.yoko.rmi.util.corba.Field field;
         try {
-            field = getField();
-        } catch (IllegalStateException ex) {
-            throw as(InternalError::new, ex, ex.getMessage());
-        }
-        try {
-            field.set(copy, state.copy(field.get(orig)));
+            set(copy, state.copy(get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.set(copy, value);
-                    } catch (IllegalAccessException ex) {
+                        set(copy, value);
+                    } catch (IOException ex) {
                         throw as(InternalError::new, ex, ex.getMessage());
                     }
                 }
             });
-        } catch (IllegalAccessException ex) {
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
@@ -415,53 +422,43 @@ class ValueFieldDescriptor extends FieldDescriptor {
                 // older versions of Yoko treat non-serializable classes as abstract objects
                 value = reader.readAbstractObject();
             }
-            getField().set(obj, value);
-        } catch (IllegalAccessException | IllegalStateException ex) {
+            set(obj, value);
+        } catch (IllegalStateException ex) {
             throw as(MARSHAL::new, ex, ex.getMessage());
         }
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        try {
-            if (NON_SERIALIZABLE_FIELD_IS_ABSTRACT_VALUE.isSupported()
-                    || type.isInterface()
-                    || Serializable.class.isAssignableFrom(type)) {
-                try {
-                    writer.writeValueObject(getField().get(obj));
-                } catch (SystemException e) {
-                    throw e;
-                } catch (Exception e) {
-                    throw as(MARSHAL::new, e, "Object of class " + obj.getClass().getName() + " is not a valuetype");
-                }
-            } else {
-                // older versions of Yoko treat non-serializable classes as abstract objects
-                writer.writeObject(getField().get(obj));
+        if (NON_SERIALIZABLE_FIELD_IS_ABSTRACT_VALUE.isSupported()
+                || type.isInterface()
+                || Serializable.class.isAssignableFrom(type)) {
+            try {
+                writer.writeValueObject(get(obj));
+            } catch (SystemException e) {
+                throw e;
+            } catch (Exception e) {
+                throw as(MARSHAL::new, e, "Object of class " + obj.getClass().getName() + " is not a valuetype");
             }
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
+        } else {
+            // older versions of Yoko treat non-serializable classes as abstract objects
+            writer.writeObject(get(obj));
         }
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
-        final org.apache.yoko.rmi.util.corba.Field field;
         try {
-            field = getField();
-        } catch (IllegalStateException ex) {
-            throw as(InternalError::new, ex, ex.getMessage());
-        }
-        try {
-            field.set(copy, state.copy(field.get(orig)));
+            set(copy, state.copy(get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.set(copy, value);
-                    } catch (IllegalAccessException ex) {
+                        set(copy, value);
+                    } catch (IOException ex) {
                         throw as(InternalError::new, ex, ex.getMessage());
                     }
                 }
             });
-        } catch (IllegalAccessException ex) {
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
@@ -492,27 +489,18 @@ class StringFieldDescriptor extends FieldDescriptor {
     }
 
     public void read(ObjectReader reader, Object obj) throws IOException {
-        try {
-            String value = (String) reader.readValueObject();
-            getField().set(obj, value);
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        String value = (String) reader.readValueObject();
+        set(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        try {
-            writer.writeValueObject(getField().get(obj));
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        writer.writeValueObject(get(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            org.apache.yoko.rmi.util.corba.Field field = getField();
-            field.set(copy, field.get(orig));
-        } catch (IllegalAccessException | IllegalStateException ex) {
+            set(copy, get(orig));
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
@@ -543,40 +531,30 @@ class ObjectFieldDescriptor extends FieldDescriptor {
     public void read(ObjectReader reader, Object obj) throws IOException {
         try {
             Object value = reader.readAbstractObject();
-            getField().set(obj, value);
-        } catch (IllegalAccessException | IllegalStateException ex) {
+            set(obj, value);
+        } catch (IllegalStateException ex) {
             throw as(MARSHAL::new, ex, ex.getMessage());
         }
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        try {
-            writer.writeObject(getField().get(obj));
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        writer.writeObject(get(obj));
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
-        final org.apache.yoko.rmi.util.corba.Field field;
         try {
-            field = getField();
-        } catch (IllegalStateException ex) {
-            throw as(InternalError::new, ex, ex.getMessage());
-        }
-        try {
-            field.set(copy, state.copy(field.get(orig)));
+            set(copy, state.copy(get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.set(copy, value);
-                    } catch (IllegalAccessException ex) {
+                        set(copy, value);
+                    } catch (IOException ex) {
                         throw as(InternalError::new, ex, ex.getMessage());
                     }
                 }
             });
-        } catch (IllegalAccessException ex) {
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
@@ -604,27 +582,18 @@ class BooleanFieldDescriptor extends FieldDescriptor {
     }
 
     public void read(ObjectReader reader, Object obj) throws IOException {
-        try {
-            boolean value = reader.readBoolean();
-            getField().setBoolean(obj, value);
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        boolean value = reader.readBoolean();
+        set(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        try {
-            writer.writeBoolean(getField().getBoolean(obj));
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        writer.writeBoolean((Boolean) get(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            org.apache.yoko.rmi.util.corba.Field field = getField();
-            field.setBoolean(copy, field.getBoolean(orig));
-        } catch (IllegalAccessException | IllegalStateException ex) {
+            set(copy, get(orig));
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
@@ -633,10 +602,9 @@ class BooleanFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(getField().getBoolean(val));
-        } catch (IllegalStateException ex) {
+            pw.print(get(val));
+        } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
-        } catch (IllegalAccessException ignored) {
         }
     }
 
@@ -666,27 +634,18 @@ class ByteFieldDescriptor extends FieldDescriptor {
     }
 
     public void read(ObjectReader reader, Object obj) throws IOException {
-        try {
-            byte value = reader.readByte();
-            getField().setByte(obj, value);
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        byte value = reader.readByte();
+        set(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        try {
-            writer.writeByte(getField().getByte(obj));
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        writer.writeByte((Byte) get(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            org.apache.yoko.rmi.util.corba.Field field = getField();
-            field.setByte(copy, field.getByte(orig));
-        } catch (IllegalAccessException | IllegalStateException ex) {
+            set(copy, get(orig));
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
@@ -695,10 +654,9 @@ class ByteFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(getField().getByte(val));
-        } catch (IllegalStateException ex) {
+            pw.print(get(val));
+        } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
-        } catch (IllegalAccessException ignored) {
         }
     }
 
@@ -728,27 +686,18 @@ class ShortFieldDescriptor extends FieldDescriptor {
     }
 
     public void read(ObjectReader reader, Object obj) throws IOException {
-        try {
-            short value = reader.readShort();
-            getField().setShort(obj, value);
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        short value = reader.readShort();
+        set(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        try {
-            writer.writeShort(getField().getShort(obj));
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        writer.writeShort((Short) get(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            org.apache.yoko.rmi.util.corba.Field field = getField();
-            field.setShort(copy, field.getShort(orig));
-        } catch (IllegalAccessException | IllegalStateException ex) {
+            set(copy, get(orig));
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
@@ -757,10 +706,9 @@ class ShortFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(getField().getShort(val));
-        } catch (IllegalStateException ex) {
+            pw.print(get(val));
+        } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
-        } catch (IllegalAccessException ignored) {
         }
     }
 
@@ -790,27 +738,18 @@ class CharFieldDescriptor extends FieldDescriptor {
     }
 
     public void read(ObjectReader reader, Object obj) throws IOException {
-        try {
-            char value = reader.readChar();
-            getField().setChar(obj, value);
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        char value = reader.readChar();
+        set(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        try {
-            writer.writeChar(getField().getChar(obj));
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        writer.writeChar((Character) get(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            org.apache.yoko.rmi.util.corba.Field field = getField();
-            field.setChar(copy, field.getChar(orig));
-        } catch (IllegalAccessException | IllegalStateException ex) {
+            set(copy, get(orig));
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
@@ -819,14 +758,13 @@ class CharFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            char ch = getField().getChar(val);
+            char ch = (Character) get(val);
             pw.print(ch);
             pw.print('(');
             pw.print(Integer.toHexString(0xffff & ((int) ch)));
             pw.print(')');
-        } catch (IllegalStateException ex) {
+        } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
-        } catch (IllegalAccessException ignored) {
         }
     }
 
@@ -856,28 +794,19 @@ class IntFieldDescriptor extends FieldDescriptor {
     }
 
     public void read(ObjectReader reader, Object obj) throws IOException {
-        try {
-            int value = reader.readInt();
-            logger.finest(() -> "Read int field value " + value);
-            getField().setInt(obj, value);
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        int value = reader.readInt();
+        logger.finest(() -> "Read int field value " + value);
+        set(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        try {
-            writer.writeInt(getField().getInt(obj));
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        writer.writeInt((Integer) get(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            org.apache.yoko.rmi.util.corba.Field field = getField();
-            field.setInt(copy, field.getInt(orig));
-        } catch (IllegalAccessException | IllegalStateException ex) {
+            set(copy, get(orig));
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
@@ -886,10 +815,9 @@ class IntFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(getField().getInt(val));
-        } catch (IllegalStateException ex) {
+            pw.print(get(val));
+        } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
-        } catch (IllegalAccessException ignored) {
         }
     }
 
@@ -919,28 +847,19 @@ class LongFieldDescriptor extends FieldDescriptor {
     }
 
     public void read(ObjectReader reader, Object obj) throws IOException {
-        try {
-            long value = reader.readLong();
-            logger.finest(() -> "Read long field value " + value);
-            getField().setLong(obj, value);
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        long value = reader.readLong();
+        logger.finest(() -> "Read long field value " + value);
+        set(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        try {
-            writer.writeLong(getField().getLong(obj));
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        writer.writeLong((Long) get(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            org.apache.yoko.rmi.util.corba.Field field = getField();
-            field.setLong(copy, field.getLong(orig));
-        } catch (IllegalAccessException | IllegalStateException ex) {
+            set(copy, get(orig));
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
@@ -949,10 +868,9 @@ class LongFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(getField().getLong(val));
-        } catch (IllegalStateException ex) {
+            pw.print(get(val));
+        } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
-        } catch (IllegalAccessException ignored) {
         }
     }
 
@@ -982,27 +900,18 @@ class FloatFieldDescriptor extends FieldDescriptor {
     }
 
     public void read(ObjectReader reader, Object obj) throws IOException {
-        try {
-            float value = reader.readFloat();
-            getField().setFloat(obj, value);
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        float value = reader.readFloat();
+        set(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        try {
-            writer.writeFloat(getField().getFloat(obj));
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        writer.writeFloat((Float) get(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            org.apache.yoko.rmi.util.corba.Field field = getField();
-            field.setFloat(copy, field.getFloat(orig));
-        } catch (IllegalAccessException | IllegalStateException ex) {
+            set(copy, get(orig));
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
@@ -1011,10 +920,9 @@ class FloatFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(getField().getFloat(val));
-        } catch (IllegalStateException ex) {
+            pw.print(get(val));
+        } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
-        } catch (IllegalAccessException ignored) {
         }
     }
 
@@ -1046,27 +954,18 @@ class DoubleFieldDescriptor extends FieldDescriptor {
     }
 
     public void read(ObjectReader reader, Object obj) throws IOException {
-        try {
-            double value = reader.readDouble();
-            getField().setDouble(obj, value);
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        double value = reader.readDouble();
+        set(obj, value);
     }
 
     public void write(ObjectWriter writer, Object obj) throws IOException {
-        try {
-            writer.writeDouble(getField().getDouble(obj));
-        } catch (IllegalAccessException | IllegalStateException ex) {
-            throw as(IOException::new, ex, ex.getMessage());
-        }
+        writer.writeDouble((Double) get(obj));
     }
 
     void copyState(Object orig, Object copy, CopyState state) {
         try {
-            org.apache.yoko.rmi.util.corba.Field field = getField();
-            field.setDouble(copy, field.getDouble(orig));
-        } catch (IllegalAccessException | IllegalStateException ex) {
+            set(copy, get(orig));
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
@@ -1075,10 +974,9 @@ class DoubleFieldDescriptor extends FieldDescriptor {
         try {
             pw.print(java_name);
             pw.print("=");
-            pw.print(getField().getDouble(val));
-        } catch (IllegalStateException ex) {
+            pw.print(get(val));
+        } catch (IllegalStateException | IOException ex) {
             pw.print("<non-local>");
-        } catch (IllegalAccessException ignored) {
         }
     }
 
@@ -1111,36 +1009,26 @@ class CorbaObjectFieldDescriptor extends FieldDescriptor {
     }
 
     void copyState(final Object orig, final Object copy, CopyState state) {
-        final org.apache.yoko.rmi.util.corba.Field field;
         try {
-            field = getField();
-        } catch (IllegalStateException ex) {
-            throw as(InternalError::new, ex, ex.getMessage());
-        }
-        try {
-            field.set(copy, state.copy(field.get(orig)));
+            set(copy, state.copy(get(orig)));
         } catch (CopyRecursionException e) {
             state.registerRecursion(new CopyRecursionResolver(orig) {
                 public void resolve(Object value) {
                     try {
-                        field.set(copy, value);
-                    } catch (IllegalAccessException ex) {
+                        set(copy, value);
+                    } catch (IOException ex) {
                         throw as(InternalError::new, ex, ex.getMessage());
                     }
                 }
             });
-        } catch (IllegalAccessException ex) {
+        } catch (IOException ex) {
             throw as(InternalError::new, ex, ex.getMessage());
         }
     }
 
     void read(ObjectReader reader, Object obj) throws IOException {
         Object value = reader.readCorbaObject(null);
-        try {
-            getField().set(obj, value);
-        } catch (IllegalAccessException e) {
-            throw as(IOException::new, e, e.getMessage());
-        }
+        set(obj, value);
     }
 
     void readFieldIntoMap(ObjectReader reader, Map<String, Object> map) {
@@ -1150,12 +1038,7 @@ class CorbaObjectFieldDescriptor extends FieldDescriptor {
     }
 
     void write(ObjectWriter writer, Object obj) throws IOException {
-        try {
-            writer.writeCorbaObject(getField().get(obj));
-        }
-        catch(IllegalAccessException e) {
-            throw as(IOException::new, e, e.getMessage());
-        }
+        writer.writeCorbaObject(get(obj));
     }
 
     void writeFieldFromMap(ObjectWriter writer, Map<String, Object> map) throws IOException {

@@ -151,7 +151,7 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
      * @param repository The type repository
      */
     ValueMemberFieldDescriptor(Class<?> owner, ValueMember valueMember, TypeRepository repository) {
-        super(owner, Object.class, valueMember.name, null, repository);
+        super(owner, Object.class, valueMember.name, repository);
         this.valueMember = valueMember;
         this.kind = valueMember.type.kind();
     }
@@ -197,6 +197,18 @@ class ValueMemberFieldDescriptor extends FieldDescriptor {
     void copyState(Object orig, Object copy, CopyState state) {
         // No local field to copy
         logger.finest(() -> "Skipping copyState for virtual field: " + java_name);
+    }
+
+    @Override
+    void set(Object o, Object value) throws IOException {
+        throw new IOException("Cannot set field '" + java_name +
+                "' - no local field equivalent exists for ValueMember from FVD");
+    }
+
+    @Override
+    Object get(Object o) throws IOException {
+        throw new IOException("Cannot get field '" + java_name +
+                "' - no local field equivalent exists for ValueMember from FVD");
     }
 
     /**
