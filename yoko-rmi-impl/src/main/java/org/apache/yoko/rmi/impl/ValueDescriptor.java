@@ -104,6 +104,7 @@ class ValueDescriptor extends TypeDescriptor {
     private final LazyReference<Supplier<Serializable>> blankInstanceSupplierRef = new LazyReference<>(this::genBlankInstanceSupplier);
 
     private final LazyReference<Method> writeObjectMethodRef = new LazyReference<>(this::genWriteObjectMethod);
+    private final LazyReference<MethodHandle> writeObjectHandleRef = new LazyReference<>(this::genWriteObjectHandle);
 
     private final LazyReference<Method> readObjectMethodRef = new LazyReference<>(this::genReadObjectMethod);
     private final LazyReference<MethodHandle> readObjectHandleRef = new LazyReference<>(this::genReadObjectHandle);
@@ -318,6 +319,20 @@ class ValueDescriptor extends TypeDescriptor {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    private MethodHandle genWriteObjectHandle() {
+        Method method = writeObjectMethodRef.get();
+        if (method == null) return null;
+        try {
+            return MethodHandles.lookup().unreflect(method);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Cannot create MethodHandle for writeObject", e);
+        }
+    }
+
+    private MethodHandle getWriteObjectHandle() {
+        return writeObjectHandleRef.get();
     }
 
     private MethodHandle genReadObjectHandle() {
@@ -645,14 +660,7 @@ class ValueDescriptor extends TypeDescriptor {
             return (writer, val) -> {
                 try {
                     getSuperWriter().accept(writer, val);
-                    writer.invokeWriteObject(ValueDescriptor.this, val, writeObjectMethod);
-                } catch (IllegalAccessException | IllegalArgumentException ex) {
-                    throw as(MARSHAL::new, ex, ex.getMessage());
-                } catch (InvocationTargetException ex) {
-                    final Throwable t = ex.getTargetException();
-                    throw (t instanceof IOException)
-                            ? new UncheckedIOException((IOException)t)
-                            : as(UnknownException::new, t, t);
+                    writer.invokeWriteObject(ValueDescriptor.this, val, getWriteObjectHandle());
                 } catch (IOException ex) {
                     throw new UncheckedIOException(ex);
                 }
@@ -778,9 +786,7 @@ class ValueDescriptor extends TypeDescriptor {
                 } catch (IOException ex) {
                     throw new UncheckedIOException(ex);
                 } catch (Throwable t) {
-                    throw (t instanceof IOException)
-                            ? new UncheckedIOException((IOException)t)
-                            : as(UnknownException::new, t, t);
+                    throw as(UnknownException::new, t, t);
                 }
             };
         }
