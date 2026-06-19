@@ -602,12 +602,10 @@ class ValueDescriptor extends TypeDescriptor {
 
     public void writeValue(final OutputStream out, final Serializable value) {
         try {
-            ObjectWriter writer = doPrivileged(exAction(() -> new CorbaObjectWriter(out, value)));
+            ObjectWriter writer = new CorbaObjectWriter(out, value);
             writeValue(writer, value);
         } catch (IOException ex) {
             throw as(MARSHAL::new, ex, ex.getMessage());
-        } catch (PrivilegedActionException ex) {
-            throw as(MARSHAL::new, ex.getCause(), ex.getCause().getMessage());
         }
     }
 
@@ -845,11 +843,7 @@ class ValueDescriptor extends TypeDescriptor {
 
     final CorbaObjectReader makeCorbaObjectReader(final InputStream in, final Map<Integer, Serializable> offsetMap, final Serializable obj)
             throws IOException {
-        try {
-            return doPrivileged(exAction(() -> new CorbaObjectReader(in, offsetMap, obj)));
-        } catch (PrivilegedActionException e) {
-            throw (IOException)e.getException();
-        }
+        return new CorbaObjectReader(in, offsetMap, obj);
     }
 
     public Serializable readValue(final InputStream in, final Map<Integer, Serializable> offsetMap, final Integer offset) {
