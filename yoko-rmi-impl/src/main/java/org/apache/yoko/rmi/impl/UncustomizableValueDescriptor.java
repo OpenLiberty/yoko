@@ -18,7 +18,7 @@
 package org.apache.yoko.rmi.impl;
 
 import java.io.Serializable;
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandle;
 import java.util.function.Function;
 
 import static java.util.function.Function.identity;
@@ -32,7 +32,7 @@ abstract class UncustomizableValueDescriptor extends ValueDescriptor {
     final boolean isExternalizable() { return false; }
 
     @Override
-    final Method genReadObjectMethod() { return null; }
+    final MethodHandle genReadObjectHandle() { return null; }
 
     @Override
     final Function<Serializable, Serializable> genReadResolver() {
@@ -40,7 +40,7 @@ abstract class UncustomizableValueDescriptor extends ValueDescriptor {
     }
 
     @Override
-    final Method genWriteObjectMethod() {
+    final MethodHandle genWriteObjectHandle() {
         return null;
     }
 

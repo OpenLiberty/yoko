@@ -103,11 +103,13 @@ class ValueDescriptor extends TypeDescriptor {
 
     private final LazyReference<Supplier<Serializable>> blankInstanceSupplierRef = new LazyReference<>(this::genBlankInstanceSupplier);
 
-    private final LazyReference<Method> writeObjectMethodRef = new LazyReference<>(this::genWriteObjectMethod);
     private final LazyReference<MethodHandle> writeObjectHandleRef = new LazyReference<>(this::genWriteObjectHandle);
 
-    private final LazyReference<Method> readObjectMethodRef = new LazyReference<>(this::genReadObjectMethod);
     private final LazyReference<MethodHandle> readObjectHandleRef = new LazyReference<>(this::genReadObjectHandle);
+
+    private final LazyReference<Boolean> customMarshalledRef = new LazyReference<>(this::genCustomMarshalled);
+
+    private final LazyReference<Boolean> chunkedRef = new LazyReference<>(this::genChunked);
 
     private final LazyReference<Long> serialVersionUidRef = new LazyReference<>(this::genSerialVersionUid);
 
@@ -305,48 +307,9 @@ class ValueDescriptor extends TypeDescriptor {
         };
     }
 
-    Method genReadObjectMethod() {
-        try {
-            Method method = doPrivileged(getDeclaredMethod(getType(), "readObject", ObjectInputStream.class));
-
-            // Validate the method
-            int modifiers = method.getModifiers();
-            if (!Modifier.isPrivate(modifiers) || Modifier.isStatic(modifiers)) {
-                return null;
-            }
-
-            return doPrivileged(makeAccessible(method));
-        } catch (Exception ignored) {
-            return null;
-        }
-    }
-
-    private MethodHandle genWriteObjectHandle() {
-        Method method = writeObjectMethodRef.get();
-        if (method == null) return null;
-        try {
-            return MethodHandles.lookup().unreflect(method);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("Cannot create MethodHandle for writeObject", e);
-        }
-    }
-
-    private MethodHandle getWriteObjectHandle() {
-        return writeObjectHandleRef.get();
-    }
-
-    private MethodHandle genReadObjectHandle() {
-        Method method = readObjectMethodRef.get();
-        if (method == null) return null;
-        try {
-            return MethodHandles.lookup().unreflect(method);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("Cannot create MethodHandle for readObject", e);
-        }
-    }
 
 
-    Method genWriteObjectMethod() {
+    MethodHandle genWriteObjectHandle() {
         Class<?> type = getType();
         try {
             Method method = doPrivileged(getDeclaredMethod(type, "writeObject", ObjectOutputStream.class));
@@ -359,11 +322,55 @@ class ValueDescriptor extends TypeDescriptor {
                 return null;
             }
 
-            return doPrivileged(makeAccessible(method));
-        } catch (Exception ignored) {
-            return null;
+            doPrivileged(makeAccessible(method));
+            return MethodHandles.lookup().unreflect(method);
+        } catch (PrivilegedActionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof NoSuchMethodException) {
+                return null;
+            }
+            throw as(RuntimeException::new, cause, "Cannot create MethodHandle for writeObject");
+        } catch (IllegalAccessException e) {
+            throw as(RuntimeException::new, e, "Cannot create MethodHandle for writeObject");
         }
     }
+
+    private Optional<MethodHandle> getOptionalReadObjectHandle() {
+        return Optional.ofNullable(readObjectHandleRef.get());
+    }
+
+    private Optional<MethodHandle> getOptionalWriteObjectHandle() {
+        return Optional.ofNullable(writeObjectHandleRef.get());
+    }
+
+    MethodHandle genReadObjectHandle() {
+        Class<?> type = getType();
+        try {
+            Method method = doPrivileged(getDeclaredMethod(type, "readObject", ObjectInputStream.class));
+
+            // Validate the method
+            int modifiers = method.getModifiers();
+            if (!Modifier.isPrivate(modifiers)
+                    || Modifier.isStatic(modifiers)
+                    || method.getDeclaringClass() != type) {
+                return null;
+            }
+
+            doPrivileged(makeAccessible(method));
+            return MethodHandles.lookup().unreflect(method);
+        } catch (PrivilegedActionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof NoSuchMethodException) {
+                return null;
+            }
+            throw as(RuntimeException::new, cause, "Cannot create MethodHandle for readObject");
+        } catch (IllegalAccessException e) {
+            throw as(RuntimeException::new, e, "Cannot create MethodHandle for readObject");
+        }
+    }
+
+
+
 
     private Field findSerialVersionUIDField() {
         try {
@@ -552,13 +559,21 @@ class ValueDescriptor extends TypeDescriptor {
         return (idx == -1) ? "" : name.substring(0, idx);
     }
 
+    private boolean genCustomMarshalled() {
+        return isExternalizable() || getOptionalWriteObjectHandle().isPresent();
+    }
+
     public boolean isCustomMarshalled() {
-        return (isExternalizable() || getWriteObjectMethod().isPresent());
+        return customMarshalledRef.get();
+    }
+
+    private boolean genChunked() {
+        if (isCustomMarshalled()) return true;
+        return Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::isChunked).orElse(false);
     }
 
     public boolean isChunked() {
-        if (isCustomMarshalled()) return true;
-        return Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::isChunked).orElse(false);
+        return chunkedRef.get();
     }
 
     private Function<Serializable, Serializable> getWriteReplacer() {
@@ -569,12 +584,8 @@ class ValueDescriptor extends TypeDescriptor {
         return readResolverRef.get();
     }
 
-    private Optional<Method> getReadObjectMethod() {
-        return Optional.ofNullable(readObjectMethodRef.get());
-    }
-
-    private Optional<Method> getWriteObjectMethod() {
-        return Optional.ofNullable(writeObjectMethodRef.get());
+    private MethodHandle getReadObjectHandle() {
+        return readObjectHandleRef.get();
     }
 
 
@@ -630,7 +641,7 @@ class ValueDescriptor extends TypeDescriptor {
                 return buildExternalizableWriter();
             }
 
-            return getWriteObjectMethod()
+            return getOptionalWriteObjectHandle()
                     .map(this::buildCustomWriter)
                     .orElseGet(this::buildDefaultWriter);
         }
@@ -656,11 +667,11 @@ class ValueDescriptor extends TypeDescriptor {
             };
         }
 
-        private ValueWriter buildCustomWriter(Method writeObjectMethod) {
+        private ValueWriter buildCustomWriter(MethodHandle writeObjectHandle) {
             return (writer, val) -> {
                 try {
                     getSuperWriter().accept(writer, val);
-                    writer.invokeWriteObject(ValueDescriptor.this, val, getWriteObjectHandle());
+                    writer.invokeWriteObject(ValueDescriptor.this, val, writeObjectHandle);
                 } catch (IOException ex) {
                     throw new UncheckedIOException(ex);
                 }
@@ -701,13 +712,9 @@ class ValueDescriptor extends TypeDescriptor {
         private final LazyReference<ValueReader> superReaderRef = new LazyReference<>(ValueDescriptor.this::genSuperReader);
 
         ValueReader build() {
-            if (isExternalizable()) {
-                return buildExternalizableReader();
-            }
-
-            return getWriteObjectMethod()
-                    .map(this::buildCustomMarshalReader)
-                    .orElseGet(this::buildSimpleReader);
+            return isExternalizable() ? buildExternalizableReader()
+                    : isCustomMarshalled() ? buildCustomMarshalReader()
+                    : buildSimpleReader();
         }
 
         private ValueReader buildExternalizableReader() {
@@ -724,17 +731,17 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         private ValueReader buildSimpleReader() {
-            return getReadObjectMethod()
+            return getOptionalReadObjectHandle()
                     .map(this::buildReader)
                     .orElseGet(this::buildDefaultReader);
         }
 
-        private ValueReader buildReader(Method readObjectMethod) {
+        private ValueReader buildReader(MethodHandle readObjectHandle) {
             return (reader, value) -> {
                 Serializable val = getSuperReader().apply(reader, value);
                 try {
                     reader.setCurrentValueDescriptor(ValueDescriptor.this);
-                    readObjectHandleRef.get().invoke(val, reader);
+                    readObjectHandle.invoke(val, reader);
                     reader.setCurrentValueDescriptor(null);
                     return val;
                 } catch (Error | RuntimeException e) {
@@ -759,13 +766,13 @@ class ValueDescriptor extends TypeDescriptor {
             };
         }
 
-        private ValueReader buildCustomMarshalReader(Method ignored) {
-            return getReadObjectMethod()
+        private ValueReader buildCustomMarshalReader() {
+            return getOptionalReadObjectHandle()
                     .map(this::buildCustomMarshalReaderWithReadObject)
                     .orElseGet(this::buildCustomMarshalReaderWithoutReadObject);
         }
 
-        private ValueReader buildCustomMarshalReaderWithReadObject(Method readObjectMethod) {
+        private ValueReader buildCustomMarshalReaderWithReadObject(MethodHandle readObjectHandle) {
             return (reader, value) -> {
                 Serializable val = getSuperReader().apply(reader, value);
                 try {
@@ -775,7 +782,7 @@ class ValueDescriptor extends TypeDescriptor {
 
                     ObjectReader wrappedReader = wrapIfNeeded(reader, cmsfVersion);
                     wrappedReader.setCurrentValueDescriptor(ValueDescriptor.this);
-                    readObjectHandleRef.get().invoke(val, wrappedReader);
+                    readObjectHandle.invoke(val, wrappedReader);
                     wrappedReader.setCurrentValueDescriptor(null);
                     if (wrappedReader != reader) {
                         wrappedReader.close();
@@ -1028,7 +1035,7 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         private void writeCustomMarshalFlag(DataOutputStream out) throws IOException {
-            out.writeInt(getWriteObjectMethod().isPresent() ? 2 : 1);
+            out.writeInt(isCustomMarshalled() ? 2 : 1);
         }
 
         private void writeFieldSignatures(DataOutputStream out) {
