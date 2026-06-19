@@ -26,6 +26,9 @@ import java.security.PrivilegedAction;
 
 import static java.security.AccessController.doPrivileged;
 import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.PrivilegedActions.getDeclaredField;
+import static org.apache.yoko.util.PrivilegedActions.makeAccessible;
+
 
 abstract class ClassBaseDescriptor extends ValueDescriptor {
 
@@ -50,14 +53,10 @@ abstract class ClassBaseDescriptor extends ValueDescriptor {
     }
 
     private Field findField(final String fieldName) {
-        return doPrivileged((PrivilegedAction<Field>) () -> {
-            try {
-                Field f = ClassDesc.class.getDeclaredField(fieldName);
-                f.setAccessible(true);
-                return f;
-            } catch (NoSuchFieldException e) {
-                throw as(MARSHAL::new, e, "no such field: " + e);
-            }
-        });
+        try {
+            return doPrivileged(makeAccessible(doPrivileged(getDeclaredField(ClassDesc.class, fieldName))));
+        } catch (Exception e) {
+            throw as(MARSHAL::new, e, "no such field: " + fieldName);
+        }
     }
 }

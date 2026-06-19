@@ -52,7 +52,8 @@ import static java.util.logging.Level.WARNING;
 import static javax.rmi.CORBA.Util.mapSystemException;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.PrivilegedActions.action;
-import static org.apache.yoko.util.PrivilegedActions.exAction;
+import static org.apache.yoko.util.PrivilegedActions.getDeclaredMethod;
+import static org.apache.yoko.util.PrivilegedActions.makeAccessible;
 import static org.apache.yoko.util.Streams.concatStreams;
 
 public final class MethodDescriptor extends ModelElement {
@@ -137,14 +138,11 @@ public final class MethodDescriptor extends ModelElement {
 
     private MethodHandle genMethodHandle() {
         try {
-            Method methodCopy = doPrivileged(exAction(() -> {
-                Method copy = reflectedMethod.getDeclaringClass().getDeclaredMethod(
-                    reflectedMethod.getName(),
-                    reflectedMethod.getParameterTypes()
-                );
-                copy.setAccessible(true);
-                return copy;
-            }));
+            Method methodCopy = doPrivileged(makeAccessible(doPrivileged(getDeclaredMethod(
+                reflectedMethod.getDeclaringClass(),
+                reflectedMethod.getName(),
+                reflectedMethod.getParameterTypes()
+            ))));
             return MethodHandles.lookup().unreflect(methodCopy);
         } catch (PrivilegedActionException pae) {
             throw new RuntimeException("Cannot create MethodHandle for " + reflectedMethod, pae.getCause());
