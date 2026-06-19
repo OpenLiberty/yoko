@@ -42,6 +42,8 @@ import java.io.ObjectStreamField;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -104,6 +106,7 @@ class ValueDescriptor extends TypeDescriptor {
     private final LazyReference<Method> writeObjectMethodRef = new LazyReference<>(this::genWriteObjectMethod);
 
     private final LazyReference<Method> readObjectMethodRef = new LazyReference<>(this::genReadObjectMethod);
+    private final LazyReference<MethodHandle> readObjectHandleRef = new LazyReference<>(this::genReadObjectHandle);
 
     private final LazyReference<Long> serialVersionUidRef = new LazyReference<>(this::genSerialVersionUid);
 
@@ -255,16 +258,20 @@ class ValueDescriptor extends TypeDescriptor {
         }
 
         if (null == found) return identity();
-        Method method = found;
+
+        MethodHandle handle;
+        try {
+            handle = MethodHandles.lookup().unreflect(found);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Cannot create MethodHandle for writeReplace", e);
+        }
+
         return val -> {
             try {
-                return (Serializable) method.invoke(val);
-            } catch (IllegalAccessException ex) {
-                throw as(MARSHAL::new, ex, "cannot call " + method);
-            } catch (IllegalArgumentException ex) {
-                throw as(MARSHAL::new, ex, ex.getMessage());
-            } catch (InvocationTargetException ex) {
-                final Throwable t = ex.getTargetException();
+                return (Serializable) handle.invoke(val);
+            } catch (Error | RuntimeException e) {
+                throw e;
+            } catch (Throwable t) {
                 throw as(UnknownException::new, t, t);
             }
         };
@@ -279,15 +286,19 @@ class ValueDescriptor extends TypeDescriptor {
             return identity();
         }
 
-        return  val -> {
+        MethodHandle handle;
+        try {
+            handle = MethodHandles.lookup().unreflect(method);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Cannot create MethodHandle for readResolve", e);
+        }
+
+        return val -> {
             try {
-                return (Serializable) method.invoke(val);
-            } catch (IllegalAccessException ex) {
-                throw as(MARSHAL::new, ex, "cannot call " + method);
-            } catch (IllegalArgumentException ex) {
-                throw as(MARSHAL::new, ex, ex.getMessage());
-            } catch (InvocationTargetException ex) {
-                final Throwable t = ex.getTargetException();
+                return (Serializable) handle.invoke(val);
+            } catch (Error | RuntimeException e) {
+                throw e;
+            } catch (Throwable t) {
                 throw as(UnknownException::new, t, t);
             }
         };
@@ -308,6 +319,17 @@ class ValueDescriptor extends TypeDescriptor {
             return null;
         }
     }
+
+    private MethodHandle genReadObjectHandle() {
+        Method method = readObjectMethodRef.get();
+        if (method == null) return null;
+        try {
+            return MethodHandles.lookup().unreflect(method);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Cannot create MethodHandle for readObject", e);
+        }
+    }
+
 
     Method genWriteObjectMethod() {
         Class<?> type = getType();
@@ -704,16 +726,15 @@ class ValueDescriptor extends TypeDescriptor {
                 Serializable val = getSuperReader().apply(reader, value);
                 try {
                     reader.setCurrentValueDescriptor(ValueDescriptor.this);
-                    readObjectMethod.invoke(val, reader);
+                    readObjectHandleRef.get().invoke(val, reader);
                     reader.setCurrentValueDescriptor(null);
                     return val;
-                } catch (IllegalAccessException | IllegalArgumentException ex) {
-                    throw as(MARSHAL::new, ex, ex.getMessage());
-                } catch (InvocationTargetException ex) {
-                    final Throwable t = ex.getTargetException();
-                    throw (t instanceof IOException)
-                            ? new UncheckedIOException((IOException)t)
-                            : as(UnknownException::new, t, t);
+                } catch (Error | RuntimeException e) {
+                    throw e;
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                } catch (Throwable t) {
+                    throw as(UnknownException::new, t, t);
                 }
             };
         }
@@ -746,21 +767,20 @@ class ValueDescriptor extends TypeDescriptor {
 
                     ObjectReader wrappedReader = wrapIfNeeded(reader, cmsfVersion);
                     wrappedReader.setCurrentValueDescriptor(ValueDescriptor.this);
-                    readObjectMethod.invoke(val, wrappedReader);
+                    readObjectHandleRef.get().invoke(val, wrappedReader);
                     wrappedReader.setCurrentValueDescriptor(null);
                     if (wrappedReader != reader) {
                         wrappedReader.close();
                     }
                     return val;
-                } catch (IllegalAccessException | IllegalArgumentException ex) {
-                    throw as(MARSHAL::new, ex, ex.getMessage());
-                } catch (InvocationTargetException ex) {
-                    final Throwable t = ex.getTargetException();
+                } catch (Error | RuntimeException e) {
+                    throw e;
+                } catch (IOException ex) {
+                    throw new UncheckedIOException(ex);
+                } catch (Throwable t) {
                     throw (t instanceof IOException)
                             ? new UncheckedIOException((IOException)t)
                             : as(UnknownException::new, t, t);
-                } catch (IOException ex) {
-                    throw new UncheckedIOException(ex);
                 }
             };
         }

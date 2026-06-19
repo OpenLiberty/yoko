@@ -252,18 +252,18 @@ public final class MethodDescriptor extends ModelElement {
          * org.apache.yoko.rmi.util.IdentityHashMap (); java.io.CharArrayWriter cw = new
          * java.io.CharArrayWriter (); java.io.PrintWriter pw = new
          * java.io.PrintWriter (cw);
-         * 
+         *
          * pw.print ("invoking "); pw.print (reflected_method.toString ());
-         * 
+         *
          * for (int i = 0; i < parameter_count; i++) { pw.print (" arg["+i+"] =
          * "); if (args[i] == null) { pw.write ("null"); } else { TypeDescriptor
          * desc;
-         * 
+         *
          * try { desc = getTypeRepository ().getDescriptor (args[i].getClass
          * ()); } catch (RuntimeException ex) { desc = getParameterTypes()[i]; }
-         * 
+         *
          * desc.print (pw, recurse, args[i]); } }
-         * 
+         *
          * pw.close (); log.debug (cw.toString ()); }
          */
 
@@ -317,19 +317,19 @@ public final class MethodDescriptor extends ModelElement {
          * org.apache.yoko.rmi.util.IdentityHashMap (); java.io.CharArrayWriter cw = new
          * java.io.CharArrayWriter (); java.io.PrintWriter pw = new
          * java.io.PrintWriter (cw);
-         * 
+         *
          * pw.print ("returning from "); pw.println (reflected_method.toString
          * ()); pw.print (" => ");
-         * 
+         *
          * if (result == null) { pw.write ("null"); } else {
-         * 
+         *
          * TypeDescriptor desc;
-         * 
+         *
          * try { desc = getTypeRepository ().getDescriptor (result.getClass ()); }
          * catch (RuntimeException ex) { desc = getReturnType(); }
-         * 
+         *
          * desc.print (pw, recurse, result); }
-         * 
+         *
          * pw.close (); log.debug (cw.toString ()); }
          */
 
