@@ -71,10 +71,6 @@ public class RMIServant extends org.omg.PortableServer.Servant implements javax.
         return _descriptor.all_interfaces();
     }
 
-    static String debug_name(Method m) {
-        return m.getDeclaringClass().getName() + "." + m.getName();
-    }
-
     /**
       * this implements the sole missing method in
       * org.omg.CORBA.portable.InvokeHandler
@@ -92,19 +88,17 @@ public class RMIServant extends org.omg.PortableServer.Servant implements javax.
             throw new BAD_OPERATION(opName);
         }
 
-        Method m = method.getReflectedMethod();
-
-        REQ_IN_LOG.finest(() -> debug_name(m) + ": invoking on " + _id);
+        REQ_IN_LOG.finest(() -> method + ": invoking on " + _id);
 
         try {
             Object[] args = method.readArguments(_input);
 
-            Object result = invoke_method(m, args);
+            Object result = invoke_method(method, args);
 
             OutputStream _out = response.createReply();
 
             method.writeResult(_out, result);
-            REQ_IN_LOG.finest(() -> debug_name(m) + ": returning normally");
+            REQ_IN_LOG.finest(() -> method + ": returning normally");
 
             return _out;
         } catch (SystemException ex) {
@@ -116,14 +110,14 @@ public class RMIServant extends org.omg.PortableServer.Servant implements javax.
             REQ_IN_LOG.log(FINER, ex.getUndeclaredThrowable(), () -> "THROW");
             throw new UnknownException(ex.getUndeclaredThrowable());
         } catch (RuntimeException ex) {
-            REQ_IN_LOG.log(FINER, ex, () -> debug_name(m) + ": RuntimeException " + ex.getMessage());
+            REQ_IN_LOG.log(FINER, ex, () -> method + ": RuntimeException " + ex.getMessage());
             return method.writeException(response, ex);
         } catch (RemoteException ex) {
-            REQ_IN_LOG.log(FINER, ex, () -> debug_name(m) + ": RemoteException " + ex.getMessage());
+            REQ_IN_LOG.log(FINER, ex, () -> method + ": RemoteException " + ex.getMessage());
             // return method.writeException (response, ex);
             throw mapRemoteException(ex);
         } catch (Throwable ex) {
-            REQ_IN_LOG.log(FINER, ex, () -> debug_name(m) + ": Throwable " + ex.getMessage());
+            REQ_IN_LOG.log(FINER, ex, () -> method + ": Throwable " + ex.getMessage());
             return method.writeException(response, ex);
         } finally {
             // PortableRemoteObjectExt.popState();
@@ -132,17 +126,18 @@ public class RMIServant extends org.omg.PortableServer.Servant implements javax.
     }
 
     /* package */
-    Object invoke_method(java.lang.reflect.Method m, Object[] args) throws Throwable {
-
+    Object invoke_method(MethodDescriptor method, Object[] args) throws Throwable {
         if (_target != null) {
+            REQ_IN_LOG.fine(() -> "invoking method " + method + " on target " + _target);
+            REQ_IN_LOG.finer(() -> " with args: " + asList(args));
+            REQ_IN_LOG.finest(() -> " of arg types: " + Stream.of(args).map(o -> o == null ? null : o.getClass()).collect(toList()));
             try {
-                REQ_IN_LOG.fine(() -> "invoking method " + m + " on target " + _target);
-                REQ_IN_LOG.finer(() -> " with args: " + asList(args));
-                REQ_IN_LOG.finest(() -> " of arg types: " + Stream.of(args).map(o -> o == null ? null : o.getClass()).collect(toList()));
-                return m.invoke(_target, args);
-            } catch (java.lang.reflect.InvocationTargetException ex) {
-                REQ_IN_LOG.log(FINER, ex.getCause(), () -> "Error invoking local method");
-                throw ex.getTargetException();
+                return method.getMethodHandle().bindTo(_target).invokeWithArguments(args);
+            } catch (Error | RuntimeException e) {
+                throw e;
+            } catch (Throwable t) {
+                REQ_IN_LOG.log(FINER, t, () -> "Error invoking local method");
+                throw t;
             }
         } else {
             throw new OBJECT_NOT_EXIST();

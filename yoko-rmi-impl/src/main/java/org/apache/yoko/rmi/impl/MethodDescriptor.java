@@ -27,11 +27,13 @@ import org.omg.CORBA.portable.ResponseHandler;
 import org.omg.CORBA.portable.UnknownException;
 
 import java.io.PrintWriter;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.rmi.MarshalException;
 import java.rmi.RemoteException;
 import java.rmi.UnexpectedException;
-import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -50,6 +52,7 @@ import static java.util.logging.Level.WARNING;
 import static javax.rmi.CORBA.Util.mapSystemException;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.PrivilegedActions.action;
+import static org.apache.yoko.util.PrivilegedActions.exAction;
 import static org.apache.yoko.util.Streams.concatStreams;
 
 public final class MethodDescriptor extends ModelElement {
@@ -57,6 +60,7 @@ public final class MethodDescriptor extends ModelElement {
 
     /** The reflected method object for this method */
     final Method reflectedMethod;
+    final LazyReference<MethodHandle> methodHandleRef = new LazyReference<>(this::genMethodHandle);
     final LazyReference<Boolean> responseExpectedRef = new LazyReference<>(this::genResponseExpected);
     final LazyReference<TypeDescriptor> returnTypeRef = new LazyReference<>(this::genReturnType);
     final LazyReference<List<TypeDescriptor>> parameterTypesRef = new LazyReference<>(this::genParameterTypes);
@@ -122,13 +126,40 @@ public final class MethodDescriptor extends ModelElement {
         return copyWithinStateRef.get();
     }
 
-    public Method getReflectedMethod() {
+    Method getReflectedMethod() {
         return reflectedMethod;
     }
 
     MethodDescriptor(Method method, TypeRepository repository) {
         super(repository, method.getName());
         reflectedMethod = method;
+    }
+
+    private MethodHandle genMethodHandle() {
+        try {
+            Method methodCopy = doPrivileged(exAction(() -> {
+                Method copy = reflectedMethod.getDeclaringClass().getDeclaredMethod(
+                    reflectedMethod.getName(),
+                    reflectedMethod.getParameterTypes()
+                );
+                copy.setAccessible(true);
+                return copy;
+            }));
+            return MethodHandles.lookup().unreflect(methodCopy);
+        } catch (PrivilegedActionException pae) {
+            throw new RuntimeException("Cannot create MethodHandle for " + reflectedMethod, pae.getCause());
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Cannot create MethodHandle for " + reflectedMethod, e);
+        }
+    }
+
+    MethodHandle getMethodHandle() {
+        return methodHandleRef.get();
+    }
+
+    @Override
+    public String toString() {
+        return reflectedMethod.toString();
     }
 
     /**
