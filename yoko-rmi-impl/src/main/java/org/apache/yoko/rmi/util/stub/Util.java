@@ -17,7 +17,8 @@
  */
 package org.apache.yoko.rmi.util.stub;
 
-import java.lang.reflect.InvocationTargetException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -34,6 +35,7 @@ import static org.apache.yoko.util.Arrays.emptyArray;
 import static java.lang.Thread.currentThread;
 import static java.security.AccessController.doPrivileged;
 import static java.util.Objects.requireNonNull;
+import static org.apache.yoko.util.PrivilegedActions.makeAccessible;
 
 class Util {
     static String getPackageName(Class<?> clazz) {
@@ -54,13 +56,12 @@ class Util {
         }
 
 
-        private static final Method defineClass;
+        private static final MethodHandle defineClass;
         static {
             try {
-                // get the method object
-                Class<?> clc = ClassLoader.class;
-                defineClass = clc.getDeclaredMethod("defineClass", String.class, byte[].class, int.class, int.class, ProtectionDomain.class );
-                doPrivileged((PrivilegedAction<Void>) () -> { defineClass.setAccessible(true); return null; } );
+                Method method = ClassLoader.class.getDeclaredMethod("defineClass", String.class, byte[].class, int.class, int.class, ProtectionDomain.class );
+                doPrivileged(makeAccessible(method));
+                defineClass = MethodHandles.lookup().unreflect(method);
             } catch (RuntimeException ex) {
                 throw ex;
             } catch (Exception ex) {
@@ -76,17 +77,11 @@ class Util {
         private static <S> Class<S> invoke(ClassLoader loader, String className, byte[] data) {
             try {
                 //noinspection unchecked
-                return (Class<S>)defineClass.invoke(loader, className, data, 0, data.length, getProtectionDomain(loader));
-            } catch (IllegalAccessException|IllegalArgumentException ex) {
-                throw new Error("internal error", ex);
-            } catch (InvocationTargetException ex) {
-                try {
-                    throw ex.getTargetException();
-                } catch (Error|RuntimeException e) {
-                    throw e;
-                } catch (Throwable e) {
-                    throw new Error("unexpected exception: " + ex.getMessage(), ex);
-                }
+                return (Class<S>) defineClass.invoke(loader, className, data, 0, data.length, getProtectionDomain(loader));
+            } catch (Error | RuntimeException e) {
+                throw e;
+            } catch (Throwable t) {
+                throw new Error("unexpected exception: " + t.getMessage(), t);
             }
         }
     }
