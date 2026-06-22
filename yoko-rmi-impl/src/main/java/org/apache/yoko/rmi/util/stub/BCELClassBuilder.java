@@ -43,8 +43,6 @@ import org.apache.bcel.generic.ObjectType;
 import org.apache.bcel.generic.PUSH;
 import org.apache.bcel.generic.PUTFIELD;
 import org.apache.bcel.generic.Type;
-
-import static org.apache.yoko.util.Arrays.emptyArray;
 import org.apache.yoko.rmi.impl.RMIStub;
 import org.apache.yoko.rmispec.util.DelegateType;
 import org.omg.CORBA.INITIALIZE;
@@ -58,12 +56,12 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -93,6 +91,7 @@ import static org.apache.bcel.Constants.T_SHORT;
 import static org.apache.bcel.generic.Type.getArgumentTypes;
 import static org.apache.bcel.generic.Type.getReturnType;
 import static org.apache.yoko.rmi.util.stub.BCELClassBuilder.StubInitializerHolder.RMI_STUB_INITIALIZER;
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.PrivilegedActions.action;
 
@@ -106,12 +105,12 @@ class BCELClassBuilder {
         ClassGen newStubClass = new ClassGen(className, superClassName, "generated", ACC_PUBLIC | ACC_FINAL, interfaceNames);
         ConstantPoolGen cp = newStubClass.getConstantPool();
 
-        Class<?>[] paramTypes = requireNonNull(handlerMethodRef, "handler method is null").getParameterTypes();
-        if (paramTypes.length != 3) throw new IllegalArgumentException("handler method must have three arguments");
-        if (!paramTypes[0].isAssignableFrom(RMIStub.class)) throw new IllegalArgumentException("Handler's 1st argument must be super-type for " + RMIStub.class);
+        List<Class<?>> paramTypes = requireNonNull(handlerMethodRef, "handler method is null").getParameterTypes();
+        if (paramTypes.size() != 3) throw new IllegalArgumentException("handler method must have three arguments");
+        if (!paramTypes.get(0).isAssignableFrom(RMIStub.class)) throw new IllegalArgumentException("Handler's 1st argument must be super-type for " + RMIStub.class);
 
-        Type typeOfDataFields = translate(paramTypes[1]);
-        if (Object[].class != paramTypes[2]) throw new IllegalArgumentException("Handler's 3rd argument must be Object[]");
+        Type typeOfDataFields = translate(paramTypes.get(1));
+        if (Object[].class != paramTypes.get(2)) throw new IllegalArgumentException("Handler's 3rd argument must be Object[]");
 
         // Construct field for the handler reference
         Class<?> handlerClass = handlerMethodRef.getDeclaringClass();
@@ -355,12 +354,12 @@ class BCELClassBuilder {
         InstructionFactory fac = new InstructionFactory(clazz, cp);
 
         Type methodReturnType = translate(method.getReturnType());
-        Type[] methodArgTypes = translate(method.getParameterTypes());
+        Type[] methodArgTypes = translate(method.getParameterTypes().toArray(emptyArray(Class.class)));
 
         MethodGen mg = new MethodGen(ACC_FINAL | ACC_PUBLIC, methodReturnType, methodArgTypes, null, method.getName(), clazz.getClassName(), il, cp);
         mg.addAttribute(new Synthetic(cp.addUtf8("Synthetic"), 0, null, cp.getConstantPool()));
 
-        Arrays.stream(method.getExceptionTypes())
+        method.getExceptionTypes().stream()
                 .map(Class::getName)
                 .forEach(mg::addException);
 
@@ -407,7 +406,7 @@ class BCELClassBuilder {
         // catch...
         InstructionHandle rethrowLocation = il.append(new ATHROW());
 
-        Class<?>[] exceptions = method.getExceptionTypes();
+        List<Class<?>> exceptions = method.getExceptionTypes();
         boolean handle_throwable_exception = true;
         boolean handle_runtime_exception = true;
         if (exceptions != null) {
