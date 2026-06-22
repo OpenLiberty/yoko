@@ -18,8 +18,6 @@
 package org.apache.yoko.rmi.impl;
 
 import org.apache.yoko.rmi.util.ClientUtil;
-import org.apache.yoko.rmi.util.stub.MethodRef;
-import org.apache.yoko.rmi.util.stub.StubClass;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.BAD_OPERATION;
 import org.omg.CORBA.portable.Delegate;
@@ -44,16 +42,10 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.security.PrivilegedActionException;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 import static java.security.AccessController.doPrivileged;
-import static java.util.Arrays.stream;
-import static java.util.logging.Level.FINER;
-import static java.util.stream.Stream.concat;
 import static org.apache.yoko.logging.VerboseLogging.wrapped;
-import static org.apache.yoko.rmi.impl.PortableRemoteObjectImpl.StubWriteReplaceMethodHolder.STUB_WRITE_REPLACE_METHOD;
 import static org.apache.yoko.util.Exceptions.as;
-import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
 import static org.apache.yoko.util.PrivilegedActions.getClassLoader;
 import static org.apache.yoko.util.PrivilegedActions.getDeclaredMethod;
 import static org.apache.yoko.util.PrivilegedActions.getMethod;
@@ -247,53 +239,7 @@ public class PortableRemoteObjectImpl implements PortableRemoteObjectDelegate {
 
     static Constructor<? extends Stub> getRMIStubClassConstructor(RMIState state, Class<?> type) {
         LOGGER.fine(() -> "Requesting stub constructor of class " + type.getName());
-
-        final Constructor<? extends Stub> cachedCons = state.stub_map.get(type);
-
-        if (cachedCons != null) {
-            LOGGER.fine(() -> "Returning cached constructor of class " + cachedCons.getDeclaringClass().getName());
-            return cachedCons;
-        }
-
-
-        final ClassLoader loader = doPrivileged(getClassLoader(type));
-        final ClassLoader contextLoader = doPrivileged(GET_CONTEXT_CLASS_LOADER);
-
-        LOGGER.finer(() -> "TYPE ----> " + type);
-        LOGGER.finer(() -> "LOADER --> " + loader);
-        LOGGER.finer(() -> "CONTEXT -> " + contextLoader);
-
-        final RemoteDescriptor desc = state.repo.getRemoteInterface(type);
-        final MethodDescriptor[] descriptors = desc.getMethods();
-
-        final Stream<Method> methodStream = stream(descriptors)
-                .map(MethodDescriptor::getReflectedMethod)
-                .peek((m) -> LOGGER.finer("Method ----> " + m));
-        final MethodRef[] methods = concat(methodStream, Stream.of(STUB_WRITE_REPLACE_METHOD)).map(MethodRef::new).toArray(MethodRef[]::new);
-
-        Class<? extends Stub> stubClass;
-        try {
-            stubClass = StubClass.make(type, descriptors, methods, loader);
-        } catch (NoClassDefFoundError ex) {
-            try {
-                stubClass = StubClass.make(type, descriptors, methods, contextLoader);
-            } catch (NoClassDefFoundError e) {
-                e.addSuppressed(ex);
-                throw e;
-            }
-        }
-
-        if (stubClass != null) {
-            try {
-                Constructor<? extends Stub> cons = stubClass.getConstructor();
-                state.stub_map.put(type, cons);
-                return cons;
-            } catch (NoSuchMethodException e) {
-                LOGGER.log(FINER, e, () -> "constructed stub has no default constructor");
-            }
-        }
-
-        return null;
+        return state.stubConstructors.get(type);
     }
 
     public Remote toStub(Remote value) throws NoSuchObjectException {
