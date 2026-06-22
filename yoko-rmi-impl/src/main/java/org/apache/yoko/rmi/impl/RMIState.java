@@ -37,8 +37,9 @@ import javax.rmi.CORBA.Stub;
 import javax.rmi.CORBA.Tie;
 import javax.rmi.CORBA.Util;
 import javax.rmi.PortableRemoteObject;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
@@ -47,6 +48,7 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -67,6 +69,8 @@ import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
 public class RMIState implements PortableRemoteObjectState {
     static final Logger logger = Logger.getLogger(RMIState.class.getName());
 
+    private static final Supplier<Stub> NULL_STUB_SUPPLIER = () -> null;
+
     private boolean isShutdown;
 
     final private ORB _orb;
@@ -76,6 +80,31 @@ public class RMIState implements PortableRemoteObjectState {
     final TypeRepository repo = TypeRepository.get();
 
     private POA poa;
+
+    private static Supplier<Stub> genStubSupplier(Class<? extends Stub> clazz) {
+        try {
+            return genStubSupplier(clazz.getConstructor());
+        } catch (NoSuchMethodException e) {
+            logger.log(FINER, e, () -> "constructed stub has no default constructor");
+            return null;
+        }
+    }
+
+    private static Supplier<Stub> genStubSupplier(Constructor<? extends Stub> cons) {
+        try {
+            final MethodHandle handle = MethodHandles.lookup().unreflectConstructor(cons);
+            return () -> {
+                try {
+                    return (Stub) handle.invoke();
+                } catch (Throwable ex) {
+                    throw new RuntimeException("internal problem: cannot instantiate stub", ex);
+                }
+            };
+        } catch (IllegalAccessException e) {
+            logger.log(FINER, e, () -> "cannot create method handle for stub constructor");
+            return null;
+        }
+    }
 
     POA getPOA() {
 	return poa;
@@ -143,9 +172,9 @@ public class RMIState implements PortableRemoteObjectState {
     /**
      * data for use in PortableRemoteObjectImpl
      */
-    final ClassValue<Constructor<? extends Stub>> stubConstructors = new ClassValue<Constructor<? extends Stub>>() {
+    final ClassValue<Supplier<Stub>> stubConstructors = new ClassValue<Supplier<Stub>>() {
         @Override
-        protected Constructor<? extends Stub> computeValue(Class<?> type) {
+        protected Supplier<Stub> computeValue(Class<?> type) {
             return computeRMIStubConstructor(type);
         }
     };
@@ -153,20 +182,32 @@ public class RMIState implements PortableRemoteObjectState {
     /**
      * data for use in UtilImpl
      */
-    final Map<Remote, Tie> tie_map = synchronizedMap(new IdentityHashMap<>());
+    final Map<Remote, Tie> tieMap = synchronizedMap(new IdentityHashMap<>());
 
-    private final ClassValue<Optional<Constructor<? extends Stub>>> staticStubConstructors = new ClassValue<Optional<Constructor<? extends Stub>>>() {
+    private final ClassValue<Supplier<Stub>> staticStubConstructors = new ClassValue<Supplier<Stub>>() {
         @Override
-        protected Optional<Constructor<? extends Stub>> computeValue(Class<?> type) {
-            String stubClassName = getStubClassName(type);
-            Constructor<? extends Stub> cons = getStubConstructor(stubClassName);
-            return Optional.ofNullable(null == cons ? getStubConstructor(getOldStubClassName(stubClassName)) : cons);
+        protected Supplier<Stub> computeValue(Class<?> type) {
+            try {
+                return Optional.ofNullable(searchForConstructor(getStubClassName(type)))
+                        .map(RMIState::genStubSupplier)
+                        .orElse(NULL_STUB_SUPPLIER);
+            } catch (RuntimeException e) {
+                logger.log(FINE, e.getCause(), () -> "cannot instantiate stub: " + e.getCause().getMessage());
+                return NULL_STUB_SUPPLIER;
+            }
         }
     };
 
-    private Constructor<? extends Stub> computeRMIStubConstructor(Class<?> type) {
+    private Constructor<? extends Stub> searchForConstructor(String stubClassName) {
+        Constructor<? extends Stub> cons = getStubConstructor(stubClassName);
+        return (null == cons) ? getStubConstructor(getOldStubClassName(stubClassName)) : cons;
+    }
+
+    private Supplier<Stub> computeRMIStubConstructor(Class<?> type) {
         if (!type.isInterface()) {
-            throw new RuntimeException("non-interfaces not supported");
+            return () -> {
+                throw new RuntimeException("non-interfaces not supported: " + type.getName());
+            };
         }
 
         logger.fine(() -> "Computing RMI stub constructor for class " + type.getName());
@@ -197,42 +238,31 @@ public class RMIState implements PortableRemoteObjectState {
                 .map(MethodRef::new)
                 .toArray(MethodRef[]::new);
 
-        Optional<Class<? extends Stub>> stubClass;
+        return Optional.ofNullable(genStubClass(type, descriptors, methods, loader, contextLoader))
+                .map(RMIState::genStubSupplier)
+                .orElse(NULL_STUB_SUPPLIER);
+    }
+
+    private static Class<? extends Stub> genStubClass(Class<?> type, MethodDescriptor[] descriptors, MethodRef[] methods, ClassLoader loader, ClassLoader contextLoader) {
         try {
-            stubClass = Optional.ofNullable(StubClass.make(type, descriptors, methods, loader));
+            return StubClass.make(type, descriptors, methods, loader);
         } catch (NoClassDefFoundError ex) {
             try {
-                stubClass = Optional.ofNullable(StubClass.make(type, descriptors, methods, contextLoader));
+                return StubClass.make(type, descriptors, methods, contextLoader);
             } catch (NoClassDefFoundError e) {
                 e.addSuppressed(ex);
                 throw e;
             }
         }
-
-        return stubClass.map(clazz -> {
-            try {
-                return clazz.getConstructor();
-            } catch (NoSuchMethodException e) {
-                logger.log(FINER, e, () -> "constructed stub has no default constructor");
-                return null;
-            }
-        }).orElse(null);
     }
 
     public Stub getStaticStub(String ignored, Class<?> type) {
-        Optional<Constructor<? extends Stub>> entry = staticStubConstructors.get(type);
-        return entry.map(this::createStub).orElse(null);
+        return staticStubConstructors.get(type).get();
     }
 
-    private Stub createStub(Constructor<? extends Stub> constructor) {
-        try {
-            return constructor.newInstance();
-        } catch (ClassCastException ex) {
-            logger.log(FINE, ex, () -> "loaded class " + constructor.getDeclaringClass() + " is not a proper stub");
-        } catch (IllegalAccessException | InstantiationException | InvocationTargetException ex) {
-            logger.log(FINE, ex, () -> "cannot instantiate stub class for " + constructor.getDeclaringClass() + " :: " + ex.getMessage());
-        }
-        return null;
+    public Stub createRMIStub(Class<?> type) {
+        logger.fine(() -> "Creating RMI stub for class " + type.getName());
+        return stubConstructors.get(type).get();
     }
 
     private Constructor<? extends Stub> getStubConstructor(String stubClassName) {
