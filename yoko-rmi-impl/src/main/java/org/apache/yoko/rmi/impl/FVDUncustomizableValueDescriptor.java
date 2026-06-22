@@ -20,7 +20,7 @@ package org.apache.yoko.rmi.impl;
 import org.omg.CORBA.ValueDefPackage.FullValueDescription;
 
 import java.io.Serializable;
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandle;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -39,13 +39,13 @@ final class FVDUncustomizableValueDescriptor extends FVDValueDescriptor {
     boolean isExternalizable() { return false; }
 
     @Override
-    Method genReadObjectMethod() { return null; }
+    MethodHandle genReadObjectHandle() { return null; }
 
     @Override
     Function<Serializable, Serializable> genReadResolver() { return identity(); }
 
     @Override
-    Method genWriteObjectMethod() { return null; }
+    MethodHandle genWriteObjectHandle() { return null; }
 
     @Override
     Function<Serializable, Serializable> genWriteReplacer() { return identity(); }

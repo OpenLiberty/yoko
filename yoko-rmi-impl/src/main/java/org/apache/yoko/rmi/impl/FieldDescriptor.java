@@ -40,6 +40,8 @@ import static java.util.Collections.unmodifiableMap;
 import static java.util.logging.Level.FINER;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.PrivilegedActions.exAction;
+import static org.apache.yoko.util.PrivilegedActions.getDeclaredField;
+import static org.apache.yoko.util.PrivilegedActions.makeAccessible;
 
 abstract class FieldDescriptor extends ModelElement implements Comparable<FieldDescriptor> {
     static Logger logger = Logger.getLogger(FieldDescriptor.class.getName());
@@ -122,11 +124,10 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
             this.valueMemberAccess = isPublic(modifiers) ? ValueMemberAccess.PUBLIC : ValueMemberAccess.PRIVATE;
             MethodHandles.Lookup lookup = MethodHandles.lookup();
             try {
-                Field fieldCopy = doPrivileged(exAction(() -> {
-                    Field copy = f.getDeclaringClass().getDeclaredField(f.getName());
-                    copy.setAccessible(true);
-                    return copy;
-                }));
+                Field fieldCopy = doPrivileged(makeAccessible(doPrivileged(getDeclaredField(
+                    f.getDeclaringClass(),
+                    f.getName()
+                ))));
                 this.getter = lookup.unreflectGetter(fieldCopy);
                 this.setter = lookup.unreflectSetter(fieldCopy);
             } catch (PrivilegedActionException pae) {

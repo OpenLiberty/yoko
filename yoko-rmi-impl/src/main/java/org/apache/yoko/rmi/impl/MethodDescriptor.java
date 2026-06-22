@@ -27,11 +27,13 @@ import org.omg.CORBA.portable.ResponseHandler;
 import org.omg.CORBA.portable.UnknownException;
 
 import java.io.PrintWriter;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.rmi.MarshalException;
 import java.rmi.RemoteException;
 import java.rmi.UnexpectedException;
-import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -50,6 +52,8 @@ import static java.util.logging.Level.WARNING;
 import static javax.rmi.CORBA.Util.mapSystemException;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.PrivilegedActions.action;
+import static org.apache.yoko.util.PrivilegedActions.getDeclaredMethod;
+import static org.apache.yoko.util.PrivilegedActions.makeAccessible;
 import static org.apache.yoko.util.Streams.concatStreams;
 
 public final class MethodDescriptor extends ModelElement {
@@ -57,6 +61,7 @@ public final class MethodDescriptor extends ModelElement {
 
     /** The reflected method object for this method */
     final Method reflectedMethod;
+    final LazyReference<MethodHandle> methodHandleRef = new LazyReference<>(this::genMethodHandle);
     final LazyReference<Boolean> responseExpectedRef = new LazyReference<>(this::genResponseExpected);
     final LazyReference<TypeDescriptor> returnTypeRef = new LazyReference<>(this::genReturnType);
     final LazyReference<List<TypeDescriptor>> parameterTypesRef = new LazyReference<>(this::genParameterTypes);
@@ -122,13 +127,37 @@ public final class MethodDescriptor extends ModelElement {
         return copyWithinStateRef.get();
     }
 
-    public Method getReflectedMethod() {
+    Method getReflectedMethod() {
         return reflectedMethod;
     }
 
     MethodDescriptor(Method method, TypeRepository repository) {
         super(repository, method.getName());
         reflectedMethod = method;
+    }
+
+    private MethodHandle genMethodHandle() {
+        try {
+            Method methodCopy = doPrivileged(makeAccessible(doPrivileged(getDeclaredMethod(
+                reflectedMethod.getDeclaringClass(),
+                reflectedMethod.getName(),
+                reflectedMethod.getParameterTypes()
+            ))));
+            return MethodHandles.lookup().unreflect(methodCopy);
+        } catch (PrivilegedActionException pae) {
+            throw new RuntimeException("Cannot create MethodHandle for " + reflectedMethod, pae.getCause());
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Cannot create MethodHandle for " + reflectedMethod, e);
+        }
+    }
+
+    MethodHandle getMethodHandle() {
+        return methodHandleRef.get();
+    }
+
+    @Override
+    public String toString() {
+        return reflectedMethod.toString();
     }
 
     /**
@@ -221,18 +250,18 @@ public final class MethodDescriptor extends ModelElement {
          * org.apache.yoko.rmi.util.IdentityHashMap (); java.io.CharArrayWriter cw = new
          * java.io.CharArrayWriter (); java.io.PrintWriter pw = new
          * java.io.PrintWriter (cw);
-         * 
+         *
          * pw.print ("invoking "); pw.print (reflected_method.toString ());
-         * 
+         *
          * for (int i = 0; i < parameter_count; i++) { pw.print (" arg["+i+"] =
          * "); if (args[i] == null) { pw.write ("null"); } else { TypeDescriptor
          * desc;
-         * 
+         *
          * try { desc = getTypeRepository ().getDescriptor (args[i].getClass
          * ()); } catch (RuntimeException ex) { desc = getParameterTypes()[i]; }
-         * 
+         *
          * desc.print (pw, recurse, args[i]); } }
-         * 
+         *
          * pw.close (); log.debug (cw.toString ()); }
          */
 
@@ -286,19 +315,19 @@ public final class MethodDescriptor extends ModelElement {
          * org.apache.yoko.rmi.util.IdentityHashMap (); java.io.CharArrayWriter cw = new
          * java.io.CharArrayWriter (); java.io.PrintWriter pw = new
          * java.io.PrintWriter (cw);
-         * 
+         *
          * pw.print ("returning from "); pw.println (reflected_method.toString
          * ()); pw.print (" => ");
-         * 
+         *
          * if (result == null) { pw.write ("null"); } else {
-         * 
+         *
          * TypeDescriptor desc;
-         * 
+         *
          * try { desc = getTypeRepository ().getDescriptor (result.getClass ()); }
          * catch (RuntimeException ex) { desc = getReturnType(); }
-         * 
+         *
          * desc.print (pw, recurse, result); }
-         * 
+         *
          * pw.close (); log.debug (cw.toString ()); }
          */
 

@@ -26,6 +26,7 @@ import java.io.NotActiveException;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.lang.invoke.MethodHandle;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -275,8 +276,7 @@ abstract class ObjectWriter extends ObjectOutputStream {
     }
 
     void invokeWriteObject(ValueDescriptor descriptor, Serializable val,
-                           Method _write_object_method) throws IllegalArgumentException,
-            IllegalAccessException, InvocationTargetException, IOException {
+                           MethodHandle writeObjectHandle) throws IOException {
         final ValueDescriptor desc = _desc;
         final WriteObjectState old_state = state;
         state = WriteObjectState.NOT_IN_WRITE_OBJECT;
@@ -284,8 +284,12 @@ abstract class ObjectWriter extends ObjectOutputStream {
             setCurrentValueDescriptor(descriptor);
             writeByte(cmsf.getValue());
             state.beforeWriteObject(this);
-            _write_object_method.invoke(val, this);
+            writeObjectHandle.invoke(val, this);
             state.afterWriteObject(this);
+        } catch (Error | RuntimeException | IOException e) {
+            throw e;
+        } catch (Throwable t) {
+            throw new IOException("Error invoking writeObject", t);
         } finally {
             state = old_state;
             setCurrentValueDescriptor(desc);

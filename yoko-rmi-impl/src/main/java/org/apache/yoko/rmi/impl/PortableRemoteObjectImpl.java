@@ -34,6 +34,8 @@ import javax.rmi.CORBA.PortableRemoteObjectDelegate;
 import javax.rmi.CORBA.Stub;
 import javax.rmi.CORBA.Tie;
 import javax.rmi.CORBA.Util;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -66,12 +68,25 @@ public class PortableRemoteObjectImpl implements PortableRemoteObjectDelegate {
         static {
             try {
                 STUB_WRITE_REPLACE_METHOD = doPrivileged(getDeclaredMethod(RMIStub.class, "writeReplace"));
-            } catch (PrivilegedActionException ex) {
-                //noinspection Convert2MethodRef
-                throw wrapped(LOGGER, ex, "cannot initialize: \n" + ex.getMessage(), e -> new Error(e));
+            } catch (PrivilegedActionException pae) {
+                Throwable t = pae.getCause();
+                throw wrapped(LOGGER, t, "cannot initialize: \n" + t.getMessage(), e -> new Error(t));
             }
         }
     }
+
+
+    private static final ClassValue<MethodHandle> HELPER_NARROW_CACHE = new ClassValue<MethodHandle>() {
+        @Override
+        protected MethodHandle computeValue(Class<?> helperClass) {
+            try {
+                final Method helperNarrow = doPrivileged(getMethod(helperClass, "narrow", org.omg.CORBA.Object.class));
+                return MethodHandles.lookup().unreflect(helperNarrow);
+            } catch (Exception e) {
+                throw as(ClassCastException::new, e, helperClass.getName());
+            }
+        }
+    };
 
     public void connect(Remote target, Remote source) throws RemoteException {
         source = toStub(source);
@@ -126,15 +141,16 @@ public class PortableRemoteObjectImpl implements PortableRemoteObjectDelegate {
 
     private Object narrowIDL(ObjectImpl narrowFrom, Class<?> narrowTo) {
         LOGGER.fine(() -> String.format("IDL narrowing %s => %s", narrowFrom.getClass().getName(), narrowTo.getName()));
-        final ClassLoader idlClassLoader = doPrivileged(getClassLoader(narrowTo));
-        final String helperClassName = narrowTo.getName() + "Helper";
-
         try {
+            final ClassLoader idlClassLoader = doPrivileged(getClassLoader(narrowTo));
+            final String helperClassName = narrowTo.getName() + "Helper";
             final Class<?> helperClass = Util.loadClass(helperClassName, null, idlClassLoader);
-            final Method helperNarrow = doPrivileged(getMethod(helperClass, "narrow", org.omg.CORBA.Object.class));
-            return helperNarrow.invoke(null, narrowFrom);
-        } catch (Exception e) {
-            throw as(ClassCastException::new, e, narrowTo.getName());
+            MethodHandle narrowHandle = HELPER_NARROW_CACHE.get(helperClass);
+            return narrowHandle.invoke(narrowFrom);
+        } catch (Error e) {
+            throw e;
+        } catch (Throwable t) {
+            throw as(ClassCastException::new, t, narrowTo.getName());
         }
     }
 
@@ -239,7 +255,7 @@ public class PortableRemoteObjectImpl implements PortableRemoteObjectDelegate {
             return cachedCons;
         }
 
-        
+
         final ClassLoader loader = doPrivileged(getClassLoader(type));
         final ClassLoader contextLoader = doPrivileged(GET_CONTEXT_CLASS_LOADER);
 

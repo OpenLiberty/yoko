@@ -25,10 +25,10 @@ import org.omg.CORBA.portable.OutputStream;
 
 import javax.rmi.CORBA.Util;
 import java.io.Serializable;
-import java.lang.reflect.InvocationTargetException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -36,9 +36,10 @@ import java.util.function.Function;
 import static java.security.AccessController.doPrivileged;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.PrivilegedActions.getClassLoader;
+import static org.apache.yoko.util.PrivilegedActions.getDeclaredMethod;
 
 class IDLEntityDescriptor extends ValueDescriptor {
-    private final Class helperType;
+    private final Class<?> helperType;
 
     private static ReadFn createReader(Class<?> type) {
         boolean isCorbaObj = org.omg.CORBA.Object.class.isAssignableFrom(type);
@@ -54,7 +55,7 @@ class IDLEntityDescriptor extends ValueDescriptor {
         return (out, val) -> ((org.omg.CORBA_2_3.portable.OutputStream) out).write_value((Serializable) val, repId);
     }
 
-    IDLEntityDescriptor(Class type, TypeRepository repository) {
+    IDLEntityDescriptor(Class<?> type, TypeRepository repository) {
         super(type, repository, createReader(type), createWriter(type));
 
         try {
@@ -70,13 +71,12 @@ class IDLEntityDescriptor extends ValueDescriptor {
         return "org_omg_boxedIDL_" + super.genIDLName();
     }
 
-    private Method findMethod(String methodName, Class<?>... parameterTypes) {
+    private MethodHandle findMethodHandle(String methodName, Class<?>... parameterTypes) {
         try {
-            return doPrivileged((PrivilegedExceptionAction<Method>) () ->
-                helperType.getDeclaredMethod(methodName, parameterTypes)
-            );
-        } catch (PrivilegedActionException ex) {
-            throw new RuntimeException("Unable to find " + methodName + " method for " + helperType.getName(), ex.getCause());
+            Method method = doPrivileged(getDeclaredMethod(helperType, methodName, parameterTypes));
+            return MethodHandles.lookup().unreflect(method);
+        } catch (PrivilegedActionException | IllegalAccessException ex) {
+            throw new RuntimeException("Unable to find " + methodName + " method for " + helperType.getName(), ex);
         }
     }
 
@@ -86,12 +86,14 @@ class IDLEntityDescriptor extends ValueDescriptor {
     private final LazyReference<Reader> reader = new LazyReference<>(this::genReader);
 
     private Reader genReader() {
-        Method readMethod = findMethod("read", InputStream.class);
+        MethodHandle readHandle = findMethodHandle("read", InputStream.class);
         return in -> {
             try {
-                return (Serializable) readMethod.invoke(null, in);
-            } catch (InvocationTargetException | IllegalAccessException ex) {
-                throw as(MARSHAL::new, ex);
+                return (Serializable) readHandle.invoke(in);
+            } catch (Error | RuntimeException e) {
+                throw e;
+            } catch (Throwable t) {
+                throw as(MARSHAL::new, t);
             }
         };
     }
@@ -106,12 +108,14 @@ class IDLEntityDescriptor extends ValueDescriptor {
     private final LazyReference<Writer> writer = new LazyReference<>(this::genWriter);
 
     private Writer genWriter() {
-        Method writeMethod = findMethod("write", OutputStream.class, getType());
+        MethodHandle writeHandle = findMethodHandle("write", OutputStream.class, getType());
         return (out, val) -> {
             try {
-                writeMethod.invoke(null, out, val);
-            } catch (InvocationTargetException | IllegalAccessException ex) {
-                throw as(MARSHAL::new, ex);
+                writeHandle.invoke(out, val);
+            } catch (Error | RuntimeException e) {
+                throw e;
+            } catch (Throwable t) {
+                throw as(MARSHAL::new, t);
             }
         };
     }
@@ -136,11 +140,13 @@ class IDLEntityDescriptor extends ValueDescriptor {
 
     @Override
     protected TypeCode genTypeCode() {
-        Method typeMethod = findMethod("type");
+        MethodHandle typeHandle = findMethodHandle("type");
         try {
-            return (TypeCode) typeMethod.invoke(null);
-        } catch (InvocationTargetException | IllegalAccessException ex) {
-            throw as(MARSHAL::new, ex);
+            return (TypeCode) typeHandle.invoke();
+        } catch (Error | RuntimeException e) {
+            throw e;
+        } catch (Throwable t) {
+            throw as(MARSHAL::new, t);
         }
     }
 }
