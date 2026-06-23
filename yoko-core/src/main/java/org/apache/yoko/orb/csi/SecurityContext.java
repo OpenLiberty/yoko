@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
 import static java.security.AccessController.doPrivileged;
+import static org.apache.yoko.util.InstanceFactory.createNoArgsInstance;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
-import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
 import static org.apache.yoko.util.PrivilegedActions.getSysProp;
 
 public abstract class SecurityContext {
@@ -49,7 +49,7 @@ public abstract class SecurityContext {
 
         try {
             Class<? extends SecurityContextDelegate> c = ProviderLocator.loadClass(className, SecurityContext.class, doPrivileged(GET_CONTEXT_CLASS_LOADER));
-            return doPrivileged(getNoArgConstructor(c)).newInstance();
+            return createNoArgsInstance(c);
         } catch (Exception e) {
             throw new InternalError("unable to attach to SecurityContext", e);
         }

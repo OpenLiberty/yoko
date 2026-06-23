@@ -34,10 +34,10 @@ public enum RepIds {
     ;
 
     public interface Query {
-        public Query suffix(String suffix);
-        public Query codebase(String codebase);
-        public<T> Class<T> toClass();
-        public String toClassName();
+        Query suffix(String suffix);
+        Query codebase(String codebase);
+        <T> Class<T> toClass();
+        String toClassName();
     }
 
     private static final class QueryImpl implements Query {
@@ -67,7 +67,7 @@ public enum RepIds {
 
         @Override
         public<T> Class<T> toClass() {
-            return (Class<T>)RepIds.toClass(this);
+            return RepIds.toClass(this);
         }
 
         @Override
@@ -82,31 +82,28 @@ public enum RepIds {
         return new QueryImpl(repid);
     }
 
-    private static Class<?> toClass(final QueryImpl query) {
+    @SuppressWarnings("unchecked")
+    private static <T> Class<T> toClass(final QueryImpl query) {
         final String repid = query.repid;
         final String suffix = query.suffix;
         final String codebase = query.codebase;
         LOGGER.fine(() -> String.format("Searching for class from repid \"%s\" using suffix \"%s\"", repid, suffix));
-        Class<?> result = null;
 
         //Special case IDL:omg.org/CORBA/WStringValue:1.0
-        if ("IDL:omg.org/CORBA/WStringValue:1.0".equals(repid) && "".equals(suffix)) return String.class;
+        if ("IDL:omg.org/CORBA/WStringValue:1.0".equals(repid) && "".equals(suffix)) return (Class<T>) String.class;
 
         final String className = toClassName(query);
 
         LOGGER.fine(() -> String.format("Class name from repid \"%s\" using suffix \"%s\" is \"%s\"", repid, suffix, className));
 
-        if (className != null) {
-            try {
-                // get the appropriate class for the loading.
-                result = Util.loadClass(className, codebase, doPrivileged(GET_CONTEXT_CLASS_LOADER));
-            } catch (ClassNotFoundException ex) {
-                LOGGER.fine(() -> String.format("Class \"%s\" not found", className));
-                // ignore
-            }
+        if (null == className) return null;
+        try {
+            // get the appropriate class for the loading.
+            return Util.loadClass(className, codebase, doPrivileged(GET_CONTEXT_CLASS_LOADER));
+        } catch (ClassNotFoundException ex) {
+            LOGGER.fine(() -> String.format("Class \"%s\" not found: %s", className, ex));
+            return null;
         }
-
-        return result;
     }
 
     private static final Pattern dotPattern = Pattern.compile(Pattern.quote("."));
@@ -188,7 +185,7 @@ public enum RepIds {
         int start = 0;
 
         while (escape >= 0) {
-            out.append(in.substring(start, escape));
+            out.append(in, start, escape);
             // step over the escape sequence
             escape += 2;
 
@@ -256,7 +253,7 @@ public enum RepIds {
             "wait", "while");
 
     private static Set<String> createStringSet(String...strings) {
-        return Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(strings)));
+        return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(strings)));
     }
 
     private static final List<String> reservedSuffixes = createStringList(
@@ -279,23 +276,23 @@ public enum RepIds {
         //
         // Prepend an underscore for each of the reserved suffixes
         //
-        String result = name;
+        StringBuilder result = new StringBuilder(name);
         String curr = name;
 
         OUTER_LOOP: while (true) {
             for (String reservedSuffix: reservedSuffixes) {
                 if (curr.endsWith(reservedSuffix)) {
-                    result = "_" + result;
+                    result.insert(0, "_");
 
                     int currLength = curr.length();
                     int resLength = reservedSuffix.length();
                     if (currLength == resLength)
-                        return result;
+                        return result.toString();
                     curr = curr.substring(0, currLength - resLength);
                     continue OUTER_LOOP;
                 }
             }
-            return result;
+            return result.toString();
         }
     }
 }

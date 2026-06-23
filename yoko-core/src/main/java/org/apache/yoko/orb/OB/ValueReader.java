@@ -46,8 +46,6 @@ import javax.rmi.CORBA.Util;
 import javax.rmi.CORBA.ValueHandler;
 import java.io.Serializable;
 import java.lang.reflect.Array;
-import java.lang.reflect.InvocationTargetException;
-import java.security.PrivilegedActionException;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Optional;
@@ -56,22 +54,22 @@ import static java.lang.Boolean.getBoolean;
 import static java.lang.Integer.toHexString;
 import static java.lang.System.arraycopy;
 import static java.security.AccessController.doPrivileged;
-import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
 import static javax.rmi.CORBA.Util.createValueHandler;
 import static org.apache.yoko.logging.VerboseLogging.MARSHAL_IN_LOG;
 import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_getOrigType;
 import static org.apache.yoko.orb.OB.ValueReader.SettingsHolder.IGNORE_INVALID_VALUE_TAG;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import static org.apache.yoko.util.Assert.ensure;
 import static org.apache.yoko.util.Assert.fail;
 import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.InstanceFactory.createNoArgsInstance;
 import static org.apache.yoko.util.MinorCodes.MinorNoValueFactory;
 import static org.apache.yoko.util.MinorCodes.MinorReadInvalidIndirection;
 import static org.apache.yoko.util.MinorCodes.describeMarshal;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
 import static org.apache.yoko.util.PrivilegedActions.action;
-import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.TCKind.tk_abstract_interface;
 import static org.omg.CORBA.TCKind.tk_value;
@@ -229,7 +227,7 @@ public final class ValueReader {
             MARSHAL_IN_LOG.info(() -> "Attempting to read a value with type '" + h.ids[0] + "' into a field of type '" + clz_ + "'");
 
             try {
-                result = doPrivileged(getNoArgConstructor(clz_)).newInstance();
+                result = createNoArgsInstance(clz_);
                 reader_.addInstance(h.headerPos, result);
                 try {
                     reader_.unmarshalValueState(result);
@@ -238,8 +236,7 @@ public final class ValueReader {
                     throw ex;
                 }
                 return result;
-            } catch (ClassCastException | PrivilegedActionException | InvocationTargetException |
-                     InstantiationException | IllegalAccessException e) {
+            } catch (RuntimeException e) {
                 throw as(MARSHAL::new, e, describeMarshal(MinorNoValueFactory) + ": " + clz_.getName(), MinorNoValueFactory, COMPLETED_NO);
             }
         }
@@ -309,15 +306,12 @@ public final class ValueReader {
             if (WStringValueHelper.id().equals(id)) return new WStringValueHelper();
 
             final Class<? extends BoxedValueHelper> helperClass = RepIds.query(id).suffix("Helper").toClass();
-
             try {
-                if (helperClass != null) return doPrivileged(getNoArgConstructor(helperClass)).newInstance();
-            } catch (ClassCastException | PrivilegedActionException | InvocationTargetException | InstantiationException | IllegalAccessException ex) {
+                return createNoArgsInstance(helperClass);
+            } catch (RuntimeException ex) {
                 String msg = describeMarshal(MinorNoValueFactory) + ": invalid BoxedValueHelper for " + id;
                 throw as(MARSHAL::new, ex, msg, MinorNoValueFactory, COMPLETED_NO);
             }
-
-            return null;
         }
 
         Serializable create(Header h) {

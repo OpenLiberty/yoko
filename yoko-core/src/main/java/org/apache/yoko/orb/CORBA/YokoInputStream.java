@@ -75,6 +75,7 @@ import static org.apache.yoko.orb.OB.TypeCodeFactory.createValueBoxTC;
 import static org.apache.yoko.orb.OB.TypeCodeFactory.createWStringTC;
 import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_0;
 import static org.apache.yoko.util.Assert.ensure;
+import static org.apache.yoko.util.InstanceFactory.createNoArgsInstance;
 import static org.apache.yoko.util.MinorCodes.MinorInvalidUnionDiscriminator;
 import static org.apache.yoko.util.MinorCodes.MinorLoadStub;
 import static org.apache.yoko.util.MinorCodes.MinorReadBooleanArrayOverflow;
@@ -111,7 +112,6 @@ import static org.apache.yoko.util.MinorCodes.describeBadTypecode;
 import static org.apache.yoko.util.MinorCodes.describeMarshal;
 import static org.apache.yoko.util.PrivilegedActions.getClassLoader;
 import static org.apache.yoko.util.PrivilegedActions.getMethod;
-import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.TCKind._tk_Principal;
 import static org.omg.CORBA.TCKind._tk_TypeCode;
@@ -147,7 +147,6 @@ import static org.omg.CORBA.TCKind._tk_void;
 import static org.omg.CORBA.TCKind._tk_wchar;
 import static org.omg.CORBA.TCKind._tk_wstring;
 import static org.omg.CORBA.TCKind.tk_union;
-import static org.omg.CORBA_2_4.TCKind._tk_local_interface;
 
 final public class YokoInputStream extends InputStreamWithOffsets {
     private ORBInstance orbInstance;
@@ -1057,10 +1056,10 @@ final public class YokoInputStream extends InputStreamWithOffsets {
         @SuppressWarnings("unchecked")
         Class<? extends ObjectImpl> clz = (Class<? extends ObjectImpl>) stubClass;
         try {
-            org.omg.CORBA.portable.ObjectImpl stub = doPrivileged(getNoArgConstructor(clz)).newInstance();
+            ObjectImpl stub = createNoArgsInstance(clz);
             stub._set_delegate(delegate);
             return stub;
-        } catch (InvocationTargetException | InstantiationException | IllegalAccessException | PrivilegedActionException ex) {
+        } catch (RuntimeException ex) {
             GIOP_IN_LOG.log(FINE, ex, () -> "Exception creating object stub");
             throw newMarshalError(MinorLoadStub, ex);
         }
