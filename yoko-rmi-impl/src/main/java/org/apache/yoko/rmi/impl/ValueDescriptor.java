@@ -87,7 +87,6 @@ import static org.apache.yoko.rmi.impl.FieldDescriptor.getForSerialPersistentFie
 import static org.apache.yoko.rmi.impl.RemoteDescriptor.genMostSpecificRemoteInterface;
 import static org.apache.yoko.rmi.util.StringUtil.convertToValidIDLNames;
 import static org.apache.yoko.util.Exceptions.as;
-import static org.apache.yoko.util.PrivilegedActions.exAction;
 import static org.apache.yoko.util.PrivilegedActions.getDeclaredField;
 import static org.apache.yoko.util.PrivilegedActions.getDeclaredFields;
 import static org.apache.yoko.util.PrivilegedActions.getDeclaredMethod;
@@ -97,6 +96,8 @@ import static org.apache.yoko.util.PrivilegedActions.makeAccessible;
 import static sun.reflect.ReflectionFactory.getReflectionFactory;
 
 class ValueDescriptor extends TypeDescriptor {
+    static final Supplier<Serializable> NULL_SERIALIZABLE_SUPPLIER = () -> null;
+
     private final LazyReference<Function<Serializable, Serializable>> writeReplacerRef = new LazyReference<>(this::genWriteReplacer);
 
     private final LazyReference<Function<Serializable, Serializable>> readResolverRef = new LazyReference<>(this::genReadResolver);
@@ -394,54 +395,77 @@ class ValueDescriptor extends TypeDescriptor {
         }
     }
 
-    private Supplier<Serializable> genBlankInstanceSupplier() {
-        return findConstructor()
-                .map(constructor -> (Supplier<Serializable>) () -> {
-                    try {
-                        return (Serializable) constructor.newInstance();
-                    } catch (IllegalAccessException ex) {
-                        throw as(MARSHAL::new, ex, "cannot call " + constructor);
-                    } catch (IllegalArgumentException | InstantiationException ex) {
-                        throw as(MARSHAL::new, ex, ex.getMessage());
-                    } catch (InvocationTargetException ex) {
-                        final Throwable t = ex.getTargetException();
-                        throw as(UnknownException::new, t, t);
-                    } catch (NullPointerException ex) {
-                        MARSHAL_IN_LOG.log(WARNING, ex, () -> "unable to create instance of " + getType().getName());
-                        MARSHAL_IN_LOG.warning(() -> "constructor => " + constructor);
-                        throw ex;
-                    }
-                })
-                .orElse(() -> null);
-    }
-
-    private Optional<Constructor<?>> findConstructor() {
+    Supplier<Serializable> genBlankInstanceSupplier() {
         if (isExternalizable()) {
-            return findExternalizableConstructor();
+            return findExternalizableSupplier();
         } else if (isSerializable() && !getType().isInterface()) {
-            return findSerializableConstructor();
+            return findSerializableSupplier();
         }
-        return Optional.empty();
+        return NULL_SERIALIZABLE_SUPPLIER;
     }
 
-    private Optional<Constructor<?>> findExternalizableConstructor() {
+    private Supplier<Serializable> findExternalizableSupplier() {
         Class<?> type = getType();
         try {
             Constructor<?> constructor = doPrivileged(getNoArgConstructor(type));
             constructor = doPrivileged(makeAccessible(constructor));
-            return Optional.of(constructor);
+
+            // Convert to MethodHandle for better performance
+            return toSupplier(MethodHandles.lookup().unreflectConstructor(constructor));
         } catch (Exception ex) {
             MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName()
                     + " is not properly externalizable. It has no default constructor.");
-            return Optional.empty();
+            return NULL_SERIALIZABLE_SUPPLIER;
         }
+    }
+
+    private Supplier<Serializable> toSupplier(MethodHandle mh) {
+        return () -> {
+            try {
+                return (Serializable) mh.invoke();
+            } catch (RuntimeException | Error ex) {
+                throw ex;
+            } catch (Throwable ex) {
+                throw as(MARSHAL::new, ex, "unable to create instance of " + getType().getName());
+            }
+        };
+    }
+
+    private Supplier<Serializable> findSerializableSupplier() {
+        // Note: Cannot use MethodHandles for Serializable types because ReflectionFactory
+        // creates specialized constructors that bypass normal constructor invocation.
+        // These constructors are specifically designed to work with Constructor.newInstance()
+        // and cannot be converted to MethodHandles.
+        return findSerializableConstructor()
+                .map(this::toSupplier)
+                .orElse(NULL_SERIALIZABLE_SUPPLIER);
+    }
+
+    private Supplier<Serializable> toSupplier(Constructor<?> constructor) {
+        // Must use Constructor.newInstance() for ReflectionFactory-generated constructors
+        return () -> {
+            try {
+                return (Serializable) constructor.newInstance();
+            } catch (IllegalAccessException ex) {
+                throw as(MARSHAL::new, ex, "cannot call " + constructor);
+            } catch (IllegalArgumentException | InstantiationException ex) {
+                throw as(MARSHAL::new, ex, ex.getMessage());
+            } catch (InvocationTargetException ex) {
+                final Throwable t = ex.getTargetException();
+                throw as(UnknownException::new, t, t);
+            } catch (NullPointerException ex) {
+                MARSHAL_IN_LOG.log(WARNING, ex, () -> "unable to create instance of " + getType().getName());
+                MARSHAL_IN_LOG.warning(() -> "constructor => " + constructor);
+                throw ex;
+            }
+        };
     }
 
     private Optional<Constructor<?>> findSerializableConstructor() {
         Class<?> initClass = getFirstNonSerializableSuperclass();
         Class<?> type = getType();
 
-        if (initClass == null) {
+        if (null == initClass) {
             MARSHAL_LOG.warning(() -> "Class " + type.getName()
                     + " is not properly serializable. It has no non-serializable super-class");
             return Optional.empty();
@@ -450,20 +474,17 @@ class ValueDescriptor extends TypeDescriptor {
         try {
             Constructor<?> initConstructor = doPrivileged(getNoArgConstructor(initClass));
 
-            if (!isConstructorAccessible(initConstructor, initClass)) {
-                return Optional.empty();
-            }
+            if (!isConstructorAccessible(initConstructor, initClass)) { return Optional.empty(); }
 
             Constructor<?> constructor = getReflectionFactory().newConstructorForSerialization(type, initConstructor);
 
-            if (constructor == null) {
+            if (null == constructor) {
                 MARSHAL_LOG.warning(() -> "Unable to get constructor for serialization for class " + java_name);
                 return Optional.empty();
             }
 
             constructor = doPrivileged(makeAccessible(constructor));
             return Optional.of(constructor);
-
         } catch (Exception ex) {
             MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName()
                     + " is not properly serializable. First non-serializable super-class ("
@@ -583,14 +604,6 @@ class ValueDescriptor extends TypeDescriptor {
     private Function<Serializable, Serializable> getReadResolver() {
         return readResolverRef.get();
     }
-
-    private MethodHandle getReadObjectHandle() {
-        return readObjectHandleRef.get();
-    }
-
-
-
-
 
     public Serializable writeReplace(Serializable val) {
         return getWriteReplacer().apply(val);
@@ -837,7 +850,7 @@ class ValueDescriptor extends TypeDescriptor {
         }
     }
 
-    Serializable createBlankInstance() {
+    private Serializable createBlankInstance() {
         return blankInstanceSupplierRef.get().get();
     }
 

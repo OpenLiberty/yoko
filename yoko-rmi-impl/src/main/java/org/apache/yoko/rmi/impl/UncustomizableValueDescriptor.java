@@ -20,6 +20,7 @@ package org.apache.yoko.rmi.impl;
 import java.io.Serializable;
 import java.lang.invoke.MethodHandle;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static java.util.function.Function.identity;
 
@@ -30,25 +31,18 @@ abstract class UncustomizableValueDescriptor extends ValueDescriptor {
 
     @Override
     final boolean isExternalizable() { return false; }
-
     @Override
     final MethodHandle genReadObjectHandle() { return null; }
-
     @Override
     final Function<Serializable, Serializable> genReadResolver() {
         return identity();
     }
-
     @Override
     final MethodHandle genWriteObjectHandle() {
         return null;
     }
-
     @Override
     final Function<Serializable, Serializable> genWriteReplacer() { return identity(); }
-
     @Override
-    final Serializable createBlankInstance() {
-        return null;
-    }
+    final Supplier<Serializable> genBlankInstanceSupplier() { return NULL_SERIALIZABLE_SUPPLIER; }
 }
