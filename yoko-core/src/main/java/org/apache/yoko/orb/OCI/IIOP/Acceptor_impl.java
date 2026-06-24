@@ -311,18 +311,6 @@ final class Acceptor_impl extends LocalObject implements Acceptor {
         }
     }
 
-    // TODO: get rid of this finalizer, and use phantom refs in AccFactory_impl instead to track Acceptors going away.
-    protected void finalize() throws Throwable {
-        if (socket_ != null) {
-            close();
-        }
-
-        // remove this acceptor from the listenMap_
-        synchronized (listenMap_) {
-            for (String s : hosts_) listenMap_.remove(s, (short) port_);
-        }
-    }
-
     public String toString() {
         return "Acceptor listening on " + socket_;
     }
