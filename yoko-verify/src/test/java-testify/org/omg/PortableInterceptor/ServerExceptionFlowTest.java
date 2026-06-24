@@ -158,23 +158,6 @@ public class ServerExceptionFlowTest {
         // 4. Verify no other interactions (SI3 never called, SI2.send_exception() not called)
         order.verifyNoMoreInteractions();
         
-        // Additional verification: SI3 should never be called at all
-        Mockito.verify(SI3, Mockito.never()).receive_request_service_contexts(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI3, Mockito.never()).receive_request(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI3, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI3, Mockito.never()).send_exception(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI3, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
-        
-        // Additional verification: SI2.send_exception() should not be called
-        Mockito.verify(SI2, Mockito.never()).send_exception(Mockito.any(ServerRequestInfo.class));
-        
-        // Additional verification: No other server interception points should be called
-        Mockito.verify(SI1, Mockito.never()).receive_request(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI1, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI1, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI2, Mockito.never()).receive_request(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI2, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI2, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
     }
 
     /**
@@ -229,16 +212,6 @@ public class ServerExceptionFlowTest {
         // Verify no other interactions
         order.verifyNoMoreInteractions();
 
-        // Additional verification: SI3.receive_request() should never be called
-        Mockito.verify(SI3, Mockito.never()).receive_request(Mockito.any(ServerRequestInfo.class));
-
-        // Additional verification: No send_reply or send_other should be called
-        Mockito.verify(SI1, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI1, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI2, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI2, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI3, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI3, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
     }
 
     /**
@@ -303,13 +276,6 @@ public class ServerExceptionFlowTest {
         // Verify no other interactions
         order.verifyNoMoreInteractions();
 
-        // Additional verification: No send_reply or send_other should be called
-        Mockito.verify(SI1, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI1, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI2, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI2, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI3, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI3, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
     }
 
     /**
@@ -367,12 +333,6 @@ public class ServerExceptionFlowTest {
 
         order.verifyNoMoreInteractions();
 
-        Mockito.verify(SI1, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI1, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI2, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI2, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI3, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI3, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
     }
 
     /**
@@ -442,19 +402,6 @@ public class ServerExceptionFlowTest {
         // Verify no other interactions
         order.verifyNoMoreInteractions();
 
-        // SI1.send_reply() should never be called
-        Mockito.verify(SI1, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-
-        // SI2.send_exception() should NOT be called (interceptor that raised the exception)
-        Mockito.verify(SI2, Mockito.never()).send_exception(Mockito.any(ServerRequestInfo.class));
-
-        // SI3.send_exception() should NOT be called (already completed successfully)
-        Mockito.verify(SI3, Mockito.never()).send_exception(Mockito.any(ServerRequestInfo.class));
-
-        // No send_other should be called
-        Mockito.verify(SI1, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI2, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI3, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
     }
 
     /**
@@ -540,12 +487,5 @@ public class ServerExceptionFlowTest {
         // Verify no other interactions
         order.verifyNoMoreInteractions();
 
-        // Additional verification: No send_reply or send_other should be called
-        Mockito.verify(SI1, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI1, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI2, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI2, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI3, Mockito.never()).send_reply(Mockito.any(ServerRequestInfo.class));
-        Mockito.verify(SI3, Mockito.never()).send_other(Mockito.any(ServerRequestInfo.class));
     }
 }
