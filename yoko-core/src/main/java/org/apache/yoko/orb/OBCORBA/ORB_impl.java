@@ -493,13 +493,6 @@ public class ORB_impl extends ORBSingleton {
         }
     }
 
-    protected void finalize() throws Throwable {
-        if (orbInstance_ != null) {
-            SHUTDOWN_LOG.fine(() -> "ORB.destroy() was not called. This may result in resource leaks.");
-        }
-        super.finalize();
-    }
-
     private void initializeDefaultPolicies() {
         Properties properties = orbInstance_.getProperties();
 
