@@ -17,25 +17,11 @@
  */
 package org.apache.yoko.orb.OB;
 
-import static java.util.logging.Level.FINE;
-import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
-import static org.apache.yoko.util.Arrays.emptyArray;
-import static org.apache.yoko.io.Buffer.createWriteBuffer;
-import static org.apache.yoko.logging.VerboseLogging.RETRY_LOG;
-import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
-import static org.apache.yoko.orb.exceptions.Transients.NO_USABLE_PROFILE_IN_IOR;
-import static org.apache.yoko.util.Assert.ensure;
-import static org.apache.yoko.util.MinorCodes.MinorShutdownCalled;
-import static org.apache.yoko.util.MinorCodes.describeBadInvOrder;
-import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
-
-import java.util.Vector;
-import java.util.logging.Logger;
-
 import org.apache.yoko.io.ReadBuffer;
+import org.apache.yoko.io.SimplyCloseable;
 import org.apache.yoko.io.WriteBuffer;
-import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.OutputStreamHolder;
+import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.IOP.ServiceContexts;
 import org.apache.yoko.orb.OCI.ConnectorInfo;
@@ -43,6 +29,8 @@ import org.apache.yoko.orb.OCI.ProfileInfo;
 import org.apache.yoko.orb.OCI.ProfileInfoHolder;
 import org.apache.yoko.orb.OCI.TransportInfo;
 import org.apache.yoko.util.Assert;
+import org.apache.yoko.util.concurrent.LazyReference;
+import org.apache.yoko.util.concurrent.YokoCleaner;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.BooleanHolder;
 import org.omg.CORBA.COMM_FAILURE;
@@ -84,11 +72,55 @@ import org.omg.Messaging.PolicyValueSeqHelper;
 import org.omg.Messaging.PolicyValueSeqHolder;
 import org.omg.Messaging.ReplyHandler;
 
+import java.util.Vector;
+import java.util.logging.Logger;
+
+import static java.util.logging.Level.FINE;
+import static org.apache.yoko.io.AlignmentBoundary.EIGHT_BYTE_BOUNDARY;
+import static org.apache.yoko.io.Buffer.createWriteBuffer;
+import static org.apache.yoko.logging.VerboseLogging.RETRY_LOG;
+import static org.apache.yoko.orb.OCI.GiopVersion.GIOP1_2;
+import static org.apache.yoko.orb.exceptions.Transients.NO_USABLE_PROFILE_IN_IOR;
+import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.Assert.ensure;
+import static org.apache.yoko.util.MinorCodes.MinorShutdownCalled;
+import static org.apache.yoko.util.MinorCodes.describeBadInvOrder;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+
 //
 // DowncallStub is equivalent to the C++ class OB::MarshalStubImpl
 //
 public final class DowncallStub {
     static final Logger logger = Logger.getLogger(DowncallStub.class.getName());
+    private static final YokoCleaner cleaner = YokoCleaner.create();
+
+    //
+    // Shared state for cleanup - must not reference DowncallStub instance
+    // Uses LazyReference to handle lazy initialization of clientProfilePairs_
+    //
+    private static final class CleanupState {
+        final ORBInstance orbInstance;
+        final LazyReference<Vector<ClientProfilePair>> clientProfilePairsRef;
+
+        CleanupState(ORBInstance orbInstance, LazyReference<Vector<ClientProfilePair>> clientProfilePairsRef) {
+            this.orbInstance = orbInstance;
+            this.clientProfilePairsRef = clientProfilePairsRef;
+        }
+
+        void cleanup() {
+            ClientManager clientManager = orbInstance.getClientManager();
+            if (clientManager != null && clientProfilePairsRef != null) {
+                Vector<ClientProfilePair> pairs = clientProfilePairsRef.get();
+                if (pairs != null) {
+                    for (ClientProfilePair pair : pairs) {
+                        clientManager.releaseClient(pair.client);
+                    }
+                    pairs.removeAllElements();
+                }
+            }
+        }
+    }
+
     //
     // The ORBInstance object
     //
@@ -107,17 +139,16 @@ public final class DowncallStub {
     private RefCountPolicyList policies_;
 
     //
-    // All client/profile pairs
+    // All client/profile pairs - uses LazyReference for thread-safe lazy initialization
     //
-    private Vector<ClientProfilePair> clientProfilePairs_;
+    private final LazyReference<Vector<ClientProfilePair>> clientProfilePairsRef;
 
     //
     // We need a class to carry the DowncallStub and Downcall across
     // a portable stub invocation
     //
-    private class InvocationContext {
+    private static class InvocationContext {
         DowncallStub downcallStub;
-
         Downcall downcall;
     }
 
@@ -125,66 +156,42 @@ public final class DowncallStub {
     // Private and protected member implementations
     // ------------------------------------------------------------------
     private synchronized ClientProfilePair getClientProfilePair() throws FailureException {
-        // Lazy initialization of the client/profile pairs
-        if (null == clientProfilePairs_) {
-            // Get all clients that can be used
-            ClientManager clientManager = orbInstance_.getClientManager();
-            clientProfilePairs_ = clientManager.getClientProfilePairs(IOR_, policies_.value);
-        }
+        // Get the lazily-initialized client/profile pairs
+        Vector<ClientProfilePair> pairs = clientProfilePairsRef.get();
 
         // If we can't get any client/profile pairs, set and raise the
         // failure exception, and let the stub handle this.
-        if (clientProfilePairs_.isEmpty()) {
+        if (pairs.isEmpty()) {
             RETRY_LOG.fine(() -> "No profiles available");
             throw new FailureException(NO_USABLE_PROFILE_IN_IOR.create());
         }
-        // NB: see handleFailureException() for how clientProfilePairs_ is modified (pruned) in exception
+        // NB: see handleFailureException() for how clientProfilePairsRef is modified (pruned) in exception
         // processing (so the first element may change)
-        return clientProfilePairs_.elementAt(0);
+        return pairs.elementAt(0);
     }
 
-    private void destroy() {
-        //
-        // If the ORB has been destroyed then the clientManager can be nil
-        //
-        ClientManager clientManager = orbInstance_.getClientManager();
 
-        if (clientManager != null && clientProfilePairs_ != null) {
-            for (ClientProfilePair pair: clientProfilePairs_) {
-                clientManager.releaseClient(pair.client);
-            }
-        }
-
-        clientProfilePairs_.removeAllElements();
-    }
-
-    protected void finalize() throws Throwable {
-        destroy();
-
-        super.finalize();
-    }
 
     // ------------------------------------------------------------------
     // Public member implementations
     // ------------------------------------------------------------------
 
     public DowncallStub(ORBInstance orbInstance, IOR ior, IOR origIOR, RefCountPolicyList policies) {
-        clientProfilePairs_ = null;
-
-        //
-        // Save the ORBInstance object
-        //
+        // Initialize fields
         orbInstance_ = orbInstance;
-        //
-        // Save the IOR
-        //
         IOR_ = ior;
         origIOR_ = origIOR;
-
-        //
-        // Save the policies
-        //
         policies_ = policies;
+
+        // Lazy initialization of client/profile pairs
+        clientProfilePairsRef = new LazyReference<>(() -> {
+            ClientManager clientManager = orbInstance_.getClientManager();
+            return clientManager.getClientProfilePairs(IOR_, policies_.value);
+        });
+
+        // Register cleanup action - uses shared state to avoid referencing 'this'
+        CleanupState state = new CleanupState(orbInstance_, clientProfilePairsRef);
+        @SuppressWarnings("resource") SimplyCloseable ignored = cleaner.register(this, state::cleanup);
     }
 
     //
@@ -339,10 +346,11 @@ public final class DowncallStub {
                     MinorShutdownCalled,
                     COMPLETED_NO);
 
-        clientProfilePairs_.stream()
+        Vector<ClientProfilePair> pairs = clientProfilePairsRef.get();
+        pairs.stream()
                 .filter(cp::equals)
                 .findFirst()
-                .ifPresent(clientProfilePairs_::remove);
+                .ifPresent(pairs::remove);
 
         // We only retry upon COMM_FAILURE, TRANSIENT, and NO_RESPONSE
         try {
@@ -362,7 +370,7 @@ public final class DowncallStub {
         }
 
         // If no client/profile pairs are left, we cannot retry either
-        if (clientProfilePairs_.isEmpty()) {
+        if (pairs.isEmpty()) {
             logger.log(FINE, ex.exception, () -> "no profiles left to try");
             throw ex;
         }
