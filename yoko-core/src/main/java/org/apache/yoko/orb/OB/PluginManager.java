@@ -31,8 +31,8 @@ import static java.security.AccessController.doPrivileged;
 import static java.util.logging.Level.SEVERE;
 import static org.apache.yoko.logging.VerboseLogging.INIT_LOG;
 import static org.apache.yoko.osgi.ProviderLocator.loadClass;
+import static org.apache.yoko.util.InstanceFactory.createNoArgsInstance;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
-import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
 
 public final class PluginManager {
     private ORB orb;
@@ -55,7 +55,7 @@ public final class PluginManager {
         final String className = orb.properties().getProperty("yoko.oci.plugin." + name, "org.apache.yoko.orb.OCI." + name);
         try {
             Class<? extends PluginInit> c = loadClass(className, this.getClass(), doPrivileged(GET_CONTEXT_CLASS_LOADER));
-            PluginInit pi = doPrivileged(getNoArgConstructor(c)).newInstance();
+            PluginInit pi = createNoArgsInstance(c);
             pi.version(orb, Version.value);
             return pi.init(orb, args);
         } catch (SystemException ex) {

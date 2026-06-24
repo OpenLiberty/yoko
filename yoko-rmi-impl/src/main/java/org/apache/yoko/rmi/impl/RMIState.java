@@ -19,7 +19,8 @@ package org.apache.yoko.rmi.impl;
 
 import org.apache.yoko.rmi.api.PortableRemoteObjectExt;
 import org.apache.yoko.rmi.api.PortableRemoteObjectState;
-import org.apache.yoko.rmi.util.NoDeleteSynchronizedMap;
+import org.apache.yoko.rmi.util.stub.MethodRef;
+import org.apache.yoko.rmi.util.stub.StubClass;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.ORB;
@@ -36,11 +37,10 @@ import javax.rmi.CORBA.Stub;
 import javax.rmi.CORBA.Tie;
 import javax.rmi.CORBA.Util;
 import javax.rmi.PortableRemoteObject;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-
-import static org.apache.yoko.util.Arrays.emptyArray;
-import java.net.URL;
+import java.lang.reflect.Method;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.security.PrivilegedActionException;
@@ -48,19 +48,28 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.logging.Level;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import static java.security.AccessController.doPrivileged;
+import static java.util.Arrays.stream;
 import static java.util.Collections.synchronizedMap;
 import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.WARNING;
+import static java.util.stream.Stream.concat;
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
+import static org.apache.yoko.util.PrivilegedActions.getClassLoader;
+import static org.apache.yoko.util.PrivilegedActions.getDeclaredMethod;
 import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
 
 public class RMIState implements PortableRemoteObjectState {
     static final Logger logger = Logger.getLogger(RMIState.class.getName());
+
+    private static final Supplier<Stub> NULL_STUB_SUPPLIER = () -> null;
 
     private boolean isShutdown;
 
@@ -71,6 +80,31 @@ public class RMIState implements PortableRemoteObjectState {
     final TypeRepository repo = TypeRepository.get();
 
     private POA poa;
+
+    private static Supplier<Stub> genStubSupplier(Class<? extends Stub> clazz) {
+        try {
+            return genStubSupplier(clazz.getConstructor());
+        } catch (NoSuchMethodException e) {
+            logger.log(FINER, e, () -> "constructed stub has no default constructor");
+            return null;
+        }
+    }
+
+    private static Supplier<Stub> genStubSupplier(Constructor<? extends Stub> cons) {
+        try {
+            final MethodHandle handle = MethodHandles.lookup().unreflectConstructor(cons);
+            return () -> {
+                try {
+                    return (Stub) handle.invoke();
+                } catch (Throwable ex) {
+                    throw new RuntimeException("internal problem: cannot instantiate stub", ex);
+                }
+            };
+        } catch (IllegalAccessException e) {
+            logger.log(FINER, e, () -> "cannot create method handle for stub constructor");
+            return null;
+        }
+    }
 
     POA getPOA() {
 	return poa;
@@ -138,62 +172,112 @@ public class RMIState implements PortableRemoteObjectState {
     /**
      * data for use in PortableRemoteObjectImpl
      */
-    final Map<Class<?>, Constructor<? extends Stub>> stub_map = new NoDeleteSynchronizedMap<>();
+    final ClassValue<Supplier<Stub>> stubConstructors = new ClassValue<Supplier<Stub>>() {
+        @Override
+        protected Supplier<Stub> computeValue(Class<?> type) {
+            return computeRMIStubConstructor(type);
+        }
+    };
 
     /**
      * data for use in UtilImpl
      */
-    final Map<Remote, Tie> tie_map = synchronizedMap(new IdentityHashMap<>());
+    final Map<Remote, Tie> tieMap = synchronizedMap(new IdentityHashMap<>());
 
-    private final Map<Class<?>, Optional<Constructor<? extends Stub>>> static_stub_map = new NoDeleteSynchronizedMap<>();
-
-    private URL _codebase;
-
-    public void setCodeBase(URL codebase) {
-        _codebase = codebase;
-    }
-
-    public URL getCodeBase() {
-        return _codebase;
-    }
-
-    public Stub getStaticStub(String codebase, Class<?> type) {
-        Optional<Constructor<? extends Stub>> entry = static_stub_map.get(type);
-        //noinspection OptionalAssignedToNull
-        if (null == entry) {
-            String stubClassName = getStubClassName(type);
-            Constructor<? extends Stub> cons = getStubConstructor(codebase, stubClassName);
-            if (cons == null) cons = getStubConstructor(codebase, getOldStubClassName(stubClassName));
-            entry = Optional.ofNullable(cons);
-            static_stub_map.put(type, entry);
+    private final ClassValue<Supplier<Stub>> staticStubConstructors = new ClassValue<Supplier<Stub>>() {
+        @Override
+        protected Supplier<Stub> computeValue(Class<?> type) {
+            try {
+                return Optional.ofNullable(searchForConstructor(getStubClassName(type)))
+                        .map(RMIState::genStubSupplier)
+                        .orElse(NULL_STUB_SUPPLIER);
+            } catch (RuntimeException e) {
+                logger.log(FINE, e.getCause(), () -> "cannot instantiate stub: " + e.getCause().getMessage());
+                return NULL_STUB_SUPPLIER;
+            }
         }
-        return entry.map(this::createStub).orElse(null);
+    };
+
+    private Constructor<? extends Stub> searchForConstructor(String stubClassName) {
+        Constructor<? extends Stub> cons = getStubConstructor(stubClassName);
+        return (null == cons) ? getStubConstructor(getOldStubClassName(stubClassName)) : cons;
     }
 
-    private Stub createStub(Constructor<? extends Stub> constructor) {
+    private Supplier<Stub> computeRMIStubConstructor(Class<?> type) {
+        if (!type.isInterface()) {
+            return () -> {
+                throw new RuntimeException("non-interfaces not supported: " + type.getName());
+            };
+        }
+
+        logger.fine(() -> "Computing RMI stub constructor for class " + type.getName());
+
+        final ClassLoader loader = doPrivileged(getClassLoader(type));
+        final ClassLoader contextLoader = doPrivileged(GET_CONTEXT_CLASS_LOADER);
+
+        logger.finer(() -> "TYPE ----> " + type);
+        logger.finer(() -> "LOADER --> " + loader);
+        logger.finer(() -> "CONTEXT -> " + contextLoader);
+
+        final RemoteDescriptor desc = repo.getRemoteInterface(type);
+        final MethodDescriptor[] descriptors = desc.getMethods();
+
+        final Stream<Method> methodStream = stream(descriptors)
+                .peek((m) -> logger.finer("Method ----> " + m))
+                .map(MethodDescriptor::getReflectedMethod);
+
+        // Get STUB_WRITE_REPLACE_METHOD from RMIStub
+        final Method stubWriteReplaceMethod;
         try {
-            return constructor.newInstance();
-        } catch (ClassCastException ex) {
-            logger.log(FINE, ex, () -> "loaded class " + constructor.getDeclaringClass() + " is not a proper stub");
-        } catch (IllegalAccessException | InstantiationException | InvocationTargetException ex) {
-            logger.log(FINE, ex, () -> "cannot instantiate stub class for " + constructor.getDeclaringClass() + " :: " + ex.getMessage());
+            stubWriteReplaceMethod = doPrivileged(getDeclaredMethod(RMIStub.class, "writeReplace"));
+        } catch (PrivilegedActionException pae) {
+            throw new RuntimeException("Cannot access writeReplace method", pae.getCause());
         }
-        return null;
+
+        final MethodRef[] methods = concat(methodStream, Stream.of(stubWriteReplaceMethod))
+                .map(MethodRef::new)
+                .toArray(MethodRef[]::new);
+
+        return Optional.ofNullable(genStubClass(type, descriptors, methods, loader, contextLoader))
+                .map(RMIState::genStubSupplier)
+                .orElse(NULL_STUB_SUPPLIER);
     }
 
-    private Constructor<? extends Stub> getStubConstructor(String codebase, String stubClassName) {
-        Constructor<? extends Stub> cons = findConstructor(codebase, stubClassName);
+    private static Class<? extends Stub> genStubClass(Class<?> type, MethodDescriptor[] descriptors, MethodRef[] methods, ClassLoader loader, ClassLoader contextLoader) {
+        try {
+            return StubClass.make(type, descriptors, methods, loader);
+        } catch (NoClassDefFoundError ex) {
+            try {
+                return StubClass.make(type, descriptors, methods, contextLoader);
+            } catch (NoClassDefFoundError e) {
+                e.addSuppressed(ex);
+                throw e;
+            }
+        }
+    }
+
+    public Stub getStaticStub(String ignored, Class<?> type) {
+        return staticStubConstructors.get(type).get();
+    }
+
+    public Stub createRMIStub(Class<?> type) {
+        logger.fine(() -> "Creating RMI stub for class " + type.getName());
+        return stubConstructors.get(type).get();
+    }
+
+    private Constructor<? extends Stub> getStubConstructor(String stubClassName) {
+        Constructor<? extends Stub> cons = findConstructor(stubClassName);
         if (cons == null || Stub.class.isAssignableFrom(cons.getDeclaringClass())) return cons;
         logger.fine(() -> "class " + cons.getDeclaringClass() + " is not a javax.rmi.CORBA.Stub");
         return null;
     }
 
-    private Constructor<? extends Stub> findConstructor(String codebase, String stubName) {
+    private Constructor<? extends Stub> findConstructor(String stubName) {
         try {
-            @SuppressWarnings("unchecked") Class<? extends Stub> stubClass = (Class<? extends Stub>) Util.loadClass(stubName, codebase, doPrivileged(GET_CONTEXT_CLASS_LOADER));
+            @SuppressWarnings("unchecked") Class<? extends Stub> stubClass = (Class<? extends Stub>) Util.loadClass(stubName, null, doPrivileged(GET_CONTEXT_CLASS_LOADER));
             return doPrivileged(getNoArgConstructor(stubClass));
         } catch (ClassNotFoundException ex) {
-            logger.log(FINE, ex, () -> "failed to load remote class " + stubName + " from " + codebase);
+            logger.log(FINE, ex, () -> "failed to load remote class " + stubName + " from " + null);
         } catch (PrivilegedActionException e) {
             logger.log(WARNING, e, () -> "stub class " + stubName + " has no default constructor");
         }

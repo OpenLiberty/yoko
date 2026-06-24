@@ -26,8 +26,8 @@ import org.apache.yoko.orb.CORBA.NamedValue;
 import org.apache.yoko.orb.CORBA.ORBPolicyFactory_impl;
 import org.apache.yoko.orb.CORBA.ORBPolicyManager_impl;
 import org.apache.yoko.orb.CORBA.ORBSingleton;
-import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.CORBA.PolicyMap;
+import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.DynamicAny.DynAnyFactory_impl;
 import org.apache.yoko.orb.IOP.CodecFactory_impl;
 import org.apache.yoko.orb.Messaging.RebindPolicy_impl;
@@ -188,10 +188,8 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.security.PrivilegedActionException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -202,16 +200,16 @@ import java.util.StringTokenizer;
 import static java.security.AccessController.doPrivileged;
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
-import static org.apache.yoko.util.Arrays.EMPTY_INTS;
-import static org.apache.yoko.util.Arrays.emptyArray;
-import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import static org.apache.yoko.logging.VerboseLogging.INIT_LOG;
 import static org.apache.yoko.logging.VerboseLogging.SHUTDOWN_LOG;
 import static org.apache.yoko.orb.OB.CodeSetInfo.UTF_16;
 import static org.apache.yoko.orb.OB.CodeSetInfo.UTF_8;
+import static org.apache.yoko.util.Arrays.EMPTY_INTS;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
+import static org.apache.yoko.util.Arrays.emptyArray;
+import static org.apache.yoko.util.InstanceFactory.createNoArgsInstance;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
 import static org.apache.yoko.util.PrivilegedActions.GET_SYSPROPS_OR_EMPTY_MAP;
-import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
 
 // This class must be public and not final
 public class ORB_impl extends ORBSingleton {
@@ -790,12 +788,12 @@ public class ORB_impl extends ORBSingleton {
                         // get the appropriate class for the loading.
                         ClassLoader loader = doPrivileged(GET_CONTEXT_CLASS_LOADER);
                         final Class<? extends ORBInitializer> initClass = ProviderLocator.loadClass(className, getClass(), loader);
-                        initializers.put(className, doPrivileged(getNoArgConstructor(initClass)).newInstance());
+                        initializers.put(className, createNoArgsInstance(initClass));
                     }
                     // Exceptions have to be ignored here
                     catch (ClassNotFoundException e) {
                         INIT_LOG.log(WARNING, e, () -> "ORB.init: initializer class " + className + " not found");
-                    } catch (PrivilegedActionException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
+                    } catch (RuntimeException e) {
                         INIT_LOG.log(WARNING, e, () -> "ORB.init: error occurred while instantiating initializer class " + className);
                     }
                 }

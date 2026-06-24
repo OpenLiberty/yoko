@@ -20,7 +20,6 @@ package org.apache.yoko.rmi.impl;
 import org.apache.yoko.osgi.ProviderLocator;
 import org.apache.yoko.rmispec.util.DelegateType;
 import org.apache.yoko.util.Exceptions;
-import org.apache.yoko.util.PrivilegedActions;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.COMM_FAILURE;
@@ -69,6 +68,7 @@ import static java.security.AccessController.doPrivileged;
 import static java.util.Arrays.stream;
 import static java.util.logging.Level.FINER;
 import static org.apache.yoko.logging.VerboseLogging.CLASS_LOG;
+import static org.apache.yoko.rmi.impl.PortableRemoteObjectImpl.narrowRMI;
 import static org.apache.yoko.util.Predicates.not;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
 import static org.apache.yoko.util.PrivilegedActions.action;
@@ -435,7 +435,7 @@ public class UtilImpl implements UtilDelegate {
     }
 
     protected java.util.Map<Remote, Tie> tie_map() {
-        return RMIState.current().tie_map;
+        return RMIState.current().tieMap;
     }
 
     public void registerTarget(Tie tie, Remote obj) {
@@ -594,7 +594,7 @@ public class UtilImpl implements UtilDelegate {
     static Object copyRMIStub(RMIStub stub) throws RemoteException {
         ClassLoader loader = doPrivileged(GET_CONTEXT_CLASS_LOADER);
 
-        if (doPrivileged(PrivilegedActions.getClassLoader(stub._descriptor.getType())) == loader) {
+        if (doPrivileged(getClassLoader(stub._descriptor.getType())) == loader) {
             return stub;
         }
 
@@ -609,7 +609,7 @@ public class UtilImpl implements UtilDelegate {
             throw new RemoteException("Class not found", ex);
         }
 
-        return PortableRemoteObjectImpl.narrow1(RMIState.current(), stub, targetClass);
+        return narrowRMI(stub, targetClass);
     }
 
     /**

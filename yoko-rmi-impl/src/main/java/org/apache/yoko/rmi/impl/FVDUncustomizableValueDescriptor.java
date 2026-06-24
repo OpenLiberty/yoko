@@ -37,19 +37,14 @@ final class FVDUncustomizableValueDescriptor extends FVDValueDescriptor {
 
     @Override
     boolean isExternalizable() { return false; }
-
     @Override
     MethodHandle genReadObjectHandle() { return null; }
-
     @Override
     Function<Serializable, Serializable> genReadResolver() { return identity(); }
-
     @Override
     MethodHandle genWriteObjectHandle() { return null; }
-
     @Override
     Function<Serializable, Serializable> genWriteReplacer() { return identity(); }
-
     @Override
-    Serializable createBlankInstance() { return null; }
+    Supplier<Serializable> genBlankInstanceSupplier() { return NULL_SERIALIZABLE_SUPPLIER; }
 }
