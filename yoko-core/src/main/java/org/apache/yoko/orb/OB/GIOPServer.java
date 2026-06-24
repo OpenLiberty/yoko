@@ -43,17 +43,6 @@ final class GIOPServer extends Server {
     protected GIOPServerStarter starter_; // The server starter
 
     // ----------------------------------------------------------------------
-    // GIOPServer private and protected member implementations
-    // ----------------------------------------------------------------------
-
-    protected void finalize() throws Throwable {
-        ensure(destroy_);
-        ensure(starter_ == null);
-
-        super.finalize();
-    }
-
-    // ----------------------------------------------------------------------
     // GIOPServer package member implementations
     // ----------------------------------------------------------------------
 

@@ -32,7 +32,7 @@ import static org.apache.yoko.orb.OB.GIOPServerStarter.ServerState.HOLDING;
 
 abstract class GIOPServerStarter {
     static final Logger logger = Logger.getLogger(GIOPServerStarter.class.getName());
-    
+
     protected final ORBInstance orbInstance_; // The ORBInstance
 
     protected final Acceptor acceptor_; // The acceptor
@@ -57,12 +57,6 @@ abstract class GIOPServerStarter {
     // ----------------------------------------------------------------------
     // GIOPServer private and protected member implementation
     // ----------------------------------------------------------------------
-
-    protected void finalize() throws Throwable {
-        Assert.ensure(serverState == CLOSED);
-
-        super.finalize();
-    }
 
     //
     // Emit a trace message when closing the acceptor
