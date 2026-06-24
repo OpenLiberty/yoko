@@ -736,38 +736,6 @@ final public class Request extends org.omg.CORBA.Request {
         raiseDIIExceptions_ = orb._OB_raiseDIIExceptions();
     }
 
-    protected void finalize() throws Throwable {
-        if (state_ == RequestStateSent) {
-            //
-            // TODO: This is a memory leak, as a request has been
-            // sent, but the response has never been picked
-            // up. The correct thing would be to tell the Downcall
-            // object to cancel the request. But we don't have
-            // this ability yet.
-            //
-        }
-
-        //
-        // Find out whether this was a deferred request for which
-        // get_response() hasn't been called yet.
-        //
-        ORBInstance orbInstance = delegate_
-                ._OB_ORBInstance();
-        MultiRequestSender multi = orbInstance
-                .getMultiRequestSender();
-        if (multi != null) // It might be possible that the
-        // MultiRequestSender is already destroyed
-        {
-            //
-            // Remove this request from the list of the outstanding
-            // deferred requests
-            //
-            multi.removeDeferredRequest(this);
-        }
-
-        super.finalize();
-    }
-
     public boolean _OB_completed() {
         synchronized (stateMutex_) {
             return state_ == RequestStateReceived;
