@@ -77,10 +77,6 @@ public final class ORBInstance {
     private OrbAsyncHandler asyncHandler;
     private final AtomicBoolean destroyCalled = new AtomicBoolean(); // True if destroy() was called
 
-    protected void finalize() throws Throwable {
-        Assert.ensure(destroyCalled.get());
-        super.finalize();
-    }
 
     public ORBInstance(ORB orb, String orbId, String serverID,
                        String serverInstance, ObjectFactory objectFactory,
@@ -201,7 +197,7 @@ public final class ORBInstance {
         // CoreTraceLevels is not destroyed -- it is indestructible
 
         // Client and server executors shut down in the ORBControl
-        
+
         conFactoryRegistry = null;
         accFactoryRegistry = null;
         unknownExceptionStrategy = null;
@@ -292,11 +288,11 @@ public final class ORBInstance {
     public Phaser getServerPhaser() {
         return serverPhaser;
     }
-    
+
     public ExecutorService getClientExecutor() {
         return clientExecutor;
     }
-    
+
     public Phaser getClientPhaser() {
         return clientPhaser;
     }

@@ -28,7 +28,7 @@ import java.util.logging.Logger;
 
 public final class ServerManager {
     static final Logger logger = getLogger(ServerManager.class.getName());
-    
+
     private boolean destroy_; // if destroy() was called
 
     private CollocatedServer collocatedServer_; // The collocated server
@@ -40,13 +40,6 @@ public final class ServerManager {
     // ServerManager private and protected member implementations
     // ----------------------------------------------------------------------
 
-    protected void finalize() throws Throwable {
-        Assert.ensure(destroy_);
-        Assert.ensure(allServers_.isEmpty());
-        Assert.ensure(collocatedServer_ == null);
-
-        super.finalize();
-    }
 
     // ----------------------------------------------------------------------
     // ServerManager public member implementations

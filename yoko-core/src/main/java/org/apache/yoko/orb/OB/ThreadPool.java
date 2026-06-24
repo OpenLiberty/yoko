@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,12 +70,6 @@ final class ThreadPool {
         }
     }
 
-    protected void finalize() throws Throwable {
-        if (!destroy_)
-            throw new InternalError();
-
-        super.finalize();
-    }
 
     void destroy() {
         synchronized (this) {
