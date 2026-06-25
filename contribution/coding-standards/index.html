@@ -1,0 +1,2671 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Yoko ORB used by OpenLiberty, derived from Apache Geronimo">
+      
+      
+      
+      
+        <link rel="prev" href="../../testify/jul-logging/">
+      
+      
+        <link rel="next" href="../release-process/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Coding Standards - Yoko Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#yoko-coding-standards" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Yoko Documentation" class="md-header__button md-logo" aria-label="Yoko Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Yoko Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Coding Standards
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/OpenLiberty/yoko" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    OpenLiberty/yoko
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Yoko Documentation" class="md-nav__button md-logo" aria-label="Yoko Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Yoko Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/OpenLiberty/yoko" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    OpenLiberty/yoko
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testify Framework
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Testify Framework
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testify/guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testify/bus-concept/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bus Concept
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testify/bus-processes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bus Processes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testify/annotations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Annotations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testify/part-runner/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ConfigurePartRunner
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testify/iiop-testcases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IIOP Testcases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testify/jul-logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JUL Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coding Standards
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coding Standards
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table of Contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#general-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        General Principles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="General Principles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#code-quality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Quality
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project-philosophy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Philosophy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#java-language-standards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Java Language Standards
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Java Language Standards">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#java-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Java Version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#forbidden-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Forbidden Practices
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-formatting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Formatting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Formatting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#license-header" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        License Header
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-organization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import Organization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#line-length-and-wrapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Line Length and Wrapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#whitespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Whitespace
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#braces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Braces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-and-class-size-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method and Class Size Limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#naming-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naming Conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Naming Conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#classes-and-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Classes and Interfaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Packages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#acronyms-in-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acronyms in Names
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#documentation-standards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation Standards
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Documentation Standards">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#javadoc-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JavaDoc Requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#javadoc-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JavaDoc Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#comments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#corba-specification-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CORBA Specification References
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling-and-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling and Logging
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Error Handling and Logging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exception-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exception Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#corba-exception-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CORBA Exception Patterns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assertions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assertions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#corba-specific-guidelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CORBA-Specific Guidelines
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CORBA-Specific Guidelines">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#idl-to-java-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IDL to Java Mapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#object-references-and-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Object References and Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#thread-safety" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thread Safety
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#poa-portable-object-adapter-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POA (Portable Object Adapter) Patterns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#codec-and-marshaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Codec and Marshaling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-standards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing Standards
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing Standards">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#test-organization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Organization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Naming
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Coverage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assertions_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assertions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-and-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build and Dependencies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Build and Dependencies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gradle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gradle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dependency-guidelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency Guidelines
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checkstyle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checkstyle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#version-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version Control
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Version Control">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#git-commits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Git Commits
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Git Commits">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#commit-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commit Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pull-requests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull Requests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#branch-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Branch Naming
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-review-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Additional Resources
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#questions-or-clarifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Questions or Clarifications
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../interop-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interop Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table of Contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#general-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        General Principles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="General Principles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#code-quality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Quality
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project-philosophy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Philosophy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#java-language-standards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Java Language Standards
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Java Language Standards">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#java-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Java Version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#forbidden-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Forbidden Practices
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-formatting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Formatting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Formatting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#license-header" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        License Header
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-organization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import Organization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#line-length-and-wrapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Line Length and Wrapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#whitespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Whitespace
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#braces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Braces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-and-class-size-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Method and Class Size Limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#naming-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Naming Conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Naming Conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#classes-and-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Classes and Interfaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Packages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#acronyms-in-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acronyms in Names
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#documentation-standards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation Standards
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Documentation Standards">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#javadoc-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JavaDoc Requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#javadoc-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JavaDoc Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#comments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comments
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#corba-specification-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CORBA Specification References
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling-and-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling and Logging
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Error Handling and Logging">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exception-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exception Handling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#corba-exception-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CORBA Exception Patterns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assertions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assertions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#corba-specific-guidelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CORBA-Specific Guidelines
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CORBA-Specific Guidelines">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#idl-to-java-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IDL to Java Mapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#object-references-and-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Object References and Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#thread-safety" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thread Safety
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#poa-portable-object-adapter-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POA (Portable Object Adapter) Patterns
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#codec-and-marshaling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Codec and Marshaling
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-standards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing Standards
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing Standards">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#test-organization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Organization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Naming
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Coverage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assertions_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assertions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-and-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build and Dependencies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Build and Dependencies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gradle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gradle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dependency-guidelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency Guidelines
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checkstyle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checkstyle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#version-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version Control
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Version Control">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#git-commits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Git Commits
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Git Commits">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#commit-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commit Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pull-requests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pull Requests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#branch-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Branch Naming
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-review-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Additional Resources
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#questions-or-clarifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Questions or Clarifications
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="yoko-coding-standards">Yoko Coding Standards</h1>
+<p>This document defines the coding standards for the OpenLiberty Yoko project, a Java implementation of CORBA (Common Object Request Broker Architecture) forked from Apache Yoko.</p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#general-principles">General Principles</a></li>
+<li><a href="#java-language-standards">Java Language Standards</a></li>
+<li><a href="#code-formatting">Code Formatting</a></li>
+<li><a href="#naming-conventions">Naming Conventions</a></li>
+<li><a href="#documentation-standards">Documentation Standards</a></li>
+<li><a href="#error-handling-and-logging">Error Handling and Logging</a></li>
+<li><a href="#corba-specific-guidelines">CORBA-Specific Guidelines</a></li>
+<li><a href="#testing-standards">Testing Standards</a></li>
+<li><a href="#build-and-dependencies">Build and Dependencies</a></li>
+<li><a href="#version-control">Version Control</a></li>
+</ol>
+<hr />
+<h2 id="general-principles">General Principles</h2>
+<h3 id="code-quality">Code Quality</h3>
+<ul>
+<li>Write clear, maintainable, and self-documenting code</li>
+<li>Favor readability over cleverness</li>
+<li>Follow the principle of least surprise</li>
+<li>Keep methods focused and cohesive (single responsibility)</li>
+<li>Avoid premature optimization</li>
+</ul>
+<h3 id="project-philosophy">Project Philosophy</h3>
+<ul>
+<li>Maintain backward compatibility where possible (see Yasf and Rofl in the code for compatibility mechanisms)</li>
+<li>Prioritize correctness and reliability over performance</li>
+<li>Document deviations from CORBA specifications</li>
+<li>Consider thread safety in all concurrent code</li>
+</ul>
+<hr />
+<h2 id="java-language-standards">Java Language Standards</h2>
+<h3 id="java-version">Java Version</h3>
+<ul>
+<li><strong>Target Version</strong>: Java 8+ (check <code>gradle.properties</code> for current versions: development code tends to be an earlier language level than test code)</li>
+<li><strong>Language Features</strong>: Use modern Java features appropriately</li>
+<li>Prefer lambdas and streams for functional operations</li>
+<li>Use try-with-resources for AutoCloseable resources</li>
+<li>Leverage Optional for nullable return values where appropriate</li>
+<li>Use method references when they improve readability</li>
+</ul>
+<h3 id="forbidden-practices">Forbidden Practices</h3>
+<ul>
+<li><strong>No raw types</strong>: Always use generics with type parameters</li>
+<li><strong>No star imports</strong>: no matter what your tools try to do</li>
+<li><strong>Never import <code>org.omg.CORBA.Object</code></strong>: this is too confusing because it replaces the implicit import of <code>java.lang.Object</code></li>
+<li><strong>No sun.* packages</strong>: Never import from internal JDK packages</li>
+<li><strong>No assertions with side effects</strong>: Assert statements must not modify state</li>
+</ul>
+<hr />
+<h2 id="code-formatting">Code Formatting</h2>
+<h3 id="file-structure">File Structure</h3>
+<ol>
+<li>License header (Apache 2.0)</li>
+<li>Package declaration</li>
+<li>Import statements (organized and sorted)</li>
+<li>Class/interface declaration</li>
+<li>Class documentation</li>
+<li>Class body</li>
+</ol>
+<h3 id="license-header">License Header</h3>
+<p>All source files must include the Apache License 2.0 header:</p>
+<pre><code class="language-java">/*
+ * Copyright 2026 IBM Corporation and others.
+ *
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+</code></pre>
+<h3 id="import-organization">Import Organization</h3>
+<p>Imports must be organized in the following order:
+1. <code>java.*</code> packages
+2. <code>javax.*</code> packages
+3. <code>org.w3c.*</code> packages
+4. <code>org.xml.*</code> packages
+5. <code>w3c.*</code> packages
+6. All other imports</p>
+<p>Within each group, imports should be alphabetically sorted.</p>
+<h3 id="line-length-and-wrapping">Line Length and Wrapping</h3>
+<ul>
+<li><strong>Maximum line length</strong>: 110 characters</li>
+<li>Break lines at logical points (after commas, before operators)</li>
+<li>Indent continuation lines appropriately</li>
+</ul>
+<h3 id="whitespace">Whitespace</h3>
+<ul>
+<li><strong>Indentation</strong>: 4 spaces - <strong>NO TABS</strong></li>
+<li><strong>Case indentation</strong>: 0 spaces (case labels align with switch)</li>
+<li>Use spaces after commas and semicolons</li>
+<li>Use spaces around operators (<code>=</code>, <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>==</code>, <code>!=</code>, etc.)</li>
+<li><strong>NO TRAILING WHITESPACE</strong> - Lines must not end with spaces or tabs</li>
+<li><strong>Pure ASCII only</strong> - No non-ASCII characters in Java source files (scripts may use emoji/Unicode)</li>
+<li>Files must end with a newline</li>
+</ul>
+<p><strong>Critical Requirements for Java Source Files</strong>:
+- Tab characters are strictly prohibited - use 4 spaces for indentation
+- Trailing whitespace is strictly prohibited - lines must not end with spaces or tabs
+- Only ASCII characters are allowed in Java source files (<code>.java</code> files)
+- Configure your editor to remove trailing whitespace on save
+- Run <code>./gradlew check</code> to detect violations before committing</p>
+<p>Note: Scripts (e.g., shell scripts) may use emoji and Unicode characters as appropriate.</p>
+<h3 id="braces">Braces</h3>
+<ul>
+<li><strong>Opening brace</strong>: Same line as declaration/statement</li>
+<li><strong>Closing brace</strong>: On its own line, aligned with the start of the statement</li>
+<li>Always use braces for <code>if</code>, <code>else</code>, <code>for</code>, <code>while</code>, and <code>do</code> statements, even for single-line blocks</li>
+</ul>
+<pre><code class="language-java">// Good
+if (condition) {
+    doSomething();
+}
+
+// Bad
+if (condition)
+    doSomething();
+</code></pre>
+<h3 id="method-and-class-size-limits">Method and Class Size Limits</h3>
+<ul>
+<li><strong>Maximum method length</strong>: 150 lines (excluding blank lines)</li>
+<li><strong>Maximum executable statements</strong>: 50 per method</li>
+<li><strong>Maximum parameters</strong>: 7 per method</li>
+<li><strong>Maximum anonymous inner class length</strong>: 40 lines</li>
+<li><strong>Maximum cyclomatic complexity</strong>: Keep methods simple and focused</li>
+</ul>
+<hr />
+<h2 id="naming-conventions">Naming Conventions</h2>
+<h3 id="classes-and-interfaces">Classes and Interfaces</h3>
+<ul>
+<li><strong>Classes</strong>: PascalCase (e.g., <code>ORBInstance</code>, <code>ClientManager</code>)</li>
+<li><strong>Interfaces</strong>: PascalCase (e.g., <code>Client</code>, <code>Connector</code>)</li>
+<li><strong>Abstract classes</strong>: Must match pattern <code>^Abstract.*$|^.*Factory$|^.*Bus$|^.*ConfigurationRepository$|^.*Base$|^Exception$|^.*Builder$</code></li>
+<li><strong>Test classes</strong>: Must end with <code>Test</code> (e.g., <code>Utf8Test</code>, <code>CorbanamesTest</code>)</li>
+</ul>
+<h3 id="methods">Methods</h3>
+<ul>
+<li><strong>Method names</strong>: camelCase, starting with a verb (e.g., <code>getORB()</code>, <code>startDowncall()</code>, <code>destroy()</code>)</li>
+<li><strong>Boolean methods</strong>: Prefix with <code>is</code>, <code>has</code>, <code>can</code>, or <code>should</code> (e.g., <code>isSupplementaryCodePoint()</code>, <code>hasNext()</code>)</li>
+<li><strong>Factory methods</strong>: Use <code>create</code>, <code>build</code>, or <code>new</code> prefix (e.g., <code>createWriteBuffer()</code>)</li>
+</ul>
+<h3 id="variables">Variables</h3>
+<ul>
+<li><strong>Local variables</strong>: camelCase (e.g., <code>clientManager</code>, <code>codecFactory</code>)</li>
+<li><strong>Instance variables</strong>: camelCase (e.g., <code>orbId</code>, <code>nativeCodeSet</code>)</li>
+<li><strong>Constants</strong>: UPPER_SNAKE_CASE (e.g., <code>MIN_1_BYTE</code>, <code>MAX_LOW_SURROGATE</code>)</li>
+<li><strong>Static final fields</strong>: UPPER_SNAKE_CASE for true constants</li>
+<li><strong>Parameters</strong>: camelCase (e.g., <code>concModel</code>, <code>codecs</code>)</li>
+</ul>
+<h3 id="packages">Packages</h3>
+<ul>
+<li>All lowercase, no underscores (e.g., <code>org.apache.yoko.orb</code>)</li>
+<li>Use meaningful, hierarchical names</li>
+</ul>
+<h3 id="acronyms-in-names">Acronyms in Names</h3>
+<ul>
+<li>Treat acronyms as words: <code>ORB</code> → <code>Orb</code> in camelCase contexts</li>
+<li>Exception: When the acronym is the entire name (e.g., <code>IOR</code>, <code>POA</code>)</li>
+</ul>
+<pre><code class="language-java">// Good
+getOrbId()
+createIor()
+
+// Avoid
+getORBID()
+createIOR()
+</code></pre>
+<hr />
+<h2 id="documentation-standards">Documentation Standards</h2>
+<h3 id="javadoc-requirements">JavaDoc Requirements</h3>
+<ul>
+<li><strong>Public APIs</strong>: Must have comprehensive JavaDoc</li>
+<li><strong>Package-private/protected</strong>: Should have JavaDoc for non-obvious functionality</li>
+<li><strong>Private methods</strong>: JavaDoc optional but encouraged for complex logic</li>
+</ul>
+<h3 id="javadoc-format">JavaDoc Format</h3>
+<pre><code class="language-java">/**
+ * Brief one-line description ending with a period.
+ * 
+ * More detailed description if needed. Explain the purpose,
+ * behavior, and any important considerations.
+ *
+ * @param paramName description of parameter
+ * @param anotherParam description of another parameter
+ * @return description of return value
+ * @throws ExceptionType when and why this exception is thrown
+ * @see RelatedClass
+ * @since 1.0
+ */
+public ReturnType methodName(ParamType paramName, AnotherType anotherParam) 
+    throws ExceptionType {
+    // implementation
+}
+</code></pre>
+<h3 id="comments">Comments</h3>
+<ul>
+<li><strong>Inline comments</strong>: Use <code>//</code> for single-line comments</li>
+<li><strong>Block comments</strong>: Use <code>/* */</code> for multi-line explanations</li>
+<li><strong>TODO comments</strong>: Use <code>// TODO: description</code> (will trigger checkstyle warning with <code>WARNING</code> tag)</li>
+<li>Explain <em>why</em>, not <em>what</em> (the code should be self-explanatory for <em>what</em>)</li>
+<li>Keep comments up-to-date with code changes</li>
+</ul>
+<h3 id="corba-specification-references">CORBA Specification References</h3>
+<p>When implementing CORBA specifications, include references:</p>
+<pre><code class="language-java">/**
+ * Implements the CORBA 3.0 specification section 11.3.4.
+ * 
+ * @see &lt;a href=&quot;https://www.omg.org/spec/CORBA/3.0&quot;&gt;CORBA 3.0 Specification&lt;/a&gt;
+ */
+</code></pre>
+<hr />
+<h2 id="error-handling-and-logging">Error Handling and Logging</h2>
+<h3 id="exception-handling">Exception Handling</h3>
+<ul>
+<li><strong>Never catch and ignore exceptions</strong> without logging or re-throwing</li>
+<li><strong>Catch specific exceptions</strong> rather than generic <code>Exception</code> or <code>Throwable</code></li>
+<li><strong>Don't throw <code>Error</code> or <code>RuntimeException</code></strong> from methods (checkstyle enforced)</li>
+<li><strong>Document all checked exceptions</strong> in JavaDoc with <code>@throws</code></li>
+<li><strong>Use try-with-resources</strong> for AutoCloseable resources</li>
+</ul>
+<pre><code class="language-java">// Good
+try (InputStream in = new FileInputStream(file)) {
+    // process stream
+} catch (IOException e) {
+    logger.error(&quot;Failed to read file: &quot; + file, e);
+    throw new ProcessingException(&quot;Cannot process file&quot;, e);
+}
+
+// Bad
+try {
+    InputStream in = new FileInputStream(file);
+    // process stream
+    in.close();
+} catch (Exception e) {
+    // ignore
+}
+</code></pre>
+<h3 id="corba-exception-patterns">CORBA Exception Patterns</h3>
+<ul>
+<li>Use appropriate CORBA system exceptions (e.g., <code>INTERNAL</code>, <code>BAD_PARAM</code>, <code>NO_RESOURCES</code>)</li>
+<li>Include minor codes for detailed error information</li>
+<li>Preserve exception chains when wrapping exceptions</li>
+</ul>
+<pre><code class="language-java">// Example from codebase
+throw new INTERNAL(&quot;Could not find PolicyManager&quot;);
+</code></pre>
+<h3 id="logging">Logging</h3>
+<ul>
+<li>Use Java Util Logging (JUL) or the project's logging facade</li>
+<li>Follow existing logging patterns in the codebase</li>
+<li>Log levels:</li>
+<li><strong>SEVERE</strong>: Critical errors requiring immediate attention</li>
+<li><strong>WARNING</strong>: Potential problems or deprecated usage</li>
+<li><strong>INFO</strong>: Important runtime events</li>
+<li><strong>FINE/FINER/FINEST</strong>: Debug information</li>
+</ul>
+<pre><code class="language-java">// Example logging pattern
+if (logger.isLoggable(Level.FINE)) {
+    logger.fine(&quot;Processing request: &quot; + requestId);
+}
+</code></pre>
+<h3 id="assertions">Assertions</h3>
+<ul>
+<li>Use <code>Assert.ensure()</code> for internal invariants (from <code>org.apache.yoko.util.Assert</code>)</li>
+<li>Assertions should never have side effects</li>
+<li>Use for conditions that should never occur in correct code</li>
+</ul>
+<pre><code class="language-java">Assert.ensure(count &gt;= 0);
+Assert.ensure(destroyCalled.get());
+</code></pre>
+<hr />
+<h2 id="corba-specific-guidelines">CORBA-Specific Guidelines</h2>
+<h3 id="idl-to-java-mapping">IDL to Java Mapping</h3>
+<ul>
+<li>Follow OMG IDL-to-Java mapping specifications</li>
+<li>Generated code should not be manually modified</li>
+<li>Use appropriate holders and helpers for IDL types</li>
+</ul>
+<h3 id="object-references-and-lifecycle">Object References and Lifecycle</h3>
+<ul>
+<li>Always properly manage object reference lifecycles</li>
+<li>Use reference counting where appropriate (see <code>Client.obtain()</code> and <code>Client.release()</code>)</li>
+<li>Implement proper cleanup in <code>destroy()</code> methods</li>
+</ul>
+<pre><code class="language-java">public final void obtain() {
+    int count = users.incrementAndGet();
+    Assert.ensure(count &gt; 0);
+}
+
+public final boolean release() {
+    int count = users.decrementAndGet();
+    Assert.ensure(count &gt;= 0);
+    return count == 0;
+}
+</code></pre>
+<h3 id="thread-safety">Thread Safety</h3>
+<ul>
+<li>Document thread-safety guarantees in class JavaDoc</li>
+<li>Use appropriate synchronization mechanisms:</li>
+<li><code>RecursiveMutex</code> for reentrant locking</li>
+<li><code>AtomicInteger</code>, <code>AtomicBoolean</code> for simple atomic operations</li>
+<li><code>synchronized</code> blocks for critical sections</li>
+<li>Prefer immutable objects where possible</li>
+<li>Use <code>final</code> for fields that should not change after construction</li>
+</ul>
+<h3 id="poa-portable-object-adapter-patterns">POA (Portable Object Adapter) Patterns</h3>
+<ul>
+<li>Follow standard POA lifecycle: create → activate → process requests → deactivate → destroy</li>
+<li>Properly implement servant locators and activators</li>
+<li>Handle POA policies correctly</li>
+</ul>
+<h3 id="codec-and-marshaling">Codec and Marshaling</h3>
+<ul>
+<li>Use appropriate codecs for character encoding (UTF-8, ISO-8859-1, etc.)</li>
+<li>Handle byte order (endianness) correctly</li>
+<li>Validate input data during unmarshaling</li>
+</ul>
+<hr />
+<h2 id="testing-standards">Testing Standards</h2>
+<h3 id="test-organization">Test Organization</h3>
+<ul>
+<li><strong>Location</strong>: Tests in <code>src/test/java</code> mirroring <code>src/main/java</code> structure</li>
+<li><strong>Naming</strong>: Test classes must end with <code>Test</code> (e.g., <code>Utf8Test</code>)</li>
+<li><strong>Framework</strong>: Use JUnit 5 (Jupiter) for new tests</li>
+</ul>
+<h3 id="test-structure">Test Structure</h3>
+<pre><code class="language-java">class MyClassTest {
+    // Test fixtures
+    private MyClass instance;
+
+    @BeforeEach
+    void setUp() {
+        instance = new MyClass();
+    }
+
+    @Test
+    void testMethodName_shouldDoSomething_whenCondition() {
+        // Arrange
+        String input = &quot;test&quot;;
+
+        // Act
+        String result = instance.methodName(input);
+
+        // Assert
+        assertEquals(&quot;expected&quot;, result);
+    }
+
+    @AfterEach
+    void tearDown() {
+        instance.destroy();
+    }
+}
+</code></pre>
+<h3 id="test-naming">Test Naming</h3>
+<ul>
+<li>Use descriptive test method names: <code>test&lt;MethodName&gt;_should&lt;ExpectedBehavior&gt;_when&lt;Condition&gt;</code></li>
+<li>Or use <code>@DisplayName</code> for readable test names</li>
+<li>Parameterized tests should have descriptive names in <code>@ParameterizedTest(name = "...")</code></li>
+</ul>
+<pre><code class="language-java">@ParameterizedTest(name = &quot;Decode 1-byte UTF-8 char: {0} ({2})&quot;)
+@MethodSource(&quot;_1_ByteChars&quot;)
+void testDecode1ByteChar(String hex, int codepoint, String c) {
+    checkDecoding(codepoint, c);
+}
+</code></pre>
+<h3 id="test-coverage">Test Coverage</h3>
+<ul>
+<li><strong>All public APIs must have tests</strong></li>
+<li>Test both success and failure paths</li>
+<li>Test boundary conditions and edge cases</li>
+<li>Test thread safety for concurrent code</li>
+<li>Include integration tests for CORBA interactions</li>
+</ul>
+<h3 id="assertions_1">Assertions</h3>
+<ul>
+<li>Use JUnit 5 assertions: <code>assertEquals()</code>, <code>assertTrue()</code>, <code>assertThrows()</code>, etc.</li>
+<li>Provide meaningful assertion messages</li>
+<li>Use <code>assertAll()</code> for multiple related assertions</li>
+</ul>
+<pre><code class="language-java">assertAll(&quot;codec state&quot;,
+    () -&gt; assertTrue(codec.readFinished(), &quot;should have no outstanding low surrogate&quot;),
+    () -&gt; assertEquals(0, in.available(), &quot;should read all encoded bytes&quot;)
+);
+</code></pre>
+<h3 id="test-data">Test Data</h3>
+<ul>
+<li>Use <code>@MethodSource</code> for parameterized test data</li>
+<li>Keep test data organized and maintainable</li>
+<li>Use meaningful test data that covers edge cases</li>
+</ul>
+<hr />
+<h2 id="build-and-dependencies">Build and Dependencies</h2>
+<h3 id="gradle">Gradle</h3>
+<ul>
+<li>Follow existing Gradle conventions in <code>build.gradle</code></li>
+<li>Keep dependencies up-to-date and minimal</li>
+<li><strong>Avoid introducing new dependencies for production code</strong> - use existing libraries where possible</li>
+<li>Document any non-obvious dependency requirements</li>
+<li>Use BOM (Bill of Materials) for version management where appropriate</li>
+</ul>
+<h3 id="dependency-guidelines">Dependency Guidelines</h3>
+<ul>
+<li><strong>Production code</strong>: Minimize external dependencies; prefer standard Java libraries</li>
+</ul>
+<h3 id="checkstyle">Checkstyle</h3>
+<ul>
+<li>All code must pass Checkstyle validation</li>
+<li>Configuration in <code>checkstyle.xml</code></li>
+<li>Run <code>./gradlew check</code> before committing</li>
+<li>Do not suppress Checkstyle warnings without good reason and documentation</li>
+</ul>
+<h3 id="build-requirements">Build Requirements</h3>
+<ul>
+<li>All PRs must have a passing build</li>
+<li>Run full test suite: <code>./gradlew clean build</code></li>
+<li>Verify no Checkstyle violations</li>
+<li>Ensure all tests pass</li>
+</ul>
+<hr />
+<h2 id="version-control">Version Control</h2>
+<h3 id="git-commits">Git Commits</h3>
+<p>All commit messages <strong>must</strong> follow the <a href="https://www.conventionalcommits.org/">Conventional Commits</a> specification:</p>
+<pre><code>&lt;type&gt;(&lt;scope&gt;): &lt;description&gt;
+
+[optional body]
+
+[optional footer(s)]
+</code></pre>
+<h4 id="commit-types">Commit Types</h4>
+<ul>
+<li><strong>feat</strong>: A new feature</li>
+<li><strong>fix</strong>: A bug fix</li>
+<li><strong>docs</strong>: Documentation only changes</li>
+<li><strong>style</strong>: Changes that don't affect code meaning (formatting, whitespace)</li>
+<li><strong>refactor</strong>: Code change that neither fixes a bug nor adds a feature</li>
+<li><strong>test</strong>: Adding or correcting tests</li>
+<li><strong>chore</strong>: Changes to build process, dependencies, or auxiliary tools</li>
+</ul>
+<h4 id="examples">Examples</h4>
+<pre><code>feat(orb): add support for GIOP 1.3 protocol
+
+fix(codec): correct UTF-8 surrogate pair handling
+
+docs(readme): update build instructions for Java 11
+
+test(corba): add integration tests for POA lifecycle
+</code></pre>
+<h3 id="pull-requests">Pull Requests</h3>
+<ul>
+<li>Create feature branches from <code>main</code></li>
+<li>Keep PRs focused and reasonably sized</li>
+<li>Include tests for all changes</li>
+<li>Update documentation as needed</li>
+<li>Ensure CI passes before requesting review</li>
+<li>Respond to review comments promptly</li>
+</ul>
+<h3 id="branch-naming">Branch Naming</h3>
+<ul>
+<li>Use descriptive branch names: <code>feature/add-giop-13</code>, <code>fix/utf8-encoding</code>, <code>docs/update-standards</code></li>
+<li>Avoid generic names like <code>fix</code>, <code>update</code>, or <code>patch</code></li>
+</ul>
+<hr />
+<h2 id="code-review-checklist">Code Review Checklist</h2>
+<p>Before submitting code for review, verify:</p>
+<ul>
+<li>[ ] Code follows all formatting standards</li>
+<li>[ ] All public APIs have JavaDoc</li>
+<li>[ ] Appropriate error handling is in place</li>
+<li>[ ] Tests are included and passing</li>
+<li>[ ] No Checkstyle violations</li>
+<li>[ ] Commit messages follow Conventional Commits</li>
+<li>[ ] License headers are present</li>
+<li>[ ] No TODO comments without tracking issues</li>
+<li>[ ] Thread safety is considered and documented</li>
+<li>[ ] CORBA specifications are followed</li>
+<li>[ ] Build passes locally: <code>./gradlew clean build</code></li>
+</ul>
+<hr />
+<h2 id="additional-resources">Additional Resources</h2>
+<ul>
+<li><a href="https://github.com/yoko-tool/yoko">Apache Yoko GitHub Repository</a></li>
+<li><a href="https://www.omg.org/spec/CORBA/">CORBA Specifications</a></li>
+<li><a href="https://www.conventionalcommits.org/">Conventional Commits</a></li>
+<li><a href="https://www.oracle.com/java/technologies/javase/codeconventions-contents.html">Java Code Conventions</a></li>
+<li><a href="https://www.oreilly.com/library/view/effective-java/9780134686097/">Effective Java (Joshua Bloch)</a></li>
+</ul>
+<hr />
+<h2 id="questions-or-clarifications">Questions or Clarifications</h2>
+<p>If you have questions about these standards or need clarification on specific cases, please:</p>
+<ol>
+<li>Check existing code for patterns and examples</li>
+<li>Consult the project maintainers</li>
+<li>Open a discussion on GitHub</li>
+</ol>
+<p>Remember: These standards exist to maintain code quality and consistency. When in doubt, favor readability and maintainability.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

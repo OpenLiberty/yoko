@@ -1,0 +1,1629 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Yoko ORB used by OpenLiberty, derived from Apache Geronimo">
+      
+      
+      
+      
+        <link rel="prev" href="../part-runner/">
+      
+      
+        <link rel="next" href="../jul-logging/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>IIOP Testcases - Yoko Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#writing-iiop-testcases-with-testify-iiop" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Yoko Documentation" class="md-header__button md-logo" aria-label="Yoko Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Yoko Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              IIOP Testcases
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/OpenLiberty/yoko" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    OpenLiberty/yoko
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Yoko Documentation" class="md-nav__button md-logo" aria-label="Yoko Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Yoko Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/OpenLiberty/yoko" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    OpenLiberty/yoko
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testify Framework
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Testify Framework
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bus-concept/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bus Concept
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bus-processes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bus Processes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../annotations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Annotations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../part-runner/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ConfigurePartRunner
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IIOP Testcases
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IIOP Testcases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#start-with-configureserver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start with @ConfigureServer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-gets-injected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What gets injected
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What gets injected">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#into-test-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Into test methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#into-server-side-setup-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Into server-side setup methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multiple-ways-to-expose-a-remote-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple ways to expose a remote object
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Multiple ways to expose a remote object">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#preferred-configureserverremoteimpl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preferred: @ConfigureServer.RemoteImpl
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alternative-configureserverremotestub" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternative: @ConfigureServer.RemoteStub
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alternative-configureserverclientstub" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternative: @ConfigureServer.ClientStub
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#name-service-and-corbaname-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Name service and corbaname tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-lifecycle-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server lifecycle hooks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Server lifecycle hooks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configureserverbeforeserver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        @ConfigureServer.BeforeServer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configureserverafterserver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        @ConfigureServer.AfterServer
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#restarting-or-stopping-the-server-during-a-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Restarting or stopping the server during a test
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choosing-the-separation-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing the separation mode
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Choosing the separation mode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#default-inter_orb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default: INTER_ORB
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collocated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        COLLOCATED
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inter_process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        INTER_PROCESS
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#use-configureorb-only-for-orb-only-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use @ConfigureOrb only for ORB-only tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-orb-customisation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding ORB customisation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interop-tests-against-older-yoko-versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interop tests against older Yoko versions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-advice-for-simplifying-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical advice for simplifying tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pitfalls
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pitfalls">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prefer-direct-stub-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefer direct stub injection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#do-not-mix-configureorb-with-configureserver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Do not mix @ConfigureOrb with @ConfigureServer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keep-lifecycle-control-rare" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keep lifecycle control rare
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#author-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Author checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../jul-logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JUL Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribution/coding-standards/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coding Standards
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribution/release-process/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribution/interop-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interop Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#start-with-configureserver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start with @ConfigureServer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-gets-injected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What gets injected
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What gets injected">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#into-test-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Into test methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#into-server-side-setup-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Into server-side setup methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multiple-ways-to-expose-a-remote-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple ways to expose a remote object
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Multiple ways to expose a remote object">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#preferred-configureserverremoteimpl" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preferred: @ConfigureServer.RemoteImpl
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alternative-configureserverremotestub" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternative: @ConfigureServer.RemoteStub
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alternative-configureserverclientstub" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternative: @ConfigureServer.ClientStub
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#name-service-and-corbaname-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Name service and corbaname tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-lifecycle-hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server lifecycle hooks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Server lifecycle hooks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configureserverbeforeserver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        @ConfigureServer.BeforeServer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configureserverafterserver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        @ConfigureServer.AfterServer
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#restarting-or-stopping-the-server-during-a-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Restarting or stopping the server during a test
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choosing-the-separation-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choosing the separation mode
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Choosing the separation mode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#default-inter_orb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default: INTER_ORB
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collocated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        COLLOCATED
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inter_process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        INTER_PROCESS
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#use-configureorb-only-for-orb-only-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use @ConfigureOrb only for ORB-only tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-orb-customisation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding ORB customisation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#interop-tests-against-older-yoko-versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interop tests against older Yoko versions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-advice-for-simplifying-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical advice for simplifying tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pitfalls
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pitfalls">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prefer-direct-stub-injection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefer direct stub injection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#do-not-mix-configureorb-with-configureserver" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Do not mix @ConfigureOrb with @ConfigureServer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keep-lifecycle-control-rare" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keep lifecycle control rare
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#author-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Author checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="writing-iiop-testcases-with-testify-iiop">Writing IIOP testcases with testify-iiop</h1>
+<p><code>testify-iiop</code> is the quickest way to write Yoko IIOP tests when you need a client ORB talking to a server ORB, possibly in a separate process or even against an older Yoko release.</p>
+<p>The main idea is simple:</p>
+<ul>
+<li>declare the server with annotations</li>
+<li>expose one or more remote implementations</li>
+<li>let the framework start the ORBs</li>
+<li>receive the remote stub directly in the test method</li>
+</ul>
+<p>For most new tests, this is the right starting point.</p>
+<h2 id="start-with-configureserver">Start with <code>@ConfigureServer</code></h2>
+<p>Use <code>@ConfigureServer</code> when your test needs a server-side object and a client talking to it.</p>
+<pre><code class="language-java">import org.junit.jupiter.api.Test;
+import testify.iiop.annotation.ConfigureServer;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+@ConfigureServer
+class EchoTest {
+    interface Echo extends Remote {
+        String echo(String msg) throws RemoteException;
+    }
+
+    @ConfigureServer.RemoteImpl
+    public static final Echo IMPL = msg -&gt; msg;
+
+    @Test
+    void roundTrip(Echo stub) throws Exception {
+        assertEquals(&quot;hello&quot;, stub.echo(&quot;hello&quot;));
+    }
+}
+</code></pre>
+<p>This is the preferred pattern:</p>
+<ol>
+<li>define a remote interface</li>
+<li>define an implementation</li>
+<li>mark the implementation with <code>@ConfigureServer.RemoteImpl</code></li>
+<li>accept the matching stub type as a test parameter</li>
+</ol>
+<p>The framework finds the server-side implementation, exports it, and injects the corresponding client stub into the test method.</p>
+<p>If this works for your testcase, stop there. Do not add lower-level plumbing unless the test really needs it.</p>
+<h2 id="what-gets-injected">What gets injected</h2>
+<h3 id="into-test-methods">Into test methods</h3>
+<p>The simplest and most useful injected parameter is the remote stub itself.</p>
+<pre><code class="language-java">@Test
+void roundTrip(Echo stub) throws Exception {
+    assertEquals(&quot;hello&quot;, stub.echo(&quot;hello&quot;));
+}
+</code></pre>
+<p>A test method may also request:</p>
+<ul>
+<li><code>org.omg.CORBA.ORB</code> for direct ORB access</li>
+<li><code>testify.bus.Bus</code> for inter-part communication</li>
+<li><code>org.omg.PortableServer.POA</code> for lower-level POA work</li>
+</ul>
+<p>In practice, ask for <code>ORB</code> only if the test is specifically about URL resolution, stringified objects, naming service lookup, or other lower-level CORBA mechanics.</p>
+<h3 id="into-server-side-setup-methods">Into server-side setup methods</h3>
+<p>Server lifecycle methods can also receive supported runtime parameters such as:</p>
+<ul>
+<li><code>Bus</code></li>
+<li><code>ORB</code></li>
+<li><code>POA</code></li>
+</ul>
+<p>That is useful when the server needs custom registration or setup logic at startup.</p>
+<h2 id="multiple-ways-to-expose-a-remote-object">Multiple ways to expose a remote object</h2>
+<h3 id="preferred-configureserverremoteimpl">Preferred: <code>@ConfigureServer.RemoteImpl</code></h3>
+<p>Annotate a static field or static method that supplies the server-side implementation.</p>
+<p>Field form:</p>
+<pre><code class="language-java">@ConfigureServer.RemoteImpl
+public static final Echo IMPL = msg -&gt; msg;
+</code></pre>
+<p>Method form:</p>
+<pre><code class="language-java">@ConfigureServer.RemoteImpl
+public static Echo createImpl(ORB orb, POA poa) {
+    return msg -&gt; &quot;server:&quot; + msg;
+}
+</code></pre>
+<p>Use the method form when construction needs server-side runtime objects.</p>
+<h3 id="alternative-configureserverremotestub">Alternative: <code>@ConfigureServer.RemoteStub</code></h3>
+<p>If you want the stub injected into a static field instead of as a test parameter, you can use <code>@ConfigureServer.RemoteStub</code>.</p>
+<p>For new tests, prefer test method parameter injection because it is clearer and keeps the test local.</p>
+<h3 id="alternative-configureserverclientstub">Alternative: <code>@ConfigureServer.ClientStub</code></h3>
+<p>Use <code>@ConfigureServer.ClientStub</code> when you want a static stub field for a specific implementation class.</p>
+<p>Again, for most modern testcases, direct test parameter injection is simpler.</p>
+<h2 id="name-service-and-corbaname-tests">Name service and corbaname tests</h2>
+<p>Some tests need to verify naming behavior rather than just invoking a remote method. In that case, configure the server ORB with a name service and ask for the generated URLs.</p>
+<pre><code class="language-java">import static testify.iiop.annotation.ConfigureOrb.NameService.READ_WRITE;
+
+@ConfigureServer(serverOrb = @ConfigureOrb(nameService = READ_WRITE))
+class NameServiceStyleTest {
+    @ConfigureServer.NameServiceUrl
+    public static String nameServiceUrl;
+
+    @ConfigureServer.CorbanameUrl(EchoImpl.class)
+    public static String stubUrl;
+
+    @Test
+    void resolveThroughOrb(ORB clientOrb) throws Exception {
+        Object obj = clientOrb.string_to_object(stubUrl);
+        Echo stub = Echo.class.cast(javax.rmi.PortableRemoteObject.narrow(obj, Echo.class));
+        assertEquals(&quot;ok&quot;, stub.echo(&quot;ok&quot;));
+    }
+}
+</code></pre>
+<p>Use this style only when the URL itself matters to the test.</p>
+<p>If you only need to call the remote object, prefer:</p>
+<pre><code class="language-java">@Test
+void invoke(Echo stub) throws Exception { ... }
+</code></pre>
+<p>instead of resolving it manually through <code>ORB.string_to_object(...)</code>.</p>
+<h2 id="server-lifecycle-hooks">Server lifecycle hooks</h2>
+<p>Use these when the server needs setup or cleanup beyond constructing the implementation.</p>
+<h3 id="configureserverbeforeserver"><code>@ConfigureServer.BeforeServer</code></h3>
+<p>Methods annotated with <code>@ConfigureServer.BeforeServer</code> run when the server starts.</p>
+<p>Typical uses:</p>
+<ul>
+<li>bind or register objects</li>
+<li>initialize server state</li>
+<li>populate the naming service</li>
+<li>perform server-side assertions about startup conditions</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-java">@ConfigureServer.BeforeServer
+public static void setUpServer(ORB orb, POA poa) {
+    // custom startup logic
+}
+</code></pre>
+<h3 id="configureserverafterserver"><code>@ConfigureServer.AfterServer</code></h3>
+<p>Methods annotated with <code>@ConfigureServer.AfterServer</code> run after the tests are complete.</p>
+<p>Use them for explicit cleanup when server shutdown alone is not enough.</p>
+<h2 id="restarting-or-stopping-the-server-during-a-test">Restarting or stopping the server during a test</h2>
+<p>If the testcase needs to control server lifecycle explicitly, inject <code>ServerControl</code> into a static field.</p>
+<pre><code class="language-java">@ConfigureServer.Control
+public static ServerControl serverControl;
+</code></pre>
+<p>That gives you:</p>
+<ul>
+<li><code>serverControl.start()</code></li>
+<li><code>serverControl.stop()</code></li>
+<li><code>serverControl.restart()</code></li>
+</ul>
+<p>This is useful for tests about reconnect behavior, stale references, restart recovery, or server state transitions.</p>
+<p>Keep in mind:</p>
+<ul>
+<li>stopping the server should make remote calls fail</li>
+<li>restarting the server should create a fresh server instance</li>
+<li>use this only when server lifecycle is part of the behavior under test</li>
+</ul>
+<h2 id="choosing-the-separation-mode">Choosing the separation mode</h2>
+<p><code>@ConfigureServer</code> supports different client/server layouts through <code>separation</code>.</p>
+<h3 id="default-inter_orb">Default: <code>INTER_ORB</code></h3>
+<p>This is the default and the best choice for most tests.</p>
+<p>It gives you:</p>
+<ul>
+<li>separate client and server ORBs</li>
+<li>realistic distributed behavior</li>
+<li>less setup overhead than a separate process</li>
+</ul>
+<p>Use the default unless the test specifically needs another mode.</p>
+<h3 id="collocated"><code>COLLOCATED</code></h3>
+<p>Use collocation when you explicitly want both sides in the same ORB.</p>
+<p>That is less representative of a true distributed case, so do not choose it unless the test needs collocated behavior.</p>
+<h3 id="inter_process"><code>INTER_PROCESS</code></h3>
+<p>Use a separate process when you need stronger isolation or versioned interop.</p>
+<p>This is the mode automatically selected by <code>@InteropTest</code>.</p>
+<h2 id="use-configureorb-only-for-orb-only-tests">Use <code>@ConfigureOrb</code> only for ORB-only tests</h2>
+<p><code>@ConfigureOrb</code> is the lower-level option for tests that need an ORB but not the server framework.</p>
+<p>Use it when the test is about ORB configuration itself, interceptors, connection helpers, or other ORB behavior that does not need <code>@ConfigureServer</code>.</p>
+<p>Do <strong>not</strong> combine <code>@ConfigureOrb</code> and <code>@ConfigureServer</code> on the same test class or method. The framework explicitly rejects that combination.</p>
+<h2 id="adding-orb-customisation">Adding ORB customisation</h2>
+<p><code>@ConfigureOrb</code> supports:</p>
+<ul>
+<li>command-line ORB args via <code>args</code></li>
+<li>ORB properties via <code>props</code></li>
+<li>optional built-in name service support via <code>nameService</code></li>
+</ul>
+<p>It also picks up nested public static classes annotated with <code>@ConfigureOrb.UseWithOrb</code>, such as ORB initializers or connection helpers.</p>
+<p>That makes it possible to keep ORB extensions close to the testcase.</p>
+<h2 id="interop-tests-against-older-yoko-versions">Interop tests against older Yoko versions</h2>
+<p>Use <code>@InteropTest</code> when the server must run with a specific historical Yoko version.</p>
+<pre><code class="language-java">@InteropTest(InteropTest.YokoVersion.V1_6_1)
+class VersionedInteropTest {
+    // test body
+}
+</code></pre>
+<p><code>@InteropTest</code> automatically configures the server to run in a separate process.</p>
+<p>Tests may be skipped if the requested version has not been cached locally. To cache a version:</p>
+<pre><code class="language-bash">./gradlew buildYokoVersion -PyokoVersion=X.Y.Z
+</code></pre>
+<p>Use <code>@InteropTest</code> only when version skew is the point of the testcase. If the test is not about cross-version compatibility, prefer plain <code>@ConfigureServer</code>.</p>
+<h2 id="practical-advice-for-simplifying-tests">Practical advice for simplifying tests</h2>
+<p>When simplifying an older testcase, try this sequence:</p>
+<ol>
+<li>remove manual ORB startup code</li>
+<li>replace explicit servant export logic with <code>@ConfigureServer.RemoteImpl</code></li>
+<li>replace static stub setup with a test method parameter where possible</li>
+<li>keep <code>ORB</code> injection only if the test genuinely needs direct CORBA object conversion</li>
+<li>keep name service URLs only if the test is validating naming behavior</li>
+<li>move custom startup logic into <code>@ConfigureServer.BeforeServer</code></li>
+</ol>
+<p>A good simplified testcase usually reads like a normal JUnit test with a few annotations, not like a framework bootstrap program.</p>
+<h2 id="pitfalls">Pitfalls</h2>
+<h3 id="prefer-direct-stub-injection">Prefer direct stub injection</h3>
+<p>If all you need is to call the server object, accept the stub directly:</p>
+<pre><code class="language-java">@Test
+void callServer(Echo stub) throws Exception { ... }
+</code></pre>
+<p>This is simpler and clearer than manually doing:</p>
+<ul>
+<li><code>ORB.string_to_object(...)</code></li>
+<li><code>PortableRemoteObject.narrow(...)</code></li>
+</ul>
+<p>Manual resolution is best reserved for naming and URL-specific tests.</p>
+<h3 id="do-not-mix-configureorb-with-configureserver">Do not mix <code>@ConfigureOrb</code> with <code>@ConfigureServer</code></h3>
+<p>Choose one model:</p>
+<ul>
+<li><code>@ConfigureServer</code> for client/server tests</li>
+<li><code>@ConfigureOrb</code> for ORB-only tests</li>
+</ul>
+<p>Do not apply both to the same test.</p>
+<h3 id="keep-lifecycle-control-rare">Keep lifecycle control rare</h3>
+<p><code>ServerControl</code> is powerful, but most tests do not need it. Use it only when start/stop/restart behavior is itself under test.</p>
+<h2 id="author-checklist">Author checklist</h2>
+<p>For a new testcase, prefer this checklist:</p>
+<ul>
+<li>Is this a client/server IIOP test?</li>
+<li>use <code>@ConfigureServer</code></li>
+<li>Can the server object be exposed as a static field or static factory?</li>
+<li>use <code>@ConfigureServer.RemoteImpl</code></li>
+<li>Can the test just receive the stub?</li>
+<li>inject the stub directly into the test method</li>
+<li>Does the test actually need an ORB?</li>
+<li>only then request <code>ORB</code></li>
+<li>Does the test care about naming service or corbaname URLs?</li>
+<li>configure <code>@ConfigureOrb(nameService = ...)</code> and inject the URLs</li>
+<li>Is the test specifically about historical-version interop?</li>
+<li>use <code>@InteropTest</code></li>
+</ul>
+<p>If you follow that pattern, your testcase will usually be shorter, clearer, and easier to maintain.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
