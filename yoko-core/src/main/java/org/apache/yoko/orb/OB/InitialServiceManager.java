@@ -60,10 +60,6 @@ public final class InitialServiceManager {
     // InitialServiceManager private and protected member implementations
     // ----------------------------------------------------------------------
 
-    protected void finalize() throws Throwable {
-        Assert.ensure(destroy_);
-        super.finalize();
-    }
 
     // ----------------------------------------------------------------------
     // InitialServiceManager package member implementations

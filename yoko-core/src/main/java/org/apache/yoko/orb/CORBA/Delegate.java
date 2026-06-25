@@ -168,14 +168,7 @@ public final class Delegate extends org.omg.CORBA_2_4.portable.Delegate {
         logged(RETRY_LOG, ex, "Allow retry");
     }
 
-    @SuppressWarnings("deprecation")
-    protected void finalize() throws Throwable {
-        // CollocatedServant must be explicitly destroyed in order to make it eligible for garbage collection
-        if (directServant != null) {
-            directServant.destroy();
-        }
-        super.finalize();
-    }
+
 
     // ------------------------------------------------------------------
     // Standard IDL to Java Mapping

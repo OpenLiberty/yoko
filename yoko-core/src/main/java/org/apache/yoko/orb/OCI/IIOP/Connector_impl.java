@@ -363,13 +363,6 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
         transportInfo = extractTransportInfo(ior);
     }
 
-    protected void finalize() throws Throwable {
-        if (socket_ != null)
-            close();
-
-        super.finalize();
-    }
-
     @Override
     public String toString() {
         return "-> " + info_;

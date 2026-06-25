@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,9 +39,6 @@ final public class PoaCurrentImpl extends org.omg.CORBA.LocalObject implements o
     public PoaCurrentImpl() {
     }
 
-    protected void finalize() throws Throwable {
-        super.finalize();
-    }
 
     public org.omg.PortableServer.POA get_POA()
             throws org.omg.PortableServer.CurrentPackage.NoContext {

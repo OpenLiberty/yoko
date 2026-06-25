@@ -388,11 +388,6 @@ final public class POA_impl extends LocalObject implements POA {
         };
     }
 
-    @SuppressWarnings("deprecation")
-    protected void finalize() throws Throwable {
-        Assert.ensure(poaControl_.getDestroyed());
-        super.finalize();
-    }
 
     // ----------------------------------------------------------------------
     // Standard IDL to Java mapping

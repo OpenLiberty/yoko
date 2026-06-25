@@ -319,13 +319,6 @@ final public class Transport_impl extends LocalObject implements Transport {
         info_ = new TransportInfo_impl(this, acceptor, lm);
     }
 
-    public void finalize() throws Throwable {
-        if (socket_ != null)
-            close();
-
-        super.finalize();
-    }
-
     public String toString() {
         return String.format("Transport to %s with socket %s", info_, socket_);
     }

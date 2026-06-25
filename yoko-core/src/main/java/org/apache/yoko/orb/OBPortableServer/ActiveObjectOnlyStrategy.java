@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,11 +65,6 @@ class DirectSeqEntry {
     DirectSeqEntry(byte[] oid) {
         seq_ = new Vector();
         oid_ = oid;
-    }
-
-    protected void finalize() throws Throwable {
-        deactivate();
-        super.finalize();
     }
 
     void deactivate() {

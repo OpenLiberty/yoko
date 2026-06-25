@@ -72,13 +72,6 @@ public final class ClientManager {
     // ClientManager private and protected member implementations
     // ----------------------------------------------------------------------
 
-    protected void finalize() throws Throwable {
-        Assert.ensure(destroyed);
-        Assert.ensure(allClients.isEmpty());
-        Assert.ensure(reusableClients.isEmpty());
-
-        super.finalize();
-    }
 
     // ----------------------------------------------------------------------
     // ClientManager package member implementations

@@ -57,10 +57,6 @@ public final class ValueFactoryManager {
     // ValueFactoryManager private and protected member implementations
     // ----------------------------------------------------------------------
 
-    protected void finalize() throws Throwable {
-        Assert.ensure(destroy_);
-        super.finalize();
-    }
 
     // ----------------------------------------------------------------------
     // ValueFactoryManager package member implementations
