@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -112,15 +112,15 @@ public class TypeDescriptorTest {
 
     @ParameterizedTest(name = "Type descriptor mapping: {0} → descriptor")
     @ClassSource({
-            boolean.class, BooleanDescriptor.class,
-            byte.class, ByteDescriptor.class,
-            short.class, ShortDescriptor.class,
-            char.class, CharDescriptor.class,
-            int.class, IntegerDescriptor.class,
-            long.class, LongDescriptor.class,
-            float.class, FloatDescriptor.class,
-            double.class, DoubleDescriptor.class,
-            void.class, VoidDescriptor.class,
+            boolean.class, PrimitiveDescriptor.class,
+            byte.class, PrimitiveDescriptor.class,
+            short.class, PrimitiveDescriptor.class,
+            char.class, PrimitiveDescriptor.class,
+            int.class, PrimitiveDescriptor.class,
+            long.class, PrimitiveDescriptor.class,
+            float.class, PrimitiveDescriptor.class,
+            double.class, PrimitiveDescriptor.class,
+            void.class, PrimitiveDescriptor.class,
             String.class, StringDescriptor.class,
             Class.class, ClassDescriptor.class,
             ClassDesc.class, ClassDescDescriptor.class,

@@ -1,4 +1,4 @@
-# Copyright (c) 2022 IBM Corporation and others.
+# Copyright 2026 IBM Corporation and others.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
 
--include ~../common.bnd
+-include ~../config/bnd/common.bnd
 
 Bundle-Description: Apache Yoko OSGi Utilities
 Export-Package: org.apache.yoko.osgi.*;version=1.0.0

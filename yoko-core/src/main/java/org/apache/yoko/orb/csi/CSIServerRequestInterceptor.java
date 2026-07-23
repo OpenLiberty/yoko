@@ -49,6 +49,8 @@ import org.omg.Security.DelegationDirective;
 import org.omg.Security.SecDelegationDirectivePolicy;
 import org.omg.SecurityLevel2.DelegationDirectivePolicy;
 
+import static org.apache.yoko.util.Arrays.EMPTY_BYTES;
+
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.x500.X500Principal;
@@ -382,7 +384,7 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase implements S
 
         completeMsg.client_context_id = 0;
         completeMsg.context_stateful = false;
-        completeMsg.final_context_token = EMPTY_BARR;
+        completeMsg.final_context_token = EMPTY_BYTES;
 
         sasBody.complete_msg(completeMsg);
 
@@ -398,7 +400,7 @@ public class CSIServerRequestInterceptor extends CSIInterceptorBase implements S
         errorMsg.client_context_id = 0;
         errorMsg.major_status = major;
         errorMsg.minor_status = minor;
-        errorMsg.error_token = EMPTY_BARR;
+        errorMsg.error_token = EMPTY_BYTES;
 
         sasBody.error_msg(errorMsg);
 

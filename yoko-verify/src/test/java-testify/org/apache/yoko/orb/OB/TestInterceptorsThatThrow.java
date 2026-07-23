@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_MAYBE;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.SERVER_ORB;
+import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.SERVER;
 import static testify.iiop.annotation.ConfigureServer.Separation.COLLOCATED;
 
 @ConfigureServer
@@ -68,7 +68,7 @@ public class TestInterceptorsThatThrow {
         InterceptionPoint(Invoker<Target> invoker) { this(invoker, COMPLETED_MAYBE); }
     }
 
-    @UseWithOrb(SERVER_ORB)
+    @UseWithOrb(scope = SERVER)
     public static class InterceptorThatThrows implements TestServerRequestInterceptor {
         public void receive_request_service_contexts(ServerRequestInfo ri) throws ForwardRequest { maybeThrowInternal(ri).orForwardRequest(); }
         public void receive_request(ServerRequestInfo ri) throws ForwardRequest { maybeThrowInternal(ri).orForwardRequest(); }

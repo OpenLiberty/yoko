@@ -48,6 +48,8 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Logger.getLogger;
+import static org.apache.yoko.util.Arrays.EMPTY_BYTES;
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.apache.yoko.logging.VerboseLogging.CONN_LOG;
 import static org.apache.yoko.logging.VerboseLogging.CONN_OUT_LOG;
 import static org.apache.yoko.logging.VerboseLogging.logged;
@@ -288,13 +290,13 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
                 ProtocolPolicy protocolPolicy = ProtocolPolicyHelper.narrow(policy);
                 if (!protocolPolicy.contains(PLUGIN_ID.value)) {
                     logger.fine(() -> "Protocol policy exists but does not allow expected transport. policy = " + Arrays.toString(protocolPolicy.value()) + "\t expected transport = " + PLUGIN_ID.value);
-                    return new ProfileInfo[0];
+                    return emptyArray(ProfileInfo.class);
                 }
             }
         }
 
         ProfileInfoSeqHolder profileInfoSeq = new ProfileInfoSeqHolder();
-        profileInfoSeq.value = new ProfileInfo[0];
+        profileInfoSeq.value = emptyArray(ProfileInfo.class);
         String host = info_.getHost();
         if (Util.isEncodedHost(host)) host = Util.decodeHost(host);
         Util.extractAllProfileInfos(ior, profileInfoSeq, true, host, info_.getPort(), false, codec_);
@@ -307,7 +309,7 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
                     .map(c -> c.component_data)
                     .peek(data -> logger.fine(() -> "Found CSI_SEC_MECH_LIST: " + toHex(data)))
                     .findFirst()
-                    .orElse(new byte[0]);
+                    .orElse(EMPTY_BYTES);
             if (!Arrays.equals(transportInfo, otherTransportInfo)) {
                 logger.fine(() -> "Transport info does not match CSI_SEC_MECH_LIST: " + toHex(otherTransportInfo));
                 return new ProfileInfo[0];
@@ -338,7 +340,7 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
                 }
             }
         }
-        return new byte[0];
+        return EMPTY_BYTES;
     }
 
     public org.apache.yoko.orb.OCI.ConnectorInfo get_info() {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -96,16 +96,7 @@ import static testify.iiop.annotation.ConfigureServer.Separation.INTER_PROCESS;
 
 @ConfigureServer(separation = INTER_PROCESS)
 public class TestObjectsByValue {
-    @ConfigureServer(serverOrb = @ConfigureOrb(args = "-OAthreaded"), clientOrb = @ConfigureOrb(args = "-ORBthreaded"))
-    public static class TestObjectsByValueThreaded extends TestObjectsByValue {}
-    @ConfigureServer(serverOrb = @ConfigureOrb(args = "-OAthread_per_client"), clientOrb = @ConfigureOrb(args = "-ORBthreaded"))
-    public static class TestObjectsByValueThreadPerClient extends TestObjectsByValue {}
-    @ConfigureServer(serverOrb = @ConfigureOrb(args = "-OAthread_per_request"), clientOrb = @ConfigureOrb(args = "-ORBthreaded"))
-    public static class TestObjectsByValueThreadPerRequest extends TestObjectsByValue {}
-    @ConfigureServer(serverOrb = @ConfigureOrb(args = {"-OAthread_pool", "10"}), clientOrb = @ConfigureOrb(args = "-ORBthreaded"))
-    public static class TestObjectsByValueThreadPool extends TestObjectsByValue {}
-
-    private static TestOBV stub;
+    static TestOBV stub;
 
     enum Ior implements StringKey {TEST_OBV}
 
@@ -1015,3 +1006,13 @@ public class TestObjectsByValue {
         assertTrue(val.count == i.get_count());
     }
 }
+
+
+@ConfigureServer(serverOrb = @ConfigureOrb(args = "-OAthreaded"), clientOrb = @ConfigureOrb(args = "-ORBthreaded"))
+class TestObjectsByValueThreaded extends TestObjectsByValue {}
+@ConfigureServer(serverOrb = @ConfigureOrb(args = "-OAthread_per_client"), clientOrb = @ConfigureOrb(args = "-ORBthreaded"))
+class TestObjectsByValueThreadPerClient extends TestObjectsByValue {}
+@ConfigureServer(serverOrb = @ConfigureOrb(args = "-OAthread_per_request"), clientOrb = @ConfigureOrb(args = "-ORBthreaded"))
+class TestObjectsByValueThreadPerRequest extends TestObjectsByValue {}
+@ConfigureServer(serverOrb = @ConfigureOrb(args = {"-OAthread_pool", "10"}), clientOrb = @ConfigureOrb(args = "-ORBthreaded"))
+class TestObjectsByValueThreadPool extends TestObjectsByValue {}

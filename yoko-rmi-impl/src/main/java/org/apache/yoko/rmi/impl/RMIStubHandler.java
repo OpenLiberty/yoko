@@ -30,7 +30,6 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.rmi.RemoteException;
 import java.util.Arrays;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -54,7 +53,7 @@ public class RMIStubHandler implements StubHandler, Serializable {
     static final RMIStubHandler instance = new RMIStubHandler();
 
     public Object stubWriteReplace(RMIStub stub) {
-        return new RMIPersistentStub(stub, stub._descriptor.type);
+        return new RMIPersistentStub(stub, stub._descriptor.getType());
     }
 
 
@@ -73,7 +72,7 @@ public class RMIStubHandler implements StubHandler, Serializable {
         for (;;) {
             InputStream in = null;
             try {
-                final OutputStream out = stub._request(method_name, method.responseExpected());
+                final OutputStream out = stub._request(method_name, method.getResponseExpected());
                 method.writeArguments(out, args);
                 in = stub._invoke(out);
                 return method.readResult(in);

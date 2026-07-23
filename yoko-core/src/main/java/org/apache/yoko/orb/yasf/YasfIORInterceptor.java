@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -8,7 +8,7 @@
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an \"AS IS\" BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
@@ -17,21 +17,23 @@
  */
 package org.apache.yoko.orb.yasf;
 
+import org.omg.CORBA.LocalObject;
+import org.omg.PortableInterceptor.IORInfo;
+import org.omg.PortableInterceptor.IORInterceptor;
+
 import java.io.IOException;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import org.omg.CORBA.LocalObject;
-import org.omg.PortableInterceptor.IORInfo;
-import org.omg.PortableInterceptor.IORInterceptor;
+import static org.apache.yoko.util.yasf.YasfWrangler.YASF_WRANGLER;
 
-public class YasfIORInterceptor extends LocalObject implements IORInterceptor {
+public final class YasfIORInterceptor extends LocalObject implements IORInterceptor {
     private static final String NAME = YasfIORInterceptor.class.getName();
 
     @Override
     public void establish_components(IORInfo info) {
-        YasfHelper.addTc(info);
+        YASF_WRANGLER.addTc(info);
     }
 
     @Override

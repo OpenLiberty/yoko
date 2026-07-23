@@ -38,6 +38,8 @@ import javax.rmi.CORBA.Util;
 import javax.rmi.PortableRemoteObject;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+
+import static org.apache.yoko.util.Arrays.emptyArray;
 import java.net.URL;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
@@ -67,19 +69,19 @@ public class RMIState implements PortableRemoteObjectState {
     private final String _name;
 
     final TypeRepository repo = TypeRepository.get();
-    
+
     private POA poa;
-    
+
     POA getPOA() {
 	return poa;
     }
 
     RMIState(ORB orb, String name) {
         Objects.requireNonNull(orb, "ORB is null");
-        
+
         try {
             POA rootPoa = (POA) orb.resolve_initial_references("RootPOA");
-            poa = rootPoa.create_POA(name, null, new Policy[0]);
+            poa = rootPoa.create_POA(name, null, emptyArray(Policy.class));
             poa.the_POAManager().activate();
         } catch (AdapterAlreadyExists e) {
             logger.log(WARNING, e, () -> "Adapter already exists");

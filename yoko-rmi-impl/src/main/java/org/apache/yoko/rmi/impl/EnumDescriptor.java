@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,18 +17,19 @@
  */
 package org.apache.yoko.rmi.impl;
 
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.ObjectStreamField;
 
-import static org.apache.yoko.util.yasf.Yasf.ENUM_FIXED;
+class EnumDescriptor extends UncustomizableValueDescriptor {
+    private static final ObjectStreamField[] SERIAL_PERSISTENT_FIELDS = {
+        new ObjectStreamField("name", String.class)
+    };
 
-class EnumDescriptor extends ValueDescriptor {
     public EnumDescriptor(Class<?> type, TypeRepository repo) {
         super(type, repo);
     }
 
     @Override
-    protected final long getSerialVersionUID() {
+    final long genSerialVersionUid() {
         return 0L;
     }
 
@@ -37,28 +38,9 @@ class EnumDescriptor extends ValueDescriptor {
         return true;
     }
 
-    private FieldDescriptor nameField = null;
-    private FieldDescriptor ordinalField = null;
-
     @Override
-    public final void init() {
-        super.init();
-        // Avoid doing anything that would cause the calculated classHash to change
-        for (FieldDescriptor f: _fields) {
-            if (f.java_name.equals("name")) {
-                nameField = f;
-            } else if (f.java_name.equals("ordinal")) {
-                ordinalField = f;
-            }
-        }
-    }
-
-    @Override
-    protected void defaultWriteValue(ObjectWriter writer, Serializable val) throws IOException {
-        if (ENUM_FIXED.isUnsupported()) {
-            // talking to an old yoko that expects an ordinal field to be written
-            ordinalField.write(writer, val);
-        }
-        nameField.write(writer, val);
+    ObjectStreamField[] findSerialPersistentFields() {
+        // Use serialPersistentFields mechanism to declare only the name field should be marshalled
+        return SERIAL_PERSISTENT_FIELDS;
     }
 }

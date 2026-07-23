@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@
  */
 package org.apache.yoko.rmi.impl;
 
+import org.apache.yoko.util.concurrent.LazyReference;
+import org.omg.CORBA.INTERNAL;
+import org.omg.CORBA.ORB;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
@@ -26,42 +29,59 @@ import java.rmi.Remote;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
+import static org.apache.yoko.util.Exceptions.as;
+
 abstract class TypeDescriptor extends ModelElement {
-    static Logger logger = Logger.getLogger(TypeDescriptor.class.getName());
+    protected static final Logger logger = Logger.getLogger(TypeDescriptor.class.getName());
 
-    final Class type;
+    private final Class<?> type;
+    private final java.util.function.Function<InputStream, Object> readFunction;
+    private final java.util.function.BiConsumer<OutputStream, Object> writeFunction;
 
-    private volatile String _repid = null;
+    final Class<?> getType() { return type; }
 
-    private volatile String packageName = null;    // the package name qualifier (if any)
-    protected String genPackageName() {
+    private final LazyReference<String> repIdRef = new LazyReference<>(this::genRepId);
+
+    private final LazyReference<String> packageNameRef = new LazyReference<>(this::genPackageName);
+    String genPackageName() {
         int idx = java_name.lastIndexOf('.');
         return ((idx < 0) ? "" : java_name.substring(0, idx));
     }
-    public final String getPackageName() {
-        if (null == packageName) packageName = genPackageName();
-        return packageName;
+    final String getPackageName() {
+        return packageNameRef.get();
     }
 
-    private volatile String typeName = null;       // the simple type name (minus package, if any)
-    protected String genTypeName() {
+    private final LazyReference<String> typeNameRef = new LazyReference<>(this::genTypeName);
+    String genTypeName() {
         int idx = java_name.lastIndexOf('.');
         return ((idx < 0) ? java_name : java_name.substring(idx + 1));
     }
-    public final String getTypeName() {
-        if (null == typeName) typeName = genTypeName();
-        return typeName;
+    final String getTypeName() {
+        return typeNameRef.get();
     }
 
-    private volatile FullKey key = null;
-    private FullKey genKey() {
-        return new FullKey(getRepositoryID(), type);
+    private final LazyReference<FullKey> keyRef = new LazyReference<>(this::genKey);
+    FullKey genKey() {
+        return new FullKey(getRepositoryID(), getType());
     }
-    public final FullKey getKey() {
-        if (null == key) key = genKey();
-        return key;
+    final FullKey getKey() {
+        return keyRef.get();
+    }
+
+    private final LazyReference<TypeDescriptor> initializedRef = new LazyReference<>(this::firstInit, () -> this);
+
+    final TypeDescriptor getInitialized() {
+        return initializedRef.get();
+    }
+
+    private TypeDescriptor firstInit() {
+        init();
+        repo.addToRepIdDescriptors.accept(this);
+        return this;
     }
 
     public static class SimpleKey {
@@ -108,7 +128,7 @@ abstract class TypeDescriptor extends ModelElement {
             if (obj == null) return false;
             if (!(obj instanceof SimpleKey)) return false;
             if (obj instanceof FullKey &&
-                    !!!Objects.equals(localType, ((FullKey)obj).localType)) return false;
+                    !Objects.equals(localType, ((FullKey) obj).localType)) return false;
             return super.equals(obj);
         }
     }
@@ -116,113 +136,121 @@ abstract class TypeDescriptor extends ModelElement {
     @Override
     public String toString() {
         return String.format("%s{class=\"%s\",repId=\"%s\"}",
-                this.getClass().getName(), type,
+                this.getClass().getName(), getType(),
                 getRepositoryID());
     }
 
-    protected TypeDescriptor(Class type, TypeRepository repository) {
+    interface ReadFn extends Function<InputStream, Object> {}
+    interface WriteFn extends BiConsumer<OutputStream,Object> {}
+
+    protected TypeDescriptor(Class<?> type, TypeRepository repository, ReadFn readFn, WriteFn writeFn) {
         super(repository, type.getName());
         this.type = type;
+        this.readFunction = readFn;
+        this.writeFunction = writeFn;
     }
 
     @Override
-    protected String genIDLName() {
+    String genIDLName() {
         return java_name.replace('.', '_');
     }
 
-    protected String genRepId() {
-        return String.format("RMI:%s:%016X", type.getName(), 0);
+    String genRepId() {
+        return String.format("RMI:%s:%016X", getType().getName(), 0);
     }
-    public final String getRepositoryID() {
-        if (_repid == null) _repid = genRepId();
-        return _repid;
+    final String getRepositoryID() {
+        return repIdRef.get();
     }
 
-    private volatile RemoteInterfaceDescriptor remoteInterface = null;
-    protected RemoteInterfaceDescriptor genRemoteInterface() {
-        throw new UnsupportedOperationException("class " + type + " does not implement " + Remote.class.getName());
+    private final LazyReference<RemoteInterfaceDescriptor> remoteInterfaceRef = new LazyReference<>(this::genRemoteInterface);
+    RemoteInterfaceDescriptor genRemoteInterface() {
+        throw new UnsupportedOperationException("class " + getType() + " does not implement " + Remote.class.getName());
     }
     final RemoteInterfaceDescriptor getRemoteInterface() {
-        if (null == remoteInterface) remoteInterface = genRemoteInterface();
-        return remoteInterface;
+        return remoteInterfaceRef.get();
     }
 
 
 
     /** Read an instance of this value from a CDR stream */
-    public abstract Object read(InputStream in);
+    public final Object read(InputStream in) {
+        return readFunction.apply(in);
+    }
 
     /** Write an instance of this value to a CDR stream */
-    public abstract void write(OutputStream out, Object val);
+    public final void write(OutputStream out, Object val) {
+        writeFunction.accept(out, val);
+    }
 
     public boolean isCustomMarshalled() {
         return false;
     }
 
-    String makeSignature(Class type) {
-        if (type.isPrimitive()) {
+    private final LazyReference<Long> classHashRef = new LazyReference<>(this::genClassHash);
 
-            if (type == Boolean.TYPE) {
-                return "Z";
-            } else if (type == Byte.TYPE) {
-                return "B";
-            } else if (type == Short.TYPE) {
-                return "S";
-            } else if (type == Character.TYPE) {
-                return "C";
-            } else if (type == Integer.TYPE) {
-                return "I";
-            } else if (type == Long.TYPE) {
-                return "J";
-            } else if (type == Float.TYPE) {
-                return "F";
-            } else if (type == Double.TYPE) {
-                return "D";
-            } else if (type == Void.TYPE) {
-                return "V";
-            } else
-                throw new RuntimeException("unknown primitive class" + type);
-
-        } else if (type.isArray()) {
-            int i = 0;
-            Class elem = type;
-            for (; elem.isArray(); elem = elem.getComponentType())
-                i += 1;
-
-            StringBuffer sb = new StringBuffer();
-            for (int j = 0; j < i; j++)
-                sb.append('[');
-
-            sb.append(makeSignature(elem));
-
-            return sb.toString();
-        } else {
-            return "L" + (type.getName()).replace('.', '/') + ";";
-        }
+    final long getClassHash() {
+        return classHashRef.get();
     }
 
-    long getHashCode() {
+    long genClassHash() {
         return 0L;
     }
 
-    @Override
-    protected void init() {
-        getTypeCode();
+    /**
+     * Creates a JVM signature string for the given type.
+     * Used for computing RMI hash codes and method signatures.
+     *
+     * @param type the class to create a signature for
+     * @return the JVM signature string (e.g., "I" for int, "Ljava/lang/String;" for String)
+     */
+    static String makeSignature(Class<?> type) {
+        if (type.isPrimitive()) {
+            // Use switch for better readability and performance
+            if (boolean.class == type) return "Z";
+            if (byte.class == type) return "B";
+            if (short.class == type) return "S";
+            if (char.class == type) return "C";
+            if (int.class == type) return "I";
+            if (long.class == type) return "J";
+            if (float.class == type) return "F";
+            if (double.class == type) return "D";
+            if (void.class == type) return "V";
+            throw new RuntimeException("unknown primitive class: " + type);
+        }
+
+        if (type.isArray()) {
+            // Build signature while traversing to component type
+            StringBuilder sb = new StringBuilder();
+            Class<?> componentType = type;
+            while (componentType.isArray()) {
+                sb.append('[');
+                componentType = componentType.getComponentType();
+            }
+            sb.append(makeSignature(componentType));
+            return sb.toString();
+        }
+
+        // Object type signature
+        return "L" + type.getName().replace('.', '/') + ";";
     }
 
-    private volatile TypeCode typeCode = null;
-    protected abstract TypeCode genTypeCode();
-    final TypeCode getTypeCode() {
-        if (null == typeCode) {
-            synchronized (repo) {
-                if (null == typeCode) typeCode = genTypeCode();
-            }
+    void init() {
+        try {
+            getTypeCode();
+        } catch (INTERNAL internal) {
+            throw internal;
+        } catch (RuntimeException | Error ex) {
+            throw as(INTERNAL::new, ex);
         }
-        return typeCode;
     }
-    protected final void setTypeCode(TypeCode tc) {
-        typeCode = tc;
+
+    private final LazyReference<TypeCode> typeCodeRef = new LazyReference<>(this::genTypeCode, this::genTypeCodePlaceholder);
+    abstract TypeCode genTypeCode();
+    TypeCode genTypeCodePlaceholder() {
+        ORB orb = ORB.init();
+        return orb.create_recursive_tc(getRepositoryID());
     }
+    final TypeCode getTypeCode() { return typeCodeRef.get(); }
 
     Object copyObject(Object value, CopyState state) {
         throw new InternalError("cannot copy " + value.getClass().getName());
@@ -249,7 +277,6 @@ abstract class TypeDescriptor extends ModelElement {
     }
 
     void addDependencies(Set<Class<?>> classes) {
-        return;
     }
 
     boolean copyInStub() {
@@ -265,26 +292,24 @@ abstract class TypeDescriptor extends ModelElement {
         if (old != null) {
             pw.print("^" + old);
         } else {
-            pw.println(type.getName() + "@"
+            pw.println(getType().getName() + "@"
                     + Integer.toHexString(System.identityHashCode(val)));
         }
     }
 
     /**
      * Method copyBetweenStates.
-     * 
+     *
      * @return boolean
      */
-    public boolean copyBetweenStates() {
-        return true;
-    }
+    boolean copyBetweenStates() { return true; }
 
     /**
      * Method copyWithinState.
-     * 
+     *
      * @return boolean
      */
-    public boolean copyWithinState() {
+    boolean copyWithinState() {
         return true;
     }
 

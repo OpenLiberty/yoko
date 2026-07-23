@@ -24,6 +24,8 @@ import org.apache.yoko.orb.OB.ProtocolPolicy;
 import org.apache.yoko.orb.OB.ProtocolPolicyHelper;
 import org.apache.yoko.orb.OCI.ConFactory;
 import org.apache.yoko.orb.OCI.ConnectCB;
+
+import static org.apache.yoko.util.Arrays.emptyArray;
 import org.apache.yoko.orb.OCI.Connector;
 import org.apache.yoko.util.Assert;
 import org.omg.CORBA.LocalObject;
@@ -121,8 +123,6 @@ final class ConFactory_impl extends LocalObject implements ConFactory {
         return result.toString();
     }
 
-    private static final Connector[] EMPTY_CONNECTORS = new Connector[0];
-
     public Connector[] create_connectors(IOR ior, Policy[] policies) {
         logger.finest(() -> "Creating connection for ior: " + describeIor(orb_, ior));
 
@@ -133,7 +133,7 @@ final class ConFactory_impl extends LocalObject implements ConFactory {
             if (policy.policy_type() == PROTOCOL_POLICY_ID.value) {
                 ProtocolPolicy protocolPolicy = ProtocolPolicyHelper.narrow(policy);
                 if (!protocolPolicy.contains(PLUGIN_ID.value))
-                    return EMPTY_CONNECTORS;
+                    return emptyArray(Connector.class);
             }
         }
 
@@ -231,7 +231,7 @@ final class ConFactory_impl extends LocalObject implements ConFactory {
             }
         }
         final List<Connector> connectors = extConnectors.isEmpty() ? iopConnectors : extConnectors;
-        return connectors.toArray(EMPTY_CONNECTORS);
+        return connectors.toArray(emptyArray(Connector.class));
     }
 
     private Connector createConnector(IOR ior, Policy[] policies, String host, int port, ConnectCB[] cbs, Codec codec) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,16 @@
  */
 package org.apache.yoko.orb.rofl;
 
+import org.apache.yoko.io.SimplyCloseable;
+import org.apache.yoko.orb.PortableInterceptor.ExtendedServerRequestInterceptor;
 import org.apache.yoko.util.rofl.RoflHelper;
-import org.apache.yoko.util.rofl.RoflThreadLocal;
 import org.omg.CORBA.LocalObject;
 import org.omg.PortableInterceptor.ForwardRequest;
 import org.omg.PortableInterceptor.ServerRequestInfo;
-import org.omg.PortableInterceptor.ServerRequestInterceptor;
 
-public class RoflServerInterceptor extends LocalObject implements ServerRequestInterceptor {
+import static org.apache.yoko.util.ThreadLocalStack.ROFL_THREAD_LOCAL;
+
+public class RoflServerInterceptor extends LocalObject implements ExtendedServerRequestInterceptor {
     private static final String NAME = RoflServerInterceptor.class.getName();
     private final RoflHelper roflHelper;
 
@@ -32,14 +34,19 @@ public class RoflServerInterceptor extends LocalObject implements ServerRequestI
         this.roflHelper = new RoflHelper(slotId);
     }
     public void receive_request_service_contexts(ServerRequestInfo ri) throws ForwardRequest {
-        RoflThreadLocal.reset();
+        ROFL_THREAD_LOCAL.reset();
+        // Store in slot - will be retrieved after context switch in pre_unmarshal
         roflHelper.findAndSave(ri);
     }
 
-    public void receive_request(ServerRequestInfo ri) {}
-    public void send_reply(ServerRequestInfo ri) { RoflThreadLocal.push(roflHelper.loadAndCreate(ri)); }
-    public void send_exception(ServerRequestInfo ri) { RoflThreadLocal.push(roflHelper.loadAndCreate(ri)); }
-    public void send_other(ServerRequestInfo ri) { RoflThreadLocal.push(roflHelper.loadAndCreate(ri)); }
+    public void pre_unmarshal(ServerRequestInfo ri) {
+        @SuppressWarnings("resource") // popped in post_marshal
+        SimplyCloseable ignored = ROFL_THREAD_LOCAL.push(roflHelper.loadAndCreate(ri));
+    }
+
+    public void post_marshal(ServerRequestInfo ri) {
+        ROFL_THREAD_LOCAL.pop();
+    }
+
     public String name() { return NAME; }
-    public void destroy() {}
 }

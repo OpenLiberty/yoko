@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,8 +59,6 @@ import static testify.util.Assertions.assertThrowsExactly;
 
 @ConfigureServer(separation = INTER_ORB)
 public class PoaManagerServerTest {
-    @ConfigureServer(separation = COLLOCATED)
-    public static class CollocatedTest extends PoaManagerServerTest {}
     public interface Proxy extends Remote {
         void activate() throws RemoteException;
         void hold_requests(boolean wait_for_completion) throws RemoteException;
@@ -221,3 +219,7 @@ public class PoaManagerServerTest {
         assertSame(proxy.get_state(), State._ACTIVE);
     }
 }
+
+
+@ConfigureServer(separation = COLLOCATED)
+class CollocatedTest extends PoaManagerServerTest {}

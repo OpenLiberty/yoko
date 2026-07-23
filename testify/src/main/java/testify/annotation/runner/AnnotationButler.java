@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -50,17 +51,23 @@ import static org.junit.platform.commons.support.ModifierSupport.isStatic;
 
 public class AnnotationButler<A extends Annotation> implements Serializable {
     public static <A extends Annotation> Spec<A> forClass(Class<A> annoType) {
-        return new Spec<>(annoType);
+        return new Spec<>(annoType, Optional.empty());
+    }
+
+    public static <A extends Annotation> Spec<A> forClass(Class<A> annoType, Class<?> testClass) {
+        return new Spec<>(annoType, Optional.of(testClass));
     }
 
     public static class Spec<A extends Annotation> {
         private final Class<A> annoType;
         private final String annoName;
+        private final Optional<Class<?>> testClass;
         private Predicate<A> filters = a -> true;
         private Consumer<Member> assertions = m -> {};
-        private Spec(Class<A> annoType) {
+        private Spec(Class<A> annoType, Optional<Class<?>> testClass) {
             this.annoType = annoType;
             this.annoName =  "@" + annoType.getSimpleName();
+            this.testClass = testClass;
         }
         public Spec<A> assertPublic() {
             assertions = assertions.andThen(member -> assertTrue(isPublic(member), () -> ""
@@ -82,7 +89,7 @@ public class AnnotationButler<A extends Annotation> implements Serializable {
         }
         public <TA extends Annotation> Spec<A> requireTestAnnotation(Class<TA> testAnnoType) {
             assertions = assertions.andThen(
-                    member -> assertTrue(findAnnotation(member.getDeclaringClass(), testAnnoType)
+                    member -> assertTrue(findAnnotation(testClass.orElse(member.getDeclaringClass()), testAnnoType)
                                     .isPresent(),
                             () -> "The " + annoName
                                     + " annotation may only be used within tests that have the @"
@@ -91,15 +98,14 @@ public class AnnotationButler<A extends Annotation> implements Serializable {
             return this;
         }
         public <TA extends Annotation, X> Spec<A> requireTestAnnotation(Class<TA> testAnnoType, String description, Function<TA, X> mapper, Matcher<X> matcher) {
-            // TODO: consider using the actual known test class instead of member.getDeclaringClass()
             requireTestAnnotation(testAnnoType);
             assertions = assertions.andThen(
                     member -> assertThat(
                             "The " + annoName
                                     + " annotation on member " + member + " has a matching @"
-                                    + testAnnoType.getSimpleName() + " annotation on its declaring class but "
+                                    + testAnnoType.getSimpleName() + " annotation on the test class but "
                                     + description,
-                            findAnnotation(member.getDeclaringClass(), testAnnoType)
+                            findAnnotation(testClass.orElse(member.getDeclaringClass()), testAnnoType)
                                     .map(mapper)
                                     .orElse(null),
                             matcher));

@@ -56,6 +56,7 @@ import testify.bus.Bus;
 import testify.bus.key.StringKey;
 import testify.iiop.TestIORInterceptor;
 import testify.iiop.TestORBInitializer;
+import testify.iiop.annotation.ConfigureOrb;
 import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
 import testify.iiop.annotation.ConfigureServer;
 import testify.iiop.annotation.ConfigureServer.BeforeServer;
@@ -78,14 +79,15 @@ import static org.omg.CORBA.TCKind.tk_string;
 import static org.omg.CORBA.TCKind.tk_void;
 import static org.omg.PortableInterceptor.PortableInterceptorTest.IorKey.DSI_IMPL;
 import static org.omg.PortableInterceptor.PortableInterceptorTest.IorKey.IMPL;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.CLIENT_ORB;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.SERVER_ORB;
+import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.CLIENT;
+import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.SERVER;
 import static testify.iiop.annotation.ConfigureServer.Separation.COLLOCATED;
 
-@ConfigureServer
+@ConfigureServer(
+        clientOrb = @ConfigureOrb(props = "yoko.orb.id=client orb"),
+        serverOrb = @ConfigureOrb(props = "yoko.orb.id=server orb")
+)
 public class PortableInterceptorTest {
-    @ConfigureServer(separation = COLLOCATED)
-    public static class PICollocatedTest extends PortableInterceptorTest{}
     static ClientProxyManager clientProxyManager;
     private static Policy[] policies;
     private static Bus clientBus;
@@ -101,7 +103,7 @@ public class PortableInterceptorTest {
      * it does not matter or affect the test to have this initializer run
      * on the server ORB for that test too.
      */
-    @UseWithOrb({CLIENT_ORB, SERVER_ORB})
+    @UseWithOrb(scope = CLIENT)
     public static class ClientOrbInitializer implements TestORBInitializer {
         @Override
         public void pre_init(ORBInitInfo info) {
@@ -114,7 +116,7 @@ public class PortableInterceptorTest {
         }
     }
 
-    @UseWithOrb(SERVER_ORB)
+    @UseWithOrb(scope = SERVER)
     public static class ServerOrbInitializer implements TestORBInitializer {
         public void pre_init(ORBInitInfo info) {
             info.register_policy_factory(MY_SERVER_POLICY_ID.value, new MyServerPolicyFactory_impl());
@@ -127,7 +129,7 @@ public class PortableInterceptorTest {
         }
     }
 
-    @UseWithOrb(SERVER_ORB)
+    @UseWithOrb(scope = SERVER)
     public static class IorInterceptor implements TestIORInterceptor {
         private Codec cdrCodec;
 
@@ -580,3 +582,10 @@ public class PortableInterceptorTest {
         clientProxyManager.clearInterceptors();
     }
 }
+
+
+@ConfigureServer(
+        separation = COLLOCATED,
+        clientOrb = @ConfigureOrb(props="yoko.orb.id=collocated orb")
+)
+class PICollocatedTest extends PortableInterceptorTest{}

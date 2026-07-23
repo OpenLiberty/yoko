@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
  */
 package org.apache.yoko.orb.rofl;
 
+import org.apache.yoko.io.SimplyCloseable;
 import org.apache.yoko.util.rofl.Rofl;
 import org.apache.yoko.util.rofl.RoflHelper;
-import org.apache.yoko.util.rofl.RoflThreadLocal;
 import org.omg.CORBA.LocalObject;
 import org.omg.PortableInterceptor.ClientRequestInfo;
 import org.omg.PortableInterceptor.ClientRequestInterceptor;
@@ -30,24 +30,27 @@ import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import static org.apache.yoko.util.ThreadLocalStack.ROFL_THREAD_LOCAL;
+
 public class RoflClientInterceptor extends LocalObject implements ClientRequestInterceptor {
     private static final String NAME = RoflClientInterceptor.class.getName();
 
     @Override
     public void send_request(ClientRequestInfo ri) throws ForwardRequest {
         Rofl rofl = RoflHelper.createFromTaggedComponent(ri);
-        RoflThreadLocal.push(rofl);
+        @SuppressWarnings("resource") // popped in receive_*
+        SimplyCloseable ignored = ROFL_THREAD_LOCAL.push(rofl);
     }
 
     public void send_poll(ClientRequestInfo ri) {}
     public void receive_reply(ClientRequestInfo ri) {
-        RoflThreadLocal.pop();
+        ROFL_THREAD_LOCAL.pop();
     }
     public void receive_exception(ClientRequestInfo ri) {
-        RoflThreadLocal.pop();
+        ROFL_THREAD_LOCAL.pop();
     }
     public void receive_other(ClientRequestInfo ri) {
-        RoflThreadLocal.pop();
+        ROFL_THREAD_LOCAL.pop();
     }
     public String name() {
         return NAME;

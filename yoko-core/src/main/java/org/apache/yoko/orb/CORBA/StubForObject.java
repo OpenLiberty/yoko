@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ package org.apache.yoko.orb.CORBA;
 import org.omg.CORBA.portable.IDLEntity;
 import org.omg.CORBA_2_4.portable.ObjectImpl;
 
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
+
 final public class StubForObject extends ObjectImpl
         implements IDLEntity {
     // ------------------------------------------------------------------
@@ -27,6 +29,6 @@ final public class StubForObject extends ObjectImpl
     // ------------------------------------------------------------------
 
     public String[] _ids() {
-        return new String[0];
+        return NO_STRINGS;
     }
 }

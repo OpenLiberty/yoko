@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,10 +35,10 @@ import testify.parts.PartRunner;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.toList;
 import static org.junit.platform.commons.support.AnnotationSupport.findRepeatableAnnotations;
-import static testify.annotation.runner.PartRunnerSteward.getPartRunner;
+import static testify.annotation.runner.PartRunners.getPartRunner;
 
 /**
  * Log each test and print out the log messages
@@ -84,7 +84,7 @@ public final class LoggingExtension implements CloseableResource, BeforeAllCallb
         List<LogSetting> settings = findRepeatableAnnotations(ctx.getElement(), Logging.class)
                 .stream()
                 .map(LogSetting::new)
-                .collect(Collectors.toList());
+                .collect(toList());
         getLogPublisher(ctx).pushSettings(settings).flushLogs("BEFORE: " + ctx.getDisplayName());
     }
 

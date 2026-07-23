@@ -17,9 +17,8 @@
  */
 package org.apache.yoko.rmi.impl;
 
-import org.apache.yoko.rmi.util.StringUtil;
+import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.AttributeDescription;
-import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.Initializer;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.ORB;
@@ -31,10 +30,6 @@ import org.omg.CORBA.ValueMember;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
 import org.omg.CORBA.portable.UnknownException;
-import org.omg.SendingContext.CodeBase;
-import org.omg.SendingContext.CodeBaseHelper;
-import org.omg.SendingContext.RunTime;
-import sun.reflect.ReflectionFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -46,314 +41,460 @@ import java.io.ObjectStreamClass;
 import java.io.ObjectStreamField;
 import java.io.PrintWriter;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.rmi.Remote;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivilegedActionException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static java.security.AccessController.doPrivileged;
 import static java.util.Arrays.asList;
-import static java.util.Collections.EMPTY_MAP;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableSet;
+import static java.util.Comparator.comparing;
+import static java.util.function.Function.identity;
 import static java.util.logging.Level.WARNING;
+import static java.util.stream.Collectors.collectingAndThen;
+import static org.apache.yoko.io.Buffer.createReadBuffer;
+import static org.apache.yoko.logging.VerboseLogging.MARSHAL_IN_LOG;
+import static org.apache.yoko.logging.VerboseLogging.MARSHAL_LOG;
+import static org.apache.yoko.logging.VerboseLogging.MARSHAL_OUT_LOG;
+import static org.apache.yoko.rmi.impl.FieldDescriptor.getForSerialPersistentField;
+import static org.apache.yoko.rmi.impl.RemoteDescriptor.genMostSpecificRemoteInterface;
+import static org.apache.yoko.rmi.util.StringUtil.convertToValidIDLNames;
 import static org.apache.yoko.util.Exceptions.as;
+import static org.apache.yoko.util.PrivilegedActions.exAction;
+import static org.apache.yoko.util.PrivilegedActions.getDeclaredField;
+import static org.apache.yoko.util.PrivilegedActions.getDeclaredFields;
+import static org.apache.yoko.util.PrivilegedActions.getDeclaredMethod;
+import static org.apache.yoko.util.PrivilegedActions.getField;
+import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
+import static org.apache.yoko.util.PrivilegedActions.makeAccessible;
+import static sun.reflect.ReflectionFactory.getReflectionFactory;
 
 class ValueDescriptor extends TypeDescriptor {
-    static final Logger logger = Logger.getLogger(ValueDescriptor.class.getName());
+    private final LazyReference<Function<Serializable, Serializable>> writeReplacerRef = new LazyReference<>(this::genWriteReplacer);
 
-    private boolean _is_externalizable;
+    private final LazyReference<Function<Serializable, Serializable>> readResolverRef = new LazyReference<>(this::genReadResolver);
 
-    private boolean _is_serializable;
+    private final LazyReference<Supplier<Serializable>> blankInstanceSupplierRef = new LazyReference<>(this::genBlankInstanceSupplier);
 
-    private Method _write_replace_method;
+    private final LazyReference<Method> writeObjectMethodRef = new LazyReference<>(this::genWriteObjectMethod);
 
-    private Method _read_resolve_method;
+    private final LazyReference<Method> readObjectMethodRef = new LazyReference<>(this::genReadObjectMethod);
 
-    private Constructor _constructor;
+    private final LazyReference<Long> serialVersionUidRef = new LazyReference<>(this::genSerialVersionUid);
 
-    private Method _write_object_method;
+    private final LazyReference<ValueWriter> valueWriterRef = new LazyReference<>(this::genValueWriter);
+    private final LazyReference<ValueReader> valueReaderRef;
 
-    private Method _read_object_method;
+    @FunctionalInterface
+    interface ValueReader extends BiFunction<ObjectReader, Serializable, Serializable> {}
 
-    private Field _serial_version_uid_field;
+    private final LazyReference<ValueDescriptor> superDescriptorRef = new LazyReference<>(this::genSuperDescriptor);
 
-    protected ValueDescriptor _super_descriptor;
+    protected final LazyReference<List<FieldDescriptor>> fieldsRef = new LazyReference<>(this::genFields);
 
-    protected FieldDescriptor[] _fields;
+    private final LazyReference<Boolean> immutableValueRef = new LazyReference<>(this::genImmutableValue);
 
-    private ObjectDeserializer _object_deserializer;
+    private final LazyReference<String> customRepIdRef = new LazyReference<>(this::genCustomRepId);
 
-    private boolean _is_immutable_value;
-
-    private boolean _is_rmi_stub;
-
-    private String _custom_repid;
-
-    private static final Set<? extends Class<? extends Serializable>> _immutable_value_classes = unmodifiableSet(new HashSet<>(asList(Integer.class,
+    private static final Set<? extends Class<? extends Serializable>> IMMUTABLE_VALUE_CLASSES = unmodifiableSet(new HashSet<>(asList(Integer.class,
             Character.class, Boolean.class, Byte.class, Long.class, Float.class, Double.class, Short.class)));
 
-    private long _hash_code;
+    ValueDescriptor(Class<?> type, TypeRepository repository) {
+        this(type, repository, null, null, null);
+    }
 
-    ValueDescriptor(Class type, TypeRepository repository) {
-        super(type, repository);
+    ValueDescriptor(Class<?> type, TypeRepository repository, ReadFn readFn, WriteFn writeFn) {
+        this(type, repository, readFn, writeFn, null);
+    }
+
+    ValueDescriptor(Class<?> type, TypeRepository repository, WriteFn writeFn, Supplier<ValueReader> readerSuppler) {
+        this(type, repository, null, writeFn, readerSuppler);
+    }
+
+    private ValueDescriptor(Class<?> type, TypeRepository repository, ReadFn readFn, WriteFn writeFn, Supplier<ValueReader> readerSuppler) {
+        super(type, repository,
+            null == readFn ? genVanillaReadFn(type) : readFn,
+            null == writeFn ? ValueDescriptor::vanillaWriteFn : writeFn);
+        valueReaderRef = new LazyReference<>(null == readerSuppler ? this::genValueReader : readerSuppler);
+    }
+
+    private static ReadFn genVanillaReadFn(Class<?> type) {
+        return in -> ((org.omg.CORBA_2_3.portable.InputStream) in).read_value(type);
+    }
+
+    private static void vanillaWriteFn(java.io.OutputStream out, Object val) {
+        ((org.omg.CORBA_2_3.portable.OutputStream) out).write_value((Serializable) val);
     }
 
     protected boolean isEnum() { return false; }
 
-    @Override
-    protected final RemoteInterfaceDescriptor genRemoteInterface() {
-        if (!!!java.rmi.Remote.class.isAssignableFrom(type)) return super.genRemoteInterface();
-        return RemoteDescriptor.genMostSpecificRemoteInterface(type, repo);
+    boolean isExternalizable() { return Externalizable.class.isAssignableFrom(getType()); }
+
+    private boolean isSerializable() { return Serializable.class.isAssignableFrom(getType()); }
+
+    private boolean isRmiStub() { return RMIStub.class.isAssignableFrom(getType()); }
+
+    private boolean isImmutableValue() { return immutableValueRef.get(); }
+
+    private boolean genImmutableValue() {
+        return IMMUTABLE_VALUE_CLASSES.contains(getType());
     }
 
     @Override
-    protected String genRepId() {
-        return String.format("RMI:%s:%016X:%016X", StringUtil.convertToValidIDLNames(type.getName()),
-                _hash_code, getSerialVersionUID());
+    final RemoteInterfaceDescriptor genRemoteInterface() {
+        Class<?> type = getType();
+        return Remote.class.isAssignableFrom(type) ?
+                genMostSpecificRemoteInterface(type, repo) :
+                super.genRemoteInterface();
+    }
+
+    @Override
+    String genRepId() {
+        long hashCode = getClassHash();
+        return String.format("RMI:%s:%016X:%016X", convertToValidIDLNames(getType().getName()), hashCode, getSerialVersionUid());
     }
 
     private String genCustomRepId() {
         return String.format("RMI:org.omg.custom.%s", getRepositoryID().substring(4));
     }
 
-    public final String getCustomRepositoryID() {
-        if (_custom_repid == null) _custom_repid = genCustomRepId();
-        return _custom_repid;
+    final String getCustomRepositoryID() {
+        return customRepIdRef.get();
     }
 
-    protected long getSerialVersionUID() {
-        if (_serial_version_uid_field != null) {
+    final long getSerialVersionUid() {
+        return serialVersionUidRef.get();
+    }
 
+    long genSerialVersionUid() {
+        return Optional.ofNullable(findSerialVersionUIDField())
+                .map(field -> {
+                    try {
+                        return field.getLong(null);
+                    } catch (IllegalAccessException ex) {
+                        return null;
+                    }
+                })
+                .orElseGet(() -> Optional.ofNullable(ObjectStreamClass.lookup(getType()))
+                        .map(ObjectStreamClass::getSerialVersionUID)
+                        .orElse(0L));
+    }
+
+    /**
+     * Filters out static and transient fields.
+     */
+    private boolean isSerializableField(Field f) {
+        int mod = f.getModifiers();
+        return !Modifier.isStatic(mod) && !Modifier.isTransient(mod);
+    }
+
+    ValueDescriptor genSuperDescriptor() {
+        return Optional.ofNullable(getType().getSuperclass())
+                .filter(sc -> sc != Object.class)
+                .map(repo::getDescriptor)
+                .filter(ValueDescriptor.class::isInstance)
+                .map(ValueDescriptor.class::cast)
+                .orElse(null);
+    }
+
+    final ValueDescriptor getSuperDescriptor() {
+        return superDescriptorRef.get();
+    }
+
+    private ValueReader genSuperReader() {
+        return Optional.ofNullable(getSuperDescriptor())
+                .map(this::createSuperValueReader)
+                .orElse((reader, val) -> val);
+    }
+
+    private ValueReader createSuperValueReader(ValueDescriptor superDesc) {
+        return (reader, val) -> {
             try {
-                return _serial_version_uid_field.getLong(null);
+                return superDesc.readValue(reader, val);
+            } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
+            }
+        };
+    }
+
+
+    Function<Serializable, Serializable> genWriteReplacer() {
+        Method found = null;
+        for (Class<?> curr = getType(); curr != null; curr = curr.getSuperclass()) {
+            try {
+                found = doPrivileged(getDeclaredMethod(curr, "writeReplace"));
+                doPrivileged(makeAccessible(found));
+                break;
+            } catch (Exception ignored) {
+            }
+        }
+
+        if (null == found) return identity();
+        Method method = found;
+        return val -> {
+            try {
+                return (Serializable) method.invoke(val);
             } catch (IllegalAccessException ex) {
-                // skip //
+                throw as(MARSHAL::new, ex, "cannot call " + method);
+            } catch (IllegalArgumentException ex) {
+                throw as(MARSHAL::new, ex, ex.getMessage());
+            } catch (InvocationTargetException ex) {
+                final Throwable t = ex.getTargetException();
+                throw as(UnknownException::new, t, t);
             }
-        }
-        ObjectStreamClass serialForm = ObjectStreamClass.lookup(type);
-
-        return (serialForm != null) ? serialForm.getSerialVersionUID() : 0L;
+        };
     }
 
-    public void init() {
+    Function<Serializable, Serializable> genReadResolver() {
+        Method method;
         try {
-            init0();
-            super.init();
-
-            if (_fields == null) {
-                throw new RuntimeException("fields==null after init!");
-            }
-
-        } catch (INTERNAL internal) {
-            throw internal;
-        } catch (RuntimeException | Error ex) {
-            throw as(INTERNAL::new, ex);
+            method = doPrivileged(getDeclaredMethod(getType(), "readResolve"));
+            doPrivileged(makeAccessible(method));
+        } catch (Exception ignored) {
+            return identity();
         }
+
+        return  val -> {
+            try {
+                return (Serializable) method.invoke(val);
+            } catch (IllegalAccessException ex) {
+                throw as(MARSHAL::new, ex, "cannot call " + method);
+            } catch (IllegalArgumentException ex) {
+                throw as(MARSHAL::new, ex, ex.getMessage());
+            } catch (InvocationTargetException ex) {
+                final Throwable t = ex.getTargetException();
+                throw as(UnknownException::new, t, t);
+            }
+        };
     }
 
-    private void init0() {
-        final Class<?> superClass = type.getSuperclass();
+    Method genReadObjectMethod() {
+        try {
+            Method method = doPrivileged(getDeclaredMethod(getType(), "readObject", ObjectInputStream.class));
 
-        _is_rmi_stub = RMIStub.class.isAssignableFrom(type);
-        _is_externalizable = Externalizable.class.isAssignableFrom(type);
-        _is_serializable = Serializable.class.isAssignableFrom(type);
-
-        _is_immutable_value = _immutable_value_classes.contains(type);
-
-        if ((superClass != null) && (superClass != Object.class)) {
-            TypeDescriptor superDesc = repo.getDescriptor(superClass);
-
-            if (superDesc instanceof ValueDescriptor) {
-                _super_descriptor = (ValueDescriptor) superDesc;
-            }
-
-        }
-
-        doPrivileged(new PrivilegedAction<Object>() {
-            public Object run() {
-
-                for (Class<?> curr = type; curr != null; curr = curr.getSuperclass()) {
-                    try {
-                        _write_replace_method = curr.getDeclaredMethod("writeReplace");
-                        _write_replace_method.setAccessible(true);
-
-                        break;
-                    } catch (NoSuchMethodException ignored) {
-                    }
-                }
-
-                try {
-                    _read_resolve_method = type.getDeclaredMethod("readResolve");
-                    _read_resolve_method.setAccessible(true);
-
-                } catch (NoSuchMethodException ignored) {
-                }
-
-                try {
-                    _read_object_method = type.getDeclaredMethod("readObject", ObjectInputStream.class);
-                    _read_object_method.setAccessible(true);
-                } catch (NoSuchMethodException ignored) {
-                }
-
-                try {
-                    _write_object_method = type.getDeclaredMethod("writeObject", ObjectOutputStream.class);
-                    _write_object_method.setAccessible(true);
-                } catch (NoSuchMethodException ignored) {
-                }
-
-                if ((_write_object_method == null) || !Modifier.isPrivate(_write_object_method.getModifiers())
-                        || Modifier.isStatic(_write_object_method.getModifiers()) || (_write_object_method.getDeclaringClass() != type)) {
-
-                    _write_object_method = null;
-
-                }
-
-                if ((_read_object_method == null) || !Modifier.isPrivate(_read_object_method.getModifiers())
-                        || Modifier.isStatic(_read_object_method.getModifiers())) {
-
-                    _read_object_method = null;
-                }
-
-                try {
-                    _serial_version_uid_field = type.getDeclaredField("serialVersionUID");
-                    if (Modifier.isStatic(_serial_version_uid_field.getModifiers())) {
-                        _serial_version_uid_field.setAccessible(true);
-                    } else {
-                        _serial_version_uid_field = null;
-                    }
-                } catch (NoSuchFieldException ex) {
-                }
-
-                ObjectStreamField[] serial_persistent_fields = null;
-                try {
-                    Field _serial_persistent_fields_field = type.getDeclaredField("serialPersistentFields");
-                    _serial_persistent_fields_field.setAccessible(true);
-
-                    serial_persistent_fields = (ObjectStreamField[]) _serial_persistent_fields_field.get(null);
-
-                } catch (IllegalAccessException | NoSuchFieldException ex) {
-                }
-
-                if (_is_externalizable) {
-                    try {
-                        _constructor = type.getDeclaredConstructor();
-                        _constructor.setAccessible(true);
-
-                    } catch (NoSuchMethodException ex) {
-                        logger.log(WARNING, ex, () -> "Class " + type.getName() + " is not properly externalizable.  "
-                                + "It has no default constructor.");
-                    }
-
-                } else if (_is_serializable && !type.isInterface()) {
-
-                    Class<?> initClass = getFirstNonSerializableSuperclass();
-
-                    if (initClass == null) {
-                        logger.warning(() -> "Class " + type.getName() + " is not properly serializable.  " + "It has no non-serializable super-class");
-                    } else {
-                        try {
-                            Constructor<?> init_cons = initClass.getDeclaredConstructor();
-
-                            if (Modifier.isPublic(init_cons.getModifiers()) || Modifier.isProtected(init_cons.getModifiers())) {
-                                // do nothing - it's accessible
-                            } else if (!samePackage(type, initClass)) {
-                                logger.warning(() -> "Class " + type.getName() + " is not properly serializable.  "
-                                        + "The default constructor of its first " + "non-serializable super-class (" + initClass.getName()
-                                        + ") is not accessible.");
-                            }
-
-                            _constructor = ReflectionFactory.getReflectionFactory().newConstructorForSerialization(type, init_cons);
-
-                            if (_constructor == null) {
-                                logger.warning(() -> "Unable to get constructor for serialization for class " + java_name);
-                            } else {
-                                _constructor.setAccessible(true);
-                            }
-
-                        } catch (NoSuchMethodException ex) {
-                            logger.log(WARNING, ex, () -> "Class " + type.getName() + " is not properly serializable.  "
-                                    + "First non-serializable super-class (" + initClass.getName() + ") has no default constructor.");
-                        }
-                    }
-                }
-
-                if (serial_persistent_fields == null) {
-                    Field[] ff = type.getDeclaredFields();
-
-                    if ((!Serializable.class.isAssignableFrom(type)) || (ff == null) || (ff.length == 0)) {
-                        _fields = new FieldDescriptor[0];
-
-                    } else {
-                        List<FieldDescriptor> flist = new ArrayList<>();
-
-                        for (Field f : ff) {
-                            int mod = f.getModifiers();
-                            if (Modifier.isStatic(mod) || Modifier.isTransient(mod)) {
-                                continue;
-                            }
-
-                            f.setAccessible(true);
-                            FieldDescriptor fd = FieldDescriptor.get(f, repo);
-                            flist.add(fd);
-                        }
-
-                        _fields = new FieldDescriptor[flist.size()];
-                        _fields = flist.toArray(_fields);
-
-                        Arrays.sort(_fields);
-                    }
-                } else {
-                    _fields = new FieldDescriptor[serial_persistent_fields.length];
-
-                    for (int i = 0; i < serial_persistent_fields.length; i++) {
-                        ObjectStreamField f = serial_persistent_fields[i];
-
-                        FieldDescriptor fd = null;
-
-                        try {
-                            Field rf = type.getField(f.getName());
-                            rf.setAccessible(true);
-
-                            if (rf.getType() == f.getType()) {
-                                fd = FieldDescriptor.get(rf,repo);
-                            }
-                        } catch (SecurityException | NoSuchFieldException ignored) {
-                        }
-
-                        if (fd == null) {
-                            fd = FieldDescriptor.getForSerialPersistentField(type, f, repo);
-                        }
-                        _fields[i] = fd;
-                    }
-                    Arrays.sort(_fields);
-                }
-
-                _hash_code = computeHashCode();
-
-                _object_deserializer = new ObjectDeserializer(ValueDescriptor.this);
-
+            // Validate the method
+            int modifiers = method.getModifiers();
+            if (!Modifier.isPrivate(modifiers) || Modifier.isStatic(modifiers)) {
                 return null;
             }
 
-        });
+            return doPrivileged(makeAccessible(method));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    Method genWriteObjectMethod() {
+        Class<?> type = getType();
+        try {
+            Method method = doPrivileged(getDeclaredMethod(type, "writeObject", ObjectOutputStream.class));
+
+            // Validate the method
+            int modifiers = method.getModifiers();
+            if (!Modifier.isPrivate(modifiers)
+                    || Modifier.isStatic(modifiers)
+                    || method.getDeclaringClass() != type) {
+                return null;
+            }
+
+            return doPrivileged(makeAccessible(method));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Field findSerialVersionUIDField() {
+        try {
+            Field field = doPrivileged(getDeclaredField(getType(), "serialVersionUID"));
+            if (Modifier.isStatic(field.getModifiers())) {
+                return doPrivileged(makeAccessible(field));
+            }
+            return null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    ObjectStreamField[] findSerialPersistentFields() {
+        try {
+            Field field = doPrivileged(getDeclaredField(getType(), "serialPersistentFields"));
+            field = doPrivileged(makeAccessible(field));
+            return (ObjectStreamField[]) field.get(null);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Supplier<Serializable> genBlankInstanceSupplier() {
+        return findConstructor()
+                .map(constructor -> (Supplier<Serializable>) () -> {
+                    try {
+                        return (Serializable) constructor.newInstance();
+                    } catch (IllegalAccessException ex) {
+                        throw as(MARSHAL::new, ex, "cannot call " + constructor);
+                    } catch (IllegalArgumentException | InstantiationException ex) {
+                        throw as(MARSHAL::new, ex, ex.getMessage());
+                    } catch (InvocationTargetException ex) {
+                        final Throwable t = ex.getTargetException();
+                        throw as(UnknownException::new, t, t);
+                    } catch (NullPointerException ex) {
+                        MARSHAL_IN_LOG.log(WARNING, ex, () -> "unable to create instance of " + getType().getName());
+                        MARSHAL_IN_LOG.warning(() -> "constructor => " + constructor);
+                        throw ex;
+                    }
+                })
+                .orElse(() -> null);
+    }
+
+    private Optional<Constructor<?>> findConstructor() {
+        if (isExternalizable()) {
+            return findExternalizableConstructor();
+        } else if (isSerializable() && !getType().isInterface()) {
+            return findSerializableConstructor();
+        }
+        return Optional.empty();
+    }
+
+    private Optional<Constructor<?>> findExternalizableConstructor() {
+        Class<?> type = getType();
+        try {
+            Constructor<?> constructor = doPrivileged(getNoArgConstructor(type));
+            constructor = doPrivileged(makeAccessible(constructor));
+            return Optional.of(constructor);
+        } catch (Exception ex) {
+            MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName()
+                    + " is not properly externalizable. It has no default constructor.");
+            return Optional.empty();
+        }
+    }
+
+    private Optional<Constructor<?>> findSerializableConstructor() {
+        Class<?> initClass = getFirstNonSerializableSuperclass();
+        Class<?> type = getType();
+
+        if (initClass == null) {
+            MARSHAL_LOG.warning(() -> "Class " + type.getName()
+                    + " is not properly serializable. It has no non-serializable super-class");
+            return Optional.empty();
+        }
+
+        try {
+            Constructor<?> initConstructor = doPrivileged(getNoArgConstructor(initClass));
+
+            if (!isConstructorAccessible(initConstructor, initClass)) {
+                return Optional.empty();
+            }
+
+            Constructor<?> constructor = getReflectionFactory().newConstructorForSerialization(type, initConstructor);
+
+            if (constructor == null) {
+                MARSHAL_LOG.warning(() -> "Unable to get constructor for serialization for class " + java_name);
+                return Optional.empty();
+            }
+
+            constructor = doPrivileged(makeAccessible(constructor));
+            return Optional.of(constructor);
+
+        } catch (Exception ex) {
+            MARSHAL_LOG.log(WARNING, ex, () -> "Class " + type.getName()
+                    + " is not properly serializable. First non-serializable super-class ("
+                    + initClass.getName() + ") has no default constructor.");
+            return Optional.empty();
+        }
+    }
+
+    private boolean isConstructorAccessible(Constructor<?> constructor, Class<?> initClass) {
+        int modifiers = constructor.getModifiers();
+        if (Modifier.isPublic(modifiers) || Modifier.isProtected(modifiers)) {
+            return true;
+        }
+
+        Class<?> type = getType();
+        if (!samePackage(type, initClass)) {
+            MARSHAL_LOG.warning(() -> "Class " + type.getName()
+                    + " is not properly serializable. The default constructor of its first "
+                    + "non-serializable super-class (" + initClass.getName() + ") is not accessible.");
+            return false;
+        }
+
+        return true;
+    }
+
+    final List<FieldDescriptor> getFields() {
+        return fieldsRef.get();
+    }
+
+    List<FieldDescriptor> genFields() {
+        return buildFieldDescriptors();
+    }
+
+    private List<FieldDescriptor> buildFieldDescriptors() {
+        if (!isSerializable()) return emptyList();
+
+        return Optional.ofNullable(findSerialPersistentFields())
+                .map(this::buildFieldDescriptorsFromSerialPersistentFields)
+                .orElseGet(this::buildFieldDescriptorsFromDeclaredFields);
+    }
+
+    private List<FieldDescriptor> buildFieldDescriptorsFromDeclaredFields() {
+        Field[] declaredFields = doPrivileged(getDeclaredFields(getType()));
+        return Arrays.stream(declaredFields)
+                .filter(this::isSerializableField)
+                .map(f -> doPrivileged(makeAccessible(f)))
+                .map(f -> FieldDescriptor.get(f, repo))
+                .sorted()
+                .collect(collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
+    }
+
+    private List<FieldDescriptor> buildFieldDescriptorsFromSerialPersistentFields(ObjectStreamField[] serialPersistentFields) {
+        return Arrays.stream(serialPersistentFields)
+                .map(streamField -> Optional.ofNullable(findMatchingField(streamField))
+                        .orElseGet(() -> getForSerialPersistentField(getType(), streamField, repo)))
+                .sorted()
+                .collect(collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
+    }
+
+    private FieldDescriptor findMatchingField(ObjectStreamField streamField) {
+        try {
+            Field reflectionField = doPrivileged(getField(getType(), streamField.getName()));
+            reflectionField = doPrivileged(makeAccessible(reflectionField));
+
+            if (reflectionField.getType() == streamField.getType()) {
+                return FieldDescriptor.get(reflectionField, repo);
+            }
+        } catch (Exception ignored) {
+        }
+
+        return null;
     }
 
     private Class<?> getFirstNonSerializableSuperclass() {
-        Class<?> initClass = type;
+        Class<?> initClass = getType();
 
         while ((initClass != null) && Serializable.class.isAssignableFrom(initClass)) {
             initClass = initClass.getSuperclass();
@@ -374,180 +515,326 @@ class ValueDescriptor extends TypeDescriptor {
         return (idx == -1) ? "" : name.substring(0, idx);
     }
 
-    /** Read an instance of this value from a CDR stream */
-    public Object read(org.omg.CORBA.portable.InputStream in) {
-        return ((org.omg.CORBA_2_3.portable.InputStream) in).read_value();
-    }
-
-    /** Write an instance of this value to a CDR stream */
-    public void write(OutputStream out, Object value) {
-        ((org.omg.CORBA_2_3.portable.OutputStream) out).write_value((Serializable) value);
-    }
-
     public boolean isCustomMarshalled() {
-        return (_is_externalizable || (_write_object_method != null));
+        return (isExternalizable() || getWriteObjectMethod().isPresent());
     }
 
     public boolean isChunked() {
         if (isCustomMarshalled()) return true;
-        return (_super_descriptor != null) && _super_descriptor.isChunked();
+        return Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::isChunked).orElse(false);
     }
 
+    private Function<Serializable, Serializable> getWriteReplacer() {
+        return writeReplacerRef.get();
+    }
+
+    private Function<Serializable, Serializable> getReadResolver() {
+        return readResolverRef.get();
+    }
+
+    private Optional<Method> getReadObjectMethod() {
+        return Optional.ofNullable(readObjectMethodRef.get());
+    }
+
+    private Optional<Method> getWriteObjectMethod() {
+        return Optional.ofNullable(writeObjectMethodRef.get());
+    }
+
+
+
+
+
     public Serializable writeReplace(Serializable val) {
-        if (_write_replace_method != null) {
-            try {
-                return (Serializable) _write_replace_method.invoke(val);
-
-            } catch (IllegalAccessException ex) {
-                throw (MARSHAL) new MARSHAL("cannot call " + _write_replace_method).initCause(ex);
-
-            } catch (IllegalArgumentException ex) {
-                throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-
-            } catch (InvocationTargetException ex) {
-                throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
-            }
-
-        }
-
-        return val;
+        return getWriteReplacer().apply(val);
     }
 
     public Serializable readResolve(Serializable val) {
-        if (_read_resolve_method != null) {
-            try {
-                return (Serializable) _read_resolve_method.invoke(val);
-
-            } catch (IllegalAccessException ex) {
-                throw (MARSHAL) new MARSHAL("cannot call " + _read_resolve_method).initCause(ex);
-
-            } catch (IllegalArgumentException ex) {
-                throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-
-            } catch (InvocationTargetException ex) {
-                throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
-            }
-
-        }
-
-        return val;
+        return getReadResolver().apply(val);
     }
 
     public void writeValue(final OutputStream out, final Serializable value) {
         try {
-
-            ObjectWriter writer = doPrivileged(new PrivilegedAction<ObjectWriter>() {
-                public ObjectWriter run() {
-                    try {
-                        return new CorbaObjectWriter(out, value);
-                    } catch (IOException ex) {
-                        throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-                    }
-                }
-            });
-
+            ObjectWriter writer = doPrivileged(exAction(() -> new CorbaObjectWriter(out, value)));
             writeValue(writer, value);
-
         } catch (IOException ex) {
-            throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
+            throw as(MARSHAL::new, ex, ex.getMessage());
+        } catch (PrivilegedActionException ex) {
+            throw as(MARSHAL::new, ex.getCause(), ex.getCause().getMessage());
         }
     }
 
     protected void defaultWriteValue(ObjectWriter writer, Serializable val) throws IOException {
-        logger.finer(() -> "writing fields for " + type);
-        FieldDescriptor[] fields = _fields;
+        MARSHAL_OUT_LOG.finer(() -> "writing fields for " + getType());
 
-        if (fields == null) return;
+        List<FieldDescriptor> fields = getFields();
 
+        if (fields.isEmpty()) return;
 
         for (FieldDescriptor field : fields) {
-            logger.finer(() -> "writing field " + field.java_name);
+            MARSHAL_OUT_LOG.finer(() -> "writing field " + field.java_name);
             field.write(writer, val);
         }
     }
 
-    protected void writeValue(ObjectWriter writer, Serializable val) throws IOException {
-
-        if (_is_externalizable) {
-            writer.invokeWriteExternal((Externalizable) val);
-            return;
-        }
-
-        if (_super_descriptor != null) {
-            _super_descriptor.writeValue(writer, val);
-        }
-
-        if (_write_object_method != null) {
-
-            try {
-                writer.invokeWriteObject(this, val, _write_object_method);
-            } catch (IllegalAccessException | IllegalArgumentException ex) {
-                throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-            } catch (InvocationTargetException ex) {
-                throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
-            }
-
-        } else {
-            defaultWriteValue(writer, val);
-        }
-
+    private ValueWriter genValueWriter() {
+        return new ValueWriterBuilder().build();
     }
 
-    private Serializable createBlankInstance() {
-        if (_constructor != null) {
+    /**
+     * Builder class for creating ValueWriter instances.
+     * Encapsulates the logic for determining the appropriate writer strategy
+     * based on the value descriptor's characteristics.
+     */
+    private class ValueWriterBuilder {
+        private final LazyReference<ValueWriter> superWriterRef = new LazyReference<>(this::genSuperWriter);
 
-            try {
-                return (Serializable) _constructor.newInstance();
-
-            } catch (IllegalAccessException ex) {
-                throw (MARSHAL) new MARSHAL("cannot call " + _constructor).initCause(ex);
-
-            } catch (IllegalArgumentException | InstantiationException ex) {
-                throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-
-            } catch (InvocationTargetException ex) {
-                throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
-
-            } catch (NullPointerException ex) {
-                logger.log(WARNING, ex, () -> "unable to create instance of " + type.getName());
-                logger.warning(() -> "constructor => " + _constructor);
-
-                throw ex;
+        ValueWriter build() {
+            if (isExternalizable()) {
+                return buildExternalizableWriter();
             }
 
-        } else {
-            return null;
+            return getWriteObjectMethod()
+                    .map(this::buildCustomWriter)
+                    .orElseGet(this::buildDefaultWriter);
+        }
+
+        private ValueWriter buildExternalizableWriter() {
+            return (writer, val) -> {
+                try {
+                    writer.invokeWriteExternal((Externalizable) val);
+                } catch (IOException ex) {
+                    throw new UncheckedIOException(ex);
+                }
+            };
+        }
+
+        private ValueWriter buildDefaultWriter() {
+            return (writer, val) -> {
+                try {
+                    getSuperWriter().accept(writer, val);
+                    defaultWriteValue(writer, val);
+                } catch (IOException ex) {
+                    throw new UncheckedIOException(ex);
+                }
+            };
+        }
+
+        private ValueWriter buildCustomWriter(Method writeObjectMethod) {
+            return (writer, val) -> {
+                try {
+                    getSuperWriter().accept(writer, val);
+                    writer.invokeWriteObject(ValueDescriptor.this, val, writeObjectMethod);
+                } catch (IllegalAccessException | IllegalArgumentException ex) {
+                    throw as(MARSHAL::new, ex, ex.getMessage());
+                } catch (InvocationTargetException ex) {
+                    final Throwable t = ex.getTargetException();
+                    throw (t instanceof IOException)
+                            ? new UncheckedIOException((IOException)t)
+                            : as(UnknownException::new, t, t);
+                } catch (IOException ex) {
+                    throw new UncheckedIOException(ex);
+                }
+            };
+        }
+
+        private ValueWriter getSuperWriter() {
+            return superWriterRef.get();
+        }
+
+        private ValueWriter genSuperWriter() {
+            ValueDescriptor superDesc = getSuperDescriptor();
+            return (superDesc == null)
+                    ? (writer, val) -> {} // no-op if no super descriptor
+                    : (writer, val) -> {
+                try {
+                    superDesc.writeValue(writer, val);
+                } catch (IOException ex) {
+                    throw new UncheckedIOException(ex);
+                }
+            };
+        }
+    }
+
+    @FunctionalInterface
+    private interface ValueWriter extends BiConsumer<ObjectWriter,Serializable> {}
+
+    ValueReader genValueReader() {
+        return new ValueReaderBuilder().build();
+    }
+
+    /**
+     * Builder class for creating ValueReader instances.
+     * Encapsulates the logic for determining the appropriate reader strategy
+     * based on the value descriptor's characteristics.
+     */
+    private class ValueReaderBuilder {
+        private final LazyReference<ValueReader> superReaderRef = new LazyReference<>(ValueDescriptor.this::genSuperReader);
+
+        ValueReader build() {
+            if (isExternalizable()) {
+                return buildExternalizableReader();
+            }
+
+            return getWriteObjectMethod()
+                    .map(this::buildCustomMarshalReader)
+                    .orElseGet(this::buildSimpleReader);
+        }
+
+        private ValueReader buildExternalizableReader() {
+            return (reader, value) -> {
+                try {
+                    reader.readExternal((Externalizable) value);
+                    return value;
+                } catch (ClassNotFoundException e) {
+                    throw new UncheckedIOException(new IOException("cannot instantiate class", e));
+                } catch (IOException ex) {
+                    throw new UncheckedIOException(ex);
+                }
+            };
+        }
+
+        private ValueReader buildSimpleReader() {
+            return getReadObjectMethod()
+                    .map(this::buildReader)
+                    .orElseGet(this::buildDefaultReader);
+        }
+
+        private ValueReader buildReader(Method readObjectMethod) {
+            return (reader, value) -> {
+                Serializable val = getSuperReader().apply(reader, value);
+                try {
+                    reader.setCurrentValueDescriptor(ValueDescriptor.this);
+                    readObjectMethod.invoke(val, reader);
+                    reader.setCurrentValueDescriptor(null);
+                    return val;
+                } catch (IllegalAccessException | IllegalArgumentException ex) {
+                    throw as(MARSHAL::new, ex, ex.getMessage());
+                } catch (InvocationTargetException ex) {
+                    final Throwable t = ex.getTargetException();
+                    throw (t instanceof IOException)
+                            ? new UncheckedIOException((IOException)t)
+                            : as(UnknownException::new, t, t);
+                }
+            };
+        }
+
+        private ValueReader buildDefaultReader() {
+            return (reader, value) -> {
+                Serializable val = getSuperReader().apply(reader, value);
+                try {
+                    defaultReadValue(reader, val);
+                    return val;
+                } catch (IOException ex) {
+                    throw new UncheckedIOException(ex);
+                }
+            };
+        }
+
+        private ValueReader buildCustomMarshalReader(Method ignored) {
+            return getReadObjectMethod()
+                    .map(this::buildCustomMarshalReaderWithReadObject)
+                    .orElseGet(this::buildCustomMarshalReaderWithoutReadObject);
+        }
+
+        private ValueReader buildCustomMarshalReaderWithReadObject(Method readObjectMethod) {
+            return (reader, value) -> {
+                Serializable val = getSuperReader().apply(reader, value);
+                try {
+                    byte cmsfVersion = reader.readByte();
+                    boolean dwoCalled = reader.readBoolean();
+                    MARSHAL_IN_LOG.log(Level.FINE, "Reading value in streamFormatVersion=" + cmsfVersion + " defaultWriteObject=" + dwoCalled);
+
+                    ObjectReader wrappedReader = wrapIfNeeded(reader, cmsfVersion);
+                    wrappedReader.setCurrentValueDescriptor(ValueDescriptor.this);
+                    readObjectMethod.invoke(val, wrappedReader);
+                    wrappedReader.setCurrentValueDescriptor(null);
+                    if (wrappedReader != reader) {
+                        wrappedReader.close();
+                    }
+                    return val;
+                } catch (IllegalAccessException | IllegalArgumentException ex) {
+                    throw as(MARSHAL::new, ex, ex.getMessage());
+                } catch (InvocationTargetException ex) {
+                    final Throwable t = ex.getTargetException();
+                    throw (t instanceof IOException)
+                            ? new UncheckedIOException((IOException)t)
+                            : as(UnknownException::new, t, t);
+                } catch (IOException ex) {
+                    throw new UncheckedIOException(ex);
+                }
+            };
+        }
+
+        private ValueReader buildCustomMarshalReaderWithoutReadObject() {
+            return (reader, value) -> {
+                Serializable val = getSuperReader().apply(reader, value);
+                try {
+                    byte cmsfVersion = reader.readByte();
+                    boolean dwoCalled = reader.readBoolean();
+                    MARSHAL_IN_LOG.log(Level.FINE, "Reading value in streamFormatVersion=" + cmsfVersion + " defaultWriteObject=" + dwoCalled);
+
+                    ObjectReader wrappedReader = wrapIfNeeded(reader, cmsfVersion);
+                    defaultReadValue(reader, val);
+                    if (wrappedReader != reader) {
+                        wrappedReader.close();
+                    }
+                    return val;
+                } catch (IOException ex) {
+                    throw new UncheckedIOException(ex);
+                }
+            };
+        }
+
+        private ValueReader getSuperReader() {
+            return superReaderRef.get();
+        }
+
+        private ObjectReader wrapIfNeeded(ObjectReader reader, byte cmsfVersion) throws IOException {
+            return (cmsfVersion == 2) ? CustomMarshaledObjectReader.wrap(reader) : reader;
+        }
+    }
+
+    private ValueWriter getValueWriter() {
+        return valueWriterRef.get();
+    }
+
+    protected void writeValue(ObjectWriter writer, Serializable val) throws IOException {
+        try {
+            getValueWriter().accept(writer, val);
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
+        }
+    }
+
+    Serializable createBlankInstance() {
+        return blankInstanceSupplierRef.get().get();
+    }
+
+    final CorbaObjectReader makeCorbaObjectReader(final InputStream in, final Map<Integer, Serializable> offsetMap, final Serializable obj)
+            throws IOException {
+        try {
+            return doPrivileged(exAction(() -> new CorbaObjectReader(in, offsetMap, obj)));
+        } catch (PrivilegedActionException e) {
+            throw (IOException)e.getException();
         }
     }
 
     public Serializable readValue(final InputStream in, final Map<Integer, Serializable> offsetMap, final Integer offset) {
         final Serializable value = createBlankInstance();
 
-        offsetMap.put(offset, value);
+        if (null != value) offsetMap.put(offset, value);
 
         try {
-            ObjectReader reader = doPrivileged(new PrivilegedAction<ObjectReader>() {
-                public ObjectReader run() {
-                    try {
-                        return new CorbaObjectReader(in, offsetMap, value);
-                    } catch (IOException ex) {
-                        throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-                    }
-                }
-            });
+            ObjectReader reader = makeCorbaObjectReader(in, offsetMap, value);
 
-            readValue(reader, value);
-
-            final Serializable resolved = readResolve(value);
+            final Serializable resolved = readResolve(readValue(reader, value));
             if (value != resolved) {
                 offsetMap.put(offset, resolved);
             }
             return resolved;
-
         } catch (IOException ex) {
-            throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
+            throw as(MARSHAL::new, ex, ex.getMessage());
         }
-
     }
 
     void print(PrintWriter pw, Map<Object, Integer> recurse, Object val) {
@@ -562,7 +849,7 @@ class ValueDescriptor extends TypeDescriptor {
             int key = System.identityHashCode(val);
             recurse.put(val, key);
 
-            pw.println(type.getName() + "@" + Integer.toHexString(key) + "[");
+            pw.println(getType().getName() + "@" + Integer.toHexString(key) + "[");
 
             printFields(pw, recurse, val);
 
@@ -570,233 +857,190 @@ class ValueDescriptor extends TypeDescriptor {
         }
     }
 
-    void printFields(PrintWriter pw, Map recurse, Object val) {
+    void printFields(PrintWriter pw, Map<Object, Integer> recurse, Object val) {
         pw.print("(" + getClass().getName() + ")");
 
-        if (_super_descriptor != null) {
-            _super_descriptor.printFields(pw, recurse, val);
+        ValueDescriptor superDesc = getSuperDescriptor();
+
+        if (superDesc != null) {
+            superDesc.printFields(pw, recurse, val);
         }
 
-        if (_fields == null)
-            return;
+        List<FieldDescriptor> fields = getFields();
 
-        for (int i = 0; i < _fields.length; i++) {
-            if (i != 0) {
-                pw.print("; ");
-            }
+        if (fields.isEmpty()) return;
 
-            _fields[i].print(pw, recurse, val);
+        for (int i = 0; i < fields.size(); i++) {
+            if (i != 0) pw.print("; ");
+            fields.get(i).print(pw, recurse, val);
         }
 
     }
 
-    protected void defaultReadValue(ObjectReader reader, Serializable value) throws IOException {
-        if (null == _fields) return;
+    void defaultReadValue(ObjectReader reader, Serializable value) throws IOException {
+        List<FieldDescriptor> fields = getFields();
+        if (fields.isEmpty()) return;
 
-        logger.fine(() -> "reading fields for " + type.getName());
+        MARSHAL_IN_LOG.fine(() -> "reading fields for " + getType().getName());
 
-        for (FieldDescriptor _field : _fields) {
-            if (null == _field) continue;
-            logger.fine(() -> "reading field " + _field.java_name + " of type " + _field.getType().getName() + " using " + _field.getClass().getName());
+        for (FieldDescriptor field : fields) {
+            MARSHAL_IN_LOG.fine(() -> "reading field " + field.java_name + " of type " + field.getType().getName() + " using " + field.getClass().getName());
 
             try {
-                _field.read(reader, value);
+                field.read(reader, value);
             } catch (MARSHAL ex) {
                 if (ex.getMessage() != null)
                     throw ex;
 
-                String msg = String.format("%s, while reading %s.%s", ex, java_name, _field.java_name);
-                throw (MARSHAL) new MARSHAL(msg, ex.minor, ex.completed).initCause(ex);
+                String msg = String.format("%s, while reading %s.%s", ex, java_name, field.java_name);
+                throw as(MARSHAL::new, ex, msg, ex.minor, ex.completed);
             }
         }
     }
 
-    Map readFields(ObjectReader reader) throws IOException {
-        if ((_fields == null) || (_fields.length == 0)) {
-            return EMPTY_MAP;
+    Map<String, Object> readFields(ObjectReader reader) throws IOException {
+        List<FieldDescriptor> fields = getFields();
+        if (fields.isEmpty()) {
+            return emptyMap();
         }
 
-        logger.finer(() -> "reading fields for " + type.getName());
+        MARSHAL_IN_LOG.finer(() -> "reading fields for " + getType().getName());
 
-        Map map = new HashMap();
+        Map<String, Object> map = new HashMap<>();
 
-        for (FieldDescriptor _field : _fields) {
-
-            logger.finer(() -> "reading field " + _field.java_name);
-
+        for (FieldDescriptor _field : fields) {
+            MARSHAL_IN_LOG.finer(() -> "reading field " + _field.java_name);
             _field.readFieldIntoMap(reader, map);
         }
 
         return map;
     }
 
-    void writeFields(ObjectWriter writer, Map fieldMap) throws IOException {
-        if ((_fields == null) || (_fields.length == 0)) {
+    void writeFields(ObjectWriter writer, Map<String, Object> fieldMap) throws IOException {
+        List<FieldDescriptor> fields = getFields();
+        if (fields.isEmpty()) {
             return;
         }
 
-        logger.finer(() -> "writing fields for " + type.getName());
+        MARSHAL_OUT_LOG.finer(() -> "writing fields for " + getType().getName());
 
-        for (FieldDescriptor _field : _fields) {
-
-            logger.finer(() -> "writing field " + _field.java_name);
-
+        for (FieldDescriptor _field : fields) {
+            MARSHAL_OUT_LOG.finer(() -> "writing field " + _field.java_name);
             _field.writeFieldFromMap(writer, fieldMap);
         }
 
     }
 
     /**
-     * This methods reads the fields of a single class slice.
+     * This method reads the fields of a single class slice.
      */
-    protected void readValue(ObjectReader reader, Serializable value) throws IOException {
-        if (_is_externalizable) {
-            try {
-                reader.readExternal((Externalizable) value);
-            } catch (ClassNotFoundException e) {
-                throw new IOException("cannot instantiate class", e);
-            }
-            return;
-        }
-
-        if (_super_descriptor != null) {
-            _super_descriptor.readValue(reader, value);
-        }
-
-        // check whether the class (not its ancestors) does any custom marshalling
-        if (_write_object_method != null) {
-            // read custom marshalling value header
-            byte cmsfVersion = reader.readByte(); // custom marshal stream format version
-            boolean dwoCalled = reader.readBoolean(); // was defaultWriteObject() called?
-            logger.log(Level.FINE, "Reading value in streamFormatVersion=" + cmsfVersion + " defaultWriteObject=" + dwoCalled);
-
-            if (cmsfVersion == 2) {
-                // use a wrapped reader to open the secondary custom valuetype
-                ObjectReader wrapper = CustomMarshaledObjectReader.wrap(reader);
-                readSerializable(_read_object_method == null ? reader : wrapper, value);
-                // invoke close to skip to the end of the secondary custom valuetype
-                wrapper.close();
-                return;
-            }
-        }
-
-        readSerializable(reader, value);
-
+    private ValueReader getValueReader() {
+        return valueReaderRef.get();
     }
 
-    private void readSerializable(ObjectReader reader, Serializable value) throws IOException {
-        if (_read_object_method != null) {
-            try {
-                reader.setCurrentValueDescriptor(this);
-                _read_object_method.invoke(value, reader);
-                reader.setCurrentValueDescriptor(null);
-
-            } catch (IllegalAccessException | IllegalArgumentException ex) {
-                throw (MARSHAL) new MARSHAL(ex.getMessage()).initCause(ex);
-            } catch (InvocationTargetException ex) {
-                throw (UnknownException) new UnknownException(ex.getTargetException()).initCause(ex.getTargetException());
-            }
-
-        } else {
-            defaultReadValue(reader, value);
-        }
-    }
-
-    protected long computeHashCode() {
-        Class type = this.type;
-
-        if (_is_externalizable) {
-            return 1L;
-        }
-
-        if (!Serializable.class.isAssignableFrom(type)) {
-            return 0;
-        }
-
-        long hash = 0L;
+    /**
+     * This method reads the fields of a single class slice.
+     */
+    private Serializable readValue(ObjectReader reader, Serializable value) throws IOException {
         try {
-            ByteArrayOutputStream barr = new ByteArrayOutputStream(512);
-            MessageDigest md = MessageDigest.getInstance("SHA");
-            DigestOutputStream digestout = new DigestOutputStream(barr, md);
-            DataOutputStream out = new DataOutputStream(digestout);
+            return getValueReader().apply(reader, value);
+        } catch (UncheckedIOException ex) {
+            throw ex.getCause();
+        }
+    }
 
-            Class superType = type.getSuperclass();
-            if (superType != null) {
-                TypeDescriptor desc = repo.getDescriptor(superType);
-                out.writeLong(desc.getHashCode());
+    long genClassHash() {
+        return new ClassHashBuilder().build();
+    }
+
+    /**
+     * Builder class for computing the RMI class hash.
+     * Encapsulates the logic for generating a hash code based on class structure,
+     * following the RMI serialization specification.
+     */
+    private class ClassHashBuilder {
+        long build() {
+            if (isExternalizable()) return 1L;
+            if (!isSerializable()) return 0L;
+
+            try {
+                return computeHash();
+            } catch (NoSuchAlgorithmException | IOException ex) {
+                throw new RuntimeException("cannot compute RMI hash code", ex);
+            } catch (UncheckedIOException ex) {
+                throw new RuntimeException("cannot compute RMI hash code", ex.getCause());
             }
-
-            if (_write_object_method == null)
-                out.writeInt(1);
-            else
-                out.writeInt(2);
-
-            FieldDescriptor[] fds = new FieldDescriptor[_fields.length];
-            System.arraycopy(_fields, 0, fds, 0, _fields.length);
-
-            if (fds.length > 1)
-                Arrays.sort(fds, compareByName);
-
-            for (FieldDescriptor f : fds) {
-                out.writeUTF(f.java_name);
-                out.writeUTF(makeSignature(f.getType()));
-            }
-
-            /*
-             * Field[] fields = type.getDeclaredFields (); if (fields.length >
-             * 1) java.util.Arrays.sort (fields, compareByName); for(int i = 0;
-             * i < fields.length; i++) { Field f = fields[i]; int mod =
-             * f.getModifiers (); if (!Modifier.isTransient(mod) &&
-             * !Modifier.isStatic (mod)) { out.writeUTF(f.getName());
-             * out.writeUTF( makeSignature (f.getType ())); } }
-             */
-
-            out.flush();
-
-            byte[] data = md.digest();
-            int end = Math.min(8, data.length);
-            for (int j = 0; j < end; j++) {
-                hash += (long) (data[j] & 0xff) << (j * 8);
-            }
-        } catch (Exception ex) {
-            throw new RuntimeException("cannot compute RMI hash code", ex);
         }
 
-        return hash;
-    }
+        private long computeHash() throws NoSuchAlgorithmException, IOException {
+            MessageDigest digest = MessageDigest.getInstance("SHA");
+            try (DataOutputStream out = new DataOutputStream(
+                    new DigestOutputStream(new ByteArrayOutputStream(512), digest))) {
 
-    private static final Comparator<FieldDescriptor> compareByName = Comparator.comparing(f -> f.java_name);
+                writeSuperClassHash(out);
+                writeCustomMarshalFlag(out);
+                writeFieldSignatures(out);
 
-    long getHashCode() {
-        return _hash_code;
-    }
+                out.flush();
+            }
 
-    private volatile ValueMember[] valueMembers = null;
-    protected ValueMember[] genValueMembers() {
-        final ValueMember[] members = new ValueMember[_fields.length];
-        for (int i = 0; i < _fields.length; i++) {
-            members[i] = _fields[i].getValueMember(repo);
+            byte[] data = digest.digest();
+            return createReadBuffer(data.length < 8 ? Arrays.copyOf(data, 8) : data).readLong_LE();
         }
 
-        return members;
+        private void writeSuperClassHash(DataOutputStream out) {
+            Optional.ofNullable(getType().getSuperclass())
+                    .map(repo::getDescriptor)
+                    .map(TypeDescriptor::getClassHash)
+                    .ifPresent(hash -> {
+                        try {
+                            out.writeLong(hash);
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    });
+        }
+
+        private void writeCustomMarshalFlag(DataOutputStream out) throws IOException {
+            out.writeInt(getWriteObjectMethod().isPresent() ? 2 : 1);
+        }
+
+        private void writeFieldSignatures(DataOutputStream out) {
+            getFields().stream()
+                    .sorted(compareByName)
+                    .forEach(field -> {
+                        try {
+                            out.writeUTF(field.java_name);
+                            out.writeUTF(makeSignature(field.getType()));
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    });
+        }
     }
+
+    private static final Comparator<FieldDescriptor> compareByName = comparing(f -> f.java_name);
+
+    private final LazyReference<List<ValueMember>> valueMembersRef = new LazyReference<>(this::genValueMembers);
+
+    protected List<ValueMember> genValueMembers() {
+        return getFields().stream()
+                .map(FieldDescriptor::getValueMember)
+                .collect(collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
+    }
+
+    private static final ValueMember[] EMPTY_VALUE_MEMBERS = {};
     final ValueMember[] getValueMembers() {
         getTypeCode(); // ensure recursion through typecode
-        if (null == valueMembers) {
-            synchronized (repo) {
-                if (null == valueMembers) valueMembers = genValueMembers();
-            }
-        }
-        return valueMembers;
+        return valueMembersRef.get().toArray(EMPTY_VALUE_MEMBERS);
     }
 
     @Override
-    protected TypeCode genTypeCode() {
+    TypeCode genTypeCode() {
         ORB orb = ORB.init();
-        setTypeCode(orb.create_recursive_tc(getRepositoryID()));
+        TypeCode _base = Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::getTypeCode).orElse(null);
 
-        TypeCode _base = ((_super_descriptor == null) ? null : _super_descriptor.getTypeCode());
-
+        Class<?> type = getType();
         TypeCode tc;
         if (type.isArray()) {
             TypeDescriptor desc = repo.getDescriptor(type.getComponentType());
@@ -814,10 +1058,54 @@ class ValueDescriptor extends TypeDescriptor {
     private static final AttributeDescription[] ZERO_ATTRIBUTES = {};
     private static final Initializer[] ZERO_INITIALIZERS = {};
     private static final String[] ZERO_STRINGS = {};
-    
+
+
+    /**
+     * Creates a defensive copy of a FullValueDescription.
+     * This ensures that modifications to the returned object or its array fields
+     * do not affect the original.
+     *
+     * @param original the FullValueDescription to copy
+     * @return a defensive copy of the FullValueDescription
+     */
+    static FullValueDescription copyOf(FullValueDescription original) {
+        if (original == null) {
+            return null;
+        }
+
+        FullValueDescription copy = new FullValueDescription();
+        copy.name = original.name;
+        copy.id = original.id;
+        copy.is_abstract = original.is_abstract;
+        copy.is_custom = original.is_custom;
+        copy.defined_in = original.defined_in;
+        copy.version = original.version;
+
+        // Deep copy arrays
+        copy.operations = original.operations == null ? null :
+            Arrays.copyOf(original.operations, original.operations.length);
+        copy.attributes = original.attributes == null ? null :
+            Arrays.copyOf(original.attributes, original.attributes.length);
+        copy.members = original.members == null ? null :
+            Arrays.copyOf(original.members, original.members.length);
+        copy.initializers = original.initializers == null ? null :
+            Arrays.copyOf(original.initializers, original.initializers.length);
+        copy.supported_interfaces = original.supported_interfaces == null ? null :
+            Arrays.copyOf(original.supported_interfaces, original.supported_interfaces.length);
+        copy.abstract_base_values = original.abstract_base_values == null ? null :
+            Arrays.copyOf(original.abstract_base_values, original.abstract_base_values.length);
+
+        copy.is_truncatable = original.is_truncatable;
+        copy.base_value = original.base_value;
+        copy.type = original.type;
+
+        return copy;
+    }
+
+
     FullValueDescription getFullValueDescription() {
         FullValueDescription fvd = new FullValueDescription();
-        fvd.name = type.getName();
+        fvd.name = getType().getName();
         fvd.id = getRepositoryID();
         fvd.is_abstract = false;
         fvd.is_custom = isCustomMarshalled();
@@ -830,80 +1118,26 @@ class ValueDescriptor extends TypeDescriptor {
         fvd.supported_interfaces = ZERO_STRINGS;
         fvd.abstract_base_values = ZERO_STRINGS;
         fvd.is_truncatable = false;
-        fvd.base_value = ((_super_descriptor == null) ? "" : _super_descriptor.getRepositoryID());
+        fvd.base_value = Optional.ofNullable(getSuperDescriptor()).map(ValueDescriptor::getRepositoryID).orElse("");
         fvd.type = getTypeCode();
         return fvd;
     }
 
-    class ObjectDeserializer {
 
-        ObjectDeserializer super_descriptor;
-
-        String repository_id;
-
-        final FieldDescriptor[] fields;
-
-        ObjectDeserializer(ValueDescriptor desc) {
-            fields = desc._fields;
-            repository_id = desc.getRepositoryID();
-
-            if (desc._super_descriptor != null) {
-                super_descriptor = desc._super_descriptor._object_deserializer;
-            }
-        }
-
-        ObjectDeserializer(FullValueDescription desc, RunTime runtime) throws IOException {
-            Class myClass = type;
-            ValueMember[] members = desc.members;
-            fields = new FieldDescriptor[members.length];
-            for (int i = 0; i < members.length; i++) {
-                Class type = getClassFromTypeCode(members[i].type);
-                fields[i] = FieldDescriptor.get(myClass, type, members[i].name, null, repo);
-            }
-
-            if (!"".equals(desc.base_value)) {
-                Class clz = ValueHandlerImpl.getClassFromRepositoryID(desc.base_value);
-                TypeDescriptor tdesc = repo.getDescriptor(clz);
-
-                if ((tdesc instanceof ValueDescriptor)) {
-                    super_descriptor = ((ValueDescriptor) tdesc).getObjectDeserializer(desc.base_value, runtime);
-                }
-            }
-        }
-    }
-
-    private ObjectDeserializer getObjectDeserializer(String repositoryID, RunTime runtime) throws IOException {
-        if (repositoryID.equals(getRepositoryID())) {
-            return _object_deserializer;
-        }
-
-        CodeBase codebase = CodeBaseHelper.narrow(runtime);
-        if (codebase == null) {
-            throw new IOException("cannot narrow RunTime -> CodeBase");
-        }
-
-        FullValueDescription desc = codebase.meta(repositoryID);
-
-        return new ObjectDeserializer(desc, codebase);
-    }
-
-    private static Class getClassFromTypeCode(TypeCode tc) {
-        return null;
-    }
 
     public boolean copyWithinState() {
-        return !(_is_immutable_value | _is_rmi_stub);
+        return !(isImmutableValue() | isRmiStub());
     }
 
     Object copyObject(Object orig, CopyState state) {
 
-        if (_is_immutable_value || _is_rmi_stub) {
+        if (isImmutableValue() || isRmiStub()) {
             return orig;
         }
 
         Serializable oorig = (Serializable) orig;
 
-        logger.finer(() -> "copying " + orig);
+        MARSHAL_OUT_LOG.finer(() -> "copying " + orig);
 
         oorig = writeReplace(oorig);
 
@@ -913,7 +1147,7 @@ class ValueDescriptor extends TypeDescriptor {
         } else {
             wdesc = (ValueDescriptor) repo.getDescriptor(oorig.getClass());
 
-            logger.finer(() -> "writeReplace -> " + type.getName());
+            MARSHAL_OUT_LOG.finer(() -> "writeReplace -> " + getType().getName());
         }
 
         return wdesc.copyObject2(oorig, state);
@@ -942,7 +1176,7 @@ class ValueDescriptor extends TypeDescriptor {
             writeValue(writer, oorig);
             return writer;
         } catch (IOException ex) {
-            String msg = String.format("%s writing %s", ex, type.getName());
+            String msg = String.format("%s writing %s", ex, getType().getName());
             throw (MARSHAL) new MARSHAL(msg).initCause(ex);
         }
     }
@@ -953,7 +1187,7 @@ class ValueDescriptor extends TypeDescriptor {
             readValue(reader, copy);
             return readResolve(copy);
         } catch (IOException ex) {
-            String msg = String.format("%s reading instance of %s", ex, type.getName());
+            String msg = String.format("%s reading instance of %s", ex, getType().getName());
             throw (MARSHAL) new MARSHAL(msg).initCause(ex);
         }
     }
@@ -972,7 +1206,7 @@ class ValueDescriptor extends TypeDescriptor {
 
         pw.print(paramName);
         pw.print(',');
-        MethodDescriptor.writeJavaType(pw, type);
+        MethodDescriptor.writeJavaType(pw, getType());
         pw.print(".class)");
     }
 
@@ -981,13 +1215,13 @@ class ValueDescriptor extends TypeDescriptor {
         pw.print('.');
         pw.print("read_value");
         pw.print('(');
-        MethodDescriptor.writeJavaType(pw, type);
+        MethodDescriptor.writeJavaType(pw, getType());
         pw.print(".class)");
     }
 
     @Override
     void addDependencies(Set<Class<?>> classes) {
-        Class c = type;
+        Class<?> c = getType();
 
         if ((c == Object.class) || classes.contains(c))
             return;
@@ -999,20 +1233,18 @@ class ValueDescriptor extends TypeDescriptor {
             desc.addDependencies(classes);
         }
 
-        Class[] ifaces = c.getInterfaces();
-        for (Class iface : ifaces) {
+        Class<?>[] ifaces = c.getInterfaces();
+        for (Class<?> iface : ifaces) {
             TypeDescriptor desc = repo.getDescriptor(iface);
             desc.addDependencies(classes);
         }
 
-        if (_fields != null) {
-            for (FieldDescriptor _field : _fields) {
-                if (_field.isPrimitive())
-                    continue;
+        for (FieldDescriptor field : getFields()) {
+            if (field.isPrimitive())
+                continue;
 
-                TypeDescriptor desc = repo.getDescriptor(_field.type);
-                desc.addDependencies(classes);
-            }
+            TypeDescriptor desc = repo.getDescriptor(field.getType());
+            desc.addDependencies(classes);
         }
     }
 }

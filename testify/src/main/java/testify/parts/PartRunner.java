@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package testify.parts;
 
 import testify.bus.Bus;
 import testify.bus.TestLogLevel;
+import testify.io.SimpleCloseable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.function.Consumer;
@@ -29,7 +30,7 @@ import java.util.function.Predicate;
  * Methods are provided for configuring what that contet should be.
  */
 @SuppressWarnings("UnusedReturnValue")
-public interface PartRunner {
+public interface PartRunner extends SimpleCloseable {
     static PartRunner create() { return new PartRunnerImpl(); }
 
     /**
@@ -100,4 +101,7 @@ public interface PartRunner {
     void join();
 
     void dumpBuses();
+
+    @Override
+    default void close() { join(); }
 }

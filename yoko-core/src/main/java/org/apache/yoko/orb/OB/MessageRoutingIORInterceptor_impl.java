@@ -17,6 +17,8 @@
  */
 package org.apache.yoko.orb.OB;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.LocalObject;
@@ -78,7 +80,7 @@ final public class MessageRoutingIORInterceptor_impl extends LocalObject impleme
 
         // Retrieve the four effective policies that can be propgated in an IOR from the IORInfo object
         PolicyValueSeqHolder policiesHolder = new PolicyValueSeqHolder();
-        policiesHolder.value = new PolicyValue[0];
+        policiesHolder.value = emptyArray(PolicyValue.class);
         MessageRoutingUtil.getComponentPolicyValues(info, policiesHolder);
 
         // Don't write the tagged component unless we have some policies set:
