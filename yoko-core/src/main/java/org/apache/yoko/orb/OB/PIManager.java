@@ -219,6 +219,12 @@ final public class PIManager {
         impl._OB_contextSwitch();
     }
 
+    // Call post_marshal on extended interceptors after response marshalling
+    void serverPostMarshal(ServerRequestInfo info) {
+        ServerRequestInfo_impl impl = (ServerRequestInfo_impl) info;
+        impl._OB_postMarshal();
+    }
+
     // Set the parameter information (SSI case)
     void serverParameterDesc(ServerRequestInfo info, ParameterDesc[] argDesc, ParameterDesc retDesc, TypeCode[] exceptionTC) {
         ServerRequestInfo_impl impl = (ServerRequestInfo_impl) info;

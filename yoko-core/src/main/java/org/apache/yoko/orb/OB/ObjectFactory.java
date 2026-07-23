@@ -30,6 +30,7 @@ import org.omg.IOP.IOR;
 import java.util.logging.Logger;
 
 import static java.util.logging.Logger.getLogger;
+import static org.apache.yoko.util.Arrays.EMPTY_INTS;
 import static org.apache.yoko.util.MinorCodes.MinorORBDestroyed;
 import static org.apache.yoko.util.MinorCodes.describeInitialize;
 import static org.omg.CORBA.CompletionStatus.*;
@@ -80,6 +81,6 @@ public final class ObjectFactory {
     }
 
     public Policy[] policies() {
-        return policyManager_.get_policy_overrides(new int[0]);
+        return policyManager_.get_policy_overrides(EMPTY_INTS);
     }
 }

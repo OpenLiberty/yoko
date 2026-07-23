@@ -49,6 +49,7 @@ import static java.lang.Integer.toHexString;
 import static java.util.Objects.requireNonNull;
 import static java.util.logging.Level.WARNING;
 import static java.util.stream.Collectors.joining;
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.apache.yoko.logging.VerboseLogging.NAMING_LOG;
 import static org.apache.yoko.util.MinorCodes.MinorObjectIsNull;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
@@ -457,7 +458,7 @@ public abstract class NamingContextBase extends NamingContextExtPOA
         components.add(new NameComponent(id, kind));
 
         // and turn this into a component array
-        return components.toArray(new NameComponent[0]);
+        return components.toArray(emptyArray(NameComponent.class));
     }
 
     /**

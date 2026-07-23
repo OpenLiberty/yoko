@@ -27,19 +27,16 @@ import org.omg.CORBA.StringValueHelper;
 import org.omg.CORBA.WStringValueHelper;
 import org.omg.CORBA.portable.ValueFactory;
 
-import java.lang.reflect.InvocationTargetException;
-import java.security.PrivilegedActionException;
 import java.util.Hashtable;
 import java.util.logging.Logger;
 
-import static java.security.AccessController.doPrivileged;
 import static java.util.logging.Logger.getLogger;
 import static org.apache.yoko.util.Assert.ensure;
+import static org.apache.yoko.util.InstanceFactory.createNoArgsInstance;
 import static org.apache.yoko.util.MinorCodes.MinorORBDestroyed;
 import static org.apache.yoko.util.MinorCodes.MinorValueFactoryError;
 import static org.apache.yoko.util.MinorCodes.describeBadParam;
 import static org.apache.yoko.util.MinorCodes.describeInitialize;
-import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 public final class ValueFactoryManager {
@@ -169,18 +166,14 @@ public final class ValueFactoryManager {
 
         // Try to convert the repository ID into a class name.
         Class<? extends ValueFactory> c = RepIds.query(id).suffix("DefaultFactory").toClass();
-        if (c != null) {
-            try {
-                logger.finer(() -> "Attempting to create value factory from class " + c.getName());
-                // Instantiate the factory
-                ValueFactory result = doPrivileged(getNoArgConstructor(c)).newInstance();
-
-                // Cache the result
-                classFactories_.put(id, result);
-                return result;
-            } catch (ClassCastException | PrivilegedActionException | InvocationTargetException | InstantiationException | IllegalAccessException ignored) {
-            }
+        if (null == c) return null;
+        try {
+            logger.finer(() -> "Attempting to create value factory from class " + c.getName());
+            ValueFactory result = createNoArgsInstance(c);
+            classFactories_.put(id, result);
+            return result;
+        } catch (RuntimeException ignored) {
+            return null;
         }
-        return null;
     }
 }

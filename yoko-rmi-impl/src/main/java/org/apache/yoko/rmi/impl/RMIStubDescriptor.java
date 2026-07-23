@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,8 @@ class RMIStubDescriptor extends ValueDescriptor {
     }
 
     @Override
-    protected String genRepId() {
-        final Class[] ifaces = type.getInterfaces();
+    String genRepId() {
+        final Class<?>[] ifaces = getType().getInterfaces();
         if (ifaces.length != 2 || ifaces[1] != org.apache.yoko.rmi.util.stub.Stub.class) {
             throw new RuntimeException("Unexpected RMIStub structure");
         }
@@ -45,12 +45,11 @@ class RMIStubDescriptor extends ValueDescriptor {
     @Override
     protected void writeValue(ObjectWriter writer, java.io.Serializable val)
             throws IOException {
-        _super_descriptor.writeValue(writer, val);
+        getSuperDescriptor().writeValue(writer, val);
     }
 
     @Override
-    protected void readValue(ObjectReader reader, java.io.Serializable value)
-            throws IOException {
-        _super_descriptor.readValue(reader, value);
+    ValueReader genValueReader() {
+        return getSuperDescriptor().genValueReader();
     }
 }

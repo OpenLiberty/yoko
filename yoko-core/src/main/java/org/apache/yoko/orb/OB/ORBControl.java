@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 package org.apache.yoko.orb.OB;
 
 import static java.lang.Thread.currentThread;
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.apache.yoko.util.MinorCodes.MinorDestroyWouldBlock;
 import static org.apache.yoko.util.MinorCodes.MinorORBDestroyed;
 import static org.apache.yoko.util.MinorCodes.MinorShutdownCalled;
@@ -498,7 +499,7 @@ public final class ORBControl {
         //
         if (manager == null) {
             try {
-                Policy[] emptyPl = new Policy[0];
+                Policy[] emptyPl = emptyArray(Policy.class);
                 manager = (POAManager) (factory.create_POAManager("RootPOAManager", emptyPl));
             } catch (ManagerAlreadyExists ex) {
                 throw Assert.fail(ex);

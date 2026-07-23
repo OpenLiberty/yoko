@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +35,8 @@ import org.apache.yoko.orb.OB.TimeoutPolicy;
 import org.apache.yoko.orb.OB.TimeoutPolicyHelper;
 import org.apache.yoko.util.MinorCodes;
 
+import static org.apache.yoko.util.Arrays.EMPTY_INTS;
+
 public class TestPolicyIntf {
     static void run(ORB orb) {
         PolicyManager pm = null;
@@ -47,7 +49,7 @@ public class TestPolicyIntf {
 
         assertTrue(pm != null);
 
-        int[] policyTypes = new int[0];
+        int[] policyTypes = EMPTY_INTS;
         Policy[] origPolicies = pm.get_policy_overrides(policyTypes);
 
         {
@@ -164,7 +166,7 @@ public class TestPolicyIntf {
             } catch (InvalidPolicies ex) {
                 assertTrue(false);
             }
-            policyTypes = new int[0];
+            policyTypes = EMPTY_INTS;
             Policy[] current = pm.get_policy_overrides(policyTypes);
             assertTrue(current.length == origPolicies.length);
             for (int i = 0; i < current.length; ++i) {

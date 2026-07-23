@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
  */
 package testify.iiop.annotation;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -50,8 +51,6 @@ import static java.util.Collections.unmodifiableSet;
 import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.CLIENT_ORB;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.SERVER_ORB;
 import static testify.iiop.annotation.ConfigureServer.Separation.INTER_ORB;
 import static testify.iiop.annotation.ConfigureServer.ServerName.DEFAULT_SERVER;
 import static testify.iiop.annotation.OrbSteward.getActivatedRootPoa;
@@ -61,6 +60,7 @@ import static testify.iiop.annotation.OrbSteward.getActivatedRootPoa;
 @ConfigurePartRunner
 @Retention(RUNTIME)
 @Inherited
+@Tag("server")
 public @interface ConfigureServer {
     enum ServerName {DEFAULT_SERVER}
     enum Separation {COLLOCATED, INTER_ORB, INTER_PROCESS}
@@ -70,10 +70,10 @@ public @interface ConfigureServer {
     String[] jvmArgs() default {};
 
     /** Define the config for the ORB the client for this server will use. */
-    ConfigureOrb clientOrb() default @ConfigureOrb(CLIENT_ORB);
+    ConfigureOrb clientOrb() default @ConfigureOrb;
 
     /** Define the config for the ORB this server will use. */
-    ConfigureOrb serverOrb() default @ConfigureOrb(SERVER_ORB);
+    ConfigureOrb serverOrb() default @ConfigureOrb;
 
     /**
      * Annotate methods to be run in the server on ORB startup

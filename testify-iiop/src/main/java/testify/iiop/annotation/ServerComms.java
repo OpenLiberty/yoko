@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ import javax.rmi.PortableRemoteObject;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
+import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
@@ -362,13 +363,14 @@ final class ServerComms implements Serializable {
         return ior;
     }
 
+    @SuppressWarnings("unchecked")
     private <IMPL extends Remote, TIE extends Servant & Tie>
     void exportObject0(Member member) {
         assertServer(IS_STARTED);
         try {
             bus.log(INFO, "### exporting object from member: " + member);
-            @SuppressWarnings("unchecked cast")
             final IMPL o;
+            if (member instanceof AccessibleObject) ((AccessibleObject)member).setAccessible(true);
             if (member instanceof Field) o = (IMPL) ((Field)member).get(null);
             else if (member instanceof Method) o = (IMPL) invoke0((Method) member);
             else throw Assertions.failf("Member type not supported for object export: %s", member);

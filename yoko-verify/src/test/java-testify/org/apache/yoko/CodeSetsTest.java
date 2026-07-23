@@ -8,7 +8,7 @@
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an \"AS IS\" BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
@@ -34,47 +34,6 @@ import static org.apache.yoko.CodeSetsTest.PublishStub.REF;
 
 @ConfigureServer
 public class CodeSetsTest {
-    // same latin codeset on server and client
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-1"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-1"})) public static class CodeSet1Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-2"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-2"})) public static class CodeSet2Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-3"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-3"})) public static class CodeSet3Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-4"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-4"})) public static class CodeSet4Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-5"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-5"})) public static class CodeSet5Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-6"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-6"})) public static class CodeSet6Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-7"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-7"})) public static class CodeSet7Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-8"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-8"})) public static class CodeSet8Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-9"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-9"})) public static class CodeSet9Test extends CodeSetsTest {}
-    // different latin codesets on server and client
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-1"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-2"})) public static class CodeSets12Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-2"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-3"})) public static class CodeSets23Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-3"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-4"})) public static class CodeSets34Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-4"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-5"})) public static class CodeSets45Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-5"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-6"})) public static class CodeSets56Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-6"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-7"})) public static class CodeSets67Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-7"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-8"})) public static class CodeSets78Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-8"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-9"})) public static class CodeSets89Test extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-9"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-1"})) public static class CodeSets91Test extends CodeSetsTest {}
-    // server uses default (UTF-8)
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-1"})) public static class CodeSets1DTest extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-2"})) public static class CodeSets2DTest extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-3"})) public static class CodeSets3DTest extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-4"})) public static class CodeSets4DTest extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-5"})) public static class CodeSets5DTest extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-6"})) public static class CodeSets6DTest extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-7"})) public static class CodeSets7DTest extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-8"})) public static class CodeSets8DTest extends CodeSetsTest {}
-    @ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-9"})) public static class CodeSets9DTest extends CodeSetsTest {}
-    // client uses default (UTF-8)
-    @ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-1"})) public static class CodeSetsD1Test extends CodeSetsTest {}
-    @ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-2"})) public static class CodeSetsD2Test extends CodeSetsTest {}
-    @ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-3"})) public static class CodeSetsD3Test extends CodeSetsTest {}
-    @ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-4"})) public static class CodeSetsD4Test extends CodeSetsTest {}
-    @ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-5"})) public static class CodeSetsD5Test extends CodeSetsTest {}
-    @ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-6"})) public static class CodeSetsD6Test extends CodeSetsTest {}
-    @ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-7"})) public static class CodeSetsD7Test extends CodeSetsTest {}
-    @ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-8"})) public static class CodeSetsD8Test extends CodeSetsTest {}
-    @ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-9"})) public static class CodeSetsD9Test extends CodeSetsTest {}
-
     enum PublishStub implements TypeKey<String> {REF}
     private static TestCodeSets stub;
 
@@ -96,3 +55,46 @@ public class CodeSetsTest {
     @Test void testWchar() { Assertions.assertEquals((char) 0x1234, stub.testWChar((char) 0x1234)); }
     @Test void testWstring() { Assertions.assertEquals("Hello, world", stub.testWString("Hello, world")); }
 }
+
+// same latin codeset on server and client
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-1"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-1"})) class CodeSet1Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-2"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-2"})) class CodeSet2Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-3"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-3"})) class CodeSet3Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-4"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-4"})) class CodeSet4Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-5"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-5"})) class CodeSet5Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-6"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-6"})) class CodeSet6Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-7"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-7"})) class CodeSet7Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-8"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-8"})) class CodeSet8Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-9"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-9"})) class CodeSet9Test extends CodeSetsTest {}
+// different latin codesets on server and client
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-1"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-2"})) class CodeSets12Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-2"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-3"})) class CodeSets23Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-3"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-4"})) class CodeSets34Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-4"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-5"})) class CodeSets45Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-5"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-6"})) class CodeSets56Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-6"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-7"})) class CodeSets67Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-7"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-8"})) class CodeSets78Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-8"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-9"})) class CodeSets89Test extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-9"}), serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-1"})) class CodeSets91Test extends CodeSetsTest {}
+// server uses default (UTF-8)
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-1"})) class CodeSets1DTest extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-2"})) class CodeSets2DTest extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-3"})) class CodeSets3DTest extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-4"})) class CodeSets4DTest extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-5"})) class CodeSets5DTest extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-6"})) class CodeSets6DTest extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-7"})) class CodeSets7DTest extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-8"})) class CodeSets8DTest extends CodeSetsTest {}
+@ConfigureServer (clientOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-9"})) class CodeSets9DTest extends CodeSetsTest {}
+// client uses default (UTF-8)
+@ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-1"})) class CodeSetsD1Test extends CodeSetsTest {}
+@ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-2"})) class CodeSetsD2Test extends CodeSetsTest {}
+@ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-3"})) class CodeSetsD3Test extends CodeSetsTest {}
+@ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-4"})) class CodeSetsD4Test extends CodeSetsTest {}
+@ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-5"})) class CodeSetsD5Test extends CodeSetsTest {}
+@ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-6"})) class CodeSetsD6Test extends CodeSetsTest {}
+@ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-7"})) class CodeSetsD7Test extends CodeSetsTest {}
+@ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-8"})) class CodeSetsD8Test extends CodeSetsTest {}
+@ConfigureServer (serverOrb = @ConfigureOrb(args = {"-ORBnative_cs", "8859-9"})) class CodeSetsD9Test extends CodeSetsTest {}
+
+// Made with Bob

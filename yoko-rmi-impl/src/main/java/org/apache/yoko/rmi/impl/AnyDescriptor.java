@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,34 +17,22 @@
  */
 package org.apache.yoko.rmi.impl;
 
-import java.io.PrintWriter;
-
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.TypeCode;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
 
+import java.io.PrintWriter;
+
 class AnyDescriptor extends TypeDescriptor {
-    AnyDescriptor(Class type, TypeRepository rep) {
-        super(type, rep);
+    AnyDescriptor(Class<?> type, TypeRepository rep) {
+        super(type, rep, javax.rmi.CORBA.Util::readAny, javax.rmi.CORBA.Util::writeAny);
     }
 
     @Override
     protected String genRepId() {
-        return String.format("IDL:%s:1.0", type.getName().replace('.', '/'));
-    }
-
-    /** Read an instance of this value from a CDR stream */
-    @Override
-    public Object read(InputStream in) {
-        return javax.rmi.CORBA.Util.readAny(in);
-    }
-
-    /** Write an instance of this value to a CDR stream */
-    @Override
-    public void write(OutputStream out, Object val) {
-        javax.rmi.CORBA.Util.writeAny(out, val);
+        return String.format("IDL:%s:1.0", getType().getName().replace('.', '/'));
     }
 
     @Override

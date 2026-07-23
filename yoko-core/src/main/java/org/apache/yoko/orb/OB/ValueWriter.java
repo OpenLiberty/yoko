@@ -22,6 +22,7 @@ import org.apache.yoko.orb.CORBA.DataOutputStream;
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.osgi.ProviderLocator;
 import org.apache.yoko.util.Assert;
+import org.apache.yoko.util.InstanceFactory.CannotInstantiateException;
 import org.apache.yoko.util.cmsf.RepIds;
 import org.omg.CORBA.CustomMarshal;
 import org.omg.CORBA.MARSHAL;
@@ -36,8 +37,6 @@ import org.omg.CORBA.portable.ValueBase;
 
 import javax.rmi.CORBA.ValueHandler;
 import java.io.Serializable;
-import java.lang.reflect.InvocationTargetException;
-import java.security.PrivilegedActionException;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.IdentityHashMap;
@@ -46,10 +45,11 @@ import static java.security.AccessController.doPrivileged;
 import static javax.rmi.CORBA.Util.createValueHandler;
 import static javax.rmi.CORBA.Util.getCodebase;
 import static org.apache.yoko.orb.CORBA.TypeCodeImpl._OB_getOrigType;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
+import static org.apache.yoko.util.InstanceFactory.createNoArgsInstance;
 import static org.apache.yoko.util.MinorCodes.MinorNoValueFactory;
 import static org.apache.yoko.util.MinorCodes.describeMarshal;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
-import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 import static org.omg.CORBA.TCKind._tk_string;
 
@@ -207,14 +207,11 @@ public final class ValueWriter {
         //
         // Instantiate the Helper
         //
-        if (helperClass != null) {
-            try {
-                return doPrivileged(getNoArgConstructor(helperClass)).newInstance();
-            } catch (PrivilegedActionException | InvocationTargetException | InstantiationException | IllegalAccessException ignored) {
-            }
+        try {
+            return createNoArgsInstance(helperClass);
+        } catch (CannotInstantiateException ignored) {
+            return null;
         }
-
-        return null;
     }
 
     private BoxedValueHelper fastPathStringBoxHelper(TypeCode type) {
@@ -358,7 +355,7 @@ public final class ValueWriter {
                 //
 
                 tag = 0x7fffff00;
-                ids = new String[0];
+                ids = NO_STRINGS;
             }
 
             int startPos = beginValue(tag, ids, null, chunked);
@@ -433,13 +430,13 @@ public final class ValueWriter {
                 int pos = writeBuffer.getPosition();
                 WStringValueHelper.write (out_, (String)repValue);
                 instanceTable_.put (repValue, pos);
-                // we record the original value position so that another attempt to write out 
-                // the original object will resolve to the same object. 
+                // we record the original value position so that another attempt to write out
+                // the original object will resolve to the same object.
                 instanceTable_.put (value, pos);
                 return;
             }
-            // save the original value because we want to record that object in the 
-            // indirection table also, once we've established the offset position. 
+            // save the original value because we want to record that object in the
+            // indirection table also, once we've established the offset position.
             originalValue = value;
             value = repValue;
 
@@ -472,8 +469,8 @@ public final class ValueWriter {
 
         int pos = beginValue(tag, ids, codebase, isChunked);
         instanceTable_.put (value, pos);
-        // if this was replace via writeReplace, record the original 
-        // value in the indirection table too. 
+        // if this was replace via writeReplace, record the original
+        // value in the indirection table too.
         if (originalValue != null) {
             instanceTable_.put(originalValue, pos);
         }

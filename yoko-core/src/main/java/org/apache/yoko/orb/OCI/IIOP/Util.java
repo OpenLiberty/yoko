@@ -48,6 +48,8 @@ import org.omg.IOP.TaggedComponent;
 import org.omg.IOP.TaggedComponentHelper;
 import org.omg.IOP.TaggedProfile;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.AccessController;
@@ -121,13 +123,13 @@ final public class Util {
         profileInfo.key = key;
         profileInfo.major = body.iiop_version.major;
         profileInfo.minor = body.iiop_version.minor;
-        profileInfo.components = new TaggedComponent[0];
+        profileInfo.components = emptyArray(TaggedComponent.class);
         return createIOR(body.host, body.port, id, profileInfo);
     }
 
     static public boolean extractProfileInfo(IOR ior, ProfileInfoHolder profileInfo) {
         ProfileInfoSeqHolder profileInfoSeq = new ProfileInfoSeqHolder();
-        profileInfoSeq.value = new ProfileInfo[0];
+        profileInfoSeq.value = emptyArray(ProfileInfo.class);
         extractAllProfileInfos(ior, profileInfoSeq, false, null, 0, false, null);
         if (profileInfoSeq.value.length > 0) {
             profileInfo.value = profileInfoSeq.value[0];

@@ -33,6 +33,7 @@ buildscript {
 plugins {
   id "biz.aQute.bnd.builder" version "6.4.0" apply false
   id "com.dorongold.task-tree" version "2.1.1"
+  id "base"
 }
 
 ext {
@@ -48,8 +49,60 @@ wrapper {
     distributionType = Wrapper.DistributionType.ALL
 }
 
+// Validate that .sdkmanrc Gradle version matches wrapper version
+def validateGradleVersions() {
+    def sdkmanrcFile = file('.sdkmanrc')
+    def wrapperPropsFile = file('gradle/wrapper/gradle-wrapper.properties')
+
+    if (!sdkmanrcFile.exists()) {
+        logger.warn("Warning: .sdkmanrc file not found")
+        return
+    }
+
+    if (!wrapperPropsFile.exists()) {
+        throw new GradleException("gradle-wrapper.properties not found")
+    }
+
+    // Parse .sdkmanrc for gradle version
+    def sdkmanrcVersion = null
+    sdkmanrcFile.eachLine { line ->
+        if (line.trim().startsWith('gradle=')) {
+            sdkmanrcVersion = line.split('=')[1].trim()
+        }
+    }
+
+    // Parse wrapper properties for gradle version
+    def wrapperVersion = null
+    wrapperPropsFile.eachLine { line ->
+        if (line.trim().startsWith('distributionUrl=')) {
+            def matcher = (line =~ /gradle-(\d+\.\d+(?:\.\d+)?)-/)
+            if (matcher.find()) {
+                wrapperVersion = matcher.group(1)
+            }
+        }
+    }
+
+    if (sdkmanrcVersion && wrapperVersion) {
+        if (sdkmanrcVersion != wrapperVersion) {
+            throw new GradleException(
+                "Gradle version mismatch!\n" +
+                "  .sdkmanrc:                    gradle=${sdkmanrcVersion}\n" +
+                "  gradle-wrapper.properties:    gradle-${wrapperVersion}\n" +
+                "Please update both files to use the same Gradle version."
+            )
+        }
+        logger.quiet("✓ Gradle version validated: ${wrapperVersion}")
+    }
+}
+
+// Run validation during configuration phase
+validateGradleVersions()
+
+// Apply interop testing tasks
+apply from: 'config/gradle/interop-testing.gradle'
+
 // Apply release configuration
-apply from: 'build-release.gradle'
+apply from: 'config/gradle/build-release.gradle'
 
 // compute git hash
 
@@ -137,7 +190,15 @@ subprojects { sp ->
     jvmArgs '--add-opens=java.base/java.io=ALL-UNNAMED'
     jvmArgs '--add-opens=java.base/java.util=ALL-UNNAMED'
     jvmArgs '--add-opens=java.rmi/java.rmi=ALL-UNNAMED'
-    useJUnitPlatform()
+    useJUnitPlatform {
+      // Support excluding tags via system property (e.g., -Dtest.excludeTags=interop)
+      def tagsToExclude = System.getProperty('test.excludeTags')
+      if (tagsToExclude) {
+        tagsToExclude.split(',').each { tag ->
+          excludeTags tag.trim()
+        }
+      }
+    }
     workingDir = "$buildDir/testWorkingDir"
     doFirst {workingDir.mkdirs()}
 
@@ -314,3 +375,110 @@ task testReport (type: TestReport) {
     def projectsWithTests = subprojects.findAll { it.tasks.findByName('test') != null }
     testResults.from = projectsWithResults.test
 }
+
+
+task createBuildLibSymlinks {
+    description = 'Creates symbolic links to jar files in the build/lib directory'
+    group = 'build'
+
+    def targetProjects = [
+        ':yoko-core',
+        ':yoko-spec-corba',
+        ':yoko-rmi-impl',
+        ':yoko-rmi-spec',
+        ':yoko-util',
+        ':yoko-osgi'
+    ]
+
+    // Depend on jar tasks of all target projects
+    targetProjects.each { projectPath ->
+        dependsOn "${projectPath}:jar"
+    }
+
+    // Register output directory so gradle clean removes it
+    outputs.dir("${buildDir}/lib")
+
+    doLast {
+        def libDir = file("${buildDir}/lib")
+        def depsDir = file("${buildDir}/lib/deps")
+
+        // Create directories if they don't exist
+        if (!depsDir.exists()) {
+            depsDir.mkdirs()
+            println "Created directory: ${depsDir}"
+        }
+
+        // Clean out existing symbolic links and regular files in lib
+        libDir.listFiles().each { file ->
+            if (file.isFile() || (java.nio.file.Files.isSymbolicLink(file.toPath()) && file.name.endsWith('.jar'))) {
+                file.delete()
+                println "Removed existing file: ${file.name}"
+            }
+        }
+
+        // Clean out deps directory
+        if (depsDir.exists()) {
+            depsDir.listFiles().each { file ->
+                file.delete()
+            }
+        }
+
+        // Create symbolic links for each project's jar
+        targetProjects.each { projectPath ->
+            def subproject = project(projectPath)
+            def jarTask = subproject.tasks.jar
+            def jarFile = jarTask.archiveFile.get().asFile
+
+            if (jarFile.exists()) {
+                // Use simple name without version info
+                def projectName = subproject.name
+                def linkFile = new File(libDir, "${projectName}.jar")
+
+                // Create symbolic link using relative path
+                def relativePath = libDir.toPath().relativize(jarFile.toPath())
+                java.nio.file.Files.createSymbolicLink(
+                    linkFile.toPath(),
+                    relativePath
+                )
+                println "Created symlink: ${linkFile.name} -> ${relativePath}"
+            } else {
+                println "Warning: JAR file not found: ${jarFile}"
+            }
+        }
+
+        // Copy external dependencies from yoko-core runtime classpath to deps/
+        def coreProject = project(':yoko-core')
+        def runtimeClasspath = coreProject.configurations.runtimeClasspath
+        def externalDeps = runtimeClasspath.resolvedConfiguration.resolvedArtifacts.findAll { artifact ->
+            // Only include external dependencies (not project dependencies)
+            artifact.moduleVersion.id.group != project.group
+        }
+
+        externalDeps.each { artifact ->
+            def sourceFile = artifact.file
+            def targetFile = new File(depsDir, sourceFile.name)
+
+            // Copy the file to deps/ directory
+            java.nio.file.Files.copy(
+                sourceFile.toPath(),
+                targetFile.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            )
+            println "Copied dependency: ${sourceFile.name} -> deps/"
+
+            // Create version-free symlink in lib/ pointing to deps/
+            def baseName = sourceFile.name.replaceAll(/-\d+(\.\d+)*(-[^.]+)?\.jar$/, '.jar')
+            def symlinkFile = new File(libDir, baseName)
+            def symlinkTarget = libDir.toPath().relativize(targetFile.toPath())
+
+            java.nio.file.Files.createSymbolicLink(
+                symlinkFile.toPath(),
+                symlinkTarget
+            )
+            println "Created symlink: ${baseName} -> ${symlinkTarget}"
+        }
+    }
+}
+
+// Make createBuildLibSymlinks run at the end of build
+build.finalizedBy createBuildLibSymlinks

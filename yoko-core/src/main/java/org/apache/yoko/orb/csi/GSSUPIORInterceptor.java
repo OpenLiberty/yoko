@@ -31,6 +31,8 @@ import org.omg.CSIIOP.*;
 import org.omg.IOP.Codec;
 import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
 import org.omg.IOP.TaggedComponent;
+
+import static org.apache.yoko.util.Arrays.emptyArray;
 import org.omg.PortableInterceptor.IORInfo;
 import org.omg.PortableInterceptor.IORInterceptor;
 import org.omg.Security.DelegationDirective;
@@ -41,6 +43,7 @@ import org.omg.SecurityLevel2.DelegationDirectivePolicy;
 import org.apache.yoko.orb.csi.gssup.GSSUPPolicy;
 import org.apache.yoko.orb.csi.gssup.SecGSSUPPolicy;
 
+import static org.apache.yoko.util.Arrays.EMPTY_BYTES;
 
 /**
  * This interceptor adds GSSUP security information to the IOR, if the relevant
@@ -135,11 +138,11 @@ public class GSSUPIORInterceptor extends CSIInterceptorBase implements
             if (gssup_realm != null) {
                 as.target_name = encodeGSSExportedName(gssup_realm);
             } else {
-                as.target_name = EMPTY_BARR;
+                as.target_name = EMPTY_BYTES;
             }
         } else {
-            as.target_name = EMPTY_BARR;
-            as.client_authentication_mech = EMPTY_BARR;
+            as.target_name = EMPTY_BYTES;
+            as.client_authentication_mech = EMPTY_BYTES;
         }
 
         if (log.isLoggable(Level.FINE)) {
@@ -156,7 +159,7 @@ public class GSSUPIORInterceptor extends CSIInterceptorBase implements
 
         sas.target_supports = sas_target_supports;
         sas.target_requires = sas_target_requires;
-        sas.privilege_authorities = new ServiceConfiguration[0];
+        sas.privilege_authorities = emptyArray(ServiceConfiguration.class);
         sas.supported_naming_mechanisms = new byte[][]{GSSUP_OID};
 
         sas.supported_identity_types = ITTAnonymous.value;
@@ -173,7 +176,7 @@ public class GSSUPIORInterceptor extends CSIInterceptorBase implements
         // transport mech is null here, this field is modified by code
         // inside SSL server-side logic, adding SSL-specific information.
         mech.transport_mech = new TaggedComponent(TAG_NULL_TAG.value,
-                                                  EMPTY_BARR);
+                                                  EMPTY_BYTES);
         mech.target_requires = (short) (as_target_requires | sas_target_requires);
         mech.as_context_mech = as;
         mech.sas_context_mech = sas;

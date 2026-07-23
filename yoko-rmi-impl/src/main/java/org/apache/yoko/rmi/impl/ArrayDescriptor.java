@@ -18,6 +18,7 @@
 package org.apache.yoko.rmi.impl;
 
 import org.apache.yoko.rmi.util.SerialFilterHelper;
+import org.apache.yoko.util.concurrent.LazyReference;
 import org.omg.CORBA.MARSHAL;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.TypeCode;
@@ -32,15 +33,12 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.rmi.Remote;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
+import static java.util.Collections.singletonList;
 import static java.util.stream.IntStream.range;
 import static javax.rmi.CORBA.Util.writeAny;
 
@@ -49,13 +47,23 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
     final Class basicType;
     private final int order;
 
+    private static <ARR extends Serializable> WriteFn createWriter(Class<? extends ARR> type, TypeRepository rep) {
+        return (out, value) -> {
+            org.omg.CORBA_2_3.portable.OutputStream _out = (org.omg.CORBA_2_3.portable.OutputStream) out;
+            String repositoryID = rep.getDescriptor(type).getRepositoryID();
+            _out.write_value((Serializable)value, repositoryID);
+        };
+    }
+
     protected ArrayDescriptor(Class<? extends ARR> type, Class elemType, TypeRepository rep) {
-        super(type, rep);
+        super(type, rep,
+            in -> ((org.omg.CORBA_2_3.portable.InputStream) in).read_value(type),
+            createWriter(type, rep));
         logger.fine(() -> "Creating an array descriptor for type " + type.getName() + " holding elements of " + elemType.getName());
         this.elementType = elemType;
 
         int order = 1;
-        Class basicType = elemType;
+        Class<?> basicType = elemType;
         while (basicType.isArray()) {
             basicType = basicType.getComponentType();
             order++;
@@ -66,49 +74,48 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
 
     protected final ARR createArray(InputStream in, Map<Integer, Serializable> offsetMap, Integer key) {
         int len = in.read_long();
-        SerialFilterHelper.checkArrayInput(type, len, in);
+        SerialFilterHelper.checkArrayInput(getType(), len, in);
         final ARR arr = (ARR)Array.newInstance(elementType, len);
         offsetMap.put(key, arr);
         return arr;
     }
 
     @Override
-    protected String genRepId() {
+    String genRepId() {
         if (elementType.isPrimitive() || elementType == Object.class)
-            return String.format("RMI:%s:%016X", type.getName(), 0);
+            return String.format("RMI:%s:%016X", getType().getName(), 0);
 
         TypeDescriptor desc = repo.getDescriptor(elementType);
         String elemRep = desc.getRepositoryID();
         String hash = elemRep.substring(elemRep.indexOf(':', 4));
-        return String.format("RMI:%s:%s", type.getName(), hash);
+        return String.format("RMI:%s:%s", getType().getName(), hash);
     }
 
     // repository ID for the contained elements
-    private volatile String _elementRepid = null;
-    private final String genElemRepId() {
+    private final LazyReference<String> elementRepId = new LazyReference<>(this::genElementRepId);
+    String genElementRepId() {
         if (elementType.isPrimitive() || elementType == Object.class) {
             // use the descriptor type past the array type marker
-            return String.format("RMI:%s:%016X", type.getName().substring(1), 0);
+            return String.format("RMI:%s:%016X", getType().getName().substring(1), 0);
         }
         return repo.getDescriptor(elementType).getRepositoryID();
     }
 
-    public String getElementRepositoryID() {
-        if (_elementRepid == null) _elementRepid = genElemRepId();
-        return _elementRepid;
+    final String getElementRepositoryID() {
+        return elementRepId.get();
     }
 
     @Override
-    protected final String genIDLName() {
+    final String genIDLName() {
         StringBuffer sb = new StringBuffer("org_omg_boxedRMI_");
 
         TypeDescriptor desc = repo.getDescriptor(basicType);
-        
-        // The logic that looks for the last "_" fails when this is a 
-        // long_long primitive type.  The primitive types have a "" package 
-        // name, so check those first.  If it's not one of the primitives, 
+
+        // The logic that looks for the last "_" fails when this is a
+        // long_long primitive type.  The primitive types have a "" package
+        // name, so check those first.  If it's not one of the primitives,
         // then we can safely split using the last index position.
-        String pkgName = desc.getPackageName(); 
+        String pkgName = desc.getPackageName();
         if (pkgName.length() == 0) {
             sb.append("seq");
             sb.append(order);
@@ -141,7 +148,7 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
             throw new IllegalArgumentException("type is not an array");
         }
 
-        Class elemType = type.getComponentType();
+        Class<?> elemType = type.getComponentType();
 
         if (elemType.isPrimitive()) {
             if (elemType == Boolean.TYPE) {
@@ -176,60 +183,24 @@ abstract class ArrayDescriptor<ARR extends Serializable> extends ValueDescriptor
         }
     }
 
-    /**
-     * Read an instance of this value from a CDR stream. Overridden to provide a
-     * specific type
-     */
     @Override
-    public Object read(InputStream in) {
-        org.omg.CORBA_2_3.portable.InputStream _in = (org.omg.CORBA_2_3.portable.InputStream) in;
-        logger.fine(() -> "Reading an array value with repository id " + getRepositoryID() + " java class is " + type);
-
-        // if we have a resolved class, read using that, otherwise fall back on the
-        // repository id.
-        return ((null == type) ? _in.read_value(getRepositoryID()) : _in.read_value(type));
-    }
-
-    /** Write an instance of this value to a CDR stream */
-    @Override
-    public void write(OutputStream out, Object value) {
-        org.omg.CORBA_2_3.portable.OutputStream _out = (org.omg.CORBA_2_3.portable.OutputStream) out;
-
-        _out.write_value((Serializable)value, getRepositoryID());
-    }
-
-    @Override
-    protected final ValueMember[] genValueMembers() {
-        final ValueMember[] members = new ValueMember[1];
+    protected List<ValueMember> genValueMembers() {
         final TypeDescriptor elemDesc = repo.getDescriptor(elementType);
         final String elemRepID = elemDesc.getRepositoryID();
 
         final ORB orb = ORB.init();
         TypeCode memberTC = orb.create_sequence_tc(0, elemDesc.getTypeCode());
 
-        members[0] = new ValueMember("", // member has no name!
+        ValueMember member = new ValueMember("", // member has no name!
                     elemRepID, this.getRepositoryID(), "1.0", memberTC, null,
                     (short) 1);
 
-        return members;
+        return singletonList(member);
     }
 
     @Override
-    void addDependencies(Set classes) {
+    void addDependencies(Set<Class<?>> classes) {
         repo.getDescriptor(basicType).addDependencies(classes);
-    }
-
-    final CorbaObjectReader makeCorbaObjectReader(final InputStream in, final Map offsetMap, final Serializable obj)
-            throws IOException {
-        try {
-            return AccessController.doPrivileged(new PrivilegedExceptionAction<CorbaObjectReader>() {
-                public CorbaObjectReader run() throws IOException {
-                    return new CorbaObjectReader(in, offsetMap, obj);
-                }
-            });
-        } catch (PrivilegedActionException e) {
-            throw (IOException)e.getException();
-        }
     }
 }
 
@@ -248,7 +219,7 @@ class ObjectArrayDescriptor extends ArrayDescriptor<Object[]> {
         Object[] arr = (Object[]) value;
         out.write_long(arr.length);
 
-        logger.finer(() -> "writing " + type.getName() + " size="
+        logger.finer(() -> "writing " + getType().getName() + " size="
                 + arr.length);
 
         for (int i = 0; i < arr.length; i++) {
@@ -262,7 +233,7 @@ class ObjectArrayDescriptor extends ArrayDescriptor<Object[]> {
             Object[] arr = createArray(in, offsetMap, key);
             ObjectReader reader = makeCorbaObjectReader(in, offsetMap, null);
 
-            logger.fine(() -> "reading " + type.getName() + " size=" + arr.length);
+            logger.fine(() -> "reading " + getType().getName() + " size=" + arr.length);
 
             range(0, arr.length).forEach(i -> {
                 try {

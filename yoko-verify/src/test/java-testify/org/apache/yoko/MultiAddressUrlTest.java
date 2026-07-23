@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,14 +65,14 @@ public class MultiAddressUrlTest {
         narrow(orb.string_to_object(nsUrl), NamingContext.class);
         // stop the server
         control.stop();
-        assertThrowsExactly(ClassCastException.class, () -> narrow(orb.string_to_object(nsUrl), NamingContext.class), InvocationTargetException.class, TRANSIENT.class, ConnectException.class);
+        assertThrowsExactly(ClassCastException.class, () -> narrow(orb.string_to_object(nsUrl), NamingContext.class), TRANSIENT.class, ConnectException.class);
         control.start();
     }
 
     @Test
     public void testConnectionRefused(ORB orb) throws Exception {
         // first show that port 47 is not listening
-        assertThrowsExactly(ClassCastException.class, () -> narrow(orb.string_to_object(NO_LISTENER_NS_URL), NamingContext.class), InvocationTargetException.class, TRANSIENT.class, ConnectException.class);
+        assertThrowsExactly(ClassCastException.class, () -> narrow(orb.string_to_object(NO_LISTENER_NS_URL), NamingContext.class), TRANSIENT.class, ConnectException.class);
         // check our nsURL starts with corbaname:
         assertThat(nsUrl, startsWith("corbaname:"));
         // construct a URL where the first server is stopped (connection refused)
@@ -84,7 +84,7 @@ public class MultiAddressUrlTest {
     @Test
     public void testHostUnreachable(ORB orb) throws Exception {
         // first show that port 47 is not listening
-        assertThrowsExactly(ClassCastException.class, () -> narrow(orb.string_to_object(UNREACHABLE_NS_URL), NamingContext.class), InvocationTargetException.class, NO_RESPONSE.class);
+        assertThrowsExactly(ClassCastException.class, () -> narrow(orb.string_to_object(UNREACHABLE_NS_URL), NamingContext.class), NO_RESPONSE.class);
         // check our nsURL starts with corbaname:
         assertThat(nsUrl, startsWith("corbaname:"));
         // construct a URL where the first server is stopped (connection refused)

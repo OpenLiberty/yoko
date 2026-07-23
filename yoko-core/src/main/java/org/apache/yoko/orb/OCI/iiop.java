@@ -36,8 +36,8 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import static java.security.AccessController.doPrivileged;
+import static org.apache.yoko.util.InstanceFactory.createNoArgsInstance;
 import static org.apache.yoko.util.PrivilegedActions.GET_CONTEXT_CLASS_LOADER;
-import static org.apache.yoko.util.PrivilegedActions.getNoArgConstructor;
 
 public class iiop implements PluginInit {
     static final Logger logger = Logger.getLogger(iiop.class.getName());
@@ -67,9 +67,8 @@ public class iiop implements PluginInit {
 
         try {
             // get the appropriate class for the loading.
-            Class<?> c = ProviderLocator.loadClass(connectionHelper, getClass(), doPrivileged(GET_CONTEXT_CLASS_LOADER));
-            UnifiedConnectionHelper connectionHelper = ((UnifiedConnectionHelperProvider)doPrivileged(getNoArgConstructor(c)).newInstance())
-                    .getUnifiedConnectionHelper();
+            Class<? extends UnifiedConnectionHelperProvider> c = ProviderLocator.loadClass(connectionHelper, getClass(), doPrivileged(GET_CONTEXT_CLASS_LOADER));
+            UnifiedConnectionHelper connectionHelper = createNoArgsInstance(c).getUnifiedConnectionHelper();
             connectionHelper.init(orb, helperArgs);
             return new Plugin_impl(orb, connectionHelper);
         } catch (AssertionFailed|INITIALIZE e) {

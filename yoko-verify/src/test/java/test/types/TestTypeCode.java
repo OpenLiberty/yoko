@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,6 +88,8 @@ import org.omg.CORBA.UnionMemberHelper;
 import org.omg.CORBA.UnionMemberSeqHelper;
 import org.omg.CORBA.VM_NONE;
 import org.omg.CORBA.ValueMember;
+
+import static org.apache.yoko.util.Arrays.emptyArray;
 import org.omg.CORBA.VersionSpecHelper;
 
 import java.util.Properties;
@@ -597,7 +599,7 @@ public class TestTypeCode {
                 }
 
                 try {
-                    ValueMember[] members = new ValueMember[0];
+                    ValueMember[] members = emptyArray(ValueMember.class);
                     orb.create_value_tc(bogusId, "foo", VM_NONE.value, null, members);
                     fail();
                 } catch (BAD_PARAM ex) {
@@ -694,7 +696,7 @@ public class TestTypeCode {
                 }
 
                 try {
-                    ValueMember[] members = new ValueMember[0];
+                    ValueMember[] members = emptyArray(ValueMember.class);
                     orb.create_value_tc("IDL:foo:1.0", bogusName, VM_NONE.value, null, members);
                     fail();
                 } catch (BAD_PARAM ex) {
@@ -736,7 +738,7 @@ public class TestTypeCode {
         // Check illegal TypeCodes
         //
         {
-            StructMember[] members = new StructMember[0];
+            StructMember[] members = emptyArray(StructMember.class);
             TypeCode exTC = orb.create_exception_tc("IDL:ex:1.0",
                     "ex", members);
 

@@ -79,6 +79,10 @@ final public class POAPolicies {
     private final short bidirPolicyValue;
 
     POAPolicies(ORBInstance orbInstance, Policy[] policies) {
+        this(orbInstance, policies, null);
+    }
+
+    POAPolicies(ORBInstance orbInstance, Policy[] policies, String poaName) {
         // Set the default policy values.
         // These are temporary variables to allow the final fields to be set after the for loop.
         // TODO: refactor to use a builder pattern for conciseness
@@ -113,8 +117,9 @@ final public class POAPolicies {
                     case INTERCEPTOR_CALL_POLICY_ID.value: interceptorCall = InterceptorCallPolicyHelper.narrow(InterceptorCallPolicyHelper.narrow(policy)).value(); break;
                     case ZERO_PORT_POLICY_ID.value: zeroPort = ZeroPortPolicyHelper.narrow(ZeroPortPolicyHelper.narrow(policy)).value(); break;
                     default:
-                        // Unknown policy
-                        POA_INIT_LOG.warning(() -> String.format("Ignoring unsupported policy of type 0x%x", policy.policy_type()));
+                        // Unknown policy - log at fine level since this is expected when new policies are introduced
+                        final String poa = poaName != null ? "POA '" + poaName + "' is ignoring" : "Ignoring";
+                        POA_INIT_LOG.fine(() -> String.format("%s unsupported policy of type 0x%x", poa, policy.policy_type()));
                 }
             }
         }

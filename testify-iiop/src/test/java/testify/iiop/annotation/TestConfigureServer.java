@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package testify.iiop.annotation;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.omg.CORBA.ORB;
 import org.omg.PortableInterceptor.ORBInitInfo;
@@ -32,94 +31,97 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.CLIENT_ORB;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.SERVER_ORB;
+import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.CLIENT;
+import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.SERVER;
 
-public class TestConfigureServer {
-    @ConfigureServer(
-            clientOrb = @ConfigureOrb(value = CLIENT_ORB, args = "base client orb"),
-            serverOrb = @ConfigureOrb(value = SERVER_ORB, args = "base server orb")
-    )
-    abstract static class TestConfigureServerBase {
-        static ORB clientOrb, serverOrb;
-        static String clientOrbId, serverOrbId;
+@ConfigureServer(
+        clientOrb = @ConfigureOrb(args = "base client orb"),
+        serverOrb = @ConfigureOrb(args = "base server orb")
+)
+abstract class TestConfigureServerBase {
+    static ORB clientOrb, serverOrb;
+    static String clientOrbId, serverOrbId;
 
-        @BeforeServer
-        public static void recordServerOrb(ORB orb) {
-            serverOrb = orb;
-            System.out.println("### server ORB = " + serverOrb);
-        }
+    @BeforeServer
+    public static void recordServerOrb(ORB orb) {
+        serverOrb = orb;
+        System.out.println("### server ORB = " + serverOrb);
+    }
 
-        @BeforeAll
-        public static void recordClientOrb(ORB orb) {
-            clientOrb = orb;
-            System.out.println("### client ORB = " + clientOrb);
-        }
+    @BeforeAll
+    public static void recordClientOrb(ORB orb) {
+        clientOrb = orb;
+        System.out.println("### client ORB = " + clientOrb);
+    }
 
-        @AfterAll
-        public static void scrub() {
-            clientOrb = serverOrb = null;
-            clientOrbId = serverOrbId = null;
-        }
+    @AfterAll
+    public static void scrub() {
+        clientOrb = serverOrb = null;
+        clientOrbId = serverOrbId = null;
+    }
 
-        @UseWithOrb(CLIENT_ORB)
-        public static class ClientOrbInitializer implements TestORBInitializer {
-            public void pre_init(ORBInitInfo info) { clientOrbId = info.arguments()[0]; }
-        }
-
-        @UseWithOrb(SERVER_ORB)
-        public static class ServerOrbInitializer implements TestORBInitializer {
-            public void pre_init(ORBInitInfo info) { serverOrbId = info.arguments()[0]; }
+    @UseWithOrb(scope = CLIENT)
+    public static class ClientOrbInitializer implements TestORBInitializer {
+        public void pre_init(ORBInitInfo info) {
+            System.err.println("ClientOrbInitializer.pre_init() called with info:\n" + info);
+            Thread.dumpStack();
+            clientOrbId = info.arguments()[0];
         }
     }
 
-    @Nested
-    @ConfigureServer(
-            separation = ConfigureServer.Separation.INTER_ORB,
-            clientOrb = @ConfigureOrb(value = CLIENT_ORB, args = "inter-orb client orb"),
-            serverOrb = @ConfigureOrb(value = SERVER_ORB, args = "inter-orb server orb")
-    )
-    class TestConfigureServerInterOrb extends TestConfigureServerBase {
-        @Test
-        void testServerOrbIsDistinct() {
-            assertEquals("inter-orb client orb", clientOrbId);
-            assertEquals("inter-orb server orb", serverOrbId);
-            assertNotNull(clientOrb);
-            assertNotNull(serverOrb);
-            assertNotSame(clientOrb, serverOrb, "Server ORB should be distinct from client ORB");
+    @UseWithOrb(scope = SERVER)
+    public static class ServerOrbInitializer implements TestORBInitializer {
+        public void pre_init(ORBInitInfo info) {
+            System.err.println("ServerOrbInitializer.pre_init() called with info:\n" + info);
+            Thread.dumpStack();
+            serverOrbId = info.arguments()[0];
         }
     }
+}
 
-    @Nested
-    @ConfigureServer(
-            separation = ConfigureServer.Separation.INTER_PROCESS,
-            clientOrb = @ConfigureOrb(value = CLIENT_ORB, args = "inter-process client orb"),
-            serverOrb = @ConfigureOrb(value = SERVER_ORB, args = "inter-process server orb")
-    )
-    class TestConfigureServerInterProcess extends TestConfigureServerBase {
-        @Test
-        void testServerOrbIsNull() {
-            // When we run inter process, the server-side stuff runs in the remote process, and none of the fields should be set locally
-            assertEquals("inter-process client orb", clientOrbId);
-            assertNotNull(clientOrb);
-            assertNull(serverOrbId);
-            assertNull(serverOrb, "Server ORB should be unavailable in client process");
-        }
+@ConfigureServer(
+        separation = ConfigureServer.Separation.INTER_ORB,
+        clientOrb = @ConfigureOrb(args = "inter-orb client orb"),
+        serverOrb = @ConfigureOrb(args = "inter-orb server orb")
+)
+class TestConfigureServerInterOrb extends TestConfigureServerBase {
+    @Test
+    void testServerOrbIsDistinct() {
+        assertEquals("inter-orb client orb", clientOrbId);
+        assertEquals("inter-orb server orb", serverOrbId);
+        assertNotNull(clientOrb);
+        assertNotNull(serverOrb);
+        assertNotSame(clientOrb, serverOrb, "Server ORB should be distinct from client ORB");
     }
+}
 
-    @Nested
-    @ConfigureServer(
-            separation = ConfigureServer.Separation.COLLOCATED,
-            serverOrb = @ConfigureOrb(value = SERVER_ORB, args = "collocated server orb"),
-            clientOrb = @ConfigureOrb(value = CLIENT_ORB, args = "collocated client orb")
-    )
-    class TestConfigureServerCollocated extends TestConfigureServerBase {
-        @Test
-        void testServerOrbIsNotDistinct() {
-            assertNull(clientOrbId); // TODO: rethink how @UseWithOrb works when the client ORB and the server ORB are the same
-            assertEquals("collocated server orb", serverOrbId);
-            assertNotNull(clientOrb);
-            assertSame(clientOrb, serverOrb, "Server ORB should be identical to client ORB");
-        }
+@ConfigureServer(
+        separation = ConfigureServer.Separation.INTER_PROCESS,
+        clientOrb = @ConfigureOrb(args = "inter-process client orb"),
+        serverOrb = @ConfigureOrb(args = "inter-process server orb")
+)
+class TestConfigureServerInterProcess extends TestConfigureServerBase {
+    @Test
+    void testServerOrbIsNull() {
+        // When we run inter process, the server-side stuff runs in the remote process, and none of the fields should be set locally
+        assertNull(serverOrbId);
+        assertNull(serverOrb, "Server ORB should be unavailable in client process");
+        assertNotNull(clientOrb);
+        assertEquals("inter-process client orb", clientOrbId);
+    }
+}
+
+@ConfigureServer(
+        separation = ConfigureServer.Separation.COLLOCATED,
+        serverOrb = @ConfigureOrb(args = "collocated orb"),
+        clientOrb = @ConfigureOrb(args = "other text")
+)
+class TestConfigureServerCollocated extends TestConfigureServerBase {
+    @Test
+    void testServerOrbIsNotDistinct() {
+        assertEquals("collocated orb", clientOrbId);
+        assertEquals("collocated orb", serverOrbId);
+        assertNotNull(clientOrb);
+        assertSame(clientOrb, serverOrb, "Server ORB should be identical to client ORB");
     }
 }

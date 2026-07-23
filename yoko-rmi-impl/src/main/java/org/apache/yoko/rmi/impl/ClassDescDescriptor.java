@@ -44,7 +44,7 @@ class ClassDescDescriptor extends ClassBaseDescriptor {
                 String className = "<unknown>";
                 try {
                     String repid = (String) getRepidField().get(desc);
-                    String codebase = (String) getCobebaseField().get(desc);
+                    String codebase = (String) getCodebaseField().get(desc);
 
                     Class<?> result = RepIds.query(repid).codebase(codebase).toClass();
                     if (null != result) return result;

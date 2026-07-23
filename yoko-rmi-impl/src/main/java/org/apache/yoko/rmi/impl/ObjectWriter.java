@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
  */
 package org.apache.yoko.rmi.impl;
 
-import org.apache.yoko.util.cmsf.CmsfThreadLocal;
+import org.apache.yoko.util.cmsf.Cmsf;
 import org.apache.yoko.util.rofl.Interop;
 
 import java.io.Externalizable;
@@ -26,10 +26,14 @@ import java.io.NotActiveException;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.lang.invoke.MethodHandle;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.apache.yoko.util.ThreadLocalStack.CMSF_THREAD_LOCAL;
+import static org.apache.yoko.util.cmsf.Cmsf.CMSFv2;
 
 abstract class ObjectWriter extends ObjectOutputStream {
     protected final Serializable object;
@@ -40,7 +44,7 @@ abstract class ObjectWriter extends ObjectOutputStream {
 
     private WriteObjectState state = WriteObjectState.NOT_IN_WRITE_OBJECT;
 
-    final byte cmsf;
+    final Cmsf cmsf;
 
     private enum WriteObjectState {
         NOT_IN_WRITE_OBJECT {
@@ -58,7 +62,7 @@ abstract class ObjectWriter extends ObjectOutputStream {
                 // If we're in stream format version 2, we must
                 // put the "null" marker to say that there isn't
                 // any optional data
-                if (writer.cmsf == 2) {
+                if (CMSFv2 == writer.cmsf) {
                     writer._nullValue();
                 }
             }
@@ -77,7 +81,7 @@ abstract class ObjectWriter extends ObjectOutputStream {
                 // writeDefaultObject was not invoked
                 writer.writeBoolean(false);
 
-                if (writer.cmsf == 2) {
+                if (CMSFv2 == writer.cmsf) {
                     writer._startValue(writer._desc.getCustomRepositoryID());
                 }
             }
@@ -95,7 +99,7 @@ abstract class ObjectWriter extends ObjectOutputStream {
 
                 // write a null-marker to identify that there is no custom
                 // state being marshalled...
-                if (writer.cmsf == 2) {
+                if (CMSFv2 == writer.cmsf) {
                     writer._nullValue();
                 }
             }
@@ -105,14 +109,14 @@ abstract class ObjectWriter extends ObjectOutputStream {
                 // been emitted in IN_WRITE_OBJECT.beforeWriteDefaultObject
                 writer.state = WROTE_CUSTOM_DATA;
 
-                if (writer.cmsf == 2) {
+                if (CMSFv2 == writer.cmsf) {
                     writer._startValue(writer._desc.getCustomRepositoryID());
                 }
             }
         },
         WROTE_CUSTOM_DATA {
             void afterWriteObject(ObjectWriter writer) throws IOException {
-                if (writer.cmsf == 2) {
+                if (CMSFv2 == writer.cmsf) {
                     writer._endValue();
                 }
 
@@ -147,7 +151,7 @@ abstract class ObjectWriter extends ObjectOutputStream {
 
     ObjectWriter(Serializable obj) throws IOException {
         object = obj;
-        cmsf = CmsfThreadLocal.get();
+        cmsf = CMSF_THREAD_LOCAL.get();
     }
 
     abstract ObjectReader getObjectReader(Object newObject);
@@ -272,17 +276,20 @@ abstract class ObjectWriter extends ObjectOutputStream {
     }
 
     void invokeWriteObject(ValueDescriptor descriptor, Serializable val,
-                           Method _write_object_method) throws IllegalArgumentException,
-            IllegalAccessException, InvocationTargetException, IOException {
+                           MethodHandle writeObjectHandle) throws IOException {
         final ValueDescriptor desc = _desc;
         final WriteObjectState old_state = state;
         state = WriteObjectState.NOT_IN_WRITE_OBJECT;
         try {
             setCurrentValueDescriptor(descriptor);
-            writeByte(cmsf);
+            writeByte(cmsf.getValue());
             state.beforeWriteObject(this);
-            _write_object_method.invoke(val, this);
+            writeObjectHandle.invoke(val, this);
             state.afterWriteObject(this);
+        } catch (Error | RuntimeException | IOException e) {
+            throw e;
+        } catch (Throwable t) {
+            throw new IOException("Error invoking writeObject", t);
         } finally {
             state = old_state;
             setCurrentValueDescriptor(desc);
@@ -296,7 +303,7 @@ abstract class ObjectWriter extends ObjectOutputStream {
     protected abstract void _nullValue() throws IOException;
 
     void invokeWriteExternal(Externalizable externalizable) throws IOException {
-        writeByte(cmsf);
+        writeByte(cmsf.getValue());
         externalizable.writeExternal(this);
     }
 }

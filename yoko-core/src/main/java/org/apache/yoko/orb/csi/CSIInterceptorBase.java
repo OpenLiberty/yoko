@@ -17,12 +17,7 @@
  */
 package org.apache.yoko.orb.csi;
 
-import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
-
-import java.util.logging.Logger;
-
 import org.omg.CORBA.Any;
-import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.INTERNAL;
 import org.omg.CORBA.LocalObject;
 import org.omg.CORBA.MARSHAL;
@@ -30,7 +25,6 @@ import org.omg.CORBA.NO_PERMISSION;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.OctetSeqHelper;
 import org.omg.CORBA.UserException;
-import org.omg.CSI.AuthorizationElement;
 import org.omg.CSI.SASContextBody;
 import org.omg.CSI.SASContextBodyHelper;
 import org.omg.CSIIOP.CompoundSecMechList;
@@ -46,14 +40,16 @@ import org.omg.IOP.SecurityAttributeService;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.TaggedComponent;
 
+import java.util.logging.Logger;
+
+import static org.apache.yoko.util.Arrays.EMPTY_BYTES;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
 
 public abstract class CSIInterceptorBase extends LocalObject {
 
     private static final Logger log = Logger.getLogger(CSIInterceptorBase.class.getName());
 
-    static final AuthorizationElement[] EMPTY_AUTH_ELEMENT = new AuthorizationElement[0];
 
-    static final byte[] EMPTY_BARR = new byte[0];
 
     ORB orb;
 
@@ -116,7 +112,7 @@ public abstract class CSIInterceptorBase extends LocalObject {
 
     byte[] utf8encode(String text) {
         if (text == null) {
-            return EMPTY_BARR;
+            return EMPTY_BYTES;
         } else {
             try {
                 return text.getBytes("UTF8");

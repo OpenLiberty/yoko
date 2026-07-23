@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -8,7 +8,7 @@
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an \"AS IS\" BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
@@ -17,41 +17,30 @@
  */
 package org.apache.yoko.orb.cmsf;
 
-import static org.apache.yoko.util.MinorCodes.MinorInvalidComponentId;
-import static org.apache.yoko.orb.cmsf.CmsfVersion.CMSFv1;
-import static org.apache.yoko.orb.cmsf.CmsfVersion.CMSFv2;
+import org.apache.yoko.io.SimplyCloseable;
+import org.apache.yoko.util.cmsf.Cmsf;
+import org.omg.CORBA.LocalObject;
+import org.omg.PortableInterceptor.ClientRequestInfo;
+import org.omg.PortableInterceptor.ClientRequestInterceptor;
+import org.omg.PortableInterceptor.ForwardRequest;
 
 import java.io.IOException;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-import org.apache.yoko.util.cmsf.CmsfThreadLocal;
-import org.omg.CORBA.BAD_PARAM;
-import org.omg.CORBA.LocalObject;
-import org.omg.IOP.TAG_RMI_CUSTOM_MAX_STREAM_FORMAT;
-import org.omg.IOP.TaggedComponent;
-import org.omg.PortableInterceptor.ClientRequestInfo;
-import org.omg.PortableInterceptor.ClientRequestInterceptor;
-import org.omg.PortableInterceptor.ForwardRequest;
+import static org.apache.yoko.util.ThreadLocalStack.CMSF_THREAD_LOCAL;
+import static org.apache.yoko.util.cmsf.CmsfWrangler.CMSF_WRANGLER;
 
 public final class CmsfClientInterceptor extends LocalObject implements ClientRequestInterceptor {
     private static final String NAME = CmsfClientInterceptor.class.getName();
 
     @Override
     public void send_request(ClientRequestInfo ri) throws ForwardRequest {
-        CmsfVersion cmsf = CMSFv1;
-        try {
-            TaggedComponent tc = ri.get_effective_component(TAG_RMI_CUSTOM_MAX_STREAM_FORMAT.value);
-            cmsf = CmsfVersion.readData(tc.component_data);
-        } catch (BAD_PARAM e) {
-            if (e.minor != MinorInvalidComponentId) {
-                throw e;
-            }
-        }
-        CmsfThreadLocal.push(cmsf.getValue());
-        
-        if (CmsfVersion.ENABLED) ri.add_request_service_context(CMSFv2.getSc(), false);
+        Cmsf cmsf = CMSF_WRANGLER.readData(ri);
+        CMSF_WRANGLER.addSc(ri);
+        @SuppressWarnings("resource") // popped in receive_*
+        SimplyCloseable ignored = CMSF_THREAD_LOCAL.push(cmsf);
     }
 
     @Override
@@ -60,17 +49,17 @@ public final class CmsfClientInterceptor extends LocalObject implements ClientRe
 
     @Override
     public void receive_reply(ClientRequestInfo ri) {
-        CmsfThreadLocal.pop();
+        CMSF_THREAD_LOCAL.pop();
     }
 
     @Override
-    public void receive_exception(ClientRequestInfo ri) throws ForwardRequest {
-        CmsfThreadLocal.pop();
+    public void receive_exception(ClientRequestInfo ri) {
+        CMSF_THREAD_LOCAL.pop();
     }
 
     @Override
-    public void receive_other(ClientRequestInfo ri) throws ForwardRequest {
-        CmsfThreadLocal.pop();
+    public void receive_other(ClientRequestInfo ri) {
+        CMSF_THREAD_LOCAL.pop();
     }
 
     @Override
@@ -81,13 +70,12 @@ public final class CmsfClientInterceptor extends LocalObject implements ClientRe
     @Override
     public void destroy() {
     }
-    
+
     private void readObject(ObjectInputStream ios) throws IOException {
         throw new NotSerializableException(NAME);
     }
-    
+
     private void writeObject(ObjectOutputStream oos) throws IOException {
         throw new NotSerializableException(NAME);
     }
-
 }
