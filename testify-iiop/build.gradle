@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,62 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-dependencies {
-  implementation "org.hamcrest:hamcrest:2.1"
-  implementation "org.junit.jupiter:junit-jupiter:5.9.0"
-  implementation project(':yoko-spec-corba')
-  implementation project(':yoko-rmi-spec')
-  implementation project(':yoko-util')
-  implementation project(':yoko-rmi-impl')
-  implementation project(':yoko-core')
-  implementation project(":testify")
+// Separate configurations for test framework vs Yoko dependencies
+configurations {
+    testFramework {
+        canBeResolved = true
+        canBeConsumed = false
+        // Extend from testLib which already has hamcrest and junit-jupiter
+        extendsFrom testLib
+    }
+    yokoDeps {
+        canBeResolved = false
+        canBeConsumed = false
+    }
+    // Make implementation extend from both
+    implementation.extendsFrom testFramework, yokoDeps
 }
+
+dependencies {
+  // Test framework dependencies (testLib already provides hamcrest and junit-jupiter)
+  testFramework project(":testify")
+  
+  // Yoko dependencies
+  yokoDeps project(':yoko-spec-corba')
+  yokoDeps project(':yoko-rmi-spec')
+  yokoDeps project(':yoko-util')
+  yokoDeps project(':yoko-rmi-impl')
+  yokoDeps project(':yoko-core')
+}
+
+// Task to generate test framework dependencies file for interop testing
+task generateTestDependencies {
+    description = 'Generate a file listing test framework dependencies (excluding Yoko projects and their dependencies)'
+    group = 'build'
+    
+    def outputFile = file("${buildDir}/test-dependencies.txt")
+    def resourceFile = file("${buildDir}/resources/main/testify/iiop/test-dependencies.txt")
+    outputs.files(outputFile, resourceFile)
+    
+    doLast {
+        // Use testFramework configuration which excludes Yoko and its dependencies
+        def testDeps = configurations.testFramework.resolvedConfiguration.resolvedArtifacts
+            .collect { it.file.absolutePath }
+            .sort()
+        
+        // Write to build directory
+        outputFile.parentFile.mkdirs()
+        outputFile.text = testDeps.join('\n')
+        
+        // Also write to resources so it's available at runtime
+        resourceFile.parentFile.mkdirs()
+        resourceFile.text = testDeps.join('\n')
+        
+        println "Generated test dependencies file: ${outputFile}"
+        println "Generated test dependencies resource: ${resourceFile}"
+        println "Test framework dependencies count: ${testDeps.size()}"
+    }
+}
+
+// Ensure test dependencies are generated before compiling
+processResources.dependsOn generateTestDependencies

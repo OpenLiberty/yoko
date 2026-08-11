@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,17 +22,9 @@ import org.junit.jupiter.api.Test;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.TaggedComponent;
 import org.omg.PortableInterceptor.ClientRequestInfo;
-import org.omg.PortableInterceptor.ClientRequestInterceptor;
 import org.omg.PortableInterceptor.IORInfo;
-import org.omg.PortableInterceptor.ServerRequestInfo;
-import org.omg.PortableInterceptor.ServerRequestInterceptor;
-import testify.hex.HexBuilder;
-import testify.hex.HexParser;
 import testify.iiop.TestClientRequestInterceptor;
 import testify.iiop.TestIORInterceptor;
-import testify.iiop.TestIORInterceptor_3_0;
-import testify.iiop.TestServerRequestInterceptor;
-import testify.iiop.annotation.ConfigureOrb;
 import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
 import testify.iiop.annotation.ConfigureServer;
 import testify.iiop.annotation.ConfigureServer.RemoteImpl;
@@ -44,17 +36,13 @@ import java.rmi.RemoteException;
 import java.util.Objects;
 
 import static org.apache.yoko.util.rofl.Rofl.RemoteOrb.IBM;
+import static org.apache.yoko.util.ThreadLocalStack.ROFL_THREAD_LOCAL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static testify.hex.HexParser.HEX_STRING;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.CLIENT_ORB;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.SERVER_ORB;
 
 @ConfigureServer
 public class RoflTest {
-    @UseWithOrb({CLIENT_ORB, SERVER_ORB})
+    @UseWithOrb
     public static class AddIbmOrbServiceContext implements TestClientRequestInterceptor, TestIORInterceptor {
         public static final byte[] PAYLOAD = HEX_STRING.parse("00BD001118000000");
         private final TaggedComponent TC = new TaggedComponent(IBM.tagComponentId, PAYLOAD);
@@ -68,16 +56,15 @@ public class RoflTest {
         private final String text;
         public Message(String text) { this.text = text; }
         private void readObject(ObjectInputStream in) throws Exception {
-            // Yasf is only set when writing out.
-            // All options default when reading in,
-            // so the thread should have Yasf set to null.
-            assertEquals(Rofl.NONE, RoflThreadLocal.get());
+            // Since we are marshalling from another ORB purporting to be IBM,
+            // Rofl options should be set when reading in.
+            assertEquals(IBM, ROFL_THREAD_LOCAL.get().type());
             in.defaultReadObject();
         }
         private void writeObject(ObjectOutputStream out) throws Exception {
-            // Since we are marshalling to another Yoko ORB,
-            // Yasf options should be set when writing out.
-            assertEquals(IBM, RoflThreadLocal.get().type());
+            // Since we are marshalling to another ORB purporting to be IBM,
+            // Rofl options should be set when writing out.
+            assertEquals(IBM, ROFL_THREAD_LOCAL.get().type());
             out.defaultWriteObject();
         }
         public boolean equals(Object o) { return o instanceof Message && Objects.equals(text, ((Message) o).text); }

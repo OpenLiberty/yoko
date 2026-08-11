@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,44 +19,62 @@ package testify.iiop.annotation;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.omg.CORBA.ORB;
-import org.omg.CORBA.Object;
 import org.omg.CosNaming.NamingContext;
 import org.omg.CosNaming.NamingContextHelper;
-import testify.annotation.Summoner;
 import testify.annotation.runner.AnnotationButler;
 import testify.bus.Bus;
-import testify.iiop.annotation.ConfigureOrb.UseWithOrb;
 import testify.parts.PartRunner;
 
 import javax.rmi.PortableRemoteObject;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.rmi.Remote;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toSet;
 import static javax.rmi.PortableRemoteObject.narrow;
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import static org.hamcrest.CoreMatchers.anyOf;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
-import static testify.annotation.runner.PartRunnerSteward.requirePartRunner;
+import static testify.annotation.runner.PartRunners.requirePartRunner;
 import static testify.bus.key.MemberKey.getMemberEvaluationType;
-import static testify.iiop.annotation.OrbSteward.args;
-import static testify.iiop.annotation.OrbSteward.props;
+import static testify.iiop.annotation.ConfigureOrb.NameService.NONE;
+import static testify.iiop.annotation.ConfigureServer.Separation.COLLOCATED;
+import static testify.iiop.annotation.ConfigureServer.Separation.INTER_PROCESS;
+import static testify.iiop.annotation.OrbSteward.getServerArgs;
+import static testify.iiop.annotation.OrbSteward.getServerProps;
 import static testify.util.Assertions.failf;
+import static testify.util.Predicates.not;
 import static testify.util.Reflect.setStaticField;
 
 class ServerSteward {
-    private static final Summoner<ConfigureServer, ServerSteward> SUMMONER = Summoner.forAnnotation(ConfigureServer.class, ServerSteward.class, ServerSteward::new);
+    private static final Namespace NAMESPACE = Namespace.create(ServerSteward.class);
     private final List<Field> controlFields;
     private final List<Field> nameServiceFields;
     private final List<Field> nameServiceUrlFields;
@@ -67,14 +85,24 @@ class ServerSteward {
     private final List<Method> beforeMethods;
     private final List<Method> afterMethods;
     private final ConfigureServer config;
+    private final InteropTest.YokoVersion yokoVersion;
     private final ExtensionContext context;
     private final ServerComms serverComms;
     private final ServerController serverControl;
     private ServerSteward(ConfigureServer config, ExtensionContext context) {
-        this.config = config;
         this.context = context;
         Class<?> testClass = context.getRequiredTestClass();
-        this.controlFields = AnnotationButler.forClass(ConfigureServer.Control.class)
+
+        // Check for @InteropTest annotation to get Yoko version
+        this.yokoVersion = findAnnotation(testClass, InteropTest.class).map(InteropTest::value).orElse(null);
+
+        // If @InteropTest is present, validate that separation is INTER_PROCESS
+        if (null != yokoVersion && config.separation() != INTER_PROCESS) {
+            throw new Error("@InteropTest requires @ConfigureServer(separation = INTER_PROCESS)");
+        }
+
+        this.config = config;
+        this.controlFields = AnnotationButler.forClass(ConfigureServer.Control.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()
@@ -82,7 +110,7 @@ class ServerSteward {
                 .filter(anno -> anno.serverName().equals(config.serverName()))
                 .recruit()
                 .findFields(testClass);
-        this.nameServiceFields = AnnotationButler.forClass(ConfigureServer.NameServiceStub.class)
+        this.nameServiceFields = AnnotationButler.forClass(ConfigureServer.NameServiceStub.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class,
                         "the test server must have its name service configured",
                         cfg -> cfg.serverOrb().nameService(),
@@ -93,7 +121,7 @@ class ServerSteward {
                 .filter(anno -> anno.serverName().equals(config.serverName()))
                 .recruit()
                 .findFields(testClass);
-        this.nameServiceUrlFields = AnnotationButler.forClass(ConfigureServer.NameServiceUrl.class)
+        this.nameServiceUrlFields = AnnotationButler.forClass(ConfigureServer.NameServiceUrl.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class,
                         "the test server must have its name service configured",
                         cfg -> cfg.serverOrb().nameService(),
@@ -104,7 +132,7 @@ class ServerSteward {
                 .filter(anno -> anno.serverName().equals(config.serverName()))
                 .recruit()
                 .findFields(testClass);
-        this.corbanameUrlFields = AnnotationButler.forClass(ConfigureServer.CorbanameUrl.class)
+        this.corbanameUrlFields = AnnotationButler.forClass(ConfigureServer.CorbanameUrl.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class,
                         "the test server must have its name service configured",
                         cfg -> cfg.serverOrb().nameService(),
@@ -115,7 +143,7 @@ class ServerSteward {
                 .filter(anno -> anno.serverName().equals(config.serverName()))
                 .recruit()
                 .findFields(testClass);
-        this.clientStubFields = AnnotationButler.forClass(ConfigureServer.ClientStub.class)
+        this.clientStubFields = AnnotationButler.forClass(ConfigureServer.ClientStub.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()
@@ -123,7 +151,7 @@ class ServerSteward {
                 .filter(anno -> anno.serverName().equals(config.serverName()))
                 .recruit()
                 .findFields(testClass);
-        this.remoteStubFields = AnnotationButler.forClass(ConfigureServer.RemoteStub.class)
+        this.remoteStubFields = AnnotationButler.forClass(ConfigureServer.RemoteStub.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()
@@ -133,7 +161,7 @@ class ServerSteward {
                 .findFields(testClass);
         // Create a map with null values and initialize after server startup
         this.remoteImplMembers = new HashMap<>();
-        this.remoteImplMembers.putAll(AnnotationButler.forClass(ConfigureServer.RemoteImpl.class)
+        this.remoteImplMembers.putAll(AnnotationButler.forClass(ConfigureServer.RemoteImpl.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()
@@ -142,7 +170,7 @@ class ServerSteward {
                 .filter(anno1 -> anno1.serverName().equals(config.serverName()))
                 .recruit()
                 .findFieldsAsMap(testClass));
-        this.remoteImplMembers.putAll(AnnotationButler.forClass(ConfigureServer.RemoteImpl.class)
+        this.remoteImplMembers.putAll(AnnotationButler.forClass(ConfigureServer.RemoteImpl.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()
@@ -150,7 +178,7 @@ class ServerSteward {
                 .filter(anno1 -> anno1.serverName().equals(config.serverName()))
                 .recruit()
                 .findMethodsAsMap(testClass));
-        this.beforeMethods = AnnotationButler.forClass(ConfigureServer.BeforeServer.class)
+        this.beforeMethods = AnnotationButler.forClass(ConfigureServer.BeforeServer.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()
@@ -158,7 +186,7 @@ class ServerSteward {
                 .filter(anno -> anno.value().equals(config.serverName()))
                 .recruit()
                 .findMethods(testClass);
-        this.afterMethods = AnnotationButler.forClass(ConfigureServer.AfterServer.class)
+        this.afterMethods = AnnotationButler.forClass(ConfigureServer.AfterServer.class, testClass)
                 .requireTestAnnotation(ConfigureServer.class)
                 .assertPublic()
                 .assertStatic()
@@ -180,19 +208,15 @@ class ServerSteward {
         );
 
         // blow up if jvm args specified unnecessarily
-        if (config.separation() != ConfigureServer.Separation.INTER_PROCESS && config.jvmArgs().length > 0)
-            throw new Error("The annotation @" + ConfigureServer.class.getSimpleName()
-                    + " must not include JVM arguments unless it is configured as " + ConfigureServer.Separation.INTER_PROCESS);
+        if (config.separation() != INTER_PROCESS && config.jvmArgs().length > 0)
+            throw new Error("@ConfigureServer must not include JVM arguments unless separation = INTER_PROCESS");
 
-        PartRunner runner = requirePartRunner(context);
-        // does this part run in a thread or a new process?
-        if (this.config.separation() == ConfigureServer.Separation.INTER_PROCESS) runner.useNewJVMWhenForking(this.config.jvmArgs());
-        else runner.useNewThreadWhenForking();
-
-        final Properties props = props(this.config.serverOrb(), context.getRequiredTestClass(), this::isServerOrbModifier);
-        final String[] args = args(this.config.serverOrb(), context.getRequiredTestClass(), this::isServerOrbModifier);
+        boolean colloc = isCollocated();
+        ConfigureOrb cfg = colloc ? combineClientAndServerOrbConfig() : config.serverOrb();
+        final Properties props = getServerProps(context.getRequiredTestClass(), cfg, colloc);
+        final String[] args = getServerArgs(context.getRequiredTestClass(), cfg, colloc);
         this.serverComms = new ServerComms(this.config.serverName(), props, args);
-        serverComms.launch(runner);
+        // Don't launch the server yet - defer until beforeAll() so other extensions can configure the PartRunner first
 
         this.serverControl = new ServerController();
     }
@@ -202,8 +226,84 @@ class ServerSteward {
     }
 
     void beforeAll(ExtensionContext ctx) {
+        // Check if a specific Yoko version is required and if it's available
+        if (null != yokoVersion) {
+            Path cacheDir = Paths.get(System.getProperty("user.home"), ".yoko-interop-cache", yokoVersion.version);
+            assumeTrue(assertDoesNotThrow(() -> Files.isDirectory(cacheDir) && Files.list(cacheDir).findAny().isPresent()),
+                "Yoko version " + yokoVersion.version + " is not cached. Run: ./gradlew buildYokoVersion -PyokoVersion=" + yokoVersion.version);
+        }
+
+        // Configure the PartRunner
+        PartRunner runner = requirePartRunner(ctx);
+        if (config.separation() == INTER_PROCESS) {
+            runner.useNewJVMWhenForking(buildJvmArgs());
+        } else {
+            runner.useNewThreadWhenForking();
+        }
+
+        // Launch the server now that the PartRunner is configured
+        serverComms.launch(runner);
+
         populateControlFields(ctx);
         serverControl.start();
+    }
+
+    private String[] buildJvmArgs() {
+        List<String> args = new ArrayList<>(Arrays.asList(config.jvmArgs()));
+
+        // If a specific Yoko version is requested, prepend cached JARs to classpath
+        if (null != yokoVersion) {
+            // Build classpath: old Yoko JARs + old dependencies + test classes only
+            String versionClasspath = buildClasspathForVersion(yokoVersion.version);
+            Set<String> allowedPaths = loadTestDependencies();
+
+            // Filter current classpath to only include test dependencies, build classes, and testify modules
+            String filteredClasspath = Arrays.stream(System.getProperty("java.class.path").split(File.pathSeparator))
+                .filter(path -> allowedPaths.contains(path)
+                    || path.contains("/build/classes/")
+                    || path.contains("/testify/build/")
+                    || path.contains("/testify-iiop/build/"))
+                .collect(joining(File.pathSeparator));
+
+            // Add classpath and module access to JVM args
+            String fullClasspath = versionClasspath + File.pathSeparator + filteredClasspath;
+            System.out.println("=== Server Classpath for " + yokoVersion.version + " ===");
+            System.out.println(fullClasspath.replace(File.pathSeparator, "\n"));
+            System.out.println("=== End Server Classpath ===");
+            args.add("-cp");
+            args.add(fullClasspath);
+            args.add("--add-opens");
+            args.add("java.base/java.lang=ALL-UNNAMED");
+            args.add("--add-opens");
+            args.add("java.base/java.util=ALL-UNNAMED");
+        }
+        return args.toArray(NO_STRINGS);
+    }
+
+    private String buildClasspathForVersion(String version) {
+        Path cacheDir = Paths.get(System.getProperty("user.home"), ".yoko-interop-cache", version);
+        if (!Files.exists(cacheDir)) {
+            throw new RuntimeException("Cache directory does not exist for version " + version + ": " + cacheDir);
+        }
+
+        try (var cachedFiles = Files.list(cacheDir)) {
+            // Only include yoko-* JARs, exclude testify (we want old Yoko, current testify)
+            return cachedFiles
+                .map(Path::toString)
+                .filter(p -> p.endsWith(".jar") && p.contains("/yoko-") && !p.contains("testify"))
+                .collect(joining(File.pathSeparator));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to build classpath for version " + version, e);
+        }
+    }
+
+    private Set<String> loadTestDependencies() {
+        try (InputStream is = getClass().getResourceAsStream("/testify/iiop/test-dependencies.txt")) {
+            if (null == is) throw new RuntimeException("Test dependencies file not found. Run './gradlew :testify-iiop:generateTestDependencies'");
+            return new BufferedReader(new InputStreamReader(is)).lines().collect(toSet());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load test dependencies", e);
+        }
     }
 
     void afterAll(ExtensionContext ctx) {
@@ -243,9 +343,7 @@ class ServerSteward {
             Remote stub = (Remote)PortableRemoteObject.narrow(object, getMemberEvaluationType(m));
             e.setValue(stub);
         });
-        remoteStubFields.forEach(f -> {
-            setStaticField(f, resolveParameter(getMemberEvaluationType(f)));
-        });
+        remoteStubFields.forEach(f -> setStaticField(f, resolveParameter(getMemberEvaluationType(f))));
     }
 
     private void beforeServer(ExtensionContext ctx) {
@@ -258,22 +356,38 @@ class ServerSteward {
         afterMethods.forEach(serverComms::invoke);
     }
 
-    private boolean isServerOrbModifier(Class<?> c) {
-        return findAnnotation(c, UseWithOrb.class)
-                .map(UseWithOrb::value)
-                .map(Stream::of)
-                .orElseGet(Stream::empty)
-                .anyMatch(config.serverOrb().value()::equals);
+    /**
+     * Combines the server and client ORB configurations into a single merged configuration.
+     * This method merges properties and arguments from both the server ORB and client ORB
+     * configurations, with server configuration taking precedence in case of conflicts.
+     */
+    ConfigureOrb combineClientAndServerOrbConfig() {
+        return new ConfigureOrb() {
+            public Class<? extends Annotation> annotationType() { return ConfigureOrb.class; }
+            public String[] args() { return configs(ConfigureOrb::args).flatMap(Arrays::stream).toArray(String[]::new); }
+            public String[] props() { return configs(ConfigureOrb::props).flatMap(Arrays::stream).toArray(String[]::new); }
+            public NameService nameService() { return configs(ConfigureOrb::nameService).filter(not(NONE::equals)).findFirst().orElse(NONE); }
+            private <T> Stream<T> configs(Function<ConfigureOrb,T> mapper) { return Stream.of(config.serverOrb(), config.clientOrb()).map(mapper); }
+        };
     }
 
-    static ServerSteward getInstance(ExtensionContext ctx) {
-        return SUMMONER.forContext(ctx).requestSteward().orElseThrow(Error::new); // if no ServerSteward can be found, this is an error in the framework
+    static ServerSteward getInstance(ExtensionContext context) {
+        // only one server per test class (each nested test class gets its own ServerSteward and PartRunner)
+        var store = context.getStore(NAMESPACE);
+        return context.getElement()
+                .flatMap(e -> findAnnotation(e, ConfigureServer.class))
+                .or(() -> findAnnotation(context.getRequiredTestClass(), ConfigureServer.class))
+                .map(annotation -> store.getOrComputeIfAbsent(annotation, cfg -> new ServerSteward(cfg, context), ServerSteward.class))
+                .orElseThrow(Error::new); // if no ServerSteward can be found, this is an error in the framework
     }
 
     public ORB getClientOrb() {
-        // TODO: make the client ORB a field that is initialized early
-        return config.separation() == ConfigureServer.Separation.COLLOCATED ? serverComms.getServerOrb().orElseThrow(Error::new) : OrbSteward.getOrb(context, config.clientOrb());
+        if (isCollocated()) return serverComms.getServerOrb().orElseThrow(Error::new);
+        // For non-collocated servers, use OrbSteward to create and cache the client ORB
+        return OrbSteward.getClientOrb(context, config.clientOrb());
     }
+
+    private boolean isCollocated() { return config.separation() == COLLOCATED; }
 
     public void beforeEach(ExtensionContext ctx) {
         serverControl.ensureStarted();

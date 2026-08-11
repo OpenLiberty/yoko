@@ -36,6 +36,7 @@ import static org.apache.yoko.logging.VerboseLogging.IOR_LOG;
 import static org.apache.yoko.util.MinorCodes.MinorBadAddress;
 import static org.apache.yoko.util.MinorCodes.describeBadParam;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+import static org.apache.yoko.util.Arrays.emptyArray;
 
 public class CorbalocProtocol_impl implements CorbalocProtocol {
     public String name() {
@@ -74,7 +75,7 @@ public class CorbalocProtocol_impl implements CorbalocProtocol {
             // create a CDR encapsulation of the correct IDL profile struct
             out._OB_writeEndian();
             if (minor == 0) ProfileBody_1_0Helper.write(out, new ProfileBody_1_0(new Version(major, minor), host, port, key));
-            else ProfileBody_1_1Helper.write(out, new ProfileBody_1_1(new Version(major, minor), host, port, key, new TaggedComponent[0]));
+            else ProfileBody_1_1Helper.write(out, new ProfileBody_1_1(new Version(major, minor), host, port, key, emptyArray(TaggedComponent.class)));
             profile.profile_data = out.copyWrittenBytes();
         }
         return profile;

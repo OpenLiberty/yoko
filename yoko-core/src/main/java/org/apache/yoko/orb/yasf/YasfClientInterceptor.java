@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -8,7 +8,7 @@
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an \"AS IS\" BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
@@ -17,8 +17,7 @@
  */
 package org.apache.yoko.orb.yasf;
 
-import org.apache.yoko.util.yasf.Yasf;
-import org.apache.yoko.util.yasf.YasfThreadLocal;
+import org.apache.yoko.io.SimplyCloseable;
 import org.omg.CORBA.LocalObject;
 import org.omg.PortableInterceptor.ClientRequestInfo;
 import org.omg.PortableInterceptor.ClientRequestInterceptor;
@@ -29,16 +28,17 @@ import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-public class YasfClientInterceptor extends LocalObject implements ClientRequestInterceptor {
+import static org.apache.yoko.util.yasf.YasfWrangler.YASF_WRANGLER;
+import static org.apache.yoko.util.ThreadLocalStack.YASF_THREAD_LOCAL;
+
+public final class YasfClientInterceptor extends LocalObject implements ClientRequestInterceptor {
     private static final String NAME = YasfClientInterceptor.class.getName();
 
     @Override
     public void send_request(ClientRequestInfo ri) throws ForwardRequest {
-        byte[] yasfData = YasfHelper.readData(ri);
-
-        YasfThreadLocal.push(Yasf.toSet(yasfData));
-
-        YasfHelper.addSc(ri);
+        YASF_WRANGLER.addSc(ri);
+        @SuppressWarnings("resource") // popped in receive_*
+        SimplyCloseable ignored = YASF_THREAD_LOCAL.push(YASF_WRANGLER.readData(ri));
     }
 
     @Override
@@ -47,17 +47,17 @@ public class YasfClientInterceptor extends LocalObject implements ClientRequestI
 
     @Override
     public void receive_reply(ClientRequestInfo ri) {
-        YasfThreadLocal.pop();
+        YASF_THREAD_LOCAL.pop();
     }
 
     @Override
     public void receive_exception(ClientRequestInfo ri) {
-        YasfThreadLocal.pop();
+        YASF_THREAD_LOCAL.pop();
     }
 
     @Override
     public void receive_other(ClientRequestInfo ri) {
-        YasfThreadLocal.pop();
+        YASF_THREAD_LOCAL.pop();
     }
 
     @Override

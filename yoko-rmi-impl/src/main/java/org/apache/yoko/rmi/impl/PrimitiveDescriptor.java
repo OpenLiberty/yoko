@@ -1,0 +1,61 @@
+/*
+ * Copyright 2026 IBM Corporation and others.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an \"AS IS\" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package org.apache.yoko.rmi.impl;
+
+import org.omg.CORBA.ORB;
+import org.omg.CORBA.TCKind;
+import org.omg.CORBA.TypeCode;
+
+final class PrimitiveDescriptor extends TypeDescriptor {
+    private final String idl_name;
+    private final TCKind tc;
+    PrimitiveDescriptor(Class<?> type, TypeRepository repository, String idl_name, TCKind tc, ReadFn readFn, WriteFn writeFn) {
+        super(type, repository, readFn, writeFn);
+        this.idl_name = idl_name;
+        this.tc = tc;
+    }
+
+    @Override
+    String genIDLName() { return idl_name; }
+
+    @Override
+    String genPackageName() {
+        return "";
+    }
+
+    @Override
+    String genTypeName() {
+        return idl_name;
+    }
+
+    @Override
+    TypeCode genTypeCode() { return ORB.init().get_primitive_tc(tc); }
+
+    @Override
+    boolean copyInStub() {
+        return false;
+    }
+
+    @Override
+    boolean copyBetweenStates() { return false; }
+
+    @Override
+    boolean copyWithinState() {
+        return false;
+    }
+}

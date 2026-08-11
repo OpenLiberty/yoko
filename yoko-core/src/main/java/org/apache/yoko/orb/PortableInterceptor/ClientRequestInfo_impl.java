@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -8,7 +8,7 @@
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an \"AS IS\" BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
@@ -24,13 +24,10 @@ import org.apache.yoko.orb.OB.ObjectFactory;
 import org.apache.yoko.orb.OB.PIDowncall;
 import org.apache.yoko.orb.OB.Util;
 import org.apache.yoko.orb.OCI.ProfileInfo;
+import org.apache.yoko.io.SimplyCloseable;
 import org.apache.yoko.util.Assert;
 import org.apache.yoko.util.CollectionExtras;
 import org.apache.yoko.util.Exceptions;
-import org.apache.yoko.util.cmsf.CmsfThreadLocal;
-import org.apache.yoko.util.cmsf.CmsfThreadLocal.CmsfOverride;
-import org.apache.yoko.util.yasf.YasfThreadLocal;
-import org.apache.yoko.util.yasf.YasfThreadLocal.YasfOverride;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.BAD_PARAM;
@@ -41,6 +38,7 @@ import org.omg.CORBA.Policy;
 import org.omg.CORBA.SystemException;
 import org.omg.CORBA.UnknownUserException;
 import org.omg.CORBA.portable.ObjectImpl;
+import org.omg.CORBA.portable.UnknownException;
 import org.omg.IOP.IOR;
 import org.omg.IOP.ServiceContext;
 import org.omg.IOP.TaggedComponent;
@@ -48,6 +46,9 @@ import org.omg.IOP.TaggedProfile;
 import org.omg.PortableInterceptor.ClientRequestInfo;
 import org.omg.PortableInterceptor.ClientRequestInterceptor;
 import org.omg.PortableInterceptor.ForwardRequest;
+
+import static org.apache.yoko.util.ThreadLocalStack.CMSF_THREAD_LOCAL;
+import static org.apache.yoko.util.ThreadLocalStack.YASF_THREAD_LOCAL;
 import org.omg.PortableInterceptor.LOCATION_FORWARD;
 import org.omg.PortableInterceptor.SUCCESSFUL;
 import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
@@ -65,6 +66,7 @@ import static org.apache.yoko.util.MinorCodes.describeBadInvOrder;
 import static org.apache.yoko.util.MinorCodes.describeBadParam;
 import static org.apache.yoko.util.MinorCodes.describeInvPolicy;
 import static org.omg.CORBA.CompletionStatus.COMPLETED_NO;
+import static org.omg.CORBA.CompletionStatus.COMPLETED_YES;
 
 final public class ClientRequestInfo_impl extends RequestInfo_impl implements ClientRequestInfo {
     private final List<ClientRequestInterceptor> interceptors = newSynchronizedList();
@@ -256,7 +258,6 @@ final public class ClientRequestInfo_impl extends RequestInfo_impl implements Cl
         this.argStrategy = dc.createArgumentStrategy(orb);
     }
 
-
     public void _OB_request(List<ClientRequestInterceptor> interceptors) throws LocationForward {
         // The PICurrent needs a new set of slot data
         requestSlotData = piCurrent._OB_currentSlotData();
@@ -268,8 +269,8 @@ final public class ClientRequestInfo_impl extends RequestInfo_impl implements Cl
         argStrategy.setArgsAvail(true);
         argStrategy.setExceptAvail(true);
 
-        try (CmsfOverride ignored = CmsfThreadLocal.override();
-             YasfOverride ignored1 = YasfThreadLocal.override()) {
+        try (SimplyCloseable ignored = CMSF_THREAD_LOCAL.overrideForInterceptors();
+             SimplyCloseable ignored1 = YASF_THREAD_LOCAL.overrideForInterceptors()) {
             for(ClientRequestInterceptor interceptor: interceptors) {
                 try {
                     interceptor.send_request(this);
@@ -282,6 +283,12 @@ final public class ClientRequestInfo_impl extends RequestInfo_impl implements Cl
                     replyStatus = LOCATION_FORWARD.value;
                     Delegate p = (Delegate) (((ObjectImpl) ex.forward)._get_delegate());
                     forwardReference = p._OB_IOR();
+                    _OB_reply();
+                } catch (Exception ex) {
+                    replyStatus = SYSTEM_EXCEPTION.value;
+                    UnknownException unknownException = new UnknownException(ex);
+                    unknownException.completed = COMPLETED_NO;
+                    receivedException = unknownException;
                     _OB_reply();
                 }
             }
@@ -296,8 +303,8 @@ final public class ClientRequestInfo_impl extends RequestInfo_impl implements Cl
             piCurrent._OB_pushSlotData(newThreadScopePICurrentSlotData);
         }
 
-        try (CmsfOverride ignored = CmsfThreadLocal.override();
-             YasfOverride ignored1 = YasfThreadLocal.override()) {
+        try (SimplyCloseable ignored = CMSF_THREAD_LOCAL.overrideForInterceptors();
+             SimplyCloseable ignored1 = YASF_THREAD_LOCAL.overrideForInterceptors()) {
             for (ClientRequestInterceptor i: CollectionExtras.removeInReverse(interceptors)) {
                 try {
                     switch (replyStatus) {
@@ -322,12 +329,28 @@ final public class ClientRequestInfo_impl extends RequestInfo_impl implements Cl
                     }
                 } catch (SystemException ex) {
                     replyStatus = SYSTEM_EXCEPTION.value;
+                    if (null != receivedException) {
+                        ex.addSuppressed(receivedException);
+                    }
                     receivedException = ex;
                     receivedId = null;
                 } catch (ForwardRequest ex) {
                     replyStatus = LOCATION_FORWARD.value;
                     Delegate p = (Delegate) (((ObjectImpl) ex.forward)._get_delegate());
                     forwardReference = p._OB_IOR();
+                } catch (Exception ex) {
+                    if (null == receivedException) {
+                        replyStatus = SYSTEM_EXCEPTION.value;
+                        UnknownException unknownException = new UnknownException(ex);
+                        unknownException.completed = COMPLETED_YES;
+                        receivedException = unknownException;
+                        receivedId = null;
+                    } else {
+                        // an interceptor has thrown an unexpected, unchecked Java exception
+                        // rather than translating the existing exception into a known CORBA SystemException.
+                        // Since we already have an exceptional response, just add this one as suppressed
+                        receivedException.addSuppressed(ex);
+                    }
                 }
             }
         }

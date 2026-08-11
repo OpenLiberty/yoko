@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import org.omg.PortableServer.POAPackage.AdapterNonExistent;
 import test.poa.TestPOA;
 import testify.iiop.annotation.ConfigureOrb;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -45,7 +46,7 @@ public class PoaDestroyTest {
     @Test
     void testDestroyPoa(POA rootPoa) throws Exception {
         assertNotNull(rootMgr);
-        POA poa = rootPoa.create_POA("poa1", rootMgr, new Policy[]{});
+        POA poa = rootPoa.create_POA("poa1", rootMgr, emptyArray(Policy.class));
         poa.destroy(true, true);
         // Ensure parent no longer knows about child
         assertThrows(AdapterNonExistent.class, () -> rootPoa.find_POA("poa1", false));
@@ -54,9 +55,9 @@ public class PoaDestroyTest {
     @Test
     void testDestroyPoaWithChild(ORB orb, POA rootPoa) throws Exception {
         assertNotNull(rootMgr);
-        POA poa = rootPoa.create_POA("poa1", rootMgr, new Policy[]{});
+        POA poa = rootPoa.create_POA("poa1", rootMgr, emptyArray(Policy.class));
         // Create child of child POA
-        poa.create_POA("child1", rootMgr, new Policy[]{});
+        poa.create_POA("child1", rootMgr, emptyArray(Policy.class));
         // Test: destroy - should destroy poa1 and poa1/child1
         poa.destroy(true, true);
         // Ensure parent no longer knows about child

@@ -57,7 +57,7 @@ class ClassDescriptor extends ClassBaseDescriptor {
                     getRepidField().set(desc, repId);
 
                     String codebase = getCodebase(type);
-                    getCobebaseField().set(desc, codebase);
+                    getCodebaseField().set(desc, codebase);
 
                     return desc;
 

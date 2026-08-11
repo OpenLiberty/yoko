@@ -263,7 +263,7 @@ public class InsTest {
     @ParameterizedTest(name = "IMR-style corbaloc URLs with IIOP version {0}")
     @ValueSource(strings = {":1.1@"/*, ":1.2@"*/}) // value source only applies to arg0, so string must be first param
     @Logging("org.apache.yoko.orb.OB")
-    @Logging("yoko.verbose.data.in")
+    @Logging("yoko.verbose.giop.in")
     public void testImrStyleCorbalocUrls(String iiopVersion, ORB orb) {
         // Create the ORBacus specific object key
         String iorKey = iiopAddress.getKey();

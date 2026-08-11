@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@ import org.omg.PortableInterceptor.ORBInitInfoPackage.DuplicateName;
 import org.omg.PortableInterceptor.ORBInitInfoPackage.InvalidName;
 import org.omg.PortableInterceptor.PolicyFactory;
 import org.omg.PortableInterceptor.ServerRequestInterceptor;
+
+import java.util.Arrays;
 
 //
 // An ORBacus-specific derivation of PortableInterceptor::ORBInitInfo
@@ -200,16 +202,24 @@ final public class ORBInitInfo_impl extends LocalObject implements
         return orb_;
     }
 
-    // ------------------------------------------------------------------
-    // Yoko internal functions
-    // Application programs must not use these functions directly
-    // ------------------------------------------------------------------
-
     public void _OB_destroy() {
         destroy_ = true;
         orb_ = null;
         manager_ = null;
         initServiceManager_ = null;
         codecFactory_ = null;
+    }
+
+    @Override
+    public String toString() {
+        return "ORBInitInfo_impl{" +
+                "orb_=" + orb_ +
+                ", args_=" + Arrays.toString(args_) +
+                ", id_='" + id_ + '\'' +
+                ", manager_=" + manager_ +
+                ", initServiceManager_=" + initServiceManager_ +
+                ", codecFactory_=" + codecFactory_ +
+                ", destroy_=" + destroy_ +
+                '}';
     }
 }

@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.logging.Level.FINE;
+import static org.apache.yoko.util.Arrays.emptyArray;
 import static org.apache.yoko.logging.VerboseLogging.CONN_OUT_LOG;
 import static org.apache.yoko.orb.OB.CodeSetUtil.getNegotiatedCodecs;
 import static org.apache.yoko.orb.OB.SendingContextRuntimes.SENDING_CONTEXT_RUNTIME;
@@ -275,7 +276,7 @@ final class GIOPClient extends Client {
             // Filter out profiles which would require a different code converter
             if (codecs().equals(conv)) profileInfos.add(anAll);
         }
-        return profileInfos.toArray(new ProfileInfo[0]);
+        return profileInfos.toArray(emptyArray(ProfileInfo.class));
     }
 
     /** Get the OCI Connector info */
@@ -322,7 +323,7 @@ final class GIOPClient extends Client {
                 down.addToRequestContexts(codeBaseSC);
             }
 
-            // 
+            //
             // I don't want to send BiDir related contexts if I'm not
             // working with GIOP 1.2 or greater.
             //

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@ import java.security.PrivilegedAction;
 import java.security.ProtectionDomain;
 import java.security.cert.Certificate;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 import static java.lang.Thread.currentThread;
 import static java.security.AccessController.doPrivileged;
 import static java.util.Objects.requireNonNull;
@@ -50,7 +52,7 @@ class Util {
                 throw new Error(unexpected);
             }
         }
-        private static final Certificate[] NO_CERTS = new Certificate[0];
+
 
         private static final Method defineClass;
         static {
@@ -67,7 +69,7 @@ class Util {
         }
 
         private static ProtectionDomain getProtectionDomain(ClassLoader loader) {
-            return new ProtectionDomain(new CodeSource(STUB_SOURCE_URL, NO_CERTS), new Permissions(), loader, null);
+            return new ProtectionDomain(new CodeSource(STUB_SOURCE_URL, emptyArray(Certificate.class)), new Permissions(), loader, null);
         }
 
         /** Requires the caller to have class definition privileges */

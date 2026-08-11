@@ -104,7 +104,7 @@ public final class CopyState {
         }
 
         {
-            Class origClass = orig.getClass();
+        Class<?> origClass = orig.getClass();
 
             logger.fine(() -> "[" + hashCode() + "]" + spaces(idx++)
                     + "copying instance of " + origClass);

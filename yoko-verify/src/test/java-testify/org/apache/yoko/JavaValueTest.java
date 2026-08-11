@@ -23,8 +23,6 @@ import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OCI.GiopVersion;
 import org.apache.yoko.rmi.impl.ValueHandlerImpl;
-import org.apache.yoko.util.cmsf.CmsfThreadLocal;
-import org.apache.yoko.util.rofl.RoflThreadLocal;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +34,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static org.apache.yoko.util.cmsf.Cmsf.CMSFv2;
 import static org.apache.yoko.util.rofl.Rofl.RemoteOrb.IBM;
+import static org.apache.yoko.util.ThreadLocalStack.CMSF_THREAD_LOCAL;
+import static org.apache.yoko.util.ThreadLocalStack.ROFL_THREAD_LOCAL;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -324,7 +325,7 @@ class JavaValueTest {
     void marshalDateCmsf2() {
         Date actual = new Date(0);
 
-        try (SimplyCloseable x = CmsfThreadLocal.push((byte)2);){
+        try (SimplyCloseable ignored = CMSF_THREAD_LOCAL.push(CMSFv2);) {
             out.write_value(actual);
         }
         assertHex("" +
@@ -344,7 +345,7 @@ class JavaValueTest {
     @Test
     void marshalDatelikeJava8Cmsf1() {
         Date actual = new Date(0);
-        try (SimplyCloseable x = RoflThreadLocal.push(() -> IBM);) {
+        try (SimplyCloseable ignored = ROFL_THREAD_LOCAL.push(() -> IBM);) {
             out.write_value(actual);
         }
             assertHex("" +
@@ -360,8 +361,8 @@ class JavaValueTest {
     void marshalDatelikeJava8Cmsf2() {
         Date actual = new Date(0);
         try (
-                SimplyCloseable x = CmsfThreadLocal.push((byte)2);
-                SimplyCloseable y = RoflThreadLocal.push(() -> IBM)) {
+                SimplyCloseable ignored = CMSF_THREAD_LOCAL.push(CMSFv2);
+                SimplyCloseable ignored1 = ROFL_THREAD_LOCAL.push(() -> IBM)) {
             out.write_value(actual);
         }
         assertHex("" +
@@ -394,7 +395,7 @@ class JavaValueTest {
     @Test
     void marshalSqlDateCmsf2() {
         Date actual = new java.sql.Date(0);
-        try (SimplyCloseable x = CmsfThreadLocal.push((byte)2)) {
+        try (SimplyCloseable ignored = CMSF_THREAD_LOCAL.push(CMSFv2);) {
             out.write_value(actual);
         }
         assertHex("" +
@@ -414,7 +415,7 @@ class JavaValueTest {
     @Test
     void marshalSqlDatelikeJava8Cmsf1() {
         Date actual = new java.sql.Date(0);
-        try (SimplyCloseable y = RoflThreadLocal.push(() -> IBM)) {
+        try (SimplyCloseable ignored = ROFL_THREAD_LOCAL.push(() -> IBM)) {
             out.write_value(actual);
         }
         assertHex("" +
@@ -430,8 +431,8 @@ class JavaValueTest {
     void marshalSqlDatelikeJava8Cmsf2() {
         Date actual = new java.sql.Date(0);
         try (
-                SimplyCloseable x = CmsfThreadLocal.push((byte)2);
-                SimplyCloseable y = RoflThreadLocal.push(() -> IBM)) {
+                SimplyCloseable ignored = CMSF_THREAD_LOCAL.push(CMSFv2);
+                SimplyCloseable ignored1 = ROFL_THREAD_LOCAL.push(() -> IBM)) {
             out.write_value(actual);
         }
         assertHex("" +

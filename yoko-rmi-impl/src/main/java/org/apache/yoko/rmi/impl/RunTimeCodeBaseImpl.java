@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@ import org.omg.SendingContext.CodeBasePOA;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.apache.yoko.util.Arrays.emptyArray;
+
 class RunTimeCodeBaseImpl extends CodeBasePOA {
     private final ValueHandlerImpl valueHandler;
 
@@ -39,6 +41,6 @@ class RunTimeCodeBaseImpl extends CodeBasePOA {
         final String[] bases = bases(id);
         List<FullValueDescription> result = new ArrayList<>(bases.length);
         for (String base: bases) result.add(meta(base));
-        return result.toArray(new FullValueDescription[0]);
+        return result.toArray(emptyArray(FullValueDescription.class));
     }
 }

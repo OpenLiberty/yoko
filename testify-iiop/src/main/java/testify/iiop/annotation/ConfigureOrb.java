@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,29 +17,29 @@
  */
 package testify.iiop.annotation;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.omg.PortableInterceptor.ORBInitializer;
 
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
+
+import static org.apache.yoko.util.Arrays.NO_STRINGS;
 import java.util.Optional;
 
 import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import static testify.iiop.annotation.ConfigureOrb.NameService.NONE;
-import static testify.iiop.annotation.ConfigureOrb.OrbId.DEFAULT_ORB;
+import static testify.iiop.annotation.ConfigureOrb.UseWithOrb.InitializerScope.CLIENT_AND_SERVER;
 
 @ExtendWith(OrbExtension.class)
 @Target({ANNOTATION_TYPE, TYPE})
 @Retention(RUNTIME)
 @Inherited
+@Tag("orb")
 public @interface ConfigureOrb {
-    /**
-     * identifiers to distinguish the ORBs in a multi-orb test configuration
-     */
-    enum OrbId {DEFAULT_ORB, CLIENT_ORB, SERVER_ORB}
     enum NameService {
         NONE,
         READ_ONLY("org.apache.yoko.orb.spi.naming.NameServiceInitializer", "-YokoNameServiceRemoteAccess", "readOnly"),
@@ -48,7 +48,7 @@ public @interface ConfigureOrb {
         private final String initializerClassName;
 
         NameService() {
-            this.args = new String[0];
+            this.args = NO_STRINGS;
             this.initializerClassName = null;
         }
 
@@ -71,7 +71,6 @@ public @interface ConfigureOrb {
         }
     }
 
-    OrbId value() default DEFAULT_ORB;
     String[] args() default "";
     String[] props() default "";
     NameService nameService() default NONE;
@@ -80,8 +79,12 @@ public @interface ConfigureOrb {
     @Target({ANNOTATION_TYPE, TYPE})
     @Retention(RUNTIME)
     @interface UseWithOrb {
-        // TODO: maybe set the initializer classes in the ORB config
-        // TODO: configure differently for @ConfigureServer
-        OrbId[] value() default DEFAULT_ORB;
+        enum InitializerScope {
+            CLIENT, SERVER, CLIENT_AND_SERVER;
+            boolean includesClient() { return SERVER != this; }
+            boolean includesServer() { return CLIENT != this; }
+        }
+        InitializerScope scope() default CLIENT_AND_SERVER;
+
     }
 }

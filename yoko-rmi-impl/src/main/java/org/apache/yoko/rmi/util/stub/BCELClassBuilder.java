@@ -43,6 +43,8 @@ import org.apache.bcel.generic.ObjectType;
 import org.apache.bcel.generic.PUSH;
 import org.apache.bcel.generic.PUTFIELD;
 import org.apache.bcel.generic.Type;
+
+import static org.apache.yoko.util.Arrays.emptyArray;
 import org.apache.yoko.rmi.impl.RMIStub;
 import org.apache.yoko.rmispec.util.DelegateType;
 import org.omg.CORBA.INITIALIZE;
@@ -324,7 +326,7 @@ class BCELClassBuilder {
         InstructionFactory fac = new InstructionFactory(clazz, cp);
 
         Type methodReturnType = translate(Object.class);
-        Type[] methodArgTypes = new Type[0];
+        Type[] methodArgTypes = emptyArray(Type.class);
 
         MethodGen mg = new MethodGen(ACC_FINAL | ACC_PUBLIC, methodReturnType,
                 methodArgTypes, null, // arg names

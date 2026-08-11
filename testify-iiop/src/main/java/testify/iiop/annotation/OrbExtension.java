@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,8 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 import org.omg.CORBA.ORB;
 import org.omg.PortableServer.POA;
 
-import static testify.iiop.annotation.OrbSteward.getOrb;
+import static org.junit.platform.commons.support.AnnotationSupport.findAnnotation;
+import static testify.iiop.annotation.OrbSteward.getCollocatedOrb;
 
 /**
  * Must be registered using the {@link ExtendWith} annotation
@@ -35,16 +36,12 @@ import static testify.iiop.annotation.OrbSteward.getOrb;
 class OrbExtension implements Extension, BeforeAllCallback, ParameterResolver {
     @Override
     // to ensure the ORB is created only once per test class, create the steward here
-    public void beforeAll(ExtensionContext ctx) {
-        getOrb(ctx);
-    }
+    public void beforeAll(ExtensionContext ctx) { getOrb(ctx); }
 
     @Override
     public boolean supportsParameter(ParameterContext pCtx, ExtensionContext ctx) {
         Class<?> type = pCtx.getParameter().getType();
-        if (type == ORB.class) return true;
-        if (type == POA.class) return true;
-        return false;
+        return type == ORB.class || type == POA.class;
     }
 
     @Override
@@ -52,7 +49,10 @@ class OrbExtension implements Extension, BeforeAllCallback, ParameterResolver {
         Class<?> type = pCtx.getParameter().getType();
         if (type == ORB.class) return getOrb(ctx);
         if (type == POA.class) return OrbSteward.getActivatedRootPoa(getOrb(ctx));
-
         throw new ParameterResolutionException("Unknown parameter type: " + type);
+    }
+
+    private ORB getOrb(ExtensionContext ctx) {
+        return getCollocatedOrb(ctx, findAnnotation(ctx.getRequiredTestClass(), ConfigureOrb.class).orElseThrow(Error::new));
     }
 }

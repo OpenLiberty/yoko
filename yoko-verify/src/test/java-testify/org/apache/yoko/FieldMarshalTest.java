@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,14 +58,14 @@ public class FieldMarshalTest {
     public static final GetValue GET_VALUE_IMPL = Value::new;
 
     @Test
-    @Logging("yoko.verbose.data.in")
+    @Logging("yoko.verbose.giop.in")
     public void unmarshalStringAsComparableReturnValue(GetString stub) throws RemoteException {
         Comparable<?> actual = stub.get();
         assertEquals("return value", actual);
     }
 
     @Test
-    @Logging("yoko.verbose.data.in")
+    @Logging("yoko.verbose.giop.in")
     public void unmarshalStringAsComparableFieldValue(GetValue stub) throws RemoteException {
         Value result = stub.get();
         assertEquals("first field", result.f1);

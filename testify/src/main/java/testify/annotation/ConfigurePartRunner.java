@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
  */
 package testify.annotation;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.TestExecutionExceptionHandler;
@@ -29,12 +30,13 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import static testify.annotation.runner.PartRunnerSteward.requirePartRunner;
+import static testify.annotation.runner.PartRunners.requirePartRunner;
 
 @ExtendWith(PartRunnerExtension.class)
 @Target({ElementType.ANNOTATION_TYPE, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
+@Tag("runner")
 public @interface ConfigurePartRunner {}
 
 class PartRunnerExtension implements SimpleParameterResolver<PartRunner>, TestExecutionExceptionHandler {
@@ -45,11 +47,11 @@ class PartRunnerExtension implements SimpleParameterResolver<PartRunner>, TestEx
     // get the configured PartRunner for the context,
     // but if the context has a test method, use its parent instead
     // i.e. get an ORB for the test class, not for each test method
-    public PartRunner resolveParameter(ExtensionContext ctx) { return requirePartRunner(ctx.getTestMethod().flatMap(m -> ctx.getParent()).orElse(ctx)); }
+    public PartRunner resolveParameter(ExtensionContext ctx) { return requirePartRunner(ctx); }
 
     @Override
     public void handleTestExecutionException(ExtensionContext ctx, Throwable throwable) throws Throwable {
-        System.out.printf("Test failed with %s printing debug info%n", throwable);
+        System.out.printf("###%n### Test failed with %s printing debug info%n", throwable);
         requirePartRunner(ctx).dumpBuses();
         throw throwable; // rethrow or tests won't fail
     }

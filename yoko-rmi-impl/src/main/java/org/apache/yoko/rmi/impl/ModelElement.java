@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
  */
 package org.apache.yoko.rmi.impl;
 
+import org.apache.yoko.util.concurrent.LazyReference;
+
 abstract class ModelElement {
     final TypeRepository repo;
 
@@ -26,20 +28,9 @@ abstract class ModelElement {
         this.java_name = java_name;
     }
 
-    private volatile boolean initComplete = false;
-    /** It is the caller's responsibility to ensure this method is called from only one thread at a time. */
-    final boolean doInitOnce() {
-        if (initComplete) return false;
-        init();
-        return initComplete = true;
-    }
-
-    protected void init() { }
-
-    private volatile String idlName = null;   // fully resolved package name
-    protected abstract String genIDLName();
-    public final String getIDLName() {
-        if (null == idlName) idlName = genIDLName();
-        return idlName;
+    private final LazyReference<String> idlNameRef = new LazyReference<>(this::genIDLName);
+    String genIDLName() { throw new UnsupportedOperationException(); }
+    final String getIDLName() {
+        return idlNameRef.get();
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,8 +77,7 @@ public enum Loader {
                         throw new IllegalArgumentException("Invalid url: " + uri, e);
                     }
                 })
-                .collect(Collectors.toList())
-                .toArray(new URL[]{});
+                .toArray(URL[]::new);
         ClassLoader parentLoader = Loader.class.getClassLoader();
         return new URLClassLoader(urls, parentLoader);
     }
