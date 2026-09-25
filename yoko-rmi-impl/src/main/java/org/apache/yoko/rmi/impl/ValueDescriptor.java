@@ -273,8 +273,6 @@ class ValueDescriptor extends TypeDescriptor {
         return val -> {
             try {
                 return (Serializable) handle.invoke(val);
-            } catch (Error | RuntimeException e) {
-                throw e;
             } catch (Throwable t) {
                 throw as(UnknownException::new, t, t);
             }
@@ -300,8 +298,6 @@ class ValueDescriptor extends TypeDescriptor {
         return val -> {
             try {
                 return (Serializable) handle.invoke(val);
-            } catch (Error | RuntimeException e) {
-                throw e;
             } catch (Throwable t) {
                 throw as(UnknownException::new, t, t);
             }
@@ -755,8 +751,6 @@ class ValueDescriptor extends TypeDescriptor {
                     readObjectHandle.invoke(val, reader);
                     reader.setCurrentValueDescriptor(null);
                     return val;
-                } catch (Error | RuntimeException e) {
-                    throw e;
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 } catch (Throwable t) {
@@ -799,8 +793,6 @@ class ValueDescriptor extends TypeDescriptor {
                         wrappedReader.close();
                     }
                     return val;
-                } catch (Error | RuntimeException e) {
-                    throw e;
                 } catch (IOException ex) {
                     throw new UncheckedIOException(ex);
                 } catch (Throwable t) {

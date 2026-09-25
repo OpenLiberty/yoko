@@ -90,8 +90,6 @@ class IDLEntityDescriptor extends ValueDescriptor {
         return in -> {
             try {
                 return (Serializable) readHandle.invoke(in);
-            } catch (Error | RuntimeException e) {
-                throw e;
             } catch (Throwable t) {
                 throw as(MARSHAL::new, t);
             }
@@ -112,8 +110,6 @@ class IDLEntityDescriptor extends ValueDescriptor {
         return (out, val) -> {
             try {
                 writeHandle.invoke(out, val);
-            } catch (Error | RuntimeException e) {
-                throw e;
             } catch (Throwable t) {
                 throw as(MARSHAL::new, t);
             }
@@ -143,8 +139,6 @@ class IDLEntityDescriptor extends ValueDescriptor {
         MethodHandle typeHandle = findMethodHandle("type");
         try {
             return (TypeCode) typeHandle.invoke();
-        } catch (Error | RuntimeException e) {
-            throw e;
         } catch (Throwable t) {
             throw as(MARSHAL::new, t);
         }
