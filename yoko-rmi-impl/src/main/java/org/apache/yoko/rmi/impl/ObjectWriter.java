@@ -19,6 +19,7 @@ package org.apache.yoko.rmi.impl;
 
 import org.apache.yoko.util.cmsf.Cmsf;
 import org.apache.yoko.util.rofl.Interop;
+import org.omg.CORBA.portable.UnknownException;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -27,11 +28,11 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.lang.invoke.MethodHandle;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.ThreadLocalStack.CMSF_THREAD_LOCAL;
 import static org.apache.yoko.util.cmsf.Cmsf.CMSFv2;
 
@@ -286,10 +287,10 @@ abstract class ObjectWriter extends ObjectOutputStream {
             state.beforeWriteObject(this);
             writeObjectHandle.invoke(val, this);
             state.afterWriteObject(this);
-        } catch (Error | RuntimeException | IOException e) {
+        } catch (IOException e) {
             throw e;
         } catch (Throwable t) {
-            throw new IOException("Error invoking writeObject", t);
+            throw as(UnknownException::new, t, t);
         } finally {
             state = old_state;
             setCurrentValueDescriptor(desc);
