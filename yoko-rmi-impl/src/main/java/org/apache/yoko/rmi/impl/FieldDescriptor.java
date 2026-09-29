@@ -37,6 +37,7 @@ import java.util.logging.Logger;
 import static java.lang.reflect.Modifier.isPublic;
 import static java.security.AccessController.doPrivileged;
 import static java.util.Collections.unmodifiableMap;
+import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
 import static org.apache.yoko.util.Exceptions.as;
 import static org.apache.yoko.util.PrivilegedActions.exAction;
@@ -139,7 +140,14 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
     }
 
     void setFieldContents(Object o, Object value) throws IOException {
-        if (null == setter) throw new IOException("No local field '" + java_name + "' in class " + declaringClass.getName());
+        if (null == setter) {
+            // This field appears in serialPersistentFields but has no backing instance field
+            // (e.g. ConcurrentHashMap's legacy segmentMask/segmentShift). Discard the value,
+            // mirroring the read-and-discard behaviour of java.io.ObjectInputStream.
+            logger.log(FINE, () -> "Discarding value for virtual serial-persistent field '"
+                    + java_name + "' in class " + declaringClass.getName());
+            return;
+        }
         try {
             setter.invoke(o, value);
         } catch (Throwable t) {
@@ -148,12 +156,30 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
     }
 
     Object getFieldContents(Object o) throws IOException {
-        if (null == getter) throw new IOException("No local field '" + java_name + "' in class " + declaringClass.getName());
+        if (null == getter) {
+            // This field appears in serialPersistentFields but has no backing instance field.
+            // Return the type's default value so the stream still receives the correct number
+            // of bytes, mirroring what java.io.ObjectOutputStream does for absent fields.
+            return defaultValue(type);
+        }
         try {
             return getter.invoke(o);
         } catch (Throwable t) {
             throw as(IOException::new, t, t.getMessage());
         }
+    }
+
+    private static Object defaultValue(Class<?> type) {
+        if (!type.isPrimitive()) return null;
+        if (type == boolean.class) return Boolean.FALSE;
+        if (type == byte.class)    return (byte) 0;
+        if (type == char.class)    return (char) 0;
+        if (type == short.class)   return (short) 0;
+        if (type == int.class)     return 0;
+        if (type == long.class)    return 0L;
+        if (type == float.class)   return 0.0f;
+        if (type == double.class)  return 0.0d;
+        throw new IllegalArgumentException("Unknown primitive type: " + type);
     }
 
     @Override
