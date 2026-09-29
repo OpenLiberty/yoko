@@ -47,57 +47,67 @@ dependencies {
   
 }
 
-test {
-  exclude '**/Abstract*'
-
-  // ConcurrentHashMapMarshalTest#testClientMarshalFailsWithoutAddOpens deliberately asserts that
-  // java.util.concurrent is NOT opened on the client JVM, so it must NOT run in the task below
-  // that adds --add-opens for java.util.concurrent.
-  exclude '**/ConcurrentHashMapMarshalTest*'
-
-  // force the versioned projects to build so the tests can use the built jar files
-  dependsOn configurations.v0
-  dependsOn configurations.v1
-  dependsOn configurations.v2
-
-  // Set up the class paths for acme.Loader
-  systemProperty "acme.loader.v0.path", "" + configurations.v0.singleFile
-  systemProperty "acme.loader.v1.path", "" + configurations.v0.singleFile + File.pathSeparator + configurations.v1.singleFile
-  systemProperty "acme.loader.v2.path", "" + configurations.v0.singleFile + File.pathSeparator + configurations.v2.singleFile
+// Shared setup closure applied to both test tasks
+def sharedTestConfig = { t ->
+  t.testClassesDirs = sourceSets.test.output.classesDirs
+  t.classpath = sourceSets.test.runtimeClasspath
+  t.dependsOn configurations.v0
+  t.dependsOn configurations.v1
+  t.dependsOn configurations.v2
+  t.systemProperty "acme.loader.v0.path", "" + configurations.v0.singleFile
+  t.systemProperty "acme.loader.v1.path", "" + configurations.v0.singleFile + File.pathSeparator + configurations.v1.singleFile
+  t.systemProperty "acme.loader.v2.path", "" + configurations.v0.singleFile + File.pathSeparator + configurations.v2.singleFile
 }
 
-// Separate task for ConcurrentHashMapMarshalTest: the client JVM must have
-// --add-opens for java.util.concurrent so that testServerWithAddOpensCanMarshal
-// can unmarshal the ConcurrentHashMap returned by the server.
-// testClientMarshalFailsWithoutAddOpens is excluded here because it explicitly
-// asserts the absence of that flag and must stay in the plain `test` task above.
+// testConcurrentHashMap must be registered before `test` so that `test` can depend on it.
+//
+// This task runs all of ConcurrentHashMapMarshalTest except testClientMarshalFailsWithoutAddOpens,
+// which deliberately asserts the absence of --add-opens java.base/java.util.concurrent on the
+// client JVM and therefore must stay in the plain `test` task below.
 tasks.register('testConcurrentHashMap', Test) {
   description = 'Runs ConcurrentHashMapMarshalTest with --add-opens java.base/java.util.concurrent on the client JVM'
   group = 'verification'
 
-  testClassesDirs = sourceSets.test.output.classesDirs
-  classpath = sourceSets.test.runtimeClasspath
+  sharedTestConfig(it)
+  useJUnitPlatform()
 
   include '**/ConcurrentHashMapMarshalTest*'
-  useJUnitPlatform ()
   filter {
-    excludeTestsMatching 'testClientMarshalFailsWithoutAddOpens'
+    excludeTestsMatching '*ConcurrentHashMapMarshalTest.testClientMarshalFailsWithoutAddOpens'
   }
 
-  // Open java.util.concurrent on the client so unmarshalling succeeds
+  // Open java.util.concurrent on the client so unmarshalling the returned ConcurrentHashMap works
   jvmArgs '--add-opens=java.base/java.util.concurrent=ALL-UNNAMED'
   jvmArgs '--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED'
   jvmArgs '--add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED'
-
-  dependsOn configurations.v0
-  dependsOn configurations.v1
-  dependsOn configurations.v2
-
-  systemProperty "acme.loader.v0.path", "" + configurations.v0.singleFile
-  systemProperty "acme.loader.v1.path", "" + configurations.v0.singleFile + File.pathSeparator + configurations.v1.singleFile
-  systemProperty "acme.loader.v2.path", "" + configurations.v0.singleFile + File.pathSeparator + configurations.v2.singleFile
 }
 
-// Ensure testConcurrentHashMap runs as part of the standard `check` lifecycle
+test {
+  exclude '**/Abstract*'
+
+  // ConcurrentHashMapMarshalTest runs in testConcurrentHashMap (above) because that task opens
+  // java.util.concurrent on the client JVM.  The one exception is testClientMarshalFailsWithoutAddOpens,
+  // which must run here where java.util.concurrent is NOT opened.
+  exclude '**/testServerWithAddOpensCanMarshal*'
+
+  // Propagate any --tests filter supplied by the user to the sibling task so that e.g.
+  //   ./gradlew :yoko-verify:test --tests "*ConcurrentHashMapMarshalTest.*"
+  // runs the matching tests in both tasks.
+  doFirst {
+    def userFilter = test.filter.commandLineIncludePatterns
+    if (!userFilter.isEmpty()) {
+      testConcurrentHashMap.filter.setCommandLineIncludePatterns(userFilter)
+    }
+  }
+
+  // Running `test` always runs testConcurrentHashMap too, so that
+  //   ./gradlew :yoko-verify:test
+  // covers the full test suite.
+  dependsOn testConcurrentHashMap
+
+  sharedTestConfig(it)
+}
+
+// Also run testConcurrentHashMap as part of the standard `check` lifecycle
 check.dependsOn testConcurrentHashMap
 
