@@ -50,6 +50,11 @@ dependencies {
 test {
   exclude '**/Abstract*'
 
+  // ConcurrentHashMapMarshalTest#testClientMarshalFailsWithoutAddOpens deliberately asserts that
+  // java.util.concurrent is NOT opened on the client JVM, so it must NOT run in the task below
+  // that adds --add-opens for java.util.concurrent.
+  exclude '**/ConcurrentHashMapMarshalTest*'
+
   // force the versioned projects to build so the tests can use the built jar files
   dependsOn configurations.v0
   dependsOn configurations.v1
@@ -60,4 +65,39 @@ test {
   systemProperty "acme.loader.v1.path", "" + configurations.v0.singleFile + File.pathSeparator + configurations.v1.singleFile
   systemProperty "acme.loader.v2.path", "" + configurations.v0.singleFile + File.pathSeparator + configurations.v2.singleFile
 }
+
+// Separate task for ConcurrentHashMapMarshalTest: the client JVM must have
+// --add-opens for java.util.concurrent so that testServerWithAddOpensCanMarshal
+// can unmarshal the ConcurrentHashMap returned by the server.
+// testClientMarshalFailsWithoutAddOpens is excluded here because it explicitly
+// asserts the absence of that flag and must stay in the plain `test` task above.
+tasks.register('testConcurrentHashMap', Test) {
+  description = 'Runs ConcurrentHashMapMarshalTest with --add-opens java.base/java.util.concurrent on the client JVM'
+  group = 'verification'
+
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
+
+  include '**/ConcurrentHashMapMarshalTest*'
+  useJUnitPlatform ()
+  filter {
+    excludeTestsMatching 'testClientMarshalFailsWithoutAddOpens'
+  }
+
+  // Open java.util.concurrent on the client so unmarshalling succeeds
+  jvmArgs '--add-opens=java.base/java.util.concurrent=ALL-UNNAMED'
+  jvmArgs '--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED'
+  jvmArgs '--add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED'
+
+  dependsOn configurations.v0
+  dependsOn configurations.v1
+  dependsOn configurations.v2
+
+  systemProperty "acme.loader.v0.path", "" + configurations.v0.singleFile
+  systemProperty "acme.loader.v1.path", "" + configurations.v0.singleFile + File.pathSeparator + configurations.v1.singleFile
+  systemProperty "acme.loader.v2.path", "" + configurations.v0.singleFile + File.pathSeparator + configurations.v2.singleFile
+}
+
+// Ensure testConcurrentHashMap runs as part of the standard `check` lifecycle
+check.dependsOn testConcurrentHashMap
 
