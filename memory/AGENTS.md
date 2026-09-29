@@ -7,6 +7,15 @@ This file contains shared team knowledge and preferences for the Yoko project.
 - Commit message format: `type(scope): description`
 - Common types: feat, fix, docs, style, refactor, test, chore, build, ci
 
+### Release Tagging
+- Release tags MUST be **annotated** (not lightweight)
+- Message template: `Release vX.Y.Z: see CHANGELOG.md for details`
+- Full command: `git tag -a vX.Y.Z -m "Release vX.Y.Z: see CHANGELOG.md for details"`
+- A lightweight tag (`git tag vX.Y.Z`) is WRONG — it creates a `commit` object, not a `tag` object
+- Verify a tag is annotated: `git cat-file -t vX.Y.Z` must return `tag`, not `commit`
+- Historical note: `v1.6.2` was accidentally created as a lightweight tag — all other releases (v1.0.0–v1.6.1) are correctly annotated
+- When helping with a release, Bob MUST use `git tag -a` with the exact message template above and MUST verify with `git cat-file -t` before pushing
+
 ### Git Commit Attribution for AI-Generated Content
 - When committing content generated or significantly modified by AI tools, add attribution at the end of the commit message body
 - Format: `Co-authored-by-AI: <Tool Name> <Version> (<LLM and Version>)`
