@@ -42,6 +42,8 @@ import static testify.iiop.annotation.ConfigureServer.Separation.INTER_PROCESS;
                 "--add-opens=java.base/java.io=ALL-UNNAMED",
                 "--add-opens=java.base/java.util=ALL-UNNAMED",
                 "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
+                "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+                "--add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED",
                 "--add-opens=java.rmi/java.rmi=ALL-UNNAMED"
         }
 )
