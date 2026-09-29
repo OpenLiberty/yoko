@@ -62,7 +62,12 @@ Use this checklist to ensure a consistent and complete release process.
 - [ ] Build completed successfully
 - [ ] All artifacts generated (18 JARs + checksums)
 - [ ] Distribution archive created
-- [ ] Git tag created: `vX.Y.Z`
+- [ ] Git tag created (MUST be annotated):
+  ```bash
+  git tag -a vX.Y.Z -m "Release vX.Y.Z: see CHANGELOG.md for details"
+  ```
+  - Verify it is annotated: `git cat-file -t vX.Y.Z` must return `tag` (not `commit`)
+  - A lightweight tag (`git tag vX.Y.Z` without `-a`) is **incorrect** for releases
 - [ ] GitHub release created
 - [ ] All artifacts uploaded to GitHub
 
