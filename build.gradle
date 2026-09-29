@@ -268,7 +268,7 @@ subprojects { sp ->
   }
 
   // ensure tests run under $buildDir somewhere
-  test {
+  tasks.withType(Test).configureEach {
     jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED'
     jvmArgs '--add-opens=java.base/java.io=ALL-UNNAMED'
     jvmArgs '--add-opens=java.base/java.util=ALL-UNNAMED'
