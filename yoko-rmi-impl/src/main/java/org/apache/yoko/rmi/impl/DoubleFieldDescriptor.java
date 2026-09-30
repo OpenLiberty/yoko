@@ -30,6 +30,9 @@ class DoubleFieldDescriptor extends FieldDescriptor {
         super(owner, type, name, f, repository);
     }
 
+    @Override
+    Object defaultValue() { return 0.0d; }
+
     public void read(ObjectReader reader, Object obj) throws IOException {
         double value = reader.readDouble();
         setFieldContents(obj, value);

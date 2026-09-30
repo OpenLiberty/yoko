@@ -160,7 +160,7 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
             // This field appears in serialPersistentFields but has no backing instance field.
             // Return the type's default value so the stream still receives the correct number
             // of bytes, mirroring what java.io.ObjectOutputStream does for absent fields.
-            return defaultValue(type);
+            return defaultValue();
         }
         try {
             return getter.invoke(o);
@@ -169,17 +169,8 @@ abstract class FieldDescriptor extends ModelElement implements Comparable<FieldD
         }
     }
 
-    private static Object defaultValue(Class<?> type) {
-        if (!type.isPrimitive()) return null;
-        if (type == boolean.class) return Boolean.FALSE;
-        if (type == byte.class)    return (byte) 0;
-        if (type == char.class)    return (char) 0;
-        if (type == short.class)   return (short) 0;
-        if (type == int.class)     return 0;
-        if (type == long.class)    return 0L;
-        if (type == float.class)   return 0.0f;
-        if (type == double.class)  return 0.0d;
-        throw new IllegalArgumentException("Unknown primitive type: " + type);
+    Object defaultValue() {
+        return null;
     }
 
     @Override

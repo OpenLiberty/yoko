@@ -30,6 +30,9 @@ class FloatFieldDescriptor extends FieldDescriptor {
         super(owner, type, name, f, repository);
     }
 
+    @Override
+    Object defaultValue() { return 0.0f; }
+
     public void read(ObjectReader reader, Object obj) throws IOException {
         float value = reader.readFloat();
         setFieldContents(obj, value);

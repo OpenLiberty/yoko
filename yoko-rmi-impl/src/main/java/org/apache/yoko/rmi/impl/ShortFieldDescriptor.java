@@ -30,6 +30,9 @@ class ShortFieldDescriptor extends FieldDescriptor {
         super(owner, type, name, f, repository);
     }
 
+    @Override
+    Object defaultValue() { return (short) 0; }
+
     public void read(ObjectReader reader, Object obj) throws IOException {
         short value = reader.readShort();
         setFieldContents(obj, value);
