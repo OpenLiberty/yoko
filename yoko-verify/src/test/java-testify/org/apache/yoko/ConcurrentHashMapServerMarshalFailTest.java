@@ -18,19 +18,23 @@
 package org.apache.yoko;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
+import testify.annotation.Logging;
+import testify.annotation.logging.LogPublisher;
 import testify.iiop.annotation.ConfigureServer;
 import testify.iiop.annotation.ConfigureServer.RemoteImpl;
 
-import java.lang.reflect.InaccessibleObjectException;
-import java.rmi.MarshalException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static testify.annotation.Logging.LoggingLevel.SEVERE;
 import static testify.iiop.annotation.ConfigureServer.Separation.INTER_PROCESS;
 
 /**
@@ -74,26 +78,25 @@ public class ConcurrentHashMapServerMarshalFailTest {
 
     /**
      * The server JVM has no --add-opens for java.util.concurrent, so serialising the
-     * ConcurrentHashMap return value raises an InaccessibleObjectException on the server.
-     * That propagates across the wire as a CORBA MARSHAL system exception, which the
-     * RMI-IIOP layer maps to a java.rmi.MarshalException on the client.
-     * We verify the root cause is an InaccessibleObjectException.
+     * ConcurrentHashMap return value fails on the server.
+     * We verify an exception is thrown and that "add-opens" is logged at SEVERE level.
      */
     @Test
     @EnabledForJreRange(min = JRE.JAVA_17)
-    public void testServerWithoutAddOpensFails(MapService stub) {
-        MarshalException ex = assertThrows(MarshalException.class, stub::createServerMap);
+    @Logging(value = "org.apache.yoko.util.PrivilegedActions", level = SEVERE)
+    public void testServerWithoutAddOpensFails(MapService stub, LogPublisher logPublisher, TestInfo testInfo) {
+        StringWriter logWriter = new StringWriter();
+        logPublisher.setOut(new PrintWriter(logWriter));
 
-        boolean foundInaccessibleException = false;
-        Throwable cause = ex;
-        while (cause != null) {
-            if (cause instanceof InaccessibleObjectException) {
-                foundInaccessibleException = true;
-                break;
-            }
-            cause = cause.getCause();
-        }
-        assertTrue(foundInaccessibleException,
-                "Expected InaccessibleObjectException in cause chain, but got: " + ex);
+        assertThrows(Throwable.class, stub::createServerMap);
+
+        logPublisher.flushLogs(testInfo.getDisplayName());
+        String logOutput = logWriter.toString();
+        String target1 = "ERROR: Yoko cannot reflectively access java.lang.reflect.InaccessibleObjectException";
+        String target2 = " --add-opens=java.base/java.lang.reflect=ALL-UNNAMED";
+        assertTrue(logOutput.contains(target1),
+                "Expected log to contain ["+target1+"] , but was:\n" + logOutput);
+        assertTrue(logOutput.contains(target2),
+                "Expected log to contain ["+target2+"] , but was:\n" + logOutput);
     }
 }
