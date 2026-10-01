@@ -64,7 +64,7 @@ def sharedTestConfig = { t ->
 // This task runs:
 //   - ConcurrentHashMapMarshalTest (except testClientMarshalFailsWithoutAddOpens)
 //   - ConcurrentHashMapServerMarshalFailTest
-// Both need java.util.concurrent opened on the client so that the RMI stubs can be
+// Both need java.util.concurrent opened on the client so that the stubs can be
 // set up correctly; the server-fail test restricts the *server* JVM instead.
 // testClientMarshalFailsWithoutAddOpens deliberately asserts the absence of
 // --add-opens on the client and therefore must stay in the plain `test` task below.
