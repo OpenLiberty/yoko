@@ -34,6 +34,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static testify.annotation.Logging.LoggingLevel.SEVERE;
 import static testify.iiop.annotation.ConfigureServer.Separation.INTER_PROCESS;
 
@@ -85,18 +87,73 @@ public class ConcurrentHashMapServerMarshalFailTest {
     @EnabledForJreRange(min = JRE.JAVA_17)
     @Logging(value = "org.apache.yoko.util.PrivilegedActions", level = SEVERE)
     public void testServerWithoutAddOpensFails(MapService stub, LogPublisher logPublisher, TestInfo testInfo) {
+        String target1 = "ERROR: Yoko cannot reflectively access ";
+        String target2 = " --add-opens=java.base/";
+
         StringWriter logWriter = new StringWriter();
         logPublisher.setOut(new PrintWriter(logWriter));
 
-        assertThrows(Throwable.class, stub::createServerMap);
+        Throwable originalException = assertThrows(RuntimeException.class, stub::createServerMap);
+        Throwable ex = originalException;
+        boolean foundRightException = false;
+        String matchedMessage = null;
+        do {
+            if (ex.getMessage() != null && ex.getMessage().contains(target1) && ex.getMessage().contains(target2)) {
+                foundRightException = true;
+                matchedMessage = ex.getMessage();
+            }
+            ex = ex.getCause();
+        } while (!foundRightException && ex != null);
+
+        assertTrue(foundRightException, "Expected exception to contain two messages [" + target1 + "] [+" + target2 + "+] but at least one was missing " + originalException);
+
+        // Extract <package>.<class> from the target1 line and verify <package> appears in the target2 line
+        String fqcn = extractAfter(matchedMessage, target1);
+        String pkg = fqcn.contains(".") ? fqcn.substring(0, fqcn.lastIndexOf('.')) : fqcn;
+        String target1Line = lineContaining(matchedMessage, target1);
+        String target2Line = lineContaining(matchedMessage, target2);
+        assertTrue(target2Line.contains(pkg),
+                "Expected the --add-opens line [" + target2Line + "] to contain the package [" + pkg + "] from the inaccessible class [" + fqcn + "]");
 
         logPublisher.flushLogs(testInfo.getDisplayName());
         String logOutput = logWriter.toString();
-        String target1 = "ERROR: Yoko cannot reflectively access java.lang.reflect.InaccessibleObjectException";
-        String target2 = " --add-opens=java.base/java.lang.reflect=ALL-UNNAMED";
         assertTrue(logOutput.contains(target1),
                 "Expected log to contain ["+target1+"] , but was:\n" + logOutput);
         assertTrue(logOutput.contains(target2),
                 "Expected log to contain ["+target2+"] , but was:\n" + logOutput);
+
+        // Same package check in the log output
+        String logTarget1Line = lineContaining(logOutput, target1);
+        String logTarget2Line = lineContaining(logOutput, target2);
+        String logFqcn = extractAfter(logTarget1Line, target1);
+        String logPkg = logFqcn.contains(".") ? logFqcn.substring(0, logFqcn.lastIndexOf('.')) : logFqcn;
+        assertTrue(logTarget2Line.contains(logPkg),
+                "Expected the --add-opens line in log [" + logTarget2Line + "] to contain the package [" + logPkg + "] from the inaccessible class [" + logFqcn + "]");
+    }
+
+    /** Returns the substring of {@code text} that follows {@code prefix}, stopping at the first line-break (exclusive). Also trim and remove any trailing periods. */
+    private static String extractAfter(String text, String prefix) {
+        if (text == null) return "";
+        int start = text.indexOf(prefix);
+        if (start < 0) return "";
+        start += prefix.length();
+        int end = text.length();
+        for (int i = start; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '\n' || c == '\r') { end = i; break; }
+        }
+        String result = text.substring(start, end).trim();
+        // The message format appends a '.' after the class name (before %n), strip it
+        if (result.endsWith(".")) result = result.substring(0, result.length() - 1);
+        return result;
+    }
+
+    /** Returns the line within {@code text} that contains {@code needle}, or empty string if not found. */
+    private static String lineContaining(String text, String needle) {
+        if (text == null) return "";
+        for (String line : text.split("\n")) {
+            if (line.contains(needle)) return line;
+        }
+        return "";
     }
 }

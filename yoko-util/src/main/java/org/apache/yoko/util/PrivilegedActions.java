@@ -90,7 +90,9 @@ public enum PrivilegedActions {
                 accessible.setAccessible(true);
             } catch (RuntimeException e) {
                 if ("java.lang.reflect.InaccessibleObjectException".equals(e.getClass().getName())) { //Avoiding symbolic reference for java8 compatibility
-                    logInaccessibleObject(accessible);
+                    String message = createLoggingMessageForInaccessibleObjectException(accessible);
+                    LOGGER.severe(message);
+                    throw new RuntimeException(message, e);
                 }
                 throw e;
             }
@@ -98,7 +100,7 @@ public enum PrivilegedActions {
         };
     }
 
-    private static void logInaccessibleObject(AccessibleObject accessible) {
+    private static String createLoggingMessageForInaccessibleObjectException(AccessibleObject accessible) {
         Class<?> declaringClass = null;
         if (accessible instanceof Member) {
             declaringClass = ((Member) accessible).getDeclaringClass();
@@ -133,7 +135,7 @@ public enum PrivilegedActions {
                 + "       Add the following JVM option to your application launch command:%n"
                 + "           --add-opens=%s=ALL-UNNAMED",
                 className, target);
-        LOGGER.severe(message);
+        return message;
     }
 
     public static <T> PrivilegedAction<T> action(PrivilegedAction<T> action) { return action; }
