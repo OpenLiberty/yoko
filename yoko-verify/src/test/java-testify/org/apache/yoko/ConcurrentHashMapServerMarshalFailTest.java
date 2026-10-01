@@ -42,9 +42,18 @@ import static testify.iiop.annotation.ConfigureServer.Separation.INTER_PROCESS;
  * which uses a server configured WITH --add-opens and expects success.
  */
 @ConfigureServer(
-        separation = INTER_PROCESS
-        // Intentionally no jvmArgs: the server JVM does NOT get --add-opens java.base/java.util.concurrent,
-        // so attempting to serialise a ConcurrentHashMap there must fail.
+        separation = INTER_PROCESS,
+        jvmArgs = {
+                "--add-opens=java.base/java.lang=ALL-UNNAMED",
+                "--add-opens=java.base/java.io=ALL-UNNAMED",
+                "--add-opens=java.base/java.util=ALL-UNNAMED",
+                "--add-opens=java.rmi/java.rmi=ALL-UNNAMED"
+                // add enough permissions to start the server, but leave out the next ones
+                // so creating a ConcurrentHashMap produces the exception we're testing
+                //"--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
+                //"--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+                //"--add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED",
+        }
 )
 public class ConcurrentHashMapServerMarshalFailTest {
 

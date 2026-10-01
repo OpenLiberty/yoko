@@ -61,22 +61,27 @@ def sharedTestConfig = { t ->
 
 // testConcurrentHashMap must be registered before `test` so that `test` can depend on it.
 //
-// This task runs all of ConcurrentHashMapMarshalTest except testClientMarshalFailsWithoutAddOpens,
-// which deliberately asserts the absence of --add-opens java.base/java.util.concurrent on the
-// client JVM and therefore must stay in the plain `test` task below.
+// This task runs:
+//   - ConcurrentHashMapMarshalTest (except testClientMarshalFailsWithoutAddOpens)
+//   - ConcurrentHashMapServerMarshalFailTest
+// Both need java.util.concurrent opened on the client so that the RMI stubs can be
+// set up correctly; the server-fail test restricts the *server* JVM instead.
+// testClientMarshalFailsWithoutAddOpens deliberately asserts the absence of
+// --add-opens on the client and therefore must stay in the plain `test` task below.
 tasks.register('testConcurrentHashMap', Test) {
-  description = 'Runs ConcurrentHashMapMarshalTest with --add-opens java.base/java.util.concurrent on the client JVM'
+  description = 'Runs ConcurrentHashMap tests with --add-opens java.base/java.util.concurrent on the client JVM'
   group = 'verification'
 
   sharedTestConfig(it)
   useJUnitPlatform()
 
   include '**/ConcurrentHashMapMarshalTest*'
+  include '**/ConcurrentHashMapServerMarshalFailTest*'
   filter {
     excludeTestsMatching '*ConcurrentHashMapMarshalTest.testClientMarshalFailsWithoutAddOpens'
   }
 
-  // Open java.util.concurrent on the client so unmarshalling the returned ConcurrentHashMap works
+  // Open java.util.concurrent on the client so that RMI stubs and unmarshalling work
   jvmArgs '--add-opens=java.base/java.util.concurrent=ALL-UNNAMED'
   jvmArgs '--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED'
   jvmArgs '--add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED'
@@ -89,6 +94,13 @@ test {
   // java.util.concurrent on the client JVM.  The one exception is testClientMarshalFailsWithoutAddOpens,
   // which must run here where java.util.concurrent is NOT opened.
   exclude '**/testServerWithAddOpensCanMarshal*'
+  // ConcurrentHashMapServerMarshalFailTest also runs in testConcurrentHashMap (client needs the open)
+  exclude '**/ConcurrentHashMapServerMarshalFailTest*'
+
+  // When a --tests filter is supplied that only matches tests that run in testConcurrentHashMap
+  // (e.g. --tests "*ConcurrentHashMapServerMarshalFailTest.*"), the test task itself will find
+  // nothing. Avoid a build failure in that case.
+  filter.failOnNoMatchingTests = false
 
   // Propagate any --tests filter supplied by the user to the sibling task so that e.g.
   //   ./gradlew :yoko-verify:test --tests "*ConcurrentHashMapMarshalTest.*"
