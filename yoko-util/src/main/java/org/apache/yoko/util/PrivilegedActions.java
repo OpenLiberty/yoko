@@ -20,17 +20,21 @@ package org.apache.yoko.util;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 import static java.lang.Thread.currentThread;
 
 public enum PrivilegedActions {
     ;
+    private static final Logger LOGGER = Logger.getLogger(PrivilegedActions.class.getName());
+
     public static final PrivilegedAction<Properties> GET_SYSPROPS = System::getProperties;
     public static final PrivilegedAction<Map<Object, Object>> GET_SYSPROPS_OR_EMPTY_MAP = () -> {
         try {
@@ -82,9 +86,54 @@ public enum PrivilegedActions {
 
     public static <T extends AccessibleObject> PrivilegedAction<T> makeAccessible(T accessible) {
         return () -> {
-            accessible.setAccessible(true);
+            try {
+                accessible.setAccessible(true);
+            } catch (RuntimeException e) {
+                if ("java.lang.reflect.InaccessibleObjectException".equals(e.getClass().getName())) { //Avoiding symbolic reference for java8 compatibility
+                    logInaccessibleObject(accessible);
+                }
+                throw e;
+            }
             return accessible;
         };
+    }
+
+    private static void logInaccessibleObject(AccessibleObject accessible) {
+        Class<?> declaringClass = null;
+        if (accessible instanceof Member) {
+            declaringClass = ((Member) accessible).getDeclaringClass();
+        }
+        String className = declaringClass != null ? declaringClass.getName() : accessible.toString();
+
+        String moduleName = "java.base";
+        String packageName = "";
+        if (declaringClass != null) {
+            Package pkg = declaringClass.getPackage();
+            if (pkg != null) {
+                packageName = pkg.getName();
+            }
+            try {
+                Method getModuleMethod = Class.class.getMethod("getModule");
+                Object module = getModuleMethod.invoke(declaringClass);
+                if (module != null) {
+                    Method getNameMethod = module.getClass().getMethod("getName");
+                    Object name = getNameMethod.invoke(module);
+                    if (name != null) {
+                        moduleName = name.toString();
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+
+        String target = moduleName.isEmpty() ? packageName : moduleName + "/" + packageName;
+        String message = String.format(
+                "ERROR: Yoko cannot reflectively access %s.%n"
+                + "       This is required for RMI-IIOP marshalling on Java 17+.%n"
+                + "       Add the following JVM option to your application launch command:%n"
+                + "           --add-opens=%s=ALL-UNNAMED",
+                className, target);
+        LOGGER.severe(message);
     }
 
     public static <T> PrivilegedAction<T> action(PrivilegedAction<T> action) { return action; }
