@@ -17,7 +17,6 @@
  */
 package org.apache.yoko.rmi.impl;
 
-import org.apache.yoko.rmi.util.ClientUtil;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.BAD_OPERATION;
 import org.omg.CORBA.portable.Delegate;
@@ -180,10 +179,7 @@ public class PortableRemoteObjectImpl implements PortableRemoteObjectDelegate {
         if (Remote.class == type) return new RMIRemoteStub();
 
         RMIState state = RMIState.current();
-        return Optional.of(state)
-                .filter(s -> ClientUtil.isRunningAsClientContainer())
-                .map(s -> s.getStaticStub(null, type))
-                .orElseGet(() -> state.createRMIStub(type));
+        return state.createRMIStub(type);
     }
 
     public Remote toStub(Remote value) throws NoSuchObjectException {
