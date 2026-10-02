@@ -73,8 +73,8 @@ public class LogPublisher implements SimpleCloseable {
         dedicatedBuses.add(dedicatedBus);
     }
 
-    // Allow output to be redirected, purely to test this class
-    void setOut(PrintWriter newOut) {
+    // Allow output to be redirected, e.g. for testing or capturing log output
+    public void setOut(PrintWriter newOut) {
         System.out.println(">>> redirecting output from " + this.out + " to " + newOut + " <<<");
         this.out = newOut;
     }
@@ -96,7 +96,7 @@ public class LogPublisher implements SimpleCloseable {
 
     synchronized void somethingWentWrong(Throwable throwable) { this.testWentWrong = true; }
 
-    synchronized LogPublisher flushLogs(String displayName) {
+    public synchronized LogPublisher flushLogs(String displayName) {
         // PRINT THREAD TABLE
         List<String> threadTable = LogRecorder.requestThreadTable(dedicatedBuses, partNameLength);
 

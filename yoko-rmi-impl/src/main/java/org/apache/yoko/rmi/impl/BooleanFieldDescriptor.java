@@ -30,6 +30,9 @@ class BooleanFieldDescriptor extends FieldDescriptor {
         super(owner, type, name, f, repository);
     }
 
+    @Override
+    Object defaultValue() { return Boolean.FALSE; }
+
     public void read(ObjectReader reader, Object obj) throws IOException {
         boolean value = reader.readBoolean();
         setFieldContents(obj, value);

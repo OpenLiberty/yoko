@@ -30,6 +30,9 @@ class ByteFieldDescriptor extends FieldDescriptor {
         super(owner, type, name, f, repository);
     }
 
+    @Override
+    Object defaultValue() { return (byte) 0; }
+
     public void read(ObjectReader reader, Object obj) throws IOException {
         byte value = reader.readByte();
         setFieldContents(obj, value);

@@ -30,6 +30,9 @@ class IntFieldDescriptor extends FieldDescriptor {
         super(owner, type, name, f, repository);
     }
 
+    @Override
+    Object defaultValue() { return 0; }
+
     public void read(ObjectReader reader, Object obj) throws IOException {
         int value = reader.readInt();
         logger.finest(() -> "Read int field value " + value);

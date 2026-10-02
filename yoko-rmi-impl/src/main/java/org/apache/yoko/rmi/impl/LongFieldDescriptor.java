@@ -30,6 +30,9 @@ class LongFieldDescriptor extends FieldDescriptor {
         super(owner, type, name, f, repository);
     }
 
+    @Override
+    Object defaultValue() { return 0L; }
+
     public void read(ObjectReader reader, Object obj) throws IOException {
         long value = reader.readLong();
         logger.finest(() -> "Read long field value " + value);
