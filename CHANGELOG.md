@@ -1,3 +1,30 @@
+## [v1.7.0] - 2026-09-29
+
+### 🚀 Features
+
+- Rebundle Yoko into a single OSGi bundle
+
+### 🐛 Bug Fixes
+
+- Handle unexpected exceptions in client request interceptors
+- Add ValueMemberFieldDescriptor for FVD fields without local equivalents
+- Skip adding undefined serialPersistentFields to deserialization map
+- Align enum classHash calculation with FVD structure
+- Enforce COMPLETED_NO status for exceptions in send_request
+- Implement CORBA spec completion status semantics for receive_exception
+- Correct completion status for receive_reply exceptions
+- Return empty array instead of throwing exception in ArgumentStrategyNull
+- Handle SystemException in receive_request_service_contexts
+- Update legacy activator bundle references
+- Remove erroneous ORB singleton create_output_stream call
+
+### ⚡ Performance
+
+- Optimize LazyInitializedField to avoid unnecessary Waiter allocation
+- Convert method invocation from reflection to MethodHandle
+- Convert custom serialization to MethodHandle
+- Convert writeObject to MethodHandle
+
 ## [v1.6.2] - 2026-07-23
 
 A minor update containing only logging changes
