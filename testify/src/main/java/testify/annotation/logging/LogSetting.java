@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-final class LogSetting implements Stringifiable {
+public final class LogSetting implements Stringifiable {
     enum Key implements TypeKey<LogSetting> { SEND_SETTING }
 
     private final Level level;
@@ -35,7 +35,7 @@ final class LogSetting implements Stringifiable {
 
     LogSetting(Logging annotation) { this(annotation.value(), annotation.level().level); }
 
-    LogSetting(String name, Level level) {
+    public LogSetting(String name, Level level) {
         this.level = level;
         this.name = name;
     }

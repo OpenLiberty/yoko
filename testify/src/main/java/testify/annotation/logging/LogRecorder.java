@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +50,8 @@ import java.util.logging.Logger;
 import static java.util.stream.Collectors.toList;
 import static testify.annotation.logging.LogRecorder.IntMessage.REQUEST_ID;
 import static testify.annotation.logging.LogRecorder.LogFormatter.Key.REQUEST_LOG_RECORDS;
+import static testify.annotation.logging.LogRecorder.RawLogRecordsReply.REPLY_RAW_LOG_RECORDS;
+import static testify.annotation.logging.LogRecorder.RawLogRecordsRequest.REQUEST_RAW_LOG_RECORDS;
 import static testify.annotation.logging.LogRecorder.SettingsMessage.PUSH_SETTINGS;
 import static testify.annotation.logging.LogRecorder.SettingsStackMessage.INITIALIZE_SETTINGS_STACK;
 import static testify.annotation.logging.LogRecorder.SimpleMessage.CLOSE;
@@ -79,7 +81,9 @@ public class  LogRecorder {
     }
     enum SimpleMessage implements TypeKey<SimpleMessage> {POP_SETTINGS, CLOSE}
     enum SyncPoint implements VoidKey {READY_FOR_CLOSE}
-    enum StringsMessage implements StringListKey {REPLY_THREAD_TABLE, REPLY_LOG_RECORDS };
+    enum StringsMessage implements StringListKey {REPLY_THREAD_TABLE, REPLY_LOG_RECORDS}
+    enum RawLogRecordsRequest implements VoidKey {REQUEST_RAW_LOG_RECORDS}
+    enum RawLogRecordsReply implements TypeKey<List<LogRecord>> {REPLY_RAW_LOG_RECORDS}
 
     public static final String INITIAL_BUS_NAME = LogRecorder.class.getName();
     private static final Logger ROOT_LOGGER = Logger.getLogger("");
@@ -144,6 +148,7 @@ public class  LogRecorder {
         dedicatedBus.onMsg(POP_SETTINGS, this::receivePopSettings);
         dedicatedBus.onMsg(REQUEST_THREAD_TABLE, this::replyThreadTable);
         dedicatedBus.onMsg(REQUEST_LOG_RECORDS, this::replyLogRecords);
+        dedicatedBus.onMsg(REQUEST_RAW_LOG_RECORDS, ignored -> replyRawLogRecords());
         if (ProcessRunner.isChildProcess()) keepAlive.begin();
         dedicatedBus.onMsg(CLOSE, this::close);
         // make myself known to the publisher
@@ -281,6 +286,13 @@ public class  LogRecorder {
         return dedicatedBus.get(REPLY_LOG_RECORDS);
     }
 
+    /** Retrieve the raw (unformatted) log records from this recorder's process. */
+    static synchronized List<LogRecord> requestRawLogRecords(Bus dedicatedBus) {
+        dispatchRequestAndWaitForReply(dedicatedBus, REQUEST_RAW_LOG_RECORDS);
+        return dedicatedBus.get(REPLY_RAW_LOG_RECORDS);
+    }
+
+
     static class LogFormatter implements Function<LogRecord, String>, Stringifiable {
         enum Key implements TypeKey<LogFormatter> {REQUEST_LOG_RECORDS}
         final long startTime;
@@ -331,6 +343,13 @@ public class  LogRecorder {
         List<String> logRecords = drainInOrder(journals).map(formatter).collect(toList());
         dedicatedBus.put(REPLY_LOG_RECORDS, logRecords);
         dispatchReply("returned log records");
+    }
+
+    private synchronized void replyRawLogRecords() {
+        // Non-destructive: stream without polling so flushLogs can still display them.
+        List<LogRecord> records = journals.stream().flatMap(Journal::stream).collect(toList());
+        dedicatedBus.put(REPLY_RAW_LOG_RECORDS, records);
+        dispatchReply("returned raw log records");
     }
 
     private static String formatThrowable(Throwable t) {

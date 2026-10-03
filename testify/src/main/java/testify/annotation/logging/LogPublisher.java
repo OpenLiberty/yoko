@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,10 +24,12 @@ import testify.util.ObjectUtil;
 
 import java.io.PrintWriter;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.logging.LogRecord;
 
 import static java.lang.Math.max;
 import static testify.annotation.logging.LogRecorder.StringMessage.HELLO;
@@ -79,13 +81,13 @@ public class LogPublisher implements SimpleCloseable {
         this.out = newOut;
     }
 
-    synchronized LogPublisher pushSettings(List<LogSetting> settings) {
+    public synchronized LogPublisher pushSettings(List<LogSetting> settings) {
         settingsStack.push(settings);
         if (!settings.isEmpty()) dedicatedBuses.forEach(bus -> sendPushSettings(bus, settings));
         return this;
     }
 
-    synchronized void popSettings() {
+    public synchronized void popSettings() {
         List<?> popped = settingsStack.pop();
         if (popped.isEmpty()) return; // must not pop empty settings because they were never pushed
         // As a general principle, reverse the order when undoing things.
@@ -123,6 +125,16 @@ public class LogPublisher implements SimpleCloseable {
             out.flush();
         }
         return this;
+    }
+
+    /**
+     * Retrieves all raw {@link LogRecord}s captured across all recorders (processes).
+     * Records are collected in arbitrary process order; sort by {@link LogRecord#getMillis()} if ordering matters.
+     */
+    public synchronized List<LogRecord> getLogRecords() {
+        List<LogRecord> result = new ArrayList<>();
+        dedicatedBuses.forEach(bus -> result.addAll(LogRecorder.requestRawLogRecords(bus)));
+        return result;
     }
 
     // idempotent

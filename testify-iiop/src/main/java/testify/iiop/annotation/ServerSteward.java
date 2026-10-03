@@ -393,13 +393,9 @@ class ServerSteward {
         serverControl.ensureStarted();
     }
 
-    public void beforeTestExecution(ExtensionContext ctx) {
-        // TODO       if (config.separation() == INTER_PROCESS) serverComms.beginLogging(TestLogger.getLogStarter(ctx));
-    }
+    public void beforeTestExecution(ExtensionContext ctx) {}
 
-    public void afterTestExecution(ExtensionContext ctx) {
-        // TODO        if (config.separation() == INTER_PROCESS) serverComms.endLogging(TestLogger.getLogFinisher(ctx));
-    }
+    public void afterTestExecution(ExtensionContext ctx) {}
 
     public boolean supportsParameter(Class<?> type) {
         if (!Remote.class.isAssignableFrom(type)) return false;

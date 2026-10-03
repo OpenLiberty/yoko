@@ -18,26 +18,20 @@
 package org.apache.yoko;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
-import testify.annotation.Logging;
-import testify.annotation.logging.LogPublisher;
 import testify.iiop.annotation.ConfigureServer;
 import testify.iiop.annotation.ConfigureServer.RemoteImpl;
+import testify.iiop.annotation.ExpectServerLog;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static testify.annotation.Logging.LoggingLevel.SEVERE;
 import static testify.iiop.annotation.ConfigureServer.Separation.INTER_PROCESS;
+import static testify.iiop.annotation.ExpectServerLog.LogLevel.SEVERE;
 
 /**
  * Verifies that when the server JVM does NOT have --add-opens for java.util.concurrent,
@@ -81,17 +75,18 @@ public class ConcurrentHashMapServerMarshalFailTest {
     /**
      * The server JVM has no --add-opens for java.util.concurrent, so serialising the
      * ConcurrentHashMap return value fails on the server.
-     * We verify an exception is thrown and that "add-opens" is logged at SEVERE level.
+     * We verify the exception message contains add-opens advice, and that the same
+     * message was also logged at SEVERE level in the server JVM.
      */
     @Test
     @EnabledForJreRange(min = JRE.JAVA_17)
-    @Logging(value = "org.apache.yoko.util.PrivilegedActions", level = SEVERE)
-    public void testServerWithoutAddOpensFails(MapService stub, LogPublisher logPublisher, TestInfo testInfo) {
+    @ExpectServerLog(value = "ERROR: Yoko cannot reflectively access ",
+                     level = SEVERE, logger = "org.apache.yoko.util.PrivilegedActions")
+    @ExpectServerLog(value = "--add-opens=java.base/java.util.concurrent",
+                     level = SEVERE, logger = "org.apache.yoko.util.PrivilegedActions")
+    public void testServerWithoutAddOpensFails(MapService stub) {
         String target1 = "ERROR: Yoko cannot reflectively access ";
         String target2 = " --add-opens=java.base/";
-
-        StringWriter logWriter = new StringWriter();
-        logPublisher.setOut(new PrintWriter(logWriter));
 
         Throwable originalException = assertThrows(RuntimeException.class, stub::createServerMap);
         Throwable ex = originalException;
@@ -105,33 +100,17 @@ public class ConcurrentHashMapServerMarshalFailTest {
             ex = ex.getCause();
         } while (!foundRightException && ex != null);
 
-        assertTrue(foundRightException, "Expected exception to contain two messages [" + target1 + "] [+" + target2 + "+] but at least one was missing " + originalException);
+        assertTrue(foundRightException, "Expected exception message to contain [" + target1 + "] and [" + target2 + "] but was: " + originalException);
 
-        // Extract <package>.<class> from the target1 line and verify <package> appears in the target2 line
+        // Verify the --add-opens suggestion names the same package as the inaccessible class
         String fqcn = extractAfter(matchedMessage, target1);
         String pkg = fqcn.contains(".") ? fqcn.substring(0, fqcn.lastIndexOf('.')) : fqcn;
-        String target1Line = lineContaining(matchedMessage, target1);
-        String target2Line = lineContaining(matchedMessage, target2);
-        assertTrue(target2Line.contains(pkg),
-                "Expected the --add-opens line [" + target2Line + "] to contain the package [" + pkg + "] from the inaccessible class [" + fqcn + "]");
-
-        logPublisher.flushLogs(testInfo.getDisplayName());
-        String logOutput = logWriter.toString();
-        assertTrue(logOutput.contains(target1),
-                "Expected log to contain ["+target1+"] , but was:\n" + logOutput);
-        assertTrue(logOutput.contains(target2),
-                "Expected log to contain ["+target2+"] , but was:\n" + logOutput);
-
-        // Same package check in the log output
-        String logTarget1Line = lineContaining(logOutput, target1);
-        String logTarget2Line = lineContaining(logOutput, target2);
-        String logFqcn = extractAfter(logTarget1Line, target1);
-        String logPkg = logFqcn.contains(".") ? logFqcn.substring(0, logFqcn.lastIndexOf('.')) : logFqcn;
-        assertTrue(logTarget2Line.contains(logPkg),
-                "Expected the --add-opens line in log [" + logTarget2Line + "] to contain the package [" + logPkg + "] from the inaccessible class [" + logFqcn + "]");
+        String addOpensLine = lineContaining(matchedMessage, target2);
+        assertTrue(addOpensLine.contains(pkg),
+                "Expected the --add-opens line [" + addOpensLine + "] to contain the package [" + pkg + "] from the inaccessible class [" + fqcn + "]");
     }
 
-    /** Returns the substring of {@code text} that follows {@code prefix}, stopping at the first line-break (exclusive). Also trim and remove any trailing periods. */
+    /** Returns the substring of {@code text} that follows {@code prefix}, up to the first line-break. */
     private static String extractAfter(String text, String prefix) {
         if (text == null) return "";
         int start = text.indexOf(prefix);
@@ -143,7 +122,6 @@ public class ConcurrentHashMapServerMarshalFailTest {
             if (c == '\n' || c == '\r') { end = i; break; }
         }
         String result = text.substring(start, end).trim();
-        // The message format appends a '.' after the class name (before %n), strip it
         if (result.endsWith(".")) result = result.substring(0, result.length() - 1);
         return result;
     }

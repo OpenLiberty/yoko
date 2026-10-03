@@ -45,8 +45,21 @@ import static testify.annotation.runner.PartRunners.getPartRunner;
  * as directed by the annotation for that test.
  */
 public final class LoggingExtension implements CloseableResource, BeforeAllCallback, BeforeTestExecutionCallback, AfterTestExecutionCallback, AfterAllCallback, TestExecutionExceptionHandler, SimpleParameterResolver<LogPublisher> {
+    private static final Namespace CLASS_NAMESPACE = Namespace.create(LoggingExtension.class);
+    private static final String PUBLISHER_KEY = "logPublisher";
+
     private volatile LogPublisher logPublisher;
     private volatile InterProcessBus privateBus;
+
+    /**
+     * Retrieves the {@link LogPublisher} created by this extension for the given context.
+     * Returns {@code null} if logging has not been configured for this test.
+     * JUnit's store lookup walks the context hierarchy automatically, so a method-level
+     * context will find a value stored in the enclosing class-level context.
+     */
+    public static LogPublisher findLogPublisher(ExtensionContext ctx) {
+        return ctx.getStore(CLASS_NAMESPACE).get(PUBLISHER_KEY, LogPublisher.class);
+    }
 
     private synchronized Function<String,Bus> getBusFunction(PartRunner runner) { return runner::bus; }
 
@@ -60,6 +73,7 @@ public final class LoggingExtension implements CloseableResource, BeforeAllCallb
             logPublisher = LogPublisher.create(busGetter);
             LogRecorder.create(busGetter.apply("junit"));
             ctx.getStore(Namespace.create(this)).put(this, this); // so that the namespace will call close() during cleanup
+            ctx.getStore(CLASS_NAMESPACE).put(PUBLISHER_KEY, logPublisher); // also stored under a stable key for other extensions
             getPartRunner(ctx).ifPresent(r -> r.addJVMStartupHook(LogRecorder::create));
         }
         return logPublisher;
