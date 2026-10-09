@@ -18,7 +18,7 @@
 
 Bundle-Description: Apache Yoko Core
 
-Bundle-Activator: org.apache.yoko.Activator
+-dsannotations: *
 
 # Pull in all org.apache.yoko.* packages from the classpath privately,
 # except org.apache.yoko.util which is governed solely by the explicit
@@ -30,7 +30,6 @@ Bundle-Activator: org.apache.yoko.Activator
 # no -conditionalpackage is needed for org.omg.* or javax.*.
 Export-Package: \
     javax.*;version=2.4, \
-    org.apache.yoko.osgi;version=1.0.0, \
     org.apache.yoko.osgi.locator;version=1.0.0, \
     org.apache.yoko.io;mandatory:=testOnly;testOnly=true, \
     org.apache.yoko.orb.OB;version=1.6.0, \
@@ -39,7 +38,6 @@ Export-Package: \
     org.apache.yoko.orb.OCI.IIOP;version=1.6.0, \
     org.apache.yoko.orb.PortableInterceptor;version=1.6.0, \
     org.apache.yoko.orb.spi.naming;version=1.6.0, \
-    org.apache.yoko.osgi.locator, \
     org.apache.yoko.rmi.impl;version=1.0.0, \
     org.apache.yoko.util;mandatory:=testOnly;testOnly=true, \
     org.omg.*;version=2.4

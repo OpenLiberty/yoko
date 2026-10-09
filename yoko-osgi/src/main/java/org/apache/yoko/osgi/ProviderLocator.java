@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,16 +28,23 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.security.AccessController.doPrivileged;
 
 public enum ProviderLocator {;
-    static private ProviderRegistry registry;
+    private static final AtomicReference<ProviderRegistry> registryRef = new AtomicReference<>();
 
-    public static void setRegistry(ProviderRegistry registry) {
-        ProviderLocator.registry = registry;
+    static void setRegistry(ProviderRegistry registry) {
+        assert null != registry;
+        registryRef.set(registry);
+    }
+
+    static void unsetRegistry(ProviderRegistry registry) {
+        assert null != registry;
+        registryRef.compareAndSet(registry, null);
     }
 
     /**
@@ -46,7 +53,7 @@ public enum ProviderLocator {;
      *
      * Note: this method is <em>unprivileged</em>: the onus is on the caller to sanitize input and assert privilege
      */
-    static public <T> Class<T> loadClass(String className, Class<?> contextClass, ClassLoader loader) throws ClassNotFoundException {
+    public static <T> Class<T> loadClass(String className, Class<?> contextClass, ClassLoader loader) throws ClassNotFoundException {
         // First check the registered service providers for this class
         final Optional<Class<Object>> clz = getRegistry().map(r -> r.locate(className));
         if (clz.isPresent()) return generify(clz.get());
@@ -93,7 +100,7 @@ public enum ProviderLocator {;
      * @return The service instance, or null if no matching services
      *         can be found.
      */
-    static public <T> Optional<T> getService(String iface, Class<?> contextClass, ClassLoader loader, Function<Class<T>,Constructor<T>> privilegedGetConstructor) {
+    public static <T> Optional<T> getService(String iface, Class<?> contextClass, ClassLoader loader, Function<Class<T>,Constructor<T>> privilegedGetConstructor) {
         // if we are working in an OSGi environment, then process the service
         // registry first.  Ideally, we would do this last, but because of boot delegation
         // issues with some API implementations, we must try the OSGi version first
@@ -138,7 +145,7 @@ public enum ProviderLocator {;
      *
      * @return An Optional containing The located class, if found.
      */
-    static public <T> Optional<Class<T>> getServiceClass(String iface, Class<?> contextClass, ClassLoader loader) {
+    public static <T> Optional<Class<T>> getServiceClass(String iface, Class<?> contextClass, ClassLoader loader) {
         // if we are working in an OSGi environment, then process the service
         // registry first.  Ideally, we would do this last, but because of boot delegation
         // issues with some API implementations, we must try the OSGi version first
@@ -195,7 +202,7 @@ public enum ProviderLocator {;
      *
      * @return An Optional containing The mapped provider class, if found.
      */
-    static private <T> Optional<Class<T>> locateServiceClass(String iface, Class<?> contextClass, ClassLoader loader) {
+    private static <T> Optional<Class<T>> locateServiceClass(String iface, Class<?> contextClass, ClassLoader loader) {
         Optional<String> name = locateServiceClassName(iface, loader);
         final ClassLoader cl = name
                 .map(n -> loader)
@@ -221,7 +228,7 @@ public enum ProviderLocator {;
      * @return A list of all matching classes.  Returns an empty list
      *         if no matches are found.
      */
-    static private List<String> parseServiceDefinition(URL u) {
+    private static List<String> parseServiceDefinition(URL u) {
         final String url = u.toString();
         List<String> classes = new ArrayList<>();
         // ignore directories
@@ -257,8 +264,7 @@ public enum ProviderLocator {;
         return classes;
     }
 
-
     private static Optional<ProviderRegistry> getRegistry() {
-        return Optional.ofNullable(registry);
+        return Optional.of(registryRef).map(AtomicReference::get);
     }
 }

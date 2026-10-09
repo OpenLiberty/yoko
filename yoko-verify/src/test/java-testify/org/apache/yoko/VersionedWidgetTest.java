@@ -24,8 +24,6 @@ import org.apache.yoko.io.WriteBuffer;
 import org.apache.yoko.orb.CORBA.YokoInputStream;
 import org.apache.yoko.orb.CORBA.YokoOutputStream;
 import org.apache.yoko.orb.OB.SendingContextRuntimes;
-import org.apache.yoko.osgi.ProviderLocator;
-import org.apache.yoko.osgi.locator.ProviderRegistryImpl;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -92,23 +90,6 @@ class WidgetMarshallingTest extends VersionedWidgetTest<YokoInputStream> {
     }
 }
 
-/** Test widgets can be demarshalled using a provider to resolve classes */
-class WidgetProviderLoaderTest extends WidgetMarshallingTest {
-    @Override
-    Widget decode(YokoInputStream in, String widgetClassName, Loader context) {
-        // Marshalling across versions will need a runtime codebase
-        in.__setSendingContextRuntime(SendingContextRuntimes.LOCAL_CODE_BASE);
-        ProviderRegistryImpl reg = new ProviderRegistryImpl();
-        reg.registerPackages(context.newInstance("versioned.VersionedPackageProvider"));
-        ProviderLocator.setRegistry(reg);
-        try {
-            return (Widget) in.read_value();
-        } finally {
-            ProviderLocator.setRegistry(null);
-        }
-    }
-}
-
 /** Test widgets can be demarshalled using the stack loader to resolve classes */
 class WidgetStackLoaderTest extends WidgetMarshallingTest {
     @Override
@@ -119,35 +100,5 @@ class WidgetStackLoaderTest extends WidgetMarshallingTest {
         // delegate the read_value() to a WidgetReader from the context loader
         Function<YokoInputStream, Widget> widgetReader = context.newInstance("versioned.WidgetReader");
         return widgetReader.apply(in);
-    }
-}
-
-
-/** Test ProviderLoader classes on the stack are ignored when selecting a stack loader */
-class WidgetDeepStackLoaderTest extends WidgetMarshallingTest {
-    @Override
-    Widget decode(YokoInputStream in, String widgetClassName, Loader context) throws Exception {
-        // Marshalling across versions will need a runtime codebase
-        in.__setSendingContextRuntime(SendingContextRuntimes.LOCAL_CODE_BASE);
-        // Register the V0 package provider with the provider registry so it can be ignored in the call stack.
-        ProviderRegistryImpl reg = new ProviderRegistryImpl();
-        reg.registerPackages(Loader.V0.newInstance("versioned.VersionedPackageProvider"));
-        ProviderLocator.setRegistry(reg);
-        // To insert an extra layer into the call stack, use the WidgetReader from the WRONG loader, V0.
-        // NOTE: if we do not load something via the registry, it will never know about the class loader
-        Class<? extends Function<YokoInputStream, Widget>> widgetReaderClass = reg.locate("versioned.WidgetReader");
-        Function<YokoInputStream, Widget> widgetReader = widgetReaderClass.getConstructor().newInstance();
-        // Then invoke the WidgetReader from another object loaded by the RIGHT loader.
-        widgetReader = chain(widgetReader, context);
-        try {
-            return widgetReader.apply(in);
-        } finally {
-            ProviderLocator.setRegistry(null);
-        }
-    }
-
-    private static <T, R> Function<T,R> chain(Function<T,R> fun, Loader context) {
-        Function<Function<T,R>, Function<T,R>> chainer = context.newInstance("versioned.FunctionChainer");
-        return chainer.apply(fun);
     }
 }

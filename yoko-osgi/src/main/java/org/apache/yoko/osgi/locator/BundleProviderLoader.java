@@ -101,7 +101,7 @@ public class BundleProviderLoader implements Comparable<BundleProviderLoader> {
         return other.priority - priority;
     }
 
-    ServiceProvider wrapAsServiceProvider() {
+    public ServiceProvider wrapAsServiceProvider() {
         return new ServiceProvider(
                 new LocalFactory() {
                     @Override

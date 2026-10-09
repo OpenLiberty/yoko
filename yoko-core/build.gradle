@@ -16,6 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 dependencies {
+  compileOnly 'org.osgi:org.osgi.service.component.annotations:1.4.0'
+
   // depend on the Yoko spec classes
   implementation project(':yoko-osgi')
   implementation files(project(':yoko-osgi').sourceSets.main.output)

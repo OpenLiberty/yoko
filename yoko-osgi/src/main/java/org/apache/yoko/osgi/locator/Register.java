@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,8 +37,4 @@ public interface Register {
 
     @Deprecated
     void unregisterService(BundleProviderLoader bundleProviderLoader);
-
-    void registerPackages(PackageProvider packageProvider);
-
-    void unregisterPackages(PackageProvider packageProvider);
 }

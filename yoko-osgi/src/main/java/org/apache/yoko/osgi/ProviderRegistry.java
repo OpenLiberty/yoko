@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,33 +17,133 @@
  */
 package org.apache.yoko.osgi;
 
+import org.apache.yoko.osgi.locator.BundleProviderLoader;
+import org.apache.yoko.osgi.locator.Register;
+import org.apache.yoko.osgi.locator.ServiceProvider;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+
+import java.security.PrivilegedAction;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.PriorityQueue;
+import java.util.Queue;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.logging.Logger;
+
+import static java.security.AccessController.doPrivileged;
+import static java.util.Collections.newSetFromMap;
+import static java.util.Collections.synchronizedSet;
+
 /**
- * The implementation of the factory registry used to store
- * the bundle registrations.
+ * Stores the bundle registrations.
  */
-public interface ProviderRegistry {
+@Component(immediate = true, service = Register.class)
+public class ProviderRegistry implements Register {
+    private static final Logger log = Logger.getLogger(ProviderRegistry.class.getName());
+    // our mapping between a provider id and the implementation information.  There
+    // might be a one-to-many relationship between the ids and implementing classes.
+    private final SPIRegistry providers = new SPIRegistry();
+    // our mapping between an interface name and a META-INF/services SPI implementation.  There
+    // might be a one-to-many relationship between the ids and implementing classes.
+    private final SPIRegistry serviceProviders = new SPIRegistry();
+
+    /** Store the known classloaders weakly to eliminate them from enquiries when stack-walking */
+    private final Set<ClassLoader> knownLoaders = synchronizedSet(newSetFromMap(new WeakHashMap<>()));
+
+
+    /** Called by the DS runtime to record this instance as the one true registry. */
+    @Activate
+    void activate() {
+        ProviderLocator.setRegistry(this);
+    }
+
+    /** Called by the DS runtime to take down this registry. */
+    @Deactivate
+    void deactivate() {
+        ProviderLocator.unsetRegistry(this);
+    }
+
     /**
-     * Locate a class by its factory id indicator. .
+     * Register an individual provider item by its provider identifier.
      *
-     * @param factoryId The factory id (generally, a fully qualified class name).
+     * @param provider The loader used to resolve the provider class.
+     */
+    public void registerProvider(ServiceProvider provider) {
+        log.fine(() -> "registering provider " + provider);
+        providers.register(provider);
+    }
+
+    public void unregisterProvider(ServiceProvider provider) {
+        log.fine(() -> "unregistering provider " + provider);
+        providers.unregister(provider);
+    }
+
+    public void registerService(ServiceProvider provider) {
+        log.fine(() -> "registering service " + provider);
+        serviceProviders.register(provider);
+    }
+
+    public void unregisterService(ServiceProvider provider) {
+        log.fine(() -> "unregistering service " + provider);
+        serviceProviders.unregister(provider);
+    }
+
+    /**
+     * Locate a class by its provider id indicator. .
      *
-     * @return The Class corresponding to this factory id.  Returns null
+     * @param providerId The provider id (generally, a fully qualified class name).
+     *
+     * @return The Class corresponding to this provider getServiceId.  Returns null
      *         if this is not registered or the indicated class can't be
      *         loaded.
      */
-    <T> Class<T> locate(String factoryId);
-    
+    <T> Class<T> locate(String providerId) {
+        return this.<T>loadFromServiceProvider(providerId)
+                .map(this::recordClass)
+                .orElse(null);
+    }
+
+    private <T> Optional<Class<T>> loadFromServiceProvider(String providerId) {
+        return Optional.of(providerId)
+                .map(providers::getProvider)
+                .map(l -> {
+                    try {
+                        return l.getServiceClass();
+                    } catch (ClassNotFoundException cnfe) {
+                        // ServiceProvider, you had one job...*facepalm*
+                        // Should never happen so treat as a serious error.
+                        throw (Error) new NoClassDefFoundError().initCause(cnfe);
+                    }});
+    }
+
     /**
      * Locate and instantiate an instance of a service provider
      * defined in the META-INF/services directory of tracked bundles.
      *
      * @param providerId The name of the target interface class.
      *
-     * @return The service instance. Returns null if no service definitions
+     * @return The service instance.  Returns null if no service definitions
      *         can be located.
      */
-    <T> T getService(String providerId);
-
+    <T> T getService(String providerId) {
+        // see if we have a registered match for this...getting just the first instance
+        ServiceProvider loader = serviceProviders.getProvider(providerId);
+        if (loader != null) {
+            // try to load this and create an instance.  Any/all exceptions forName
+            // thrown here
+            try {
+                return recordInstance(loader.getServiceInstance());
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+                throw new RuntimeException("Error trying to load service of type " + loader.getClassName(), e);
+            }
+        }
+        // no match to return
+        return null;
+    }
 
     /**
      * Locate and return the class for a service provider
@@ -51,13 +151,124 @@ public interface ProviderRegistry {
      *
      * @param providerId The name of the target interface class.
      *
-     * @return The provider class. Returns null if no service definitions
+     * @return The provider class.   Returns null if no service definitions
      *         can be located.
      */
-    <T> Class<T> getServiceClass(String providerId);
+    <T> Class<T> getServiceClass(String providerId) {
+        // see if we have a registered match for this...getting just the first instance
+        ServiceProvider sp = serviceProviders.getProvider(providerId);
+        if (sp != null) {
+            // try to load this and create an instance.  Any/all exceptions forName
+            // thrown here
+            try {
+                return recordClass(sp.getServiceClass());
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException("Error locating service class: " + sp.getClassName(), e);
+            }
+        }
+        // no match to return
+        return null;
+    }
+
+    private <T> T recordInstance(T t) {
+        Optional.ofNullable(t)
+                .map(Object::getClass)
+                .map(this::recordClass);
+        return t;
+    }
+
+    private <T> Class<T> recordClass(Class<T> cls) {
+        Optional.ofNullable(cls)
+                .map(c -> doPriv(c::getClassLoader))
+                .map(this::recordLoader);
+        return cls;
+    }
+
+    private ClassLoader recordLoader(ClassLoader loader) {
+        Optional.ofNullable(loader).map(knownLoaders::add);
+        return loader;
+    }
+
+
+    boolean isServiceClassLoader(ClassLoader loader) {
+        return knownLoaders.contains(loader);
+    }
 
     /**
-     * Test whether a given class loader is associated with a provided service.
+     * Holder class for information about a given collection of
+     * getServiceId to provider mappings.  Used for both the providers and
+     * the services.
      */
-    boolean isServiceClassLoader(ClassLoader loader);
+    private static class SPIRegistry {
+        private final Map<String, Queue<ServiceProvider>> registry = new HashMap<>();
+
+        /**
+         * Register an individual provider item by its provider identifier.
+         *
+         * @param provider The loader used to resolve the provider class.
+         */
+        synchronized void register(ServiceProvider provider) {
+            String providerId = provider.getId();
+
+            // the providers are stored as a list...we use the first one registered
+            // when asked to locate.
+            Queue<ServiceProvider> q = registry.get(providerId);
+            if (q == null) {
+                q = new PriorityQueue<>(2);
+                registry.put(providerId, q);
+            }
+            q.add(provider);
+        }
+
+        /**
+         * Remove a provider registration for a named provider getServiceId.
+         *
+         * @param provider The provider registration instance
+         */
+        synchronized void unregister(ServiceProvider provider) {
+            // this is stored as a list.  Just remove using the registration information
+            // This may move a different provider to the front of the list.
+            Queue<ServiceProvider> q = registry.get(provider.getId());
+            if (q != null) {
+                q.remove(provider);
+            }
+        }
+
+        private synchronized ServiceProvider getProvider(String id) {
+            log.fine(() -> "registry: " + registry);
+            // return the first match, if any
+            Queue<ServiceProvider> q = registry.get(id);
+
+            if (q == null || q.isEmpty())
+                return null;
+
+            return q.peek();
+        }
+    }
+
+    @Override
+    @Deprecated
+    public void registerProvider(final BundleProviderLoader bundleProviderLoader) {
+        registerProvider(bundleProviderLoader.wrapAsServiceProvider());
+    }
+
+    @Override
+    @Deprecated
+    public void unregisterProvider(BundleProviderLoader bundleProviderLoader) {
+        unregisterProvider(bundleProviderLoader.wrapAsServiceProvider());
+    }
+
+    @Override
+    @Deprecated
+    public void registerService(final BundleProviderLoader bundleProviderLoader) {
+        registerService(bundleProviderLoader.wrapAsServiceProvider());
+    }
+
+    @Override
+    @Deprecated
+    public void unregisterService(BundleProviderLoader bundleProviderLoader) {
+        unregisterService(bundleProviderLoader.wrapAsServiceProvider());
+    }
+
+    private static <T> T doPriv(PrivilegedAction<T> action) { return doPrivileged(action); }
 }
