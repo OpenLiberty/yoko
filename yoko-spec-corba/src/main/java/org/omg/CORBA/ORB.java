@@ -212,7 +212,29 @@ public abstract class ORB {
         return newOrb(ORBSingletonPropertyKey, null);
     }
 
+    // TODO: temporary workaround for a bundle wiring race that can prevent the ORB
+    // implementation class from being visible at start-up — remove once the underlying
+    // OSGi wiring issue is properly resolved.
+    private static final int NEW_ORB_MAX_ATTEMPTS = 20;
+    private static final long NEW_ORB_RETRY_DELAY_MILLIS = 500;
+
     private static ORB newOrb(String propertyKey, String orbClassName) {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return newOrbOnce(propertyKey, orbClassName);
+            } catch (INITIALIZE e) {
+                if (attempt >= NEW_ORB_MAX_ATTEMPTS) throw e;
+                try {
+                    Thread.sleep(NEW_ORB_RETRY_DELAY_MILLIS);
+                } catch (InterruptedException ie) {
+                    currentThread().interrupt();
+                    throw e;
+                }
+            }
+        }
+    }
+
+    private static ORB newOrbOnce(String propertyKey, String orbClassName) {
         final ClassLoader contextClassLoader = doPriv(currentThread()::getContextClassLoader);
 
         final Function<String, ORB> newOrbFromName = className -> {
