@@ -17,9 +17,9 @@
  */
 
 import groovy.time.TimeCategory
-import groovy.time.TimeDuration
 
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 buildscript {
   repositories {
@@ -36,14 +36,6 @@ plugins {
   id "base"
 }
 
-ext {
-  testCount = 0
-  successfulTestCount = 0
-  failedTestCount = 0
-  skippedTestCount = 0
-  time = new TimeDuration(0,0,0,0)
-  testsResults = []
-}
 
 wrapper {
     distributionType = Wrapper.DistributionType.ALL
@@ -176,7 +168,8 @@ task getVersion {
 
 // These are the production projects.
 // Note the ringer: jdk-supplement is an unshipped prereq to allow compiling for Java 8 and running with Java 11.
-def productionProjectPaths = [':jdk-supplement', ':yoko-osgi', ':yoko-spec-corba', ':yoko-rmi-spec', ':yoko-util', ':yoko-rmi-impl', ':yoko-core']
+// Stored in ext so it is reachable from script methods (a bare def is not).
+ext.productionProjectPaths = [':jdk-supplement', ':yoko-osgi', ':yoko-spec-corba', ':yoko-rmi-spec', ':yoko-util', ':yoko-rmi-impl', ':yoko-core']
 
 /* Standard configuration for each subproject */
 subprojects { sp ->
@@ -270,30 +263,6 @@ subprojects { sp ->
       afterSuite { desc, result ->
         if (!desc.parent) { // will match the outermost suite
           def timeTaken = TimeCategory.minus(new Date(result.endTime), new Date(result.startTime))
-          String summary = "${desc.name}" +
-                  "\n" +
-                  "Results: ${result.resultType} " +
-                  "(" +
-                  "${result.testCount} tests, " +
-                  "${result.successfulTestCount} successes, " +
-                  "${result.failedTestCount} failures, " +
-                  "${result.skippedTestCount} skipped" +
-                  ") " +
-                  "in ${timeTaken}" +
-                  "\n"
-          rootProject.testCount += result.testCount
-          rootProject.successfulTestCount += result.successfulTestCount
-          rootProject.failedTestCount += result.failedTestCount
-          rootProject.skippedTestCount += result.skippedTestCount
-          rootProject.time += timeTaken
-
-          // Add reports in `testsResults`, keep failed suites at the end
-          if (result.resultType == TestResult.ResultType.SUCCESS) {
-            rootProject.testsResults.add(0, summary)
-          } else {
-            rootProject.testsResults += summary
-          }
-
           def output = "Results: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)"
           def startItem = '|  ', endItem = '  |'
           def repeatLength = startItem.length() + output.length() + endItem.length()
@@ -311,42 +280,6 @@ subprojects { sp ->
   }
 }
 
-gradle.buildFinished {
-  String overallSummary = "Total Summary" +
-          "\n" +
-          "Results: ${(failedTestCount == 0) ? "SUCCESS": "FAILURE"} " +
-          "(" +
-          "${rootProject.testCount} tests, " +
-          "${rootProject.successfulTestCount} successes, " +
-          "${rootProject.failedTestCount} failures, " +
-          "${rootProject.skippedTestCount} skipped" +
-          ") " +
-          "in ${rootProject.time}" +
-          "\n"
-  rootProject.testsResults.add(overallSummary)
-
-  def allResults = rootProject.testsResults
-  if (!allResults.isEmpty()) {
-    printResults rootProject.testsResults
-  }
-}
-
-private void printResults(allResults) {
-  if (logger.isQuietEnabled()) return
-  // Max line length has to take lines from all items into account
-  def maxLength = allResults*.readLines().flatten().collect { it.length() }.max()
-
-  println "\n  \n Build Summary:"
-  println ",${"${"-" * maxLength}"}." // Top border
-
-  println allResults.collect {
-    it.readLines().collect { // Add left and right border to each _line_
-      "|" + it + " " * (maxLength - it.length()) + "|"
-    }.join("\n")
-  }.join("\n+${"${"-" * maxLength}"}+\n") // Add separator between entries
-
-  println "`${"${"-" * maxLength}"}'" // Print bottom border
-}
 
 /* Standard configuration for subprojects with shippable outputs */
 configure([
@@ -404,6 +337,334 @@ configure([
   publish.dependsOn "publishMavenPublicationToMavenLocal"
   publish.dependsOn "publishToMavenLocal"
 }
+
+/**
+ * Print a one-line-per-module summary of all JUnit XML results found on disk.
+ * Results pre-dating the compiled test classes (or production jars, for integration
+ * modules) are flagged [STALE].  Fails the build if any non-stale failures are found.
+ *
+ * Run standalone:  ./gradlew testSummary
+ * Wired automatically as a finalizer of the top-level :build task.
+ */
+task testSummary {
+  description = 'Summarise test results on disk; fails the build if any (non-stale) tests failed'
+  group = 'verification'
+
+  doLast {
+    def failures = printTestSummary(project)
+    if (failures > 0) {
+      throw new GradleException("${failures} test(s) failed — see FAILING TESTS above")
+    }
+  }
+}
+
+// Run testSummary automatically after every top-level build
+build.finalizedBy testSummary
+
+/**
+ * Show a time-distribution analysis across all individual test cases on disk.
+ *
+ * Lists every test that ran more than 2 standard deviations above the mean.
+ *
+ * Run standalone:  ./gradlew testTimes
+ */
+task testTimes {
+  description = 'Show test-time distribution and list tests > 2 std devs above the mean'
+  group = 'verification'
+
+  doLast {
+    printTestTimes(project)
+  }
+}
+
+private void printTestTimes(project) {
+  // Collect every individual testcase time across all modules
+  def cases = []
+  project.rootProject.subprojects.each { sp ->
+    def resultsDir = new File(sp.buildDir, 'test-results')
+    if (!resultsDir.exists()) return
+    sp.fileTree(resultsDir) { include '**/TEST-*.xml' }.each { xmlFile ->
+      def xml = new XmlSlurper().parse(xmlFile)
+      xml.testcase.each { tc ->
+        def t = tc.@time.text()
+        if (!t) return
+        def timeSec = t.toDouble()
+        if (timeSec <= 0) return   // exclude sub-millisecond tests from the distribution
+        cases << [
+          module : sp.name,
+          clazz  : tc.@classname.text(),
+          name   : tc.@name.text(),
+          timeSec: timeSec,
+        ]
+      }
+    }
+  }
+
+  if (cases.isEmpty()) {
+    project.logger.quiet('\nNo test results found on disk.')
+    return
+  }
+
+  int n = cases.size()
+  double mean = cases*.timeSec.sum() / n
+  double variance = cases*.timeSec.collect { (it - mean) ** 2 }.sum() / n
+  double sd = Math.sqrt(variance)
+  double threshold = mean + 2 * sd
+
+  def outliers = cases.findAll { it.timeSec > threshold }.sort { -it.timeSec }
+
+  def sb = new StringBuilder()
+  sb << '\n'
+  sb << '\n  Test Time Analysis\n'
+  sb << sprintf("  %d tests with measurable time  |  mean %.4fs  |  sd %.4fs  |  threshold (mean + 2sd) %.3fs\n",
+      n, mean, sd, threshold)
+
+  if (outliers.isEmpty()) {
+    sb << '\n  No tests exceeded the threshold.\n'
+  } else {
+    sb << sprintf("\n  %d test(s) more than 2 std devs above the mean (> %.3fs):\n", outliers.size(), threshold)
+
+    int wModule = Math.max('Module'.length(), outliers*.module.collect { it.length() }.max())
+    int wClass  = Math.max('Class'.length(),  outliers*.clazz .collect { it.length() }.max())
+    int wName   = Math.max('Test'.length(),   outliers*.name  .collect { it.length() }.max())
+
+    def sep = '-' * (wModule + wClass + wName + 18)
+    def fmt = "  %-${wModule}s  %-${wClass}s  %-${wName}s  %8s"
+
+    sb << "  ${sep}\n"
+    sb << sprintf(fmt, 'Module', 'Class', 'Test', 'Time(s)') << '\n'
+    sb << "  ${sep}\n"
+    outliers.each { c ->
+      sb << sprintf(fmt, c.module, c.clazz, c.name, String.format('%.3f', c.timeSec)) << '\n'
+    }
+    sb << "  ${sep}\n"
+  }
+
+  project.logger.quiet(sb.toString())
+}
+
+private int printTestSummary(project) {
+  def rp = project.rootProject
+
+  // Newest mtime across all production jars — used as an additional staleness anchor
+  // for integration-test modules that run against the shipped artifacts.
+  def integrationTestProjects = [':yoko-verify', ':test-osgi'] as Set
+
+  // Newest mtime across all production jars (from ext.productionProjectPaths).
+  // Used as an additional staleness anchor for integration-test modules.
+  def newestProductionJarMs = -1L
+  rp.productionProjectPaths.each { path ->
+    def prod = rp.findProject(path)
+    if (prod == null) return
+    prod.fileTree(new File(prod.buildDir, 'libs')) { include '*.jar'; exclude '*-sources.jar'; exclude '*-javadoc.jar' }.each { f ->
+      if (f.lastModified() > newestProductionJarMs) newestProductionJarMs = f.lastModified()
+    }
+  }
+
+  // Newest mtime of the versioned artifact jars — only yoko-verify tests depend on these.
+  def newestArtifactJarMs = -1L
+  [':yoko-verify:artifact', ':yoko-verify:artifact:v0', ':yoko-verify:artifact:v1', ':yoko-verify:artifact:v2'].each { path ->
+    def ap = rp.findProject(path)
+    if (ap == null) return
+    ap.fileTree(new File(ap.buildDir, 'libs')) { include '*.jar' }.each { f ->
+      if (f.lastModified() > newestArtifactJarMs) newestArtifactJarMs = f.lastModified()
+    }
+  }
+
+  // Collect one row per testsuite XML file
+  def rows = []
+  rp.subprojects.each { sp ->
+    def resultsDir = new File(sp.buildDir, 'test-results')
+    if (!resultsDir.exists()) return
+
+    // Compute the staleness anchor for this subproject: the newest mtime among all
+    // compiled artefacts that the tests depend on.
+    //
+    // Class directories are read from the project's sourceSets at execution time so
+    // that hardcoded paths like 'classes/java/main' vs 'classes/java/test' don't need
+    // to be maintained here.  Every sourceSet's output class dirs are included so that
+    // a change to production code that hasn't been re-tested is detected as stale.
+    //
+    // For integration-test modules (yoko-verify, test-osgi) we additionally require
+    // results to post-date the newest production and versioned-artifact jar.
+    def classDirs = []
+    try {
+      sp.sourceSets.each { ss -> classDirs.addAll(ss.output.classesDirs.files) }
+    } catch (Exception ignored) {
+      // sourceSets not available (e.g. pure-aggregator subproject) — skip
+      return
+    }
+
+    def newestClassMs = -1L
+    classDirs.each { dir ->
+      if (!dir.exists()) return
+      sp.fileTree(dir) { include '**/*.class' }.each { f ->
+        if (f.lastModified() > newestClassMs) newestClassMs = f.lastModified()
+      }
+    }
+    // newestClassMs == -1 when no compiled classes exist (e.g. a compile failure left
+    // stale results on disk).  anchorMs of -1 means the staleness comparison will always
+    // return stale=true, which is the correct conservative answer: we cannot confirm the
+    // results are fresh, so flag them rather than throwing a misleading second error.
+
+    // For integration-test modules also require results to post-date the production jars.
+    // For yoko-verify specifically, also require results to post-date the versioned artifact jars.
+    def anchorMs = newestClassMs
+    if (integrationTestProjects.contains(sp.path) && newestProductionJarMs > anchorMs) {
+      anchorMs = newestProductionJarMs
+    }
+    if (sp.path == ':yoko-verify' && newestArtifactJarMs > anchorMs) {
+      anchorMs = newestArtifactJarMs
+    }
+
+    // The XML timestamp is truncated to whole seconds; anchorMs is milliseconds.
+    // Floor the anchor to the second boundary so a suite that started in the same
+    // second as the newest class file is not incorrectly reported as stale.
+    def anchorSec = (anchorMs / 1000L) as long
+
+    sp.fileTree(resultsDir) { include '**/TEST-*.xml' }.each { xmlFile ->
+      def xml = new XmlSlurper().parse(xmlFile)
+      def ts        = xml.@tests.text().toInteger()
+      def failures  = xml.@failures.text().toInteger()
+      def errors    = xml.@errors.text().toInteger()
+      def skipped   = xml.@skipped.text().toInteger()
+      def passed    = ts - failures - errors - skipped
+      def timeVal   = xml.@time.text()
+      def suiteName = xml.@name.text()
+      def timestamp = xml.@timestamp.text()   // e.g. "2026-11-02T14:53:09"
+
+      // A result is stale when it pre-dates the anchor timestamp.
+      // A missing or unparseable timestamp is a broken XML file — fail loudly.
+      if (!timestamp) {
+        throw new GradleException(
+            "Missing timestamp attribute in ${xmlFile.name} (${sp.name}).\n" +
+            "The file may be corrupt. Delete ${sp.buildDir}/test-results and re-run tests.")
+      }
+      def stale
+      if (anchorMs < 0) {
+        stale = true   // no compiled classes — cannot confirm freshness
+      } else try {
+        def fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+        def suiteEpochSec = java.time.LocalDateTime.parse(timestamp, fmt)
+            .atZone(ZoneOffset.UTC).toEpochSecond()
+        stale = suiteEpochSec < anchorSec
+      } catch (Exception e) {
+        throw new GradleException(
+            "Unparseable timestamp '${timestamp}' in ${xmlFile.name} (${sp.name}): ${e.message}\n" +
+            "Expected format: yyyy-MM-ddTHH:mm:ss")
+      }
+
+      // Collect individual failing test names from this suite
+      def failingTests = []
+      if (failures + errors > 0) {
+        xml.testcase.each { tc ->
+          if (tc.failure.size() > 0 || tc.error.size() > 0) {
+            failingTests << "${tc.@classname.text()}.${tc.@name.text()}"
+          }
+        }
+      }
+
+      rows << [
+        path        : sp.path,
+        module      : sp.name,
+        tests       : ts,
+        passed      : passed,
+        failures    : failures + errors,
+        skipped     : skipped,
+        timeSec     : timeVal.toDouble(),
+        stale       : stale,
+        failingTests: failingTests,
+      ]
+    }
+  }
+
+  if (rows.isEmpty()) {
+    project.logger.quiet('\nNo test results found on disk.')
+    return 0
+  }
+
+  // Aggregate to one row per module, keyed on project path (unique) not name
+  def byModule = [:]
+  rows.each { r ->
+    def m = byModule.computeIfAbsent(r.path) { [
+      module          : r.module,
+      tests           : 0,
+      passed          : 0,
+      failures        : 0,
+      skipped         : 0,
+      timeSec         : 0.0,
+      stale           : false,
+      failingTests    : [],      // non-stale failures
+      staleFailingTests: [],     // stale failures
+    ]}
+    m.tests    += r.tests
+    m.passed   += r.passed
+    m.failures += r.failures
+    m.skipped  += r.skipped
+    m.timeSec  += r.timeSec
+    if (r.stale) {
+      m.stale = true
+      m.staleFailingTests.addAll(r.failingTests)
+    } else {
+      m.failingTests.addAll(r.failingTests)
+    }
+  }
+
+  // Sort: stale last, then by module display name
+  def modules = byModule.values().sort { a, b ->
+    if (a.stale != b.stale) return a.stale ? 1 : -1
+    a.module <=> b.module   // display name (sp.name) — unique within a flat project structure
+  }
+
+  // Column widths
+  int wModule  = Math.max('Module'.length(),  modules*.module.collect { it.length() }.max())
+  int wTests   = Math.max('Tests'.length(),   modules*.tests   .collect { it.toString().length() }.max())
+  int wPassed  = Math.max('Passed'.length(),  modules*.passed  .collect { it.toString().length() }.max())
+  int wFailed  = Math.max('Failed'.length(),  modules*.failures.collect { it.toString().length() }.max())
+  int wSkipped = Math.max('Skipped'.length(), modules*.skipped .collect { it.toString().length() }.max())
+
+  def sep = '-' * (wModule + wTests + wPassed + wFailed + wSkipped + 24)
+  def fmt = "  %-${wModule}s  %${wTests}s  %${wPassed}s  %${wFailed}s  %${wSkipped}s  %8s  %s"
+
+  def sb = new StringBuilder()
+  sb << '\n'
+  sb << '\n  Test Summary\n'
+  sb << "  ${sep}\n"
+  sb << sprintf(fmt, 'Module', 'Tests', 'Passed', 'Failed', 'Skipped', 'Time(s)', '') << '\n'
+  sb << "  ${sep}\n"
+
+  int totTests = 0, totPassed = 0, totFailed = 0, totSkipped = 0
+  double totTime = 0.0
+  modules.each { m ->
+    def tag = m.stale ? '[STALE]' : ''
+    def timeStr = String.format('%.3f', m.timeSec)
+    sb << sprintf(fmt, m.module, m.tests, m.passed, m.failures, m.skipped, timeStr, tag) << '\n'
+    totTests   += m.tests
+    totPassed  += m.passed
+    totFailed  += m.failures
+    totSkipped += m.skipped
+    totTime    += m.timeSec
+  }
+
+  sb << "  ${sep}\n"
+  sb << sprintf(fmt, 'TOTAL', totTests, totPassed, totFailed, totSkipped, String.format('%.3f', totTime), '') << '\n'
+  sb << "  ${sep}\n"
+
+  // Non-stale failures — these will fail the build
+  def freshFailing = modules.collectMany { m -> m.failingTests.collect { t -> "${m.module} > ${t}" } }
+  // Stale failures — informational only
+  def staleFailing = modules.collectMany { m -> m.staleFailingTests.collect { t -> "${m.module} > ${t}" } }
+
+  if (freshFailing || staleFailing) {
+    sb << '\n  FAILING TESTS:\n'
+    freshFailing.each { sb << "    ${it}\n" }
+    staleFailing.each { sb << "    ${it} [STALE]\n" }
+  }
+
+  project.logger.quiet(sb.toString())
+  return freshFailing.size()
+}
+
 
 task testReport (type: TestReport) {
     // GitHub artifact uploader won't upload anything in the root project. Not sure why.

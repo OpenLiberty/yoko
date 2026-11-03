@@ -21,6 +21,7 @@
 # enable logging for yoko
 logprops=${workspace}/test-osgi/yoko-logging.props
 -runvm: -Djava.util.logging.config.file=${logprops}, \
+  -Duser.timezone=UTC, \
   --add-opens=java.base/java.lang=ALL-UNNAMED, \
   --add-opens=java.base/java.io=ALL-UNNAMED, \
   --add-opens=java.base/java.util=ALL-UNNAMED
