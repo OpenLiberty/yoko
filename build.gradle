@@ -532,21 +532,33 @@ private int printTestSummary(project) {
     def resultsDir = new File(sp.buildDir, 'test-results')
     if (!resultsDir.exists()) return
 
-    // Newest compiled-class mtime for this subproject.
-    // test-osgi compiles into classes/java/main; all others use classes/java/test.
-    // A result is stale if it pre-dates either the newest compiled class or,
-    // for integration-test modules, the newest production jar.
-    def classesSubdir = (sp.path == ':test-osgi') ? 'classes/java/main' : 'classes/java/test'
-    def testClassesDir = new File(sp.buildDir, classesSubdir)
+    // Compute the staleness anchor for this subproject: the newest mtime among all
+    // compiled artefacts that the tests depend on.
+    //
+    // test-osgi has no separate test sourceSet — it compiles into classes/java/main.
+    // All other modules use classes/java/test for their test classes.
+    //
+    // For every module we also include classes/java/main (the module's own production
+    // code), so that a change to production code that hasn't been re-tested yet is
+    // correctly detected as stale even if the test classes themselves are up to date.
+    //
+    // For integration-test modules (yoko-verify, test-osgi) we additionally require
+    // results to post-date the production jars of all production projects.
+    def classDirs = (sp.path == ':test-osgi')
+        ? ['classes/java/main']
+        : ['classes/java/test', 'classes/java/main']
+
     def newestClassMs = -1L
-    if (testClassesDir.exists()) {
-      sp.fileTree(testClassesDir) { include '**/*.class' }.each { f ->
+    classDirs.each { subdir ->
+      def dir = new File(sp.buildDir, subdir)
+      if (!dir.exists()) return
+      sp.fileTree(dir) { include '**/*.class' }.each { f ->
         if (f.lastModified() > newestClassMs) newestClassMs = f.lastModified()
       }
     }
     if (newestClassMs < 0) {
       throw new GradleException(
-          "No compiled test classes found for ${sp.name} (expected under ${testClassesDir}).\n" +
+          "No compiled classes found for ${sp.name} (checked ${classDirs.collect { new File(sp.buildDir, it) }.join(', ')}).\n" +
           "Run the tests before invoking testSummary, or run 'gradle ${sp.path}:test'.")
     }
 
@@ -555,6 +567,11 @@ private int printTestSummary(project) {
     if (integrationTestProjects.contains(sp.path) && newestProductionJarMs > anchorMs) {
       anchorMs = newestProductionJarMs
     }
+
+    // The XML timestamp is truncated to whole seconds; anchorMs is milliseconds.
+    // Floor the anchor to the second boundary so a suite that started in the same
+    // second as the newest class file is not incorrectly reported as stale.
+    def anchorSec = (anchorMs / 1000L) as long
 
     sp.fileTree(resultsDir) { include '**/TEST-*.xml' }.each { xmlFile ->
       def xml = new XmlSlurper().parse(xmlFile)
@@ -577,9 +594,9 @@ private int printTestSummary(project) {
       def stale
       try {
         def fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-        def suiteInstant = java.time.LocalDateTime.parse(timestamp, fmt)
-            .atZone(ZoneOffset.UTC).toInstant()
-        stale = suiteInstant.toEpochMilli() < anchorMs
+        def suiteEpochSec = java.time.LocalDateTime.parse(timestamp, fmt)
+            .atZone(ZoneOffset.UTC).toEpochSecond()
+        stale = suiteEpochSec < anchorSec
       } catch (Exception e) {
         throw new GradleException(
             "Unparseable timestamp '${timestamp}' in ${xmlFile.name} (${sp.name}): ${e.message}\n" +
