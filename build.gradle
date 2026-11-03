@@ -17,7 +17,6 @@
  */
 
 import groovy.time.TimeCategory
-import groovy.time.TimeDuration
 
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -37,14 +36,6 @@ plugins {
   id "base"
 }
 
-ext {
-  testCount = 0
-  successfulTestCount = 0
-  failedTestCount = 0
-  skippedTestCount = 0
-  time = new TimeDuration(0,0,0,0)
-  testsResults = []
-}
 
 wrapper {
     distributionType = Wrapper.DistributionType.ALL
@@ -177,7 +168,8 @@ task getVersion {
 
 // These are the production projects.
 // Note the ringer: jdk-supplement is an unshipped prereq to allow compiling for Java 8 and running with Java 11.
-def productionProjectPaths = [':jdk-supplement', ':yoko-osgi', ':yoko-spec-corba', ':yoko-rmi-spec', ':yoko-util', ':yoko-rmi-impl', ':yoko-core']
+// Stored in ext so it is reachable from script methods (a bare def is not).
+ext.productionProjectPaths = [':jdk-supplement', ':yoko-osgi', ':yoko-spec-corba', ':yoko-rmi-spec', ':yoko-util', ':yoko-rmi-impl', ':yoko-core']
 
 /* Standard configuration for each subproject */
 subprojects { sp ->
@@ -271,30 +263,6 @@ subprojects { sp ->
       afterSuite { desc, result ->
         if (!desc.parent) { // will match the outermost suite
           def timeTaken = TimeCategory.minus(new Date(result.endTime), new Date(result.startTime))
-          String summary = "${desc.name}" +
-                  "\n" +
-                  "Results: ${result.resultType} " +
-                  "(" +
-                  "${result.testCount} tests, " +
-                  "${result.successfulTestCount} successes, " +
-                  "${result.failedTestCount} failures, " +
-                  "${result.skippedTestCount} skipped" +
-                  ") " +
-                  "in ${timeTaken}" +
-                  "\n"
-          rootProject.testCount += result.testCount
-          rootProject.successfulTestCount += result.successfulTestCount
-          rootProject.failedTestCount += result.failedTestCount
-          rootProject.skippedTestCount += result.skippedTestCount
-          rootProject.time += timeTaken
-
-          // Add reports in `testsResults`, keep failed suites at the end
-          if (result.resultType == TestResult.ResultType.SUCCESS) {
-            rootProject.testsResults.add(0, summary)
-          } else {
-            rootProject.testsResults += summary
-          }
-
           def output = "Results: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)"
           def startItem = '|  ', endItem = '  |'
           def repeatLength = startItem.length() + output.length() + endItem.length()
@@ -312,42 +280,6 @@ subprojects { sp ->
   }
 }
 
-gradle.buildFinished {
-  String overallSummary = "Total Summary" +
-          "\n" +
-          "Results: ${(failedTestCount == 0) ? "SUCCESS": "FAILURE"} " +
-          "(" +
-          "${rootProject.testCount} tests, " +
-          "${rootProject.successfulTestCount} successes, " +
-          "${rootProject.failedTestCount} failures, " +
-          "${rootProject.skippedTestCount} skipped" +
-          ") " +
-          "in ${rootProject.time}" +
-          "\n"
-  rootProject.testsResults.add(overallSummary)
-
-  def allResults = rootProject.testsResults
-  if (!allResults.isEmpty()) {
-    printResults rootProject.testsResults
-  }
-}
-
-private void printResults(allResults) {
-  if (logger.isQuietEnabled()) return
-  // Max line length has to take lines from all items into account
-  def maxLength = allResults*.readLines().flatten().collect { it.length() }.max()
-
-  println "\n  \n Build Summary:"
-  println ",${"${"-" * maxLength}"}." // Top border
-
-  println allResults.collect {
-    it.readLines().collect { // Add left and right border to each _line_
-      "|" + it + " " * (maxLength - it.length()) + "|"
-    }.join("\n")
-  }.join("\n+${"${"-" * maxLength}"}+\n") // Add separator between entries
-
-  println "`${"${"-" * maxLength}"}'" // Print bottom border
-}
 
 /* Standard configuration for subprojects with shippable outputs */
 configure([
@@ -516,15 +448,26 @@ private int printTestSummary(project) {
 
   // Newest mtime across all production jars — used as an additional staleness anchor
   // for integration-test modules that run against the shipped artifacts.
-  // Keep this list in sync with productionProjectPaths defined near the top of the file.
   def integrationTestProjects = [':yoko-verify', ':test-osgi'] as Set
-  def productionPaths = [':jdk-supplement', ':yoko-osgi', ':yoko-spec-corba', ':yoko-rmi-spec', ':yoko-util', ':yoko-rmi-impl', ':yoko-core']
+
+  // Newest mtime across all production jars (from ext.productionProjectPaths).
+  // Used as an additional staleness anchor for integration-test modules.
   def newestProductionJarMs = -1L
-  productionPaths.each { path ->
+  rp.productionProjectPaths.each { path ->
     def prod = rp.findProject(path)
     if (prod == null) return
     prod.fileTree(new File(prod.buildDir, 'libs')) { include '*.jar'; exclude '*-sources.jar'; exclude '*-javadoc.jar' }.each { f ->
       if (f.lastModified() > newestProductionJarMs) newestProductionJarMs = f.lastModified()
+    }
+  }
+
+  // Newest mtime of the versioned artifact jars — only yoko-verify tests depend on these.
+  def newestArtifactJarMs = -1L
+  [':yoko-verify:artifact', ':yoko-verify:artifact:v0', ':yoko-verify:artifact:v1', ':yoko-verify:artifact:v2'].each { path ->
+    def ap = rp.findProject(path)
+    if (ap == null) return
+    ap.fileTree(new File(ap.buildDir, 'libs')) { include '*.jar' }.each { f ->
+      if (f.lastModified() > newestArtifactJarMs) newestArtifactJarMs = f.lastModified()
     }
   }
 
@@ -537,22 +480,23 @@ private int printTestSummary(project) {
     // Compute the staleness anchor for this subproject: the newest mtime among all
     // compiled artefacts that the tests depend on.
     //
-    // test-osgi has no separate test sourceSet — it compiles into classes/java/main.
-    // All other modules use classes/java/test for their test classes.
-    //
-    // For every module we also include classes/java/main (the module's own production
-    // code), so that a change to production code that hasn't been re-tested yet is
-    // correctly detected as stale even if the test classes themselves are up to date.
+    // Class directories are read from the project's sourceSets at execution time so
+    // that hardcoded paths like 'classes/java/main' vs 'classes/java/test' don't need
+    // to be maintained here.  Every sourceSet's output class dirs are included so that
+    // a change to production code that hasn't been re-tested is detected as stale.
     //
     // For integration-test modules (yoko-verify, test-osgi) we additionally require
-    // results to post-date the production jars of all production projects.
-    def classDirs = (sp.path == ':test-osgi')
-        ? ['classes/java/main']
-        : ['classes/java/test', 'classes/java/main']
+    // results to post-date the newest production and versioned-artifact jar.
+    def classDirs = []
+    try {
+      sp.sourceSets.each { ss -> classDirs.addAll(ss.output.classesDirs.files) }
+    } catch (Exception ignored) {
+      // sourceSets not available (e.g. pure-aggregator subproject) — skip
+      return
+    }
 
     def newestClassMs = -1L
-    classDirs.each { subdir ->
-      def dir = new File(sp.buildDir, subdir)
+    classDirs.each { dir ->
       if (!dir.exists()) return
       sp.fileTree(dir) { include '**/*.class' }.each { f ->
         if (f.lastModified() > newestClassMs) newestClassMs = f.lastModified()
@@ -560,14 +504,18 @@ private int printTestSummary(project) {
     }
     if (newestClassMs < 0) {
       throw new GradleException(
-          "No compiled classes found for ${sp.name} (checked ${classDirs.collect { new File(sp.buildDir, it) }.join(', ')}).\n" +
+          "No compiled classes found for ${sp.name} (checked ${classDirs.join(', ')}).\n" +
           "Run the tests before invoking testSummary, or run 'gradle ${sp.path}:test'.")
     }
 
     // For integration-test modules also require results to post-date the production jars.
+    // For yoko-verify specifically, also require results to post-date the versioned artifact jars.
     def anchorMs = newestClassMs
     if (integrationTestProjects.contains(sp.path) && newestProductionJarMs > anchorMs) {
       anchorMs = newestProductionJarMs
+    }
+    if (sp.path == ':yoko-verify' && newestArtifactJarMs > anchorMs) {
+      anchorMs = newestArtifactJarMs
     }
 
     // The XML timestamp is truncated to whole seconds; anchorMs is milliseconds.
@@ -616,6 +564,7 @@ private int printTestSummary(project) {
       }
 
       rows << [
+        path        : sp.path,
         module      : sp.name,
         tests       : ts,
         passed      : passed,
@@ -633,10 +582,10 @@ private int printTestSummary(project) {
     return 0
   }
 
-  // Aggregate to one row per module
+  // Aggregate to one row per module, keyed on project path (unique) not name
   def byModule = [:]
   rows.each { r ->
-    def m = byModule.computeIfAbsent(r.module) { [
+    def m = byModule.computeIfAbsent(r.path) { [
       module          : r.module,
       tests           : 0,
       passed          : 0,
@@ -660,10 +609,10 @@ private int printTestSummary(project) {
     }
   }
 
-  // Sort: stale last, then by module name
+  // Sort: stale last, then by module display name
   def modules = byModule.values().sort { a, b ->
     if (a.stale != b.stale) return a.stale ? 1 : -1
-    a.module <=> b.module
+    a.module <=> b.module   // display name (sp.name) — unique within a flat project structure
   }
 
   // Column widths
