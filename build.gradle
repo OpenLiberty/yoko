@@ -20,7 +20,6 @@ import groovy.time.TimeCategory
 import groovy.time.TimeDuration
 
 import java.time.ZoneOffset
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 buildscript {
@@ -570,7 +569,7 @@ private int printTestSummary(project) {
         try {
           def fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
           def suiteInstant = java.time.LocalDateTime.parse(timestamp, fmt)
-              .atZone(ZoneId.systemDefault()).toInstant()
+              .atZone(ZoneOffset.UTC).toInstant()
           stale = suiteInstant.toEpochMilli() < anchorMs
         } catch (Exception ignored) {}
       }
