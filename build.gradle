@@ -502,11 +502,10 @@ private int printTestSummary(project) {
         if (f.lastModified() > newestClassMs) newestClassMs = f.lastModified()
       }
     }
-    if (newestClassMs < 0) {
-      throw new GradleException(
-          "No compiled classes found for ${sp.name} (checked ${classDirs.join(', ')}).\n" +
-          "Run the tests before invoking testSummary, or run 'gradle ${sp.path}:test'.")
-    }
+    // newestClassMs == -1 when no compiled classes exist (e.g. a compile failure left
+    // stale results on disk).  anchorMs of -1 means the staleness comparison will always
+    // return stale=true, which is the correct conservative answer: we cannot confirm the
+    // results are fresh, so flag them rather than throwing a misleading second error.
 
     // For integration-test modules also require results to post-date the production jars.
     // For yoko-verify specifically, also require results to post-date the versioned artifact jars.
@@ -542,7 +541,9 @@ private int printTestSummary(project) {
             "The file may be corrupt. Delete ${sp.buildDir}/test-results and re-run tests.")
       }
       def stale
-      try {
+      if (anchorMs < 0) {
+        stale = true   // no compiled classes — cannot confirm freshness
+      } else try {
         def fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
         def suiteEpochSec = java.time.LocalDateTime.parse(timestamp, fmt)
             .atZone(ZoneOffset.UTC).toEpochSecond()
