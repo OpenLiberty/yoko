@@ -544,6 +544,11 @@ private int printTestSummary(project) {
         if (f.lastModified() > newestClassMs) newestClassMs = f.lastModified()
       }
     }
+    if (newestClassMs < 0) {
+      throw new GradleException(
+          "No compiled test classes found for ${sp.name} (expected under ${testClassesDir}).\n" +
+          "Run the tests before invoking testSummary, or run 'gradle ${sp.path}:test'.")
+    }
 
     // For integration-test modules also require results to post-date the production jars.
     def anchorMs = newestClassMs
@@ -563,15 +568,22 @@ private int printTestSummary(project) {
       def timestamp = xml.@timestamp.text()   // e.g. "2026-11-02T14:53:09"
 
       // A result is stale when it pre-dates the anchor timestamp.
-      // anchorMs == -1 means no compiled classes exist, so always stale.
-      def stale = true
-      if (anchorMs > 0) {
-        try {
-          def fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-          def suiteInstant = java.time.LocalDateTime.parse(timestamp, fmt)
-              .atZone(ZoneOffset.UTC).toInstant()
-          stale = suiteInstant.toEpochMilli() < anchorMs
-        } catch (Exception ignored) {}
+      // A missing or unparseable timestamp is a broken XML file — fail loudly.
+      if (!timestamp) {
+        throw new GradleException(
+            "Missing timestamp attribute in ${xmlFile.name} (${sp.name}).\n" +
+            "The file may be corrupt. Delete ${sp.buildDir}/test-results and re-run tests.")
+      }
+      def stale
+      try {
+        def fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+        def suiteInstant = java.time.LocalDateTime.parse(timestamp, fmt)
+            .atZone(ZoneOffset.UTC).toInstant()
+        stale = suiteInstant.toEpochMilli() < anchorMs
+      } catch (Exception e) {
+        throw new GradleException(
+            "Unparseable timestamp '${timestamp}' in ${xmlFile.name} (${sp.name}): ${e.message}\n" +
+            "Expected format: yyyy-MM-ddTHH:mm:ss")
       }
 
       // Collect individual failing test names from this suite
