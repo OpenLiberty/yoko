@@ -18,7 +18,6 @@
 
 import groovy.time.TimeCategory
 
-import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
@@ -524,12 +523,6 @@ private int printTestSummary(project) {
     // second as the newest class file is not incorrectly reported as stale.
     def anchorSec = (anchorMs / 1000L) as long
 
-    // The standard Gradle Test task writes timestamps in UTC.
-    // The bnd TestOSGi task uses Clock.systemDefaultZone() (hardcoded in
-    // LegacyXmlReportGeneratingListener) so its timestamps are in local time.
-    // Detect which runner this subproject uses and parse accordingly.
-    def timestampZone = sp.tasks.withType(Test).empty ? ZoneId.systemDefault() : ZoneOffset.UTC
-
     sp.fileTree(resultsDir) { include '**/TEST-*.xml' }.each { xmlFile ->
       def xml = new XmlSlurper().parse(xmlFile)
       def ts        = xml.@tests.text().toInteger()
@@ -552,7 +545,7 @@ private int printTestSummary(project) {
       try {
         def fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
         def suiteEpochSec = java.time.LocalDateTime.parse(timestamp, fmt)
-            .atZone(timestampZone).toEpochSecond()
+            .atZone(ZoneOffset.UTC).toEpochSecond()
         stale = suiteEpochSec < anchorSec
       } catch (Exception e) {
         throw new GradleException(
