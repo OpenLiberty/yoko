@@ -456,11 +456,13 @@ private void printTestTimes(project) {
       xml.testcase.each { tc ->
         def t = tc.@time.text()
         if (!t) return
+        def timeSec = t.toDouble()
+        if (timeSec <= 0) return   // exclude sub-millisecond tests from the distribution
         cases << [
           module : sp.name,
           clazz  : tc.@classname.text(),
           name   : tc.@name.text(),
-          timeSec: t.toDouble(),
+          timeSec: timeSec,
         ]
       }
     }
@@ -482,13 +484,13 @@ private void printTestTimes(project) {
   def sb = new StringBuilder()
   sb << '\n'
   sb << '\n  Test Time Analysis\n'
-  sb << sprintf("  %d tests  |  mean %.4fs  |  sd %.4fs  |  threshold (mean + 2sd) %.3fs\n",
+  sb << sprintf("  %d tests with measurable time  |  mean %.4fs  |  sd %.4fs  |  threshold (mean + 2sd) %.3fs\n",
       n, mean, sd, threshold)
 
   if (outliers.isEmpty()) {
     sb << '\n  No tests exceeded the threshold.\n'
   } else {
-    sb << sprintf("\n  %d test(s) more than 2 std devs above the mean:\n", outliers.size())
+    sb << sprintf("\n  %d test(s) more than 2 std devs above the mean (> %.3fs):\n", outliers.size(), threshold)
 
     int wModule = Math.max('Module'.length(), outliers*.module.collect { it.length() }.max())
     int wClass  = Math.max('Class'.length(),  outliers*.clazz .collect { it.length() }.max())
