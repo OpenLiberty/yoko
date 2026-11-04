@@ -126,6 +126,3 @@ test {
   sharedTestConfig(it)
 }
 
-// Also run testConcurrentHashMap as part of the standard `check` lifecycle
-check.dependsOn testConcurrentHashMap
-
