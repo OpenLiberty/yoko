@@ -22,15 +22,37 @@ dependencies {
 }
 
 sourceSets.main.java {
-  srcDirs 'src/main/generated-sources/idl'
-}
-
-jar {
-  exclude '**/*.class'
+  srcDirs 'src/main/generated-sources/idl',
+          '../yoko-rmi-spec/src/main/java'
 }
 
 javadoc {
   // Generated IDL sources contain HTML that is not HTML5 compliant
   // Disable strict HTML checking for these auto-generated files
   options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+plugins.withId('maven-publish') {
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                pom.withXml {
+                    // yoko-spec-corba compiles yoko-osgi and yoko-rmi-spec sources
+                    // directly into the bundle; consumers should not receive those
+                    // projects as transitive Maven dependencies.
+                    def root = asNode()
+                    def depsNode = root.dependencies
+                    if (depsNode) root.remove(depsNode[0])
+
+                    // Declare only the OSGi API as a provided dependency
+                    def deps = root.appendNode('dependencies')
+                    def dep = deps.appendNode('dependency')
+                    dep.appendNode('groupId', 'org.osgi')
+                    dep.appendNode('artifactId', 'org.osgi.core')
+                    dep.appendNode('version', '6.0.0')
+                    dep.appendNode('scope', 'provided')
+                }
+            }
+        }
+    }
 }

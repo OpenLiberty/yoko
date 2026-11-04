@@ -31,18 +31,20 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
+import org.apache.yoko.osgi.locator.InternalRegistry;
+
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.security.AccessController.doPrivileged;
 
 public enum ProviderLocator {;
-    private static final AtomicReference<ProviderRegistry> registryRef = new AtomicReference<>();
+    private static final AtomicReference<InternalRegistry> registryRef = new AtomicReference<>();
 
-    static void setRegistry(ProviderRegistry registry) {
+    public static void setRegistry(InternalRegistry registry) {
         assert null != registry;
         registryRef.set(registry);
     }
 
-    static void unsetRegistry(ProviderRegistry registry) {
+    public static void unsetRegistry(InternalRegistry registry) {
         assert null != registry;
         registryRef.compareAndSet(registry, null);
     }
@@ -264,7 +266,7 @@ public enum ProviderLocator {;
         return classes;
     }
 
-    private static Optional<ProviderRegistry> getRegistry() {
+    private static Optional<InternalRegistry> getRegistry() {
         return Optional.of(registryRef).map(AtomicReference::get);
     }
 }

@@ -29,6 +29,7 @@ dependencies {
   implementation files(project(":yoko-spec-corba").sourceSets.main.output)
   implementation project(":testify")
   implementation project(":testify-iiop")
+  runtimeOnly project(":yoko-spec-corba")
   runtimeOnly project(":yoko-core")
   runtimeOnly "org.apache.felix:org.apache.felix.framework:7.0.3"
   // Declarative Services runtime, required by yoko-core's DS components

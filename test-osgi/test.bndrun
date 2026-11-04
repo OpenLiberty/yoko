@@ -45,6 +45,7 @@ logprops=${workspace}/test-osgi/yoko-logging.props
   org.osgi.util.tracker,              \
   org.osgi.service.component,         \
   org.apache.felix.scr,               \
+  org.apache.yoko.spec-corba,         \
   org.apache.yoko.core,               \
   org.apache.bcel,                    \
   org.apache.commons.lang3,           \

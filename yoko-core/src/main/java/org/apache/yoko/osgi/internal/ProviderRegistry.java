@@ -8,16 +8,18 @@
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an \"AS IS\" BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.apache.yoko.osgi;
+package org.apache.yoko.osgi.internal;
 
+import org.apache.yoko.osgi.ProviderLocator;
 import org.apache.yoko.osgi.locator.BundleProviderLoader;
+import org.apache.yoko.osgi.locator.InternalRegistry;
 import org.apache.yoko.osgi.locator.Register;
 import org.apache.yoko.osgi.locator.ServiceProvider;
 import org.osgi.service.component.annotations.Activate;
@@ -42,7 +44,7 @@ import static java.util.Collections.synchronizedSet;
  * Stores the bundle registrations.
  */
 @Component(immediate = true, service = Register.class)
-public class ProviderRegistry implements Register {
+public class ProviderRegistry implements InternalRegistry {
     private static final Logger log = Logger.getLogger(ProviderRegistry.class.getName());
     // our mapping between a provider id and the implementation information.  There
     // might be a one-to-many relationship between the ids and implementing classes.
@@ -101,7 +103,7 @@ public class ProviderRegistry implements Register {
      *         if this is not registered or the indicated class can't be
      *         loaded.
      */
-    <T> Class<T> locate(String providerId) {
+    public <T> Class<T> locate(String providerId) {
         return this.<T>loadFromServiceProvider(providerId)
                 .map(this::recordClass)
                 .orElse(null);
@@ -129,7 +131,7 @@ public class ProviderRegistry implements Register {
      * @return The service instance.  Returns null if no service definitions
      *         can be located.
      */
-    <T> T getService(String providerId) {
+    public <T> T getService(String providerId) {
         // see if we have a registered match for this...getting just the first instance
         ServiceProvider loader = serviceProviders.getProvider(providerId);
         if (loader != null) {
@@ -154,7 +156,7 @@ public class ProviderRegistry implements Register {
      * @return The provider class.   Returns null if no service definitions
      *         can be located.
      */
-    <T> Class<T> getServiceClass(String providerId) {
+    public <T> Class<T> getServiceClass(String providerId) {
         // see if we have a registered match for this...getting just the first instance
         ServiceProvider sp = serviceProviders.getProvider(providerId);
         if (sp != null) {
@@ -190,7 +192,7 @@ public class ProviderRegistry implements Register {
     }
 
 
-    boolean isServiceClassLoader(ClassLoader loader) {
+    public boolean isServiceClassLoader(ClassLoader loader) {
         return knownLoaders.contains(loader);
     }
 

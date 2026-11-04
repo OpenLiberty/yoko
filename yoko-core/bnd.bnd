@@ -25,13 +25,9 @@ Bundle-Description: Apache Yoko Core
 # Export-Package entry below (with mandatory:=testOnly).
 -privatepackage: org.apache.yoko.*
 
-# API packages (CORBA/OMG/RMI specs)
-# Export-Package also pulls in matching packages from the classpath, so
-# no -conditionalpackage is needed for org.omg.* or javax.*.
 Export-Package: \
-    javax.*;version=2.4, \
-    org.apache.yoko.osgi.locator;version=1.0.0, \
     org.apache.yoko.io;mandatory:=testOnly;testOnly=true, \
+    org.apache.yoko.orb.CORBA;version=1.6.0, \
     org.apache.yoko.orb.OB;version=1.6.0, \
     org.apache.yoko.orb.OBPortableServer;version=1.6.0, \
     org.apache.yoko.orb.OCI;version=1.6.0, \
@@ -39,8 +35,7 @@ Export-Package: \
     org.apache.yoko.orb.PortableInterceptor;version=1.6.0, \
     org.apache.yoko.orb.spi.naming;version=1.6.0, \
     org.apache.yoko.rmi.impl;version=1.0.0, \
-    org.apache.yoko.util;mandatory:=testOnly;testOnly=true, \
-    org.omg.*;version=2.4
+    org.apache.yoko.util;mandatory:=testOnly;testOnly=true
 # Optional sun.* imports that may not be present at runtime
 Import-Package: \
     sun.misc;resolution:=optional, \
