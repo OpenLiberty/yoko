@@ -544,14 +544,17 @@ private int printTestSummary(project) {
       if (anchorMs < 0) {
         stale = true   // no compiled classes — cannot confirm freshness
       } else try {
-        def fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-        def suiteEpochSec = java.time.LocalDateTime.parse(timestamp, fmt)
-            .atZone(ZoneOffset.UTC).toEpochSecond()
+        // Accept both "2026-11-02T14:53:09" (no zone, assumed UTC) and
+        // "2026-11-05T17:42:27.293Z" (optional fraction and offset), depending on the Gradle version.
+        def parsed = DateTimeFormatter.ISO_DATE_TIME.parse(timestamp)
+        def suiteEpochSec = parsed.isSupported(java.time.temporal.ChronoField.OFFSET_SECONDS)
+            ? java.time.OffsetDateTime.from(parsed).toEpochSecond()
+            : java.time.LocalDateTime.from(parsed).atZone(ZoneOffset.UTC).toEpochSecond()
         stale = suiteEpochSec < anchorSec
       } catch (Exception e) {
         throw new GradleException(
             "Unparseable timestamp '${timestamp}' in ${xmlFile.name} (${sp.name}): ${e.message}\n" +
-            "Expected format: yyyy-MM-ddTHH:mm:ss")
+            "Expected ISO-8601 format: yyyy-MM-ddTHH:mm:ss[.SSS][Z]")
       }
 
       // Collect individual failing test names from this suite
