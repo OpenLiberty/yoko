@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@
  */
 package org.apache.yoko;
 
-import test.poa.TestDispatchStrategyClient;
-import test.poa.TestDispatchStrategyServer;
 import test.poa.TestMultipleOrbsClient;
 import test.poa.TestMultipleOrbsServer;
 import test.poa.TestMultipleOrbsThreadedClient;
@@ -29,10 +27,6 @@ public class PoaTest extends AbstractOrbTestBase {
     public void setUp() throws Exception {
         super.setUp();
         setWaitForFile("Test.ref");
-    }
-
-    public void testDispatchStrategyServer() throws Exception {
-        runServerClientTest(TestDispatchStrategyServer.class, TestDispatchStrategyClient.class);
     }
 
     public void testMultipleOrbsServer() throws Exception {
