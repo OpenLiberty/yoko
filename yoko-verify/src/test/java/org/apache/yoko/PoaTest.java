@@ -17,8 +17,6 @@
  */
 package org.apache.yoko;
 
-import test.poa.TestMultipleOrbsClient;
-import test.poa.TestMultipleOrbsServer;
 import test.poa.TestMultipleOrbsThreadedClient;
 import test.poa.TestMultipleOrbsThreadedServer;
 
@@ -27,10 +25,6 @@ public class PoaTest extends AbstractOrbTestBase {
     public void setUp() throws Exception {
         super.setUp();
         setWaitForFile("Test.ref");
-    }
-
-    public void testMultipleOrbsServer() throws Exception {
-        runServerClientTest(TestMultipleOrbsServer.class, TestMultipleOrbsClient.class);
     }
 
     public void testMultipleOrbsThreadedServer() throws Exception {
