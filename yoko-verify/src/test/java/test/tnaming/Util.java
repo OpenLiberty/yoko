@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,8 +50,6 @@ import org.omg.PortableServer.POAHelper;
 public class Util {
     static final NameComponent[] ITERATOR_TEST_CONTEXT_PATH = Util.makeName("iteratorTest");
     static final Set<String> EXPECTED_NAMES = Collections.unmodifiableSet(new TreeSet<>(Arrays.asList("test0 test1 test2 test3 test4 test5 test6 test7 test8 test9".split(" "))));
-    static final int NS_PORT = 40001;
-    static final String NS_LOC = "corbaloc::localhost:40001/NameService";
     
     static void assertTestIsBound(String expectedId, NamingContextExt ctx, NameComponent ...path) throws CannotProceed, InvalidName {
         assertNotNull(path);
