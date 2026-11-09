@@ -41,4 +41,6 @@ public interface UnifiedConnectionHelper {
     default Set<Integer> tags() { return Collections.emptySet(); }
     default TransportAddress[] getEndpoints(TaggedComponent taggedComponent, Policy... policies) { return emptyArray(TransportAddress.class); }
     default boolean isExtended() { return false; }
+    /** Returns the default SSL config name to use for iiops:// corbaloc addresses, or null if SSL is not configured. */
+    default String getDefaultSslConfigName() { return null; }
 }
