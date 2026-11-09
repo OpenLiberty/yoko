@@ -20,10 +20,15 @@ Bundle-Description: Apache Yoko Core
 
 -dsannotations: *
 
-# Pull in all org.apache.yoko.* packages from the classpath privately,
-# except org.apache.yoko.util which is governed solely by the explicit
-# Export-Package entry below (with mandatory:=testOnly).
--privatepackage: org.apache.yoko.*
+# Pull in implementation org.apache.yoko.* packages from the classpath privately,
+# excluding API packages that are owned and exported by yoko-spec-corba.
+-privatepackage: \
+    !org.apache.yoko.osgi, \
+    !org.apache.yoko.osgi.locator, \
+    !org.apache.geronimo.interop, \
+    !org.apache.yoko.rmispec.util, \
+    !org.apache.yoko, \
+    org.apache.yoko.*
 
 Export-Package: \
     org.apache.yoko.io;mandatory:=testOnly;testOnly=true, \
@@ -38,6 +43,7 @@ Export-Package: \
     org.apache.yoko.util;mandatory:=testOnly;testOnly=true
 # Optional sun.* imports that may not be present at runtime
 Import-Package: \
+    org.apache.yoko.rmispec.util;yokoInternal=true, \
     sun.misc;resolution:=optional, \
     sun.reflect;resolution:=optional, \
     *
