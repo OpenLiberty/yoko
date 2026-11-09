@@ -22,6 +22,7 @@ Export-Package: \
     javax.*;version=2.4, \
     org.apache.yoko.osgi;version=1.0.0, \
     org.apache.yoko.osgi.locator;version=1.0.0, \
+    org.apache.yoko.rmispec.util;mandatory:=yokoInternal;yokoInternal=true;version=1.0.0, \
     org.omg.*;version=2.4
 
 Import-Package: \
