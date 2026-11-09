@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 IBM Corporation and others.
+ * Copyright 2026 IBM Corporation and others.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,30 +22,32 @@ import java.io.Serializable;
 import javax.rmi.CORBA.Util;
 import javax.rmi.CORBA.ValueHandler;
 
-import junit.framework.TestCase;
-
-import org.junit.Assert;
+import org.junit.jupiter.api.Test;
 import org.omg.CORBA.ValueDefPackage.FullValueDescription;
 import org.omg.SendingContext.CodeBase;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class MetaTest extends TestCase {
 
-    public void testMetaForClassWithASelfReference() {
+public class MetaTest {
+
+    @Test
+    void testMetaForClassWithASelfReference() {
         ValueHandler vh = Util.createValueHandler();
         CodeBase codebase = (CodeBase)vh.getRunTimeCodeBase();
         String dataClassRepid = vh.getRMIRepositoryID(Data.class);
         FullValueDescription fvd = codebase.meta(dataClassRepid);
-        Assert.assertNotNull(fvd);
+        assertNotNull(fvd);
     }
 
-    public void testMetaForClassWithTwoSelfReferences() {
+    @Test
+    void testMetaForClassWithTwoSelfReferences() {
         ValueHandler vh = Util.createValueHandler();
         CodeBase codebase = (CodeBase)vh.getRunTimeCodeBase();
         String dataClassRepid = vh.getRMIRepositoryID(X.class);
         System.out.println(dataClassRepid);
         FullValueDescription fvd = codebase.meta(dataClassRepid);
-        Assert.assertNotNull(fvd);
+        assertNotNull(fvd);
     }
 
     public static class Data implements Serializable {

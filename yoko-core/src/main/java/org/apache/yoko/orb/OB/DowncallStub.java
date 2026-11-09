@@ -183,10 +183,15 @@ public final class DowncallStub {
         origIOR_ = origIOR;
         policies_ = policies;
 
-        // Lazy initialization of client/profile pairs
+        // Lazy initialization of client/profile pairs.
+        // The initializer must capture only locals, not 'this': the cleanup state below holds this
+        // LazyReference (and so the initializer) strongly, which would keep this stub from ever being collected.
+        final ORBInstance orbInstanceLocal = orbInstance;
+        final IOR iorLocal = ior;
+        final RefCountPolicyList policiesLocal = policies;
         clientProfilePairsRef = new LazyReference<>(() -> {
-            ClientManager clientManager = orbInstance_.getClientManager();
-            return clientManager.getClientProfilePairs(IOR_, policies_.value);
+            ClientManager clientManager = orbInstanceLocal.getClientManager();
+            return clientManager.getClientProfilePairs(iorLocal, policiesLocal.value);
         });
 
         // Register cleanup action - uses shared state to avoid referencing 'this'
