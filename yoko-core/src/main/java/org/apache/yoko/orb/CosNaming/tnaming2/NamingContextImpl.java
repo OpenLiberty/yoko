@@ -276,6 +276,16 @@ public final class NamingContextImpl extends LocalObject implements NamingContex
             poa.activate_object_with_id(servantId, this);
         }
 
+        /**
+         * References created with {@code _this_object()} must come from the POA that activated this servant
+         * (not the root POA), so that they carry that POA's policies and IOR components,
+         * e.g. the zero-port policy and the CSIv2 transport addresses of a secure-only endpoint.
+         */
+        @Override
+        public POA _default_POA() {
+            return poa;
+        }
+
         abstract Servant convertLocalContextToRemoteContext(NamingContextImpl o) throws Exception;
 
         @Override

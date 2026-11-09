@@ -121,6 +121,12 @@ public final class BindingIteratorImpl extends LocalObject implements BindingIte
             poa.activate_object_with_id(core.getServantId(), this);
         }
 
+        /** References must come from the POA that activated this servant, not the root POA. */
+        @Override
+        public POA _default_POA() {
+            return poa;
+        }
+
         /**
          * Return the next object in the iteration sequence.
          * @param b The BindingHolder used to return the next item. If we've

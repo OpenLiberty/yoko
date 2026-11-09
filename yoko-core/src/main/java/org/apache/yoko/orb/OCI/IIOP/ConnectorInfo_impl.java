@@ -94,6 +94,19 @@ public final class ConnectorInfo_impl extends LocalObject implements ConnectorIn
         for (ConnectCB cb : callbacks) cb.connect_cb(info);
     }
 
+    /**
+     * Returns the transport protocol prefix encoded in the host string (e.g. {@code "_ssl"}),
+     * or an empty string for a plain (unencoded) host.
+     * Two connectors to the same host and port but with different protocols must not be
+     * considered equal, otherwise Yoko's connector cache could reuse an SSL connection
+     * for a plain request (or vice versa).
+     */
+    String protocol() {
+        if (!Util.isEncodedHost(host)) return "";
+        int end = host.indexOf('[');
+        return end < 0 ? host : host.substring(0, end);
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
@@ -101,11 +114,13 @@ public final class ConnectorInfo_impl extends LocalObject implements ConnectorIn
 
         ConnectorInfo_impl that = (ConnectorInfo_impl) other;
 
-        return (this.port == that.port) && this.getInetAddress().equals(that.getInetAddress());
+        return (this.port == that.port)
+                && this.protocol().equals(that.protocol())
+                && this.getInetAddress().equals(that.getInetAddress());
     }
 
     @Override
-    public int hashCode() {return 31*port + getInetAddress().hashCode();}
+    public int hashCode() {return 31*(31*port + protocol().hashCode()) + getInetAddress().hashCode();}
 
     @Override
     public String toString() {

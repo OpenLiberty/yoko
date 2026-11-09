@@ -114,7 +114,15 @@ public interface ExtendedConnectionHelper extends UnifiedConnectionHelperProvide
 
             @Override
             public boolean isExtended() { return true; }
+
+            @Override
+            public String getDefaultSslConfigName() {
+                return ExtendedConnectionHelper.this.getDefaultSslConfigName();
+            }
         };
     }
+
+    /** Returns the default SSL config name for iiops: corbaloc addresses; override to provide one. */
+    default String getDefaultSslConfigName() { return null; }
 }
 

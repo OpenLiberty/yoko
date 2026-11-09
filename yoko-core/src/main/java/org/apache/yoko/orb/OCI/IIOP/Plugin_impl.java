@@ -72,13 +72,14 @@ public final class Plugin_impl extends LocalObject implements Plugin {
             throw as(INITIALIZE::new, ex, "OCI IIOP plug-in already installed");
         }
 
-        // Install the "iiop" corbaloc URL protocol
+        // Install the "iiop" and "iiops" corbaloc URL protocols.
         try {
             URLRegistry registry = (URLRegistry)orb_.resolve_initial_references("URLRegistry");
             URLScheme scheme = registry.findScheme("corbaloc");
             ensure(scheme != null);
             CorbalocURLScheme corbaloc = (CorbalocURLScheme) scheme;
             corbaloc.addProtocol(new CorbalocProtocol_impl());
+            corbaloc.addProtocol(new IIOPSCorbalocProtocol_impl(connectionHelper.getDefaultSslConfigName()));
         } catch (InvalidName | ProtocolAlreadyExists ex) {
             throw Assert.fail(ex);
         }

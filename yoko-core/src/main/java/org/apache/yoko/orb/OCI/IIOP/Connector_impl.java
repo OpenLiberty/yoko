@@ -324,6 +324,8 @@ final class Connector_impl extends org.omg.CORBA.LocalObject implements Connecto
 
     private boolean equal0(Connector_impl that) {
         if (this.info_.getPort() != that.info_.getPort()) return false;
+        // an SSL connector must never match a plain one for the same host:port
+        if (!this.info_.protocol().equals(that.info_.protocol())) return false;
         return (CompareHosts(this.info_.getHost(), that.info_.getHost()) && Arrays.equals(transportInfo, that.transportInfo));
     }
 
