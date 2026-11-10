@@ -1,0 +1,70 @@
+/*
+ * Copyright 2026 IBM Corporation and others.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+// Gradle init script that adds the OpenRewrite plugin to ANY checkout of Yoko, so that the formatter
+// can be run on old commits that know nothing about it. Used by scripts/yoko-format.sh; not for direct use.
+//
+// Required project properties (-P):
+//   yoko.format.recipeJar  the jar built from build-tools/yoko-rewrite
+//   yoko.format.config     the rewrite.yml that defines the yoko.format.* recipes
+
+initscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        // The plugin version fixes the rewrite engine version. build-tools/yoko-rewrite must be built against the same one.
+        classpath 'org.openrewrite:plugin:6.25.0'
+    }
+}
+
+// Included builds (such as build-tools/yoko-rewrite in this repo) run this script too, but must be left alone
+if (gradle.parent == null) {
+    def props = gradle.startParameter.projectProperties
+    def recipeJar = props['yoko.format.recipeJar']
+    def config = props['yoko.format.config']
+    def recipe = props['yoko.format.recipe'] ?: 'yoko.format.All'
+    if (!recipeJar || !config) throw new GradleException('yoko.format.recipeJar and yoko.format.config must be set')
+
+    rootProject {
+        // A checkout that already has OpenRewrite set up (such as one at or after the commit that added the formatter) is left to use its own set-up
+        if (buildFile.text =~ /org\.openrewrite\.rewrite/) {
+            logger.lifecycle('Using the OpenRewrite configuration of this checkout')
+            return
+        }
+        apply plugin: org.openrewrite.gradle.RewritePlugin
+
+        repositories {
+            mavenCentral()
+        }
+
+        dependencies {
+            rewrite files(recipeJar)
+        }
+
+        rewrite {
+            activeRecipe(recipe)
+            configFile = file(config)
+            exclusion('worktrees/**')
+            exclusion('**/generated-sources/**')
+            exclusion('**/java-generated/**')
+            exclusion('build-tools/**')
+        }
+    }
+}

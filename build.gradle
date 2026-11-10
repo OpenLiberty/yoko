@@ -41,20 +41,17 @@ repositories {
   mavenCentral()
 }
 
-rewrite {
-  activeRecipe("yoko.format.FixIndentation")
-  configFile = project.file("config/rewrite.yml")
-  exclusions = ["worktrees/**"]
-  plainTextMasks = ["**/*.gradle"]
+dependencies {
+  // custom recipes, built from build-tools/yoko-rewrite (an included build)
+  rewrite "io.openliberty.yoko.build:yoko-rewrite:1.0.0"
 }
 
-ext {
-  testCount = 0
-  successfulTestCount = 0
-  failedTestCount = 0
-  skippedTestCount = 0
-  time = new TimeDuration(0,0,0,0)
-  testsResults = []
+rewrite {
+  activeRecipe("yoko.format.All")
+  configFile = project.file("config/rewrite.yml")
+  exclusion("worktrees/**")
+  exclusion("**/generated-sources/**")
+  exclusion("**/java-generated/**")
 }
 
 wrapper {

@@ -15,12 +15,13 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: yoko.format.FixIndentation
-displayName: Fix Yoko indentation
-description: Format tabs and indents to use spaces with 4-space indentation and 8-space tab stops
+name: yoko.format.All
+displayName: Yoko source formatting
+description: >
+  The one transformation that modernises the code, then fixes imports and indentation, preserving hand-aligned layouts.
+  The modernisations go first so that imports and indentation are judged on the final text.
 recipeList:
-  - org.openrewrite.java.format.TabsAndIndents:
-      useTabCharacter: false
-      tabSize: 8
-      indentSize: 4
-      continuationIndent: 8
+  - io.openliberty.yoko.rewrite.YokoForEach
+  - io.openliberty.yoko.rewrite.YokoSwitch
+  - io.openliberty.yoko.rewrite.YokoImports
+  - io.openliberty.yoko.rewrite.YokoIndent

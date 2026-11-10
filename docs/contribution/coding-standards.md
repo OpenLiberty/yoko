@@ -87,15 +87,44 @@ All source files must include the Apache License 2.0 header:
 ```
 
 ### Import Organization
-Imports must be organized in the following order:
-1. `java.*` packages
-2. `javax.*` packages
-3. `org.w3c.*` packages
-4. `org.xml.*` packages
-5. `w3c.*` packages
-6. All other imports
+Imports are laid out in three blocks, separated by one blank line, and sorted in plain string order within each block
+(so upper case sorts before lower case):
+1. All other imports (`org.*`, `com.*`, `io.*`, ...)
+2. `javax.*` imports, then `java.*` imports
+3. All `static` imports
 
-Within each group, imports should be alphabetically sorted.
+This is the default layout of IntelliJ IDEA, and is what the code base mostly used before it was enforced.
+(The checkstyle `ImportOrder` rule in `config/checkstyle/checkstyle.xml` describes an older, different layout and is not used by the build.)
+
+When two imports would share a simple name, the class that is imported is chosen as follows,
+and the others are written fully qualified:
+1. `java.*` and `javax.*` classes win
+2. then `org.omg.*` classes
+3. then anything that is not `org.apache.yoko.*`
+4. then `org.apache.yoko.*` classes
+
+If the classes are in the same tier and one is a supertype of the other, the supertype (the one higher up the hierarchy) wins.
+`org.omg.CORBA.Object` is never imported.
+
+### Automatic Formatting
+Imports, indentation and a few simple loop and `switch` idioms are managed by the `yoko.format.All` OpenRewrite recipe
+(see `config/rewrite.yml` and `build-tools/yoko-rewrite`). It:
+- expands star imports, removes unused imports, resolves name clashes, and lays out imports as above
+- indents blocks by 4 spaces (case labels level with the `switch`) and expands tabs, but leaves hand-aligned
+  "tables" (such as columns of one-line `case` rows) as they are
+- replaces indexed `for` loops with for-each loops, and chains of `if`/`else if` tests of one variable
+  against constants with a `switch`, but only where the result is guaranteed to behave identically
+
+Generated sources are never touched.
+
+| to... | run |
+|-------|-----|
+| format the whole checkout | `scripts/yoko-format.sh` (or `./gradlew rewriteRun`) |
+| check without changing anything (exits 1 and lists the files that need formatting; intended for CI) | `scripts/yoko-format.sh --check` |
+| restyle a feature branch, with one `style:` commit up front and every later commit formatted | `scripts/format-branch.sh --base origin/dev` |
+
+The scripts work on any checkout, however old, because they inject the formatter with a Gradle init script.
+They need JDK 17 (found under `~/.sdkman/candidates/java` or via `YOKO_FORMAT_JAVA_HOME`) and about 8 GB of heap (`YOKO_FORMAT_HEAP`).
 
 ### Line Length and Wrapping
 - **Maximum line length**: 110 characters
