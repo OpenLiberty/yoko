@@ -33,7 +33,8 @@
     echo "  Copy the current branch to a new branch in which the Yoko formatting has been applied cleanly."
     echo "  The new branch consists of:"
     echo "    1. one 'style:' commit, on the merge base, that formats every file the branch touches;"
-    echo "    2. a replay of each of the branch's commits (same author, date and message), each with the formatter applied,"
+    echo "    2. a rebuild of each of the branch's commits (same author, date and message): the files that commit changes"
+    echo "       are taken verbatim from it and formatted, and everything else carries over from the previous level,"
     echo "       so that every commit shows only its real change and the branch stays reviewable."
     echo "  The current branch and working tree are left alone; all the work is done in a temporary worktree."
     echo "  -b,--base rev    the branch point (default: origin/dev, or dev if there is no origin/dev)"
@@ -78,6 +79,8 @@
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/yoko-format-branch.XXXXXX")"
   wt="$tmp/wt"
   touched="$tmp/touched"
+  changed="$tmp/changed"
+  present="$tmp/present"
   cleanup() {
     git worktree remove --force "$wt" > /dev/null 2>&1 || true
     git worktree prune
@@ -90,12 +93,11 @@
 
   git worktree add -q --detach "$wt" "$merge_base"
 
-  # Format the tree of the worktree, then undo changes to files the branch never touches
-  format_touched() {
+  # Format the tree of the worktree, then undo changes to all files not listed in the file named by $1
+  # (the formatter can not be restricted to some files, but the index holds the version to go back to)
+  format_listed() {
     "$tool_dir/scripts/yoko-format.sh" --tool-dir "$tool_dir" "$wt" > /dev/null
-    git -C "$wt" diff --name-only | grep -Fvx -f "$touched" | while IFS= read -r f; do
-      git -C "$wt" checkout -q -- "$f"
-    done || true
+    git -C "$wt" diff --name-only | grep -Fvx -f "$1" | tr '\n' '\0' | xargs -0 git -C "$wt" checkout -q -- 2> /dev/null || true
   }
 
   # Use the tree of the worktree, as it stands, as the content of a new commit
@@ -105,7 +107,7 @@
   }
 
   echo "Formatting the files touched by $branch on the merge base ($merge_base)"
-  format_touched
+  format_listed "$touched"
   tree="$(tree_of_worktree)"
   if [ "$tree" = "$(git rev-parse "$merge_base^{tree}")" ]; then
     prev="$merge_base"
@@ -119,8 +121,19 @@
   for c in $commits; do
     count=$((count + 1))
     echo "[$count/$total] $(git log -1 --format='%h %s' "$c")"
-    git -C "$wt" checkout -q -f --detach "$c"
-    format_touched
+    # Start from the previous level and bring in only the files this commit changes
+    git -C "$wt" checkout -q -f --detach "$prev"
+    git diff --no-renames --name-only "$c^" "$c" > "$changed"
+    git diff --no-renames --name-only --diff-filter=d "$c^" "$c" > "$present"
+    # (an empty path list would make checkout switch to $c)
+    if [ -s "$present" ]; then
+      tr '\n' '\0' < "$present" | xargs -0 git -C "$wt" checkout -q "$c" --
+    fi
+    git diff --no-renames --name-only --diff-filter=D "$c^" "$c" | while IFS= read -r f; do
+      rm -f "$wt/$f"
+    done
+    git -C "$wt" add -A
+    format_listed "$changed"
     tree="$(tree_of_worktree)"
     # (env keeps the author settings from leaking into later commands)
     prev="$(git log -1 --format=%B "$c" | env \
