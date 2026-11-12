@@ -33,9 +33,26 @@ buildscript {
 plugins {
   id "biz.aQute.bnd.builder" version "6.4.0" apply false
   id "com.dorongold.task-tree" version "2.1.1"
+  id "org.openrewrite.rewrite" version "6.25.0"
   id "base"
 }
 
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  // custom recipes, built from build-tools/yoko-rewrite (an included build)
+  rewrite "io.openliberty.yoko.build:yoko-rewrite:1.0.0"
+}
+
+rewrite {
+  activeRecipe("yoko.format.All")
+  configFile = project.file("config/rewrite.yml")
+  exclusion("worktrees/**")
+  exclusion("**/generated-sources/**")
+  exclusion("**/java-generated/**")
+}
 
 wrapper {
     distributionType = Wrapper.DistributionType.ALL
